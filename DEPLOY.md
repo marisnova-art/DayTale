@@ -58,10 +58,15 @@ npx supabase functions deploy paddle-webhook --no-verify-jwt
 4. 샌드박스 시험 카드(4242 4242 4242 4242)로 결제 → 앱에 "구독 중"이 뜨는지 확인
 
 ## 5. 웹사이트 두 개 (Cloudflare Pages)
-| 프로젝트 | 올릴 폴더 | 빌드 |
-|---|---|---|
-| 앱 + 소개 페이지 (예: `daytale`) | `v1/app` | 없음 (Build command 비움, Output `/`) |
-| 관리자 (예: `daytale-admin`) | `v1/admin/site` | 없음 |
+Cloudflare → Workers & Pages → Create → **Pages** → Connect to Git → 이 GitHub 저장소 고르기. 같은 저장소로 프로젝트를 두 번 만들어요.
+
+| 프로젝트 | Framework preset | Build command | **Build output directory** |
+|---|---|---|---|
+| 앱 + 소개 페이지 (예: `daytale`) | None | 비움 | `app` |
+| 관리자 (예: `daytale-admin`) | None | 비움 | `admin/site` |
+
+- `index.html`은 저장소 맨 위가 아니라 `app` 폴더 안에 있어요. Build output directory를 비워 두면 "index를 못 찾는" 화면이 나와요.
+- GitHub Pages는 폴더를 맨 위나 `/docs`만 고를 수 있어서 이 구조에는 맞지 않아요. Cloudflare Pages를 써요.
 
 - 관리자 사이트는 ★ Cloudflare Zero Trust → Access로 **내 이메일만** 들어오게 막는 것을 권해요(무료).
 - 주소가 정해지면 Supabase Site URL·Secrets의 `APP_ORIGIN`/`ADMIN_ORIGIN`도 맞춰요.
