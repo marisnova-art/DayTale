@@ -14,7 +14,7 @@
 .story.fade-in p:nth-child(2) { animation-delay: .06s; } .story.fade-in p:nth-child(3) { animation-delay: .12s; } .story.fade-in p:nth-child(4) { animation-delay: .18s; } .story.fade-in p:nth-child(5) { animation-delay: .24s; }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } }
 .askq { margin-top: 26px; }
-.askq .q { margin: 0 0 12px; font-size: var(--fs-l); line-height: 1.35; color: #fff; font-weight: 700; letter-spacing: -.035em; }
+.askq .q { margin: 0 0 12px; font-size: var(--story); line-height: var(--story-lh); color: #fff; font-weight: 700; letter-spacing: -.035em; }
 .askq .q button { color: inherit; text-align: left; font-weight: inherit; letter-spacing: inherit; }
 .ask { display: flex; align-items: center; gap: 10px; min-height: 56px; border-radius: 18px; padding: 8px 8px 8px 18px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14);
   -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
