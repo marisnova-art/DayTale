@@ -22,6 +22,11 @@ function css(p, ang = 160) {
   const [, d, hot, warm, mid, deep] = p;
   return `radial-gradient(60% 30% at 0% 0%, ${d}99 0%, ${d}00 100%), linear-gradient(${ang}deg, ${d} 0%, ${dk(hot, .62)} 16%, ${dk(warm, .55)} 36%, ${dk(mid, .85)} 62%, ${deep} 86%, #16181C 100%)`;
 }
+/* PC처럼 가로로 넓은 화면: 기울이면 줄처럼 보여서 위→아래로, 위쪽 양 모서리에 빛 번짐 */
+function cssWide(p) {
+  const [, d, hot, warm, mid, deep] = p; const h = dk(hot, .62), w = dk(warm, .55);
+  return `radial-gradient(90% 110% at 0% 0%, ${h}cc 0%, ${h}00 60%), radial-gradient(80% 95% at 100% 10%, ${w}b3 0%, ${w}00 60%), linear-gradient(180deg, ${h} 0%, ${w} 30%, ${dk(mid, .85)} 62%, ${deep} 86%, #16181C 100%)`;
+}
 /* 비·눈 오는 날은 차분한 팔레트 쪽으로 */
 const CALM = new Set(['morning-mist', 'sea-morning', 'clear-sky', 'mint', 'lavender', 'deep-sea', 'moonlight', 'midnight-teal']);
 function pick(slot = slotOf(), weather = null) {
@@ -41,10 +46,11 @@ function apply(el = document.body, { weather = null } = {}) {
   if (!p) { p = pick(slot, weather); ls.set('daytale.bgNow', { key, name: p[0] }); ls.set('daytale.bg', [p[0], ...ls.get('daytale.bg', [])].slice(0, 7)); }
   current = { name: p[0], slot, accent: lighten(p[2], .35) };
   el.style.setProperty('--bg-grad', css(p));
+  el.style.setProperty('--bg-grad-wide', cssWide(p));
   el.style.setProperty('--accent', current.accent);
   document.querySelector('meta[name=theme-color]')?.setAttribute('content', p[1]);
   return current;
 }
 const now = () => current;
 
-export { PAL, apply, css, now };
+export { PAL, apply, css, cssWide, now };
