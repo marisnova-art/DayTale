@@ -470,3 +470,8 @@ revoke execute on all functions in schema public from public, anon, authenticate
 grant execute on function public.is_subscriber(uuid), public.can_write(uuid), public.my_status(), public.touch_seen(),
   public.redeem_referral(text), public.delete_my_account() to authenticated;
 grant execute on function public.photo_allowance(uuid), public.sweep_orphan_photos() to service_role;
+
+-- 함수가 찾는 스키마를 고정해요 (Supabase 보안 점검 권고). create or replace 뒤에 다시 걸어야 해서 맨 끝에 둬요.
+alter function public.write_gate() set search_path = public, pg_temp;
+alter function public.stamp_row() set search_path = public, pg_temp;
+alter function public.entry_size(public.entries) set search_path = public, pg_temp;
