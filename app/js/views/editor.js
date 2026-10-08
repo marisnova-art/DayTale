@@ -1,4 +1,5 @@
 /* 기록 편집기: 제목 + 본문(서식), 떠 있는 서식 막대, "/" 블록 메뉴, 마크다운 단축, 체크리스트, 템플릿, 말로 입력, 자동 저장 */
+import { CFG } from '../core/config.js';
 import { S, displayTitle, isEmpty, newEntry, onChange, patchEntry, saveEntry, trashEntry } from '../data/store.js';
 import { listen, supported } from '../features/dictation.js';
 import { sticker } from '../core/stickers.js';
@@ -35,7 +36,7 @@ function render(view, r) {
     <div class="ed-body" ${ro ? '' : 'contenteditable="true"'} spellcheck="true" data-ph="${esc(t('ed.body'))}" role="textbox" aria-multiline="true" aria-label="${esc(t('ed.body'))}"></div>
     <div class="ed-foot"></div>
   </div>
-  ${ro ? '' : `<div class="ed-bar"><div class="cap"><button class="tb" data-act="blocks" aria-label="${esc(t('ed.addBlock'))}">${icon('plus', 20)}</button><button class="tb" data-act="check" aria-label="${esc(t('ed.check'))}">${icon('list-todo', 20)}</button><button class="tb" data-act="photo" aria-label="${esc(t('ed.photo'))}">${icon('image', 20)}</button><button class="tb" data-act="template" aria-label="${esc(t('ed.template'))}">${icon('layout-template', 20)}</button></div><input type="file" accept="image/*" multiple hidden class="ed-file">
+  ${ro ? '' : `<div class="ed-bar"><div class="cap"><button class="tb" data-act="blocks" aria-label="${esc(t('ed.addBlock'))}">${icon('plus', 20)}</button><button class="tb" data-act="check" aria-label="${esc(t('ed.check'))}">${icon('list-todo', 20)}</button>${CFG.PHOTOS_URL ? `<button class="tb" data-act="photo" aria-label="${esc(t('ed.photo'))}">${icon('image', 20)}</button>` : ''}<button class="tb" data-act="template" aria-label="${esc(t('ed.template'))}">${icon('layout-template', 20)}</button></div><input type="file" accept="image/*" multiple hidden class="ed-file">
     ${supported() ? `<button class="mic" data-act="mic" aria-label="${esc(t('home.mic'))}">${icon('mic', 22)}</button>` : ''}</div>`}
   </div>`;
   const el = { root: view, title: $('.ed-title', view), body: $('.ed-body', view), chips: $('.ed-chips', view), meta: $('.ed-meta', view), photos: $('.ed-photos', view), foot: $('.ed-foot', view) };
@@ -133,7 +134,7 @@ async function onAct(ev) {
   else if (a === 'blocks') { cur.el.body.focus(); if (!cur.el.body.textContent && !cur.el.body.querySelector('ul,ol,hr')) placeCaret(cur.el.body, true); showBlocks(''); }
   else if (a === 'check') { cur.el.body.focus(); applyBlock('check'); }
   else if (a === 'template') template();
-  else if (a === 'photo') { if ((e.photos || []).length >= 4) toast(t('photo.perEntry')); else cur.el.root.querySelector('.ed-file').click(); }
+  else if (a === 'photo' && CFG.PHOTOS_URL) { if ((e.photos || []).length >= 4) toast(t('photo.perEntry')); else cur.el.root.querySelector('.ed-file').click(); }
   else if (a === 'ph') photoMenu(b.dataset.id);
   else if (a === 'mic') listen({ onState: on => b.classList.toggle('on', on), onText: txt => { cur.el.body.focus(); document.execCommand('insertText', false, txt.trim() + ' '); cur.save(); } });
 }
