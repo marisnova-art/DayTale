@@ -1,5 +1,5 @@
 /* 정리형 목록: 모든 기록, 종류별, 폴더, 폴더 없음, 할 일, 휴지통, 찾기 */
-import { S, TYPES, addEntry, displayTitle, live, patchEntry, purgeEntries, restoreEntry, trash } from '../data/store.js';
+import { S, TYPES, addEntry, displayTitle, live, patchEntry, purgeEntries, restoreEntry, trash, trashEntry } from '../data/store.js';
 import { TYPE_ICON } from '../ui/shell.js';
 import { fmtDate, fmtHM, fmtNum, fmtTime, t } from '../core/i18n.js';
 import { addDays, dayKey, debounce, esc, icon, nowISO, todayKey } from '../core/utils.js';
@@ -37,7 +37,9 @@ function row(e, { terms = [], mode = '' } = {}) {
   const side = mode === 'trash' ? `<span class="side"><button data-restore="${e.id}">${esc(t('list.restore'))}</button><button class="bad" data-purge="${e.id}" aria-label="${esc(t('list.purge'))}">${icon('trash-2', 15)}</button></span>` : `<span class="tm">${e.pinned ? icon('pin', 13) + ' ' : ''}${esc(time)}</span>`;
   const ps = e.photos || [];
   const th = ps.length && mode !== 'trash' ? `<span class="th">${Photos.imgTag(ps[0])}${ps.length > 1 ? `<b>${esc(t('photo.more', { n: ps.length - 1 }))}</b>` : ''}</span>` : '';
-  return `<a class="r" href="#/e/${e.id}">${lead}<span class="tx"><div class="t${m.done ? ' done' : ''}">${hl(displayTitle(e, t('common.untitled')), terms)}</div>${subHtml || f ? `<div class="p">${subHtml}${f && mode !== 'folder' ? (subHtml ? ' · ' : '') + esc(f.name) : ''}</div>` : ''}</span>${th}${side}</a>`;
+  const a = `<a class="r" href="#/e/${e.id}">${lead}<span class="tx"><div class="t${m.done ? ' done' : ''}">${hl(displayTitle(e, t('common.untitled')), terms)}</div>${subHtml || f ? `<div class="p">${subHtml}${f && mode !== 'folder' ? (subHtml ? ' · ' : '') + esc(f.name) : ''}</div>` : ''}</span>${th}${mode === 'trash' ? '' : `<button class="del" data-del="${e.id}" aria-label="${esc(t('list.del'))}">${icon('trash-2', 17)}</button>`}${side}</a>`;
+  // 왼쪽으로 밀면 삭제 버튼이 나와요 (끝까지 밀면 바로 휴지통). PC는 줄에 마우스를 올리면 휴지통 버튼
+  return mode === 'trash' ? a : `<div class="swp" data-id="${e.id}"><button class="swp-del" data-del="${e.id}" tabindex="-1">${icon('trash-2', 20)}<span>${esc(t('list.del'))}</span></button>${a}</div>`;
 }
 function groups(list, opts, key = e => dayKey(new Date(e.created_at))) {
   const out = []; let g = null;
@@ -63,10 +65,15 @@ function render(view, r) {
   const q = r.query.q || '';
   const sInput = view.querySelector('.searchbar input'); if (sInput) { sInput.value = q; setTimeout(() => sInput.focus(), 50); sInput.addEventListener('input', debounce(() => { history.replaceState(null, '', '#/search?q=' + encodeURIComponent(sInput.value)); paint(); }, 200)); }
   const paint = () => { paintBody(view, { mode, r, folder, q: sInput ? sInput.value : q }); Photos.hydrate(view); };
-  view.paintList = paint; paint();
+  view.paintList = paint; paint(); swipe(view);
+  // 방금 쓴 기록은 잠깐 반짝여요
+  let hid = null; try { hid = sessionStorage.getItem('daytale.hl'); sessionStorage.removeItem('daytale.hl'); } catch {}
+  const hr = hid && view.querySelector(`.swp[data-id="${hid}"] .r`);
+  if (hr) { hr.classList.add('hl'); hr.scrollIntoView({ block: 'center' }); setTimeout(() => hr.classList.remove('hl'), 1800); }
   view.addEventListener('click', async ev => {
     const b = ev.target.closest('button'); if (!b) return;
-    if (b.dataset.done) { ev.preventDefault(); const e = S.entries.get(b.dataset.done); const d = !e.meta.done; await patchEntry(e.id, { meta: { ...e.meta, done: d, doneAt: d ? nowISO() : null } }); }
+    if (b.dataset.del) { ev.preventDefault(); const id = b.dataset.del; await trashEntry(id); toast(t('ed.trashed'), { action: t('common.undo'), onAction: () => restoreEntry(id) }); }
+    else if (b.dataset.done) { ev.preventDefault(); const e = S.entries.get(b.dataset.done); const d = !e.meta.done; await patchEntry(e.id, { meta: { ...e.meta, done: d, doneAt: d ? nowISO() : null } }); }
     else if (b.dataset.restore) { ev.preventDefault(); await restoreEntry(b.dataset.restore); toast(t('list.restored')); }
     else if (b.dataset.purge) { ev.preventDefault(); if (await confirmDlg(t('list.purgeQ'), t('list.purgeBody'), t('list.purge'), { danger: true })) await purgeEntries([b.dataset.purge]); }
     else if ('emptyTrash' in b.dataset) { const ids = trash().map(e => e.id); if (ids.length && await confirmDlg(t('list.emptyTrashQ'), t('list.emptyTrashBody', { n: ids.length }), t('list.emptyTrash'), { danger: true })) await purgeEntries(ids); }
@@ -123,5 +130,37 @@ function paintBody(view, { mode, r, folder, q }) {
     (rest.length ? groups(rest.slice(0, 600), { mode }) : pinned.length ? '' : `<div class="empty">${esc(t('list.empty'))}</div>`);
 }
 const refresh = view => view.paintList?.();
+
+/* 밀어서 삭제 (손가락). 조금 밀면 삭제 버튼이 열리고, 반 넘게 밀면 바로 휴지통으로 */
+function swipe(view) {
+  let s = null;
+  const close = except => view.querySelectorAll('.swp.open').forEach(w => { if (w !== except) { w.classList.remove('open'); w.querySelector('.r').style.transform = ''; } });
+  view.addEventListener('touchstart', ev => {
+    const w = ev.target.closest('.swp'); if (!w || ev.target.closest('.swp-del')) return;
+    close(w); const r = w.querySelector('.r');
+    s = { w, r, x: ev.touches[0].clientX, y: ev.touches[0].clientY, base: w.classList.contains('open') ? -88 : 0, cur: 0, dir: null };
+  }, { passive: true });
+  view.addEventListener('touchmove', ev => {
+    if (!s) return;
+    const dx = ev.touches[0].clientX - s.x, dy = ev.touches[0].clientY - s.y;
+    if (!s.dir) { if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) { s.dir = 'h'; s.w.classList.add('moving'); } else if (Math.abs(dy) > 10) { s = null; return; } else return; }
+    ev.preventDefault();
+    s.cur = Math.min(0, s.base + dx); s.r.style.transform = `translateX(${s.cur}px)`;
+  }, { passive: false });
+  view.addEventListener('touchend', async () => {
+    if (!s) return; const { w, r, cur, dir } = s; s = null;
+    if (!dir) return;
+    w.classList.remove('moving'); w.dataset.swiped = '1'; setTimeout(() => delete w.dataset.swiped, 350);
+    if (cur < -r.offsetWidth * .5) { r.style.transform = 'translateX(-100%)'; const id = w.dataset.id; setTimeout(async () => { await trashEntry(id); toast(t('ed.trashed'), { action: t('common.undo'), onAction: () => restoreEntry(id) }); }, 180); }
+    else if (cur < -44) { w.classList.add('open'); r.style.transform = 'translateX(-88px)'; }
+    else { w.classList.remove('open'); r.style.transform = ''; }
+  });
+  // 밀던 중이거나 열려 있으면 눌러도 글로 들어가지 않고 닫혀요
+  view.addEventListener('click', ev => {
+    const w = ev.target.closest('.swp'); if (!w || ev.target.closest('.swp-del, .del, .chk')) { if (!w) close(); return; }
+    if (w.dataset.swiped || w.classList.contains('open')) { ev.preventDefault(); ev.stopPropagation(); close(); }
+    else close();
+  }, true);
+}
 
 export { refresh, render, row };

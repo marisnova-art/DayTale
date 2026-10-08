@@ -1,5 +1,6 @@
 /* 편집기: 배경은 홈과 같은 그라데이션 위에 어둡게 한 겹. 정보 한 줄, 제목, 본문, 사진. 도구는 PC 위 한 줄 / 모바일 키보드 위 막대 하나 */
-.ed-page { min-height: 100dvh; background: rgba(10,9,14,.55); }
+.ed-page { min-height: 100dvh; }
+.ed-page::before { content: ""; position: fixed; inset: -30vh 0; background: rgba(10,9,14,.55); z-index: -1; pointer-events: none; }   /* 화면 전체를 덮어요 (위아래 끊김 없이) */
 .ed { max-width: 760px; margin: 0 auto; padding: calc(18px + var(--safe-t)) 20px calc(140px + var(--safe-b)); }
 :root.kb-open .ed, :root.ed-pan-open .ed { padding-bottom: calc(var(--kb, 0px) + var(--pan, 0px) + 120px); }
 .ed-info { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; padding: 6px 4px; margin-top: 4px; font-size: var(--fs-s); font-weight: 600; color: rgba(255,255,255,.62); text-align: left; border-radius: 10px; }
@@ -10,7 +11,7 @@
 .ed-meta label { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px; border-radius: 12px; background: var(--fill); border: 1px solid var(--fill-2); color: var(--muted); font-size: var(--fs-s); font-weight: 600; }
 .ed-meta input { background: none; border: 0; outline: none; color: var(--text-2); font-size: var(--fs-s); color-scheme: dark; min-width: 0; }
 .ed-meta input[type=text] { width: 180px; }
-.ed-title { display: block; width: 100%; margin: 10px 0 0; padding: 0 4px; border: 0; background: none; outline: none; resize: none; font-size: var(--fs-xl); line-height: 1.3; font-weight: 700; color: var(--text); letter-spacing: -.04em; field-sizing: content; min-height: 1.3em; }
+.ed-title { display: block; width: 100%; margin: 10px 0 0; padding: 0 4px; border: 0; background: none; outline: none; resize: none; font-size: var(--fs-xl); line-height: 1.3; font-weight: 700; color: var(--text); letter-spacing: -.04em; field-sizing: content; min-height: 1.3em; overflow: hidden; }
 .ed-title::placeholder { color: rgba(255,255,255,.35); }
 .ed-body { margin-top: 14px; padding: 0 4px; min-height: 30vh; outline: none; font-size: var(--body); line-height: 1.75; letter-spacing: -.02em; color: rgba(255,255,255,.86); caret-color: var(--record); }
 .ed-body:empty::before { content: attr(data-ph); color: rgba(255,255,255,.4); pointer-events: none; }
@@ -38,7 +39,12 @@
 .tb.on { background: var(--text); color: #141317; }
 .ed-tools .sep, .ed-bar .sep { width: 1px; height: 22px; background: var(--line-2); margin: 0 4px; flex: none; }
 .ed-tools .sp, .ed-bar .sp { flex: 1; }
-.ed-done { height: 44px; padding: 0 18px; border-radius: 22px; background: var(--text); color: #141317; font-size: var(--fs-s); font-weight: 700; white-space: nowrap; flex: none; }
+.ed-done { position: relative; display: inline-flex; align-items: center; gap: 6px; height: 46px; padding: 0 18px 0 14px; border-radius: 23px; background: linear-gradient(135deg, #FF8A6A, #FFB37A); color: #2A1408; font-size: var(--fs-s); font-weight: 800; white-space: nowrap; flex: none; box-shadow: 0 6px 18px rgba(255,138,106,.35); }
+/* 작성 완료 순간: 버튼이 한 번 튀고 빛이 퍼져요 */
+.ed-done.fin { animation: finPop .52s cubic-bezier(.3,1.6,.5,1); }
+.ed-done.fin::after { content: ""; position: absolute; inset: -2px; border-radius: inherit; border: 2px solid #FFB37A; animation: finRing .52s ease-out forwards; pointer-events: none; }
+@keyframes finPop { 0% { transform: scale(1); } 35% { transform: scale(1.12); } 100% { transform: scale(1); } }
+@keyframes finRing { from { opacity: .9; transform: scale(1); } to { opacity: 0; transform: scale(1.6); } }
 
 /* PC: 글 위 한 줄 */
 .ed-tools { position: sticky; top: 12px; z-index: 20; display: flex; align-items: center; gap: 1px; height: 58px; padding: 0 7px; border-radius: 29px; background: rgba(24,23,29,.86); border: 1px solid rgba(255,255,255,.1);
@@ -72,7 +78,7 @@
 .ed-pan .acts button { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; height: 44px; border-radius: 14px; font-size: var(--fs-s); font-weight: 600; color: rgba(255,255,255,.82); }
 .ed-pan .acts button.on { color: #FFD36B; }
 .ed-pan .acts .bad { color: #FF9A8A; }
-@media (max-width: 380px) { .ed-bar .tb { width: 40px; } .ed-done { padding: 0 14px; } }
+@media (max-width: 380px) { .ed-bar .tb { width: 40px; } .ed-done { padding: 0 14px 0 11px; } }
 @media (max-width: 899px) { .ed-tools { display: none; } }
 /* PC: 바닥 막대 없음. ⋯ 판은 도구 줄 바로 아래 작은 판 */
 @media (min-width: 900px) {

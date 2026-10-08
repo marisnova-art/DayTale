@@ -28,7 +28,7 @@ export default {
   'home.questions': 'Other questions', 'home.empty': 'Nothing left for today.',
   'list.empty': 'No records yet.', 'todo.due': 'Due today',
   'w.sun': 'clear and', 'w.cloud': 'cloudy and', 'w.suncloud': 'partly cloudy and', 'w.rain': 'rainy and', 'w.snow': 'snowy and', 'w.thunder': 'stormy and', 'w.fog': 'foggy and',
-  'ed.format': 'Format', 'ed.keyboard': 'Keyboard', 'ed.text': 'Text', 'ed.saveFail': 'Could not save. Please check your connection.', 'photo.soon': 'Photos are coming soon', 'ed.back': 'Back', 'ed.undo': 'Undo', 'ed.done': 'Done', 'ed.saved': 'Saved', 'ed.saving': 'Saving', 'ed.more': 'More', 'ed.title': 'Title', 'ed.body': 'Write whatever comes to mind.',
+  'list.del': 'Delete', 'ed.finish': 'Save', 'ed.format': 'Format', 'ed.keyboard': 'Keyboard', 'ed.text': 'Text', 'ed.saveFail': 'Could not save. Please check your connection.', 'photo.soon': 'Photos are coming soon', 'ed.back': 'Back', 'ed.undo': 'Undo', 'ed.done': 'Done', 'ed.saved': 'Saved', 'ed.saving': 'Saving', 'ed.more': 'More', 'ed.title': 'Title', 'ed.body': 'Write whatever comes to mind.',
   'ed.kind': 'Kind', 'ed.folder': 'Folder', 'ed.date': 'Date', 'ed.time': 'Time', 'ed.place': 'Place', 'ed.where': 'Where did you put it?', 'ed.due': 'Due',
   'ed.bold': 'Bold', 'ed.italic': 'Italic', 'ed.underline': 'Underline', 'ed.mark': 'Highlight', 'ed.heading': 'Heading', 'ed.quote': 'Quote', 'ed.link': 'Link', 'ed.linkAsk': 'Link address (https://…)',
   'ed.blocks': 'Add a block', 'ed.check': 'Checklist', 'ed.bullet': 'Bulleted list', 'ed.numbered': 'Numbered list', 'ed.divider': 'Divider', 'ed.template': 'Template', 'ed.addBlock': 'Add block',

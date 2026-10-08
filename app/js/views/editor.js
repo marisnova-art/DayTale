@@ -34,7 +34,7 @@ function render(view, r) {
       <button class="tb" data-act="back" aria-label="${esc(t('ed.back'))}">${icon('chevron-left', 22)}</button>
       ${ro ? '<span class="sp"></span>' : `<span class="sep"></span>${STYLE.slice(1).map(f => fbtn(f)).join('')}<span class="sep"></span>${INLINE.map(f => fbtn(f)).join('')}<span class="sep"></span>${LISTS.slice(0, 4).map(f => fbtn(f)).join('')}<span class="sep"></span>${photoBtn}<span class="sp"></span>`}
       <button class="tb" data-act="more" aria-label="${esc(t('ed.more'))}" aria-expanded="false">${icon('more-horizontal', 20)}</button>
-      <button class="ed-done" data-act="done">${esc(t('ed.done'))}</button></div>
+      <button class="ed-done" data-act="done">${icon('check', 18)}<span>${esc(t('ed.finish'))}</span></button></div>
     ${ro ? `<div class="ed-locked"><span>${esc(t('ed.locked'))}</span><button data-act="plans">${esc(t('trial.plans'))}</button></div>` : ''}
     <button class="ed-info" data-act="more"></button><div class="ed-meta"></div>
     <textarea class="ed-title" rows="1" maxlength="300" placeholder="${esc(t('ed.title'))}" ${ro ? 'readonly' : ''}></textarea>
@@ -45,19 +45,20 @@ function render(view, r) {
   <div class="ed-dock">
     <div class="ed-bar"><div class="cap" role="toolbar">
       <button class="tb" data-act="back" aria-label="${esc(t('ed.back'))}">${icon('chevron-left', 22)}</button><span class="sep"></span>
-      ${ro ? '' : `<button class="tb aa" data-act="aa" aria-label="${esc(t('ed.format'))}" aria-expanded="false">Aa</button>${fbtn(LISTS[2])}${photoBtn}`}
+      ${ro ? '' : `<button class="tb aa" data-act="aa" aria-label="${esc(t('ed.format'))}" aria-expanded="false">Aa</button>${photoBtn}`}
       <button class="tb" data-act="more" aria-label="${esc(t('ed.more'))}" aria-expanded="false">${icon('more-horizontal', 20)}</button>
       <span class="sp"></span><button class="tb kbd" data-act="kbd" aria-label="${esc(t('ed.keyboard'))}" hidden>${icon('keyboard', 20)}</button>
-      <button class="ed-done" data-act="done">${esc(t('ed.done'))}</button></div></div>
+      <button class="ed-done" data-act="done">${icon('check', 18)}<span>${esc(t('ed.finish'))}</span></button></div></div>
     <div class="ed-pan" hidden></div>
   </div>
   <input type="file" accept="image/*" multiple hidden class="ed-file"></div>`;
   const el = { root: view, title: $('.ed-title', view), body: $('.ed-body', view), info: $('.ed-info', view), meta: $('.ed-meta', view), photos: $('.ed-photos', view), foot: $('.ed-foot', view), pan: $('.ed-pan', view) };
-  cur = { e, isNew, el, ro, pan: null };
+  cur = { e, isNew, wasNew: isNew, el, ro, pan: null };
   el.title.value = e.title; el.body.innerHTML = e.content || (e.text ? e.text.split('\n').map(l => `<p>${esc(l) || '<br>'}</p>`).join('') : '');
   paintChips(); paintPhotos(); paintFoot();
   const save = debounce(() => commit(), 600); cur.save = save;
-  el.title.addEventListener('input', save);
+  const fit = () => { el.title.style.height = 'auto'; el.title.style.height = el.title.scrollHeight + 'px'; };   // 제목 칸은 글 길이만큼 (스크롤 없이)
+  el.title.addEventListener('input', () => { fit(); save(); }); requestAnimationFrame(fit);
   el.title.addEventListener('keydown', ev => { if (ev.key === 'Enter' && !ev.isComposing) { ev.preventDefault(); placeCaret(el.body, true); } });
   el.title.addEventListener('focus', () => closePan());
   el.body.addEventListener('input', ev => { shortcuts(ev); save(); paintState(); });
@@ -228,13 +229,26 @@ async function onAct(ev) {
   if (x) { more(x.dataset.x); return; }
   const b = ev.target.closest('[data-act]'); if (!b) return;
   const a = b.dataset.act;
-  if (a === 'back' || a === 'done') { await commit(); const back = history.length > 1; leave(); back ? history.back() : go('/home'); }
+  if (a === 'back') { await commit(); const back = history.length > 1; leave(); back ? history.back() : go('/home'); }
+  else if (a === 'done') finish(b);
   else if (a === 'plans') go('/plans');
   else if (a === 'aa') openPan('aa');
   else if (a === 'more') openPan('more');
   else if (a === 'kbd') closePan(true);
   else if (a === 'photo') { if (!CFG.PHOTOS_URL) toast(t('photo.soon')); else if ((e.photos || []).length >= 4) toast(t('photo.perEntry')); else cur.el.root.querySelector('.ed-file').click(); }
   else if (a === 'ph') photoMenu(b.dataset.id);
+}
+/* 작성 완료: 짧게 축하하고, 새 기록은 모든 기록(맨 위에 반짝), 고친 기록은 원래 있던 화면으로 */
+async function finish(b) {
+  await commit(); if (!cur) return;
+  const e = cur.e, wrote = !cur.ro && !isEmpty(e), wasNew = cur.wasNew;
+  if (wrote) {
+    try { sessionStorage.setItem('daytale.hl', e.id); } catch {}
+    b.classList.add('fin'); navigator.vibrate?.(12);
+    await new Promise(r => setTimeout(r, 520));
+  }
+  leave();
+  if (wrote && wasNew) go('/all', { replace: true }); else history.length > 1 ? history.back() : go('/home');
 }
 async function more(v) {
   const e = cur.e;

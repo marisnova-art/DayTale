@@ -28,7 +28,7 @@ export default {
   'home.questions': 'ほかの質問', 'home.empty': '今日の残りはありません。',
   'list.empty': 'まだ記録がありません。', 'todo.due': '今日まで',
   'w.sun': '晴れで', 'w.cloud': '曇りで', 'w.suncloud': '晴れ時々曇りで', 'w.rain': '雨で', 'w.snow': '雪で', 'w.thunder': '雷雨で', 'w.fog': '霧で',
-  'ed.format': '書式', 'ed.keyboard': 'キーボード', 'ed.text': '本文', 'ed.saveFail': '保存できませんでした。接続を確認してください。', 'photo.soon': '写真の追加はまもなく使えます', 'ed.back': '戻る', 'ed.undo': '元に戻す', 'ed.done': '完了', 'ed.saved': '保存済み', 'ed.saving': '保存中', 'ed.more': 'その他', 'ed.title': 'タイトル', 'ed.body': '思いつくまま書いてみましょう。',
+  'list.del': '削除', 'ed.finish': '保存する', 'ed.format': '書式', 'ed.keyboard': 'キーボード', 'ed.text': '本文', 'ed.saveFail': '保存できませんでした。接続を確認してください。', 'photo.soon': '写真の追加はまもなく使えます', 'ed.back': '戻る', 'ed.undo': '元に戻す', 'ed.done': '完了', 'ed.saved': '保存済み', 'ed.saving': '保存中', 'ed.more': 'その他', 'ed.title': 'タイトル', 'ed.body': '思いつくまま書いてみましょう。',
   'ed.kind': '種類', 'ed.folder': 'フォルダ', 'ed.date': '日付', 'ed.time': '時間', 'ed.place': '場所', 'ed.where': 'どこに置きましたか？', 'ed.due': '期限',
   'ed.bold': '太字', 'ed.italic': '斜体', 'ed.underline': '下線', 'ed.mark': 'マーカー', 'ed.heading': '見出し', 'ed.quote': '引用', 'ed.link': 'リンク', 'ed.linkAsk': 'リンク先（https://…）',
   'ed.blocks': 'ブロックを追加', 'ed.check': 'チェックリスト', 'ed.bullet': '箇条書き', 'ed.numbered': '番号付きリスト', 'ed.divider': '区切り線', 'ed.template': 'テンプレート', 'ed.addBlock': 'ブロックを追加',

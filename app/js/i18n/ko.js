@@ -31,7 +31,7 @@ export default {
   'list.empty': '아직 기록이 없어요.', 'todo.due': '오늘까지',
   'w.sun': '맑고', 'w.cloud': '흐리고', 'w.suncloud': '구름 조금', 'w.rain': '비 오고', 'w.snow': '눈 오고', 'w.thunder': '천둥 치고', 'w.fog': '안개 끼고',
   // 편집기
-  'ed.format': '서식', 'ed.keyboard': '키보드', 'ed.text': '본문', 'ed.saveFail': '저장하지 못했어요. 연결을 확인해 주세요.', 'photo.soon': '사진 넣기는 곧 열려요', 'ed.back': '뒤로', 'ed.undo': '되돌리기', 'ed.done': '완료', 'ed.saved': '저장됨', 'ed.saving': '저장 중', 'ed.more': '더 보기', 'ed.title': '제목', 'ed.body': '떠오른 대로 적어 보세요.',
+  'list.del': '삭제', 'ed.finish': '작성 완료', 'ed.format': '서식', 'ed.keyboard': '키보드', 'ed.text': '본문', 'ed.saveFail': '저장하지 못했어요. 연결을 확인해 주세요.', 'photo.soon': '사진 넣기는 곧 열려요', 'ed.back': '뒤로', 'ed.undo': '되돌리기', 'ed.done': '완료', 'ed.saved': '저장됨', 'ed.saving': '저장 중', 'ed.more': '더 보기', 'ed.title': '제목', 'ed.body': '떠오른 대로 적어 보세요.',
   'ed.kind': '종류', 'ed.folder': '폴더', 'ed.date': '날짜', 'ed.time': '시간', 'ed.place': '장소', 'ed.where': '어디에 두었나요?', 'ed.due': '언제까지',
   'ed.bold': '굵게', 'ed.italic': '기울임', 'ed.underline': '밑줄', 'ed.mark': '형광펜', 'ed.heading': '제목', 'ed.quote': '인용', 'ed.link': '링크', 'ed.linkAsk': '링크 주소 (https://…)',
   'ed.blocks': '블록 넣기', 'ed.check': '체크리스트', 'ed.bullet': '점 목록', 'ed.numbered': '번호 목록', 'ed.divider': '구분선', 'ed.template': '템플릿', 'ed.addBlock': '블록 추가',

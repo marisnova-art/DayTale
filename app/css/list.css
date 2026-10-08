@@ -13,7 +13,7 @@
 .grp span:last-child { color: var(--faint); }
 .card { border-radius: 24px; padding: 2px 16px; background: rgba(22,21,26,.62); border: 1px solid rgba(255,255,255,.08); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); }
 .r { display: flex; align-items: center; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--line); color: inherit; min-height: 66px; }
-.r:last-child { border-bottom: 0; }
+.r:last-child, .swp:last-child .r { border-bottom: 0; }
 .r .kc { width: 38px; height: 38px; border-radius: 12px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08); display: flex; align-items: center; justify-content: center; flex: none; }
 .r .kc { color: var(--text-3); }
 .r .tx { flex: 1; min-width: 0; }
@@ -48,3 +48,16 @@
 .bk-it > svg { color: var(--faint); flex: none; }
 .bk-opt { display: flex; align-items: center; gap: 10px; padding: 14px 8px 0; color: var(--muted); font-size: var(--fs-s); }
 .bk-opt input { accent-color: var(--accent); width: 18px; height: 18px; }
+
+/* 밀어서 삭제 */
+.swp { position: relative; overflow: hidden; }
+.swp .r { position: relative; transition: transform .22s ease; }
+.swp.moving .r { transition: none; }
+.swp-del { position: absolute; top: 1px; right: 0; bottom: 1px; width: 84px; border-radius: 16px; background: #E5484D; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: var(--fs-s); font-weight: 700; visibility: hidden; }
+.swp.moving .swp-del, .swp.open .swp-del { visibility: visible; }
+.swp.moving .r, .swp.open .r { background: #1F1E24; }
+.r .del { display: none; width: 34px; height: 34px; border-radius: 17px; align-items: center; justify-content: center; color: var(--faint); flex: none; }
+@media (hover: hover) and (pointer: fine) { .r:hover .del { display: flex; } .r .del:hover { color: var(--danger); background: var(--fill); } }
+/* 방금 쓴 기록 반짝 */
+.r.hl { animation: hlFlash 1.8s ease-out; border-radius: 14px; }
+@keyframes hlFlash { 0%, 30% { background: rgba(255,138,106,.22); box-shadow: 0 0 0 6px rgba(255,138,106,.22); } 100% { background: transparent; box-shadow: 0 0 0 6px transparent; } }
