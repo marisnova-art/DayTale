@@ -1,0 +1,34 @@
+/* 디자인 값 (최종 캔버스 기준). 어두운 화면만 있어요. */
+:root {
+  color-scheme: dark;
+  --base: #0C0C10;
+  --sheet: #1A191F;      /* 시트·패널 */
+  --menu: #17161B;       /* 메뉴 서랍 */
+  --raised: #222127;
+  --raised-2: #26252C;
+  --line: rgba(255,255,255,.07);
+  --line-2: rgba(255,255,255,.12);
+  --glass: rgba(22,21,26,.72);
+  --glass-strong: rgba(22,21,26,.88);
+  --fill: rgba(255,255,255,.05);
+  --fill-2: rgba(255,255,255,.08);
+  --text: #F5F3EF;
+  --text-2: #F2F0EC;
+  --text-3: #D9D5DE;
+  --muted: #A9A5AF;
+  --muted-2: #8E8A94;
+  --faint: #6F6B77;
+  --accent: #FFB37A;      /* 배경 팔레트에서 바뀌어요 */
+  --event: #FF9D7A; --todo: #FFC86B; --record: #B7A4FF;
+  --danger: #FF6B6B; --ok: #6FD39A;
+  --bg-grad: linear-gradient(160deg, #2A1418 0%, #8A271A 16%, #844B22 36%, #274F4C 62%, #173638 86%, #16181C 100%);
+  --r-s: 12px; --r-m: 16px; --r-l: 24px; --r-xl: 32px;
+  --font: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', 'Hiragino Sans', 'Segoe UI', Roboto, sans-serif;
+  /* 글자 크기: 설정 > 화면 > 글자 크기 */
+  --story: 28px; --story-lh: 1.4; --body: 17px; --small: 14px;
+  --safe-t: env(safe-area-inset-top, 0px); --safe-b: env(safe-area-inset-bottom, 0px);
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 1.1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+:root[data-size="l"] { --story: 32px; --body: 19px; --small: 16px; }
+:root[data-size="xl"] { --story: 36px; --story-lh: 1.38; --body: 21px; --small: 17px; }
+@media (min-width: 900px) { :root { --story: 34px; } :root[data-size="l"] { --story: 38px; } :root[data-size="xl"] { --story: 42px; } }
