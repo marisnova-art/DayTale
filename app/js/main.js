@@ -9,7 +9,7 @@ import es from './i18n/es.js';
 import fr from './i18n/fr.js';
 import { Account } from './data/account.js';
 import { LocalDB } from './data/local-db.js';
-import { S, emit, live, onChange, purgeOldTrash, setPrefsHook, setSyncHook } from './data/store.js';
+import { S, emit, live, onChange, purgeOldTrash, setPrefsHook, setSyncHook, textSize } from './data/store.js';
 import { configured, getSupabase } from './data/supabase.js';
 import { Sync } from './data/sync.js';
 import { setRemote } from './story/engine.js';
@@ -26,7 +26,7 @@ import { hideAuth, showAuth } from './views/auth.js';
 register('ko', ko); register('en', en); register('ja', ja); register('es', es); register('fr', fr);
 setLang(S.prefs.lang || detectLang());
 document.title = brand(getLang());
-document.documentElement.dataset.size = S.prefs.textSize || 'm';
+document.documentElement.dataset.size = textSize();
 Backdrop.apply(document.documentElement);
 
 /* ---------- 화면 목록 (모듈은 필요할 때 불러요) ---------- */
@@ -89,7 +89,7 @@ async function checkNotices() { try { const { unread } = await import('./views/n
 const reschedule = debounce(() => Reminders.schedule(), 800);
 function applyPrefs() {
   const l = S.prefs.lang || detectLang(); if (l !== getLang()) { setLang(l); frame(); rerender(); }
-  document.documentElement.dataset.size = S.prefs.textSize || 'm';
+  document.documentElement.dataset.size = textSize();
 }
 /* 서버 문장 묶음: 하루 한 번 받아 두기 */
 async function loadPhrases() {

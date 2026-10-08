@@ -4,7 +4,7 @@ import { fmtDate, fmtNum, fmtRel, getLang, t } from '../core/i18n.js';
 import { esc, h, icon, uid } from '../core/utils.js';
 import { Account } from '../data/account.js';
 import { CITIES, cityLookup, guessCity } from '../data/cities.js';
-import { S, emit, live, onChange, setPref } from '../data/store.js';
+import { S, emit, live, onChange, setPref, textSize } from '../data/store.js';
 import { endSession } from '../data/supabase.js';
 import { Sync } from '../data/sync.js';
 import { Install } from '../features/install.js';
@@ -45,7 +45,7 @@ function group(g) {
     + card(t('set.invite'), row({ ic: 'gift', label: t('set.myCode'), sub: esc(t('set.inviteSub')), value: S.status?.referral_code || '', act: 'code' }) + row({ ic: 'ticket', label: t('set.enterCode'), act: 'redeem' }))
     + card(t('set.security'), row({ ic: 'key-round', label: t('set.password'), act: 'password' }) + row({ ic: 'log-out', label: t('set.signOut'), act: 'signout', chev: false }));
   if (g === 'display') return card('', seg('mode', t('set.mode'), [['story', t('set.story')], ['tidy', t('set.tidy')]], p.mode) + `<p class="snote">${esc(t('set.modeSub'))}</p>`)
-    + card('', seg('textSize', t('set.textSize'), [['m', t('set.sizeM')], ['l', t('set.sizeL')], ['xl', t('set.sizeXL')]], p.textSize || 'm')
+    + card('', seg('textSize', t('set.textSize'), [['s', t('set.sizeS')], ['m', t('set.sizeM')], ['l', t('set.sizeL')]], textSize())
       + seg('lang', t('set.lang'), [['', t('set.langAuto')], ...LANGS.map(l => [l, t('lang.' + l)])], p.lang || '')
       + seg('weekStart', t('set.weekStart'), [[0, t('set.sun')], [1, t('set.mon')]], p.weekStart || 0));
   if (g === 'record') {

@@ -37,7 +37,7 @@
 .ev .t.done { color: var(--faint); text-decoration: line-through; }
 .ev .mt { font-size: var(--fs-s); font-weight: 600; color: var(--muted-2); font-variant-numeric: tabular-nums; }
 .ev .chk { width: 20px; height: 20px; border-radius: 10px; }
-.ev .st { width: 20px; height: 20px; margin: 0; vertical-align: 0; }
+.ev .ki { display: flex; color: var(--text-3); flex: none; }
 .agenda .blank { margin-top: 8px; height: 46px; border-radius: 16px; border: 1px dashed rgba(255,255,255,.10); display: flex; align-items: center; padding: 0 14px; font-size: var(--fs-s); font-weight: 500; color: var(--faint); }
 .cal .filters { padding: 12px 0 0; }
 

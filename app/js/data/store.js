@@ -8,7 +8,7 @@ const FOLDER_COLORS = ['#FF9D7A', '#FFC86B', '#9BD68A', '#6FD3C1', '#7FB2FF', '#
 const DEFAULT_PREFS = {
   lang: null,            // 비어 있으면 기기 언어
   mode: 'story',         // story = 감성형, tidy = 정리형
-  textSize: 'm',         // m · l · xl
+  textSize: 'm',         // s · m(기본) · l
   weekStart: 0,          // 일요일
   defaultType: 'note',
   sort: 'updated',
@@ -109,5 +109,7 @@ let prefsHook = () => {};
 const setPrefsHook = f => { prefsHook = f; };
 function setPref(k, v) { S.prefs[k] = v; ls.set('daytale.prefs', S.prefs); S.db?.set('prefs', S.prefs); emit('prefs'); prefsHook(); }
 
-export { DEFAULT_PREFS, FOLDER_COLORS, S, TYPES, addEntry, addFolder, deleteFolder, displayTitle, emit, folderList, isEmpty, live, newEntry, onChange,
+/* 글자 크기: 예전 값 xl 은 이제 l(크게) */
+const textSize = () => S.prefs.textSize === 'xl' ? 'l' : ['s', 'm', 'l'].includes(S.prefs.textSize) ? S.prefs.textSize : 'm';
+export { textSize, DEFAULT_PREFS, FOLDER_COLORS, S, TYPES, addEntry, addFolder, deleteFolder, displayTitle, emit, folderList, isEmpty, live, newEntry, onChange,
   patchEntry, purgeEntries, purgeOldTrash, restoreEntry, saveEntry, saveFolder, setPref, setPrefsHook, setSyncHook, trash, trashEntry };

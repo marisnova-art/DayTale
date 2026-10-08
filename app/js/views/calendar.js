@@ -1,11 +1,10 @@
 /* 캘린더: 주 | 월. 하루 점은 종류별로 3개까지(일정·할 일·기록). 끝낸 할 일은 점에서 빠져요. */
 import { S, addEntry, displayTitle, live, patchEntry } from '../data/store.js';
-import { sticker } from '../core/stickers.js';
+import { TYPE_ICON } from '../ui/shell.js';
 import { fmtDate, fmtHM, t } from '../core/i18n.js';
 import { addDays, dayKey, esc, icon, nowISO, parseDay, startOfWeek, todayKey } from '../core/utils.js';
 import { promptDlg } from '../ui/feedback.js';
 import { go } from '../ui/router.js';
-import { TYPE_STICKER } from './pickers.js';
 
 const COL = { event: 'var(--event)', todo: 'var(--todo)', record: 'var(--record)' };
 const isPC = () => matchMedia('(min-width: 900px)').matches;
@@ -29,7 +28,7 @@ function item(e, kind) {
   const m = e.meta || {};
   const lead = kind === 'event' ? '<span class="bar" style="background:var(--event)"></span>'
     : kind === 'todo' ? `<button class="chk${m.done ? ' on' : ''}" data-done="${e.id}" aria-label="${esc(t('common.done'))}">${m.done ? icon('check', 12) : ''}</button>`
-    : sticker(TYPE_STICKER[e.type] || 'note');
+    : `<span class="ki">${icon(TYPE_ICON[e.type] || 'file-text', 18)}</span>`;
   const meta = kind === 'event' ? (m.time ? fmtHM(m.time) : '') : kind === 'todo' ? (!m.done && m.date === todayKey() ? t('todo.due') : '') : fmtHM(new Date(e.created_at).toTimeString().slice(0, 5));
   return `<a class="ev" href="#/e/${e.id}">${lead}<span class="t${m.done ? ' done' : ''}">${esc(displayTitle(e, t('common.untitled')))}</span><span class="mt">${esc(meta)}</span></a>`;
 }

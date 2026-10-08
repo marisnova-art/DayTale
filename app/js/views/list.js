@@ -1,12 +1,12 @@
 /* 정리형 목록: 모든 기록, 종류별, 폴더, 폴더 없음, 할 일, 휴지통, 찾기 */
 import { S, TYPES, addEntry, displayTitle, live, patchEntry, purgeEntries, restoreEntry, trash } from '../data/store.js';
-import { sticker } from '../core/stickers.js';
+import { TYPE_ICON } from '../ui/shell.js';
 import { fmtDate, fmtHM, fmtNum, fmtTime, t } from '../core/i18n.js';
 import { addDays, dayKey, debounce, esc, icon, nowISO, todayKey } from '../core/utils.js';
 import { confirmDlg, toast } from '../ui/feedback.js';
 import { go } from '../ui/router.js';
 import { removeFolder, renameFolder } from './folders.js';
-import { TYPE_STICKER, pickAction, typeLabel } from './pickers.js';
+import { pickAction, typeLabel } from './pickers.js';
 import { Photos } from '../features/photos.js';
 
 let filter = 'all';
@@ -33,7 +33,7 @@ function row(e, { terms = [], mode = '' } = {}) {
   const f = e.folder_id && S.folders.get(e.folder_id);
   const time = mode === 'trash' ? '' : dayKey(new Date(e.created_at)) === today ? fmtTime(new Date(e.created_at)) : fmtDate(e.created_at, { month: 'numeric', day: 'numeric' });
   const lead = e.type === 'todo' && mode !== 'trash' ? `<button class="chk${m.done ? ' on' : ''}" data-done="${e.id}" aria-label="${esc(t('common.done'))}" aria-pressed="${!!m.done}">${m.done ? icon('check', 14) : ''}</button>`
-    : `<span class="kc">${sticker(TYPE_STICKER[e.type] || 'note')}</span>`;
+    : `<span class="kc">${icon(TYPE_ICON[e.type] || 'file-text', 20)}</span>`;
   const side = mode === 'trash' ? `<span class="side"><button data-restore="${e.id}">${esc(t('list.restore'))}</button><button class="bad" data-purge="${e.id}" aria-label="${esc(t('list.purge'))}">${icon('trash-2', 15)}</button></span>` : `<span class="tm">${e.pinned ? icon('pin', 13) + ' ' : ''}${esc(time)}</span>`;
   const ps = e.photos || [];
   const th = ps.length && mode !== 'trash' ? `<span class="th">${Photos.imgTag(ps[0])}${ps.length > 1 ? `<b>${esc(t('photo.more', { n: ps.length - 1 }))}</b>` : ''}</span>` : '';

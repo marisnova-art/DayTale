@@ -1,6 +1,6 @@
 /* 시트에서 고르기: 종류, 폴더 */
 import { S, TYPES, addFolder, folderList } from '../data/store.js';
-import { sticker } from '../core/stickers.js';
+import { TYPE_ICON } from '../ui/shell.js';
 import { t } from '../core/i18n.js';
 import { esc, h, icon } from '../core/utils.js';
 import { openSheet, promptDlg } from '../ui/feedback.js';
@@ -12,7 +12,7 @@ const KIND_ONE = { ko: { todo: '할 일', event: '일정', item: '물건 둔 곳
 
 function pickType(current) {
   return new Promise(res => {
-    const el = h(`<div><h2>${esc(t('ed.kind'))}</h2><div class="pick">${TYPES.map(ty => `<button data-v="${ty}" class="${ty === current ? 'on' : ''}">${sticker(TYPE_STICKER[ty])}${esc(typeLabel(ty))}</button>`).join('')}</div></div>`);
+    const el = h(`<div><h2>${esc(t('ed.kind'))}</h2><div class="pick">${TYPES.map(ty => `<button data-v="${ty}" class="${ty === current ? 'on' : ''}">${icon(TYPE_ICON[ty], 22)}${esc(typeLabel(ty))}</button>`).join('')}</div></div>`);
     let done = false;
     const sh = openSheet(el, { label: t('ed.kind'), onClose: () => { if (!done) res(null); } });
     el.addEventListener('click', e => { const b = e.target.closest('[data-v]'); if (!b) return; done = true; res(b.dataset.v); sh.close(); });

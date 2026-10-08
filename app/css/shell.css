@@ -12,14 +12,15 @@
 .avatar.l { width: 42px; height: 42px; border-radius: 21px; box-shadow: none; }
 .badge-dot { position: absolute; top: 10px; right: 10px; width: 8px; height: 8px; border-radius: 4px; background: var(--accent); box-shadow: 0 0 0 2px #1A1820; }
 .mbar { position: fixed; left: 14px; right: 14px; bottom: calc(18px + var(--safe-b)); z-index: 30; height: 66px; border-radius: 33px; background: var(--glass-strong);
-  display: flex; align-items: center; gap: 2px; padding: 0 8px 0 10px; box-shadow: 0 10px 30px rgba(0,0,0,.35); max-width: 520px; margin: 0 auto; transition: opacity .18s; }
-.mbar .icon-btn { width: 48px; height: 48px; border-radius: 24px; color: rgba(255,255,255,.6); }
+  display: flex; align-items: center; gap: 0; padding: 0 8px; box-shadow: 0 10px 30px rgba(0,0,0,.35); max-width: 520px; margin: 0 auto; transition: opacity .18s; }
+.mbar .icon-btn { width: 46px; height: 48px; flex: none; border-radius: 24px; color: rgba(255,255,255,.6); }
 .mbar .tab.on { color: #fff; background: rgba(255,255,255,.1); }
-.mbar .sep { width: 1px; height: 24px; background: var(--line-2); margin: 0 6px 0 4px; flex: none; }
-.mbar .write { margin-left: auto; height: 50px; padding: 0 18px 0 15px; border-radius: 25px; background: var(--text); color: #141317; display: inline-flex; align-items: center; gap: 7px;
+.mbar .sep { width: 1px; height: 24px; background: var(--line-2); margin: 0 4px; flex: none; }
+.mbar .write { margin-left: auto; height: 50px; padding: 0 16px 0 13px; border-radius: 25px; background: var(--text); color: #141317; display: inline-flex; align-items: center; gap: 7px;
   font-size: var(--fs-m); font-weight: 700; flex: none; white-space: nowrap; }
 .mbar.away, :root.kb-open .mbar { opacity: 0; pointer-events: none; }
-@media (max-width: 350px) { .mbar .icon-btn { width: 42px; } .mbar .write span { display: none; } .mbar .write { width: 50px; padding: 0; justify-content: center; } }
+@media (max-width: 400px) { .mbar .icon-btn { width: 43px; } }
+@media (max-width: 370px) { .mbar .write span { display: none; } .mbar .write { width: 50px; padding: 0; justify-content: center; } }
 
 /* 메뉴 (모바일 서랍 · PC 사이드바 공용) */
 .scrim { position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,.55); opacity: 0; pointer-events: none; transition: opacity .2s; }
@@ -31,7 +32,7 @@
 /* 아래 막대가 그 자리에서 위로 늘어나며 메뉴가 돼요 */
 .drawer.open { clip-path: inset(0 0 0 0 round 33px); opacity: 1; pointer-events: auto; visibility: visible; transition: clip-path .3s cubic-bezier(.2,.8,.2,1), opacity .12s, visibility 0s; }
 .drawer .head { display: flex; align-items: center; gap: 4px; padding: 6px 0 0 2px; flex: none; order: 20; border-top: 1px solid var(--line); margin-top: 6px; }
-.drawer .head .close { order: -1; color: var(--text-3); width: 48px; height: 48px; }
+.drawer .head .close { order: -1; color: var(--text); width: 48px; height: 48px; background: rgba(255,255,255,.1); }
 .drawer .head .logo { width: 26px; height: 26px; border-radius: 8px; }
 .drawer .head .brand { margin-left: 6px; }
 .drawer .head .mo { width: 48px; height: 48px; color: var(--text-3); }

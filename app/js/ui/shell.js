@@ -1,4 +1,4 @@
-/* 앱 틀 그리기: 모바일은 아래 막대 하나(메뉴는 막대가 위로 늘어나며 열려요), PC는 왼쪽 사이드바 + 오른쪽 위 알림 */
+/* 앱 틀 그리기: 모바일은 아래 막대 하나(메뉴 | 홈 · 캘린더 · 모든 기록 · 알림 | 쓰기, 메뉴는 막대가 위로 늘어나며 열려요), PC는 왼쪽 사이드바 + 오른쪽 위 알림 */
 import { Account } from '../data/account.js';
 import { S, TYPES, folderList, live, onChange } from '../data/store.js';
 import { brand } from '../core/config.js';
@@ -17,7 +17,6 @@ function frame() {
     <aside class="drawer" aria-label="${esc(t('nav.menu'))}">
       <div class="head"><span class="logo"></span><span class="brand">${esc(brand(getLang()))}</span>
         <button class="icon-btn close" data-act="close-menu" aria-label="${esc(t('nav.closeMenu'))}">${icon('x', 22)}</button>
-        <button class="icon-btn bell mo" data-go="/notices" aria-label="${esc(t('nav.notices'))}">${icon('bell', 21)}</button>
         <button class="icon-btn mo" data-go="/settings" aria-label="${esc(t('nav.settings'))}">${icon('settings', 21)}</button></div>
       <button class="profile-card" data-go="/settings/account"></button>
       <label class="search">${icon('search', 18)}<input type="search" enterkeyhint="search" placeholder="${esc(t('nav.search'))}" aria-label="${esc(t('nav.search'))}"></label>
@@ -33,11 +32,13 @@ function frame() {
       <a class="icon-btn tab" href="#/home" data-tab="/home" aria-label="${esc(t('nav.home'))}">${icon('home', 22)}</a>
       <a class="icon-btn tab" href="#/calendar" data-tab="/calendar" aria-label="${esc(t('nav.calendar'))}">${icon('calendar', 22)}</a>
       <a class="icon-btn tab" href="#/all" data-tab="/all" aria-label="${esc(t('nav.all'))}">${icon('layers', 22)}</a>
+      <a class="icon-btn tab bell" href="#/notices" data-tab="/notices" aria-label="${esc(t('nav.notices'))}">${icon('bell', 22)}</a>
       <button class="write" data-act="new">${icon('pencil', 20)}<span>${esc(t('nav.write'))}</span></button>
     </nav>
   </div>`;
   const app = $('#app');
   app.addEventListener('click', e => {
+    if (e.target.closest('.drawer a[href]')) { closeMenu(); return; }   // 메뉴에서 고르면 바로 닫혀요
     const b = e.target.closest('[data-go],[data-act]'); if (!b) return;
     if (b.dataset.go) { closeMenu(); go(b.dataset.go); return; }
     const a = b.dataset.act;
@@ -87,7 +88,7 @@ function paint() {
       `<span class="trialbar"><span class="tx"><span>${d > 0 ? t('trial.left', { n: `<em>${d}</em>` }) : esc(t('trial.ended'))}</span><span>${esc(t('trial.plans'))}</span></span><span class="bar"><i style="width:${Math.round(Account.trialRatio() * 100)}%"></i></span></span>`);
   paintBadges(); mark();
 }
-function paintBadges() { $$('.bell, .menu-btn').forEach(b => { b.querySelector('.badge-dot')?.remove(); if (unread) b.insertAdjacentHTML('beforeend', '<span class="badge-dot"></span>'); }); }
+function paintBadges() { $$('.bell').forEach(b => { b.querySelector('.badge-dot')?.remove(); if (unread) b.insertAdjacentHTML('beforeend', '<span class="badge-dot"></span>'); }); }
 /* 지금 화면 표시 */
 function mark() {
   const p = now()?.path || '/home';

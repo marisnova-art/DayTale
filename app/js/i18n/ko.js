@@ -31,7 +31,7 @@ export default {
   'list.empty': '아직 기록이 없어요.', 'todo.due': '오늘까지',
   'w.sun': '맑고', 'w.cloud': '흐리고', 'w.suncloud': '구름 조금', 'w.rain': '비 오고', 'w.snow': '눈 오고', 'w.thunder': '천둥 치고', 'w.fog': '안개 끼고',
   // 편집기
-  'ed.back': '뒤로', 'ed.undo': '되돌리기', 'ed.done': '완료', 'ed.saved': '저장됨', 'ed.saving': '저장 중', 'ed.more': '더 보기', 'ed.title': '제목', 'ed.body': '떠오른 대로 적어 보세요. "/"로 블록을 넣을 수 있어요.',
+  'ed.format': '서식', 'ed.keyboard': '키보드', 'ed.text': '본문', 'ed.saveFail': '저장하지 못했어요. 연결을 확인해 주세요.', 'photo.soon': '사진 넣기는 곧 열려요', 'ed.back': '뒤로', 'ed.undo': '되돌리기', 'ed.done': '완료', 'ed.saved': '저장됨', 'ed.saving': '저장 중', 'ed.more': '더 보기', 'ed.title': '제목', 'ed.body': '떠오른 대로 적어 보세요.',
   'ed.kind': '종류', 'ed.folder': '폴더', 'ed.date': '날짜', 'ed.time': '시간', 'ed.place': '장소', 'ed.where': '어디에 두었나요?', 'ed.due': '언제까지',
   'ed.bold': '굵게', 'ed.italic': '기울임', 'ed.underline': '밑줄', 'ed.mark': '형광펜', 'ed.heading': '제목', 'ed.quote': '인용', 'ed.link': '링크', 'ed.linkAsk': '링크 주소 (https://…)',
   'ed.blocks': '블록 넣기', 'ed.check': '체크리스트', 'ed.bullet': '점 목록', 'ed.numbered': '번호 목록', 'ed.divider': '구분선', 'ed.template': '템플릿', 'ed.addBlock': '블록 추가',
@@ -66,7 +66,7 @@ export default {
   'set.enterCode': '초대 코드 넣기', 'set.inviteText': '{name}에서 하루를 기록해 보세요. 가입 후 초대 코드 {code}를 넣으면 30일을 더 쓸 수 있어요. {url}', 'set.copied': '복사했어요', 'set.codeOk': '30일이 더해졌어요', 'set.codeBad': '이 코드는 쓸 수 없어요',
   'set.security': '보안', 'set.password': '비밀번호 바꾸기', 'set.newPassword': '새 비밀번호 (8자 이상)', 'set.passwordOk': '비밀번호를 바꿨어요', 'set.signOut': '로그아웃', 'set.signOutQ': '로그아웃할까요?', 'set.signOutBody': '이 기기에 저장된 기록은 다음에 로그인하면 다시 보여요.',
   'set.mode': '보기 방식', 'set.story': '감성형', 'set.tidy': '정리형', 'set.modeSub': '감성형은 하루를 이야기로 보여 주고, 정리형은 오늘 할 일과 최근 기록을 바로 보여 줘요.',
-  'set.textSize': '글자 크기', 'set.sizeM': '보통', 'set.sizeL': '크게', 'set.sizeXL': '아주 크게', 'set.lang': '언어', 'set.langAuto': '기기 언어', 'lang.ko': '한국어', 'lang.en': 'English', 'lang.ja': '日本語', 'lang.es': 'Español', 'lang.fr': 'Français',
+  'set.textSize': '글자 크기', 'set.sizeS': '작게', 'set.sizeM': '보통', 'set.sizeL': '크게', 'set.lang': '언어', 'set.langAuto': '기기 언어', 'lang.ko': '한국어', 'lang.en': 'English', 'lang.ja': '日本語', 'lang.es': 'Español', 'lang.fr': 'Français',
   'set.weekStart': '한 주의 시작', 'set.sun': '일요일', 'set.mon': '월요일',
   'set.defaultType': '새 기록 기본 종류', 'set.city': '날씨 도시', 'set.cityAuto': '자동 (기기 시간대)', 'set.cityManual': '직접 고름', 'set.citySearch': '도시나 나라 이름', 'set.dictation': '말로 입력', 'set.dictationSub': '마이크 버튼으로 말한 내용을 글로 받아 적어요.',
   'set.days': '기억할 날', 'set.daysSub': '생일, 기념일을 넣으면 그날 홈 이야기에서 챙겨 드려요.', 'set.addDay': '기억할 날 추가', 'set.everyYear': '매년 {date}', 'set.dayName': '어떤 날인가요?', 'set.dayNamePh': '예: 엄마 생신', 'set.dayDate': '날짜',
