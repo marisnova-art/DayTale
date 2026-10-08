@@ -1,7 +1,6 @@
-/* 기록 편집기: 제목 + 본문(서식), 떠 있는 서식 막대, "/" 블록 메뉴, 마크다운 단축, 체크리스트, 템플릿, 말로 입력, 자동 저장 */
+/* 기록 편집기: 제목 + 본문(서식), 아래 막대 하나(모바일은 키보드 위로 따라와요), 떠 있는 서식 막대, "/" 블록 메뉴, 마크다운 단축, 체크리스트, 템플릿, 자동 저장 */
 import { CFG } from '../core/config.js';
 import { S, displayTitle, isEmpty, newEntry, onChange, patchEntry, saveEntry, trashEntry } from '../data/store.js';
-import { listen, supported } from '../features/dictation.js';
 import { sticker } from '../core/stickers.js';
 import { htmlToText, sanitizeHTML } from '../core/sanitize.js';
 import { fmtDate, fmtRel, t } from '../core/i18n.js';
@@ -36,8 +35,16 @@ function render(view, r) {
     <div class="ed-body" ${ro ? '' : 'contenteditable="true"'} spellcheck="true" data-ph="${esc(t('ed.body'))}" role="textbox" aria-multiline="true" aria-label="${esc(t('ed.body'))}"></div>
     <div class="ed-foot"></div>
   </div>
-  ${ro ? '' : `<div class="ed-bar"><div class="cap"><button class="tb" data-act="blocks" aria-label="${esc(t('ed.addBlock'))}">${icon('plus', 20)}</button><button class="tb" data-act="check" aria-label="${esc(t('ed.check'))}">${icon('list-todo', 20)}</button>${CFG.PHOTOS_URL ? `<button class="tb" data-act="photo" aria-label="${esc(t('ed.photo'))}">${icon('image', 20)}</button>` : ''}<button class="tb" data-act="template" aria-label="${esc(t('ed.template'))}">${icon('layout-template', 20)}</button></div><input type="file" accept="image/*" multiple hidden class="ed-file">
-    ${supported() ? `<button class="mic" data-act="mic" aria-label="${esc(t('home.mic'))}">${icon('mic', 22)}</button>` : ''}</div>`}
+  ${ro ? '' : `<div class="ed-bar"><div class="cap" role="toolbar">
+    <button class="tb mo" data-act="back" aria-label="${esc(t('ed.back'))}">${icon('chevron-left', 22)}</button><span class="sep mo"></span>
+    <button class="tb" data-act="fb" data-f="bold" aria-label="${esc(t('ed.bold'))}">${icon('bold', 20)}</button>
+    <button class="tb" data-act="check" aria-label="${esc(t('ed.check'))}">${icon('list-todo', 20)}</button>
+    <button class="tb" data-act="blocks" aria-label="${esc(t('ed.addBlock'))}">${icon('plus', 20)}</button>
+    ${CFG.PHOTOS_URL ? `<button class="tb" data-act="photo" aria-label="${esc(t('ed.photo'))}">${icon('image', 20)}</button>` : ''}
+    <button class="tb" data-act="template" aria-label="${esc(t('ed.template'))}">${icon('layout-template', 20)}</button>
+    <button class="tb mo" data-act="more" aria-label="${esc(t('ed.more'))}">${icon('more-horizontal', 20)}</button>
+    <span class="sp"></span><button class="saved mo" data-act="done">${icon('check', 18)}<span>${esc(t('ed.done'))}</span></button></div>
+    <input type="file" accept="image/*" multiple hidden class="ed-file"></div>`}
   </div>`;
   const el = { root: view, title: $('.ed-title', view), body: $('.ed-body', view), chips: $('.ed-chips', view), meta: $('.ed-meta', view), photos: $('.ed-photos', view), foot: $('.ed-foot', view) };
   cur = { e, isNew, el, ro };
@@ -53,6 +60,7 @@ function render(view, r) {
   el.body.addEventListener('paste', onPaste);
   document.addEventListener('selectionchange', onSel);
   view.addEventListener('click', onAct);
+  $('.ed-bar .cap', view)?.addEventListener('mousedown', ev => { if (ev.target.closest('[data-act=fb],[data-act=check],[data-act=blocks]')) ev.preventDefault(); });
   $('.ed-file', view)?.addEventListener('change', async ev => { const files = [...ev.target.files]; ev.target.value = ''; if (await Photos.addFiles(cur.e, files)) { cur.saved = false; paintPhotos(); await commit(); Photos.flush().then(() => cur && paintPhotos()); } });
   cur.off = onChange(w => { if (w?.type === 'external' && w.id === e.id && document.activeElement !== el.body && document.activeElement !== el.title) { const ne = S.entries.get(e.id); if (ne) { cur.e = ne; el.title.value = ne.title; el.body.innerHTML = ne.content; paintChips(); paintPhotos(); } } });
   if (isNew && !ro) setTimeout(() => (r.query.type === 'todo' || r.query.type === 'event' ? el.title : el.body).focus(), 60);
@@ -67,10 +75,14 @@ async function commit() {
   if (next.title === e.title && next.content === e.content && cur.saved !== false) return;
   Object.assign(e, next);
   if (cur.isNew && isEmpty(e)) return;           // 빈 새 기록은 저장하지 않아요
+  paintSaved('saving');
   const ok = await saveEntry(e, { quiet: true }); cur.saved = ok;
+  if (cur) paintSaved(ok ? 'saved' : '');
   if (ok && cur.isNew) { cur.isNew = false; history.replaceState(null, '', '#/e/' + e.id); }
   paintFoot();
 }
+/* 막대 오른쪽 끝: 완료 → 저장 중 → 저장됨 (누르면 언제나 완료) */
+function paintSaved(st) { const b = cur?.el.root.querySelector('.ed-bar .saved span'); if (!b) return; b.textContent = t(st === 'saving' ? 'ed.saving' : st === 'saved' ? 'ed.saved' : 'ed.done'); b.parentElement.classList.toggle('ok', st === 'saved'); }
 function leave() {
   if (!cur) return;
   cur.save?.flush(); hideFmt(); hideBlocks();
@@ -136,7 +148,7 @@ async function onAct(ev) {
   else if (a === 'template') template();
   else if (a === 'photo' && CFG.PHOTOS_URL) { if ((e.photos || []).length >= 4) toast(t('photo.perEntry')); else cur.el.root.querySelector('.ed-file').click(); }
   else if (a === 'ph') photoMenu(b.dataset.id);
-  else if (a === 'mic') listen({ onState: on => b.classList.toggle('on', on), onText: txt => { cur.el.body.focus(); document.execCommand('insertText', false, txt.trim() + ' '); cur.save(); } });
+  else if (a === 'fb') { if (document.activeElement !== cur.el.body) cur.el.body.focus(); document.execCommand(b.dataset.f); b.classList.toggle('on', document.queryCommandState(b.dataset.f)); cur.saved = false; cur.save(); }
 }
 async function more() {
   const e = cur.e;

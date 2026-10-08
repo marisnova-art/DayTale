@@ -40,7 +40,7 @@ function planLine() {
 
 function group(g) {
   const p = S.prefs, n = p.notify || {};
-  if (g === 'account') return card('', `<div class="sprof"><span class="avatar big">${esc(Account.initial())}</span><span><b>${esc(Account.name())}</b><small>${esc(S.user?.email || '')}</small></span><button class="chip" data-a="name">${esc(t('set.editName'))}</button></div>`)
+  if (g === 'account') return card('', `<div class="sprof"><button class="avbtn" data-a="photo" aria-label="${esc(t('set.photo'))}">${Account.avatarHTML('big')}<i>${icon('camera', 14)}</i></button><input type="file" accept="image/*" hidden class="av-file"><span><b>${esc(Account.name())}</b><small>${esc(S.user?.email || '')}</small></span><button class="chip" data-a="name">${esc(t('set.editName'))}</button></div>`)
     + card(t('set.plan'), row({ ic: 'gem', label: t('set.planNow'), sub: esc(planLine()), href: '#/plans' }))
     + card(t('set.invite'), row({ ic: 'gift', label: t('set.myCode'), sub: esc(t('set.inviteSub')), value: S.status?.referral_code || '', act: 'code' }) + row({ ic: 'ticket', label: t('set.enterCode'), act: 'redeem' }))
     + card(t('set.security'), row({ ic: 'key-round', label: t('set.password'), act: 'password' }) + row({ ic: 'log-out', label: t('set.signOut'), act: 'signout', chev: false }));
@@ -51,8 +51,7 @@ function group(g) {
   if (g === 'record') {
     const c = Weather.city();
     return card('', row({ ic: 'shapes', label: t('set.defaultType'), value: typeLabel(p.defaultType || 'note'), act: 'type' })
-      + row({ ic: 'cloud-sun', label: t('set.city'), sub: esc(p.city ? t('set.cityManual') : t('set.cityAuto')), value: c ? c.name : '-', act: 'city' })
-      + toggle('dictation', t('set.dictation'), t('set.dictationSub'), p.dictation !== false))
+      + row({ ic: 'cloud-sun', label: t('set.city'), sub: esc(p.city ? t('set.cityManual') : t('set.cityAuto')), value: c ? c.name : '-', act: 'city' }))
       + card(t('set.days'), (p.days || []).map(d => `<div class="srow"><span class="si">${icon('cake', 19)}</span><span class="stx"><b>${esc(d.label)}</b><small>${esc(t('set.everyYear', { date: fmtDate(new Date(2000, +d.date.slice(-5, -3) - 1, +d.date.slice(-2)), { month: 'long', day: 'numeric' }) }))}</small></span><button class="icon-btn" data-del-day="${d.id}" aria-label="${esc(t('common.delete'))}">${icon('x', 18)}</button></div>`).join('')
         + row({ ic: 'plus', label: t('set.addDay'), sub: esc(t('set.daysSub')), act: 'addDay', chev: false }));
   }
@@ -104,6 +103,14 @@ async function onClick(ev, paint) {
   if (dd) { setPref('days', (S.prefs.days || []).filter(d => d.id !== dd.dataset.delDay)); paint(); return; }
   const b = ev.target.closest('[data-a]'); if (!b) return;
   const a = b.dataset.a;
+  if (a === 'photo') {
+    const pickFile = () => { const inp = document.querySelector('.av-file'); inp.onchange = async () => { const f = inp.files[0]; inp.value = ''; if (!f) return; try { const url = await Account.photoFrom(f); if (await Account.update({ avatar: url })) paint(); else toast(t('set.photoFail'), { bad: true }); } catch { toast(t('set.photoFail'), { bad: true }); } }; inp.click(); };
+    if (!Account.profile?.avatar) return pickFile();
+    const { pickAction } = await import('./pickers.js');
+    const v = await pickAction('', [{ v: 'change', label: t('set.photo'), icon: 'camera' }, { v: 'remove', label: t('set.photoRemove'), icon: 'trash-2', danger: true }]);
+    if (v === 'change') pickFile(); else if (v === 'remove' && await Account.update({ avatar: null })) paint();
+    return;
+  }
   if (a === 'name') { const v = await promptDlg(t('set.editName'), { value: Account.name(), maxlength: 40 }); if (v && v.trim()) { await Account.update({ display_name: v.trim() }); paint(); } }
   else if (a === 'code') { const c = S.status?.referral_code; if (!c) return; const text = t('set.inviteText', { name: brand(getLang()), code: c, url: CFG.SITE_URL || location.origin }); if (navigator.share) navigator.share({ text }).catch(() => {}); else { navigator.clipboard?.writeText(text); toast(t('set.copied')); } }
   else if (a === 'redeem') { const v = await promptDlg(t('set.enterCode'), { placeholder: 'abcd1234', maxlength: 16 }); if (!v) return; const { data } = await Sync.sb.rpc('redeem_referral', { code: v.trim() }); toast(data ? t('set.codeOk') : t('set.codeBad'), { bad: !data }); if (data) { await Account.load(); paint(); } }

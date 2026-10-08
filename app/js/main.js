@@ -54,7 +54,8 @@ async function show(r) {
 let started = null;
 async function startUser(user, { offline = false } = {}) {
   if (started === user.id) return; started = user.id;
-  S.user = { id: user.id, email: user.email };
+  const md = user.user_metadata || {};
+  S.user = { id: user.id, email: user.email, picture: /^https:\/\//.test(md.avatar_url || md.picture || '') ? (md.avatar_url || md.picture) : null };
   S.db = await new LocalDB(user.id).open();
   const [ents, folds] = await Promise.all([S.db.all('entries'), S.db.all('folders')]);
   S.entries = new Map(ents.map(e => [e.id, e])); S.folders = new Map(folds.map(f => [f.id, f]));

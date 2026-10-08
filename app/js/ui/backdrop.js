@@ -44,7 +44,7 @@ function apply(el = document.body, { weather = null } = {}) {
   const saved = ls.get('daytale.bgNow', null);
   let p = saved?.key === key ? Object.values(PAL).flat().find(x => x[0] === saved.name) : null;
   if (!p) { p = pick(slot, weather); ls.set('daytale.bgNow', { key, name: p[0] }); ls.set('daytale.bg', [p[0], ...ls.get('daytale.bg', [])].slice(0, 7)); }
-  current = { name: p[0], slot, accent: lighten(p[2], .35) };
+  current = { name: p[0], slot, accent: lighten(p[2], .6) };
   el.style.setProperty('--bg-grad', css(p));
   el.style.setProperty('--bg-grad-wide', cssWide(p));
   el.style.setProperty('--accent', current.accent);

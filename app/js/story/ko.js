@@ -29,7 +29,7 @@ export default {
     eventsN: ['오늘은 [event] {events}{이} 있어요. 첫 번째는 {time} {title}{이에요}.'],
     eventsPast: ['오늘 [event] 일정은 모두 지나갔어요.'],
     todos: ['[todo] {todos}{이} 남아 있어요.', '오늘 챙길 [todo] {todos}{이} 있어요.'],
-    todosAlso: ['할 일은 [todo] {todos}{이} 남았어요.', '그 밖에 [todo] {todos}도 있어요.'],
+    todosAlso: ['[todo] {todos}{이} 아직 남았어요.', '그 밖에 [todo] {todos}도 있어요.'],
     todosDone: ['할 일을 모두 끝냈어요 [sparkles] 오늘은 여기까지 해도 충분해요.'],
     free: { morning: ['오늘은 정해진 일정이 없어요. 하고 싶은 일을 하나 골라 보세요.'], day: ['남은 일정이 없어요. 잠깐 숨을 골라도 괜찮아요.'], evening: ['남은 일정이 없어요. 저녁은 온전히 쉬어도 돼요.'], night: ['내일 일정은 아침에 함께 볼게요.'] }
   },

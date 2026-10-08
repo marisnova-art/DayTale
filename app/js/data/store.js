@@ -14,7 +14,6 @@ const DEFAULT_PREFS = {
   sort: 'updated',
   city: null,            // 'KR:seoul' 같은 도시 id. 비어 있으면 시간대로 추정
   days: [],              // 기억할 날 [{ id, label, date: 'MM-DD' | 'YYYY-MM-DD' }]
-  dictation: true,
   notify: { morning: false, evening: false, reminders: true, morningAt: '08:00', eveningAt: '21:00' },
   recallSeen: {}         // 회상 2주 안 반복 금지 { entryId: 'YYYY-MM-DD' }
 };

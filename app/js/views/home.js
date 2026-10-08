@@ -1,28 +1,30 @@
-/* 감성형 홈: 날짜 · 이야기 · 질문 입력창 · 오늘 남은 일 */
+/* 감성형 홈: 날짜 · 이야기(오늘 할 일·일정도 문장 속에) · 질문 입력창. PC는 오른쪽에 오늘 패널 */
 import { Account } from '../data/account.js';
 import { S, addEntry, displayTitle, live } from '../data/store.js';
 import { Photos } from '../features/photos.js';
-import { listen, supported } from '../features/dictation.js';
 import { Weather } from '../features/weather.js';
 import { compose } from '../story/engine.js';
 import { nextQuestion, pickQuestion } from '../story/questions.js';
 import { fmtDate, fmtTime, t } from '../core/i18n.js';
 import { esc, h, icon, slotOf, todayKey } from '../core/utils.js';
-import { openSheet, toast } from '../ui/feedback.js';
-import { firstLeft, leftCount, todayPanel } from './today.js';
+import { toast } from '../ui/feedback.js';
+import { todayPanel } from './today.js';
 
 let cache = null;   // 같은 시간대·같은 기록이면 이야기를 다시 쓰지 않아요
 const sig = () => { const a = live(); return a.length + ':' + a.reduce((m, e) => e.updated_at > m ? e.updated_at : m, ''); };
 
 function story() {
-  const key = todayKey() + slotOf() + sig() + (Account.name() || '') + (Weather.current()?.at || '');
+  const key = todayKey() + slotOf() + sig() + (Account.name() || '') + Account.avatar().length + (Weather.current()?.at || '');
   if (cache?.key === key) return cache;
   const wx = Weather.current();
   const { ctx, paragraphs, recall } = compose({ name: Account.name(), weather: wx, city: wx?.city, max: matchMedia('(min-width: 900px)').matches ? 5 : 3 });
   ctx.weather = wx;
   const recallPh = p => p.recall && p.entry?.photos?.length ? `<a class="recall-ph" href="#/e/${p.entry.id}" aria-label="${esc(displayTitle(p.entry, t('common.untitled')))}">${p.entry.photos.slice(0, 3).map(ph => Photos.imgTag(ph)).join('')}</a>` : '';
   const html = paragraphs.map(p => typeof p === 'string' ? `<p>${p}</p>` : `<p>${p.html}</p>${recallPh(p)}`).join('');
-  cache = { key, html, ctx, recall, fresh: true };
+  // 이름 앞에 스티커 크기의 프로필 사진
+  const av = Account.avatar();
+  const out = av ? html.replace('<a class="w" href="#/settings/account">', `<a class="w" href="#/settings/account"><img class="st av" src="${esc(av)}" alt="" referrerpolicy="no-referrer">`) : html;
+  cache = { key, html: out, ctx, recall, fresh: true };
   return cache;
 }
 
@@ -48,22 +50,18 @@ function render(view) {
   if (S.prefs.mode === 'tidy') return renderTidy(view);
   const s = story(); const now = new Date();
   const q = pickQuestion(s.ctx, { recall: s.recall });
-  const n = leftCount();
   view.innerHTML = `<div class="home-wrap"><section class="home">
       <div class="when"><span>${esc(fmtDate(now, { month: 'long', day: 'numeric', weekday: 'long' }))}</span><i></i><b class="clock">${esc(fmtTime(now))}</b></div>
       <div class="story${s.fresh ? ' fade-in' : ''}" aria-live="polite">${s.html}</div>
       <div class="askq"><p class="q"><button class="qtext" title="${esc(t('home.questions'))}">${esc(q)}</button></p>
         <label class="ask"><textarea rows="1" placeholder="${esc(t('home.ph.' + slotOf()))}" aria-label="${esc(q)}" enterkeyhint="send" maxlength="5000"></textarea>
-          ${supported() ? `<button class="mic" aria-label="${esc(t('home.mic'))}">${icon('mic', 20)}</button>` : ''}
           <button class="go" aria-label="${esc(t('home.send'))}" hidden>${icon('arrow-up-bold', 18)}</button></label></div>
       ${s.ctx.weather ? '<p class="wxcredit">Weather data from <a href="https://www.met.no/en" target="_blank" rel="noopener">MET Norway</a></p>' : ''}
       <div class="spacer"></div>
-    </section><aside class="today-side"></aside></div>
-    <button class="peek" aria-label="${esc(t('home.left'))}"><span class="grip"></span><span class="hd"><b>${esc(t('home.left'))}</b><span>${n || ''}</span>${icon('chevron-up', 16)}</span>
-      ${n ? `<span class="ghost"><i></i>${esc(firstLeft())}</span>` : `<span class="ghost" style="opacity:.5;filter:none">${esc(t('home.empty'))}</span>`}</button>`;
+    </section><aside class="today-side"></aside></div>`;
   s.fresh = false; Photos.hydrate(view);
   view.querySelector('.today-side').append(todayPanel());
-  const ta = view.querySelector('textarea'), go = view.querySelector('.go'), mic = view.querySelector('.mic');
+  const ta = view.querySelector('textarea'), go = view.querySelector('.go');
   const sync = () => { go.hidden = !ta.value.trim(); };
   ta.addEventListener('input', sync);
   const send = async () => {
@@ -74,12 +72,7 @@ function render(view) {
   };
   go.onclick = send;
   ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && matchMedia('(pointer:fine)').matches) { e.preventDefault(); send(); } });
-  mic?.addEventListener('click', () => listen({
-    onState: on => { mic.classList.toggle('on', on); ta.placeholder = on ? t('home.listening') : t('home.ph.' + slotOf()); },
-    onText: txt => { ta.value = (ta.value ? ta.value.trimEnd() + ' ' : '') + txt.trim(); sync(); ta.focus(); }
-  }));
   view.querySelector('.qtext').onclick = () => { const nq = nextQuestion(s.ctx, q); view.querySelector('.qtext').textContent = nq; ta.setAttribute('aria-label', nq); };
-  view.querySelector('.peek').onclick = () => { const p = todayPanel({ onOpen: () => sheet.close() }); const sheet = openSheet(p, { label: t('home.today') }); };
   // 시계
   clearInterval(render.timer); render.timer = setInterval(() => { const c = view.querySelector('.clock'); if (!c) return clearInterval(render.timer); c.textContent = fmtTime(new Date()); }, 30000);
 }

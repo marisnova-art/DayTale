@@ -25,10 +25,12 @@
   --r-s: 12px; --r-m: 16px; --r-l: 24px; --r-xl: 32px;
   --font: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', 'Hiragino Sans', 'Segoe UI', Roboto, sans-serif;
   /* 글자 크기: 설정 > 화면 > 글자 크기 */
-  --story: 28px; --story-lh: 1.4; --body: 17px; --small: 14px;
+  /* 글자 크기는 네 가지만: 이야기·제목(xl) · 질문·본문(l) · 날짜·메뉴·버튼(m) · 가장 작은 글씨(s) */
+  --fs-xl: 28px; --fs-l: 22px; --fs-m: 18px; --fs-s: 15px;
+  --story: var(--fs-xl); --story-lh: 1.4; --body: var(--fs-m); --small: var(--fs-s);
   --safe-t: env(safe-area-inset-top, 0px); --safe-b: env(safe-area-inset-bottom, 0px);
   --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 1.1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
-:root[data-size="l"] { --story: 32px; --body: 19px; --small: 16px; }
-:root[data-size="xl"] { --story: 36px; --story-lh: 1.38; --body: 21px; --small: 17px; }
-@media (min-width: 900px) { :root { --story: 34px; } :root[data-size="l"] { --story: 38px; } :root[data-size="xl"] { --story: 42px; } }
+:root[data-size="l"] { --fs-xl: 32px; --fs-l: 25px; --fs-m: 20px; --fs-s: 17px; }
+:root[data-size="xl"] { --fs-xl: 36px; --fs-l: 28px; --fs-m: 22px; --fs-s: 19px; --story-lh: 1.38; }
+@media (min-width: 900px) { :root { --fs-xl: 34px; --fs-l: 24px; } :root[data-size="l"] { --fs-xl: 38px; --fs-l: 27px; } :root[data-size="xl"] { --fs-xl: 42px; --fs-l: 30px; } }

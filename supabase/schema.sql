@@ -27,6 +27,10 @@ create table if not exists public.profiles (
   deletion_notice_at timestamptz,                                          -- 1년 미접속 안내 메일을 보낸 때
   updated_at         timestamptz not null default now()
 );
+-- 프로필 사진: 256px로 줄인 사진(data URL, 약 10KB) 또는 Google 사진 주소. 사진 저장소(R2) 없이 계정 정보에 둬요.
+alter table public.profiles add column if not exists avatar text;
+alter table public.profiles drop constraint if exists profiles_avatar_check;
+alter table public.profiles add constraint profiles_avatar_check check (avatar is null or (char_length(avatar) <= 60000 and avatar ~ '^(data:image/(webp|jpeg|png);base64,[A-Za-z0-9+/=]+|https://[^[:space:]"<>]+)$'));
 create index if not exists profiles_seen_idx on public.profiles(last_seen_at);
 create index if not exists profiles_country_idx on public.profiles(country);
 alter table public.profiles enable row level security;
@@ -37,7 +41,7 @@ create policy "profiles: update own" on public.profiles for update using (id = a
 revoke all on public.profiles from anon, authenticated;
 grant select on public.profiles to authenticated;
 -- 사용자가 바꿀 수 있는 칸만 허용 (체험 기간·보너스·초대 정보는 서버만)
-grant update (display_name, lang, country, timezone) on public.profiles to authenticated;
+grant update (display_name, lang, country, timezone, avatar) on public.profiles to authenticated;
 
 -- 가입하면 회원 정보가 자동으로 생깁니다
 create or replace function public.handle_new_user() returns trigger
