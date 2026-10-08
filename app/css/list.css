@@ -49,13 +49,15 @@
 .bk-opt { display: flex; align-items: center; gap: 10px; padding: 14px 8px 0; color: var(--muted); font-size: var(--fs-s); }
 .bk-opt input { accent-color: var(--accent); width: 18px; height: 18px; }
 
-/* 밀어서 삭제 */
-.swp { position: relative; overflow: hidden; }
-.swp .r { position: relative; transition: transform .22s ease; }
+/* 밀어서 삭제: 줄 전체가 왼쪽으로 밀리고, 빈 자리를 빨간 영역이 카드 끝까지 채워요 (iOS 메일과 같은 방식) */
+.card:has(.swp) { overflow: hidden; }
+.swp { position: relative; margin: 0 -16px; --rev: 0px; }
+.swp .r { position: relative; padding-left: 16px; padding-right: 16px; transition: transform .22s ease; }
 .swp.moving .r { transition: none; }
-.swp-del { position: absolute; top: 1px; right: 0; bottom: 1px; width: 84px; border-radius: 16px; background: #E5484D; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: var(--fs-s); font-weight: 700; visibility: hidden; }
-.swp.moving .swp-del, .swp.open .swp-del { visibility: visible; }
-.swp.moving .r, .swp.open .r { background: #1F1E24; }
+.swp-del { position: absolute; top: 0; right: 0; bottom: 0; width: var(--rev); overflow: hidden; background: #E5484D; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  font-size: var(--fs-s); font-weight: 700; white-space: nowrap; transition: width .22s ease; }
+.swp.moving .swp-del { transition: none; }
+.swp.gone .swp-del { width: 100%; }
 .r .del { display: none; width: 34px; height: 34px; border-radius: 17px; align-items: center; justify-content: center; color: var(--faint); flex: none; }
 @media (hover: hover) and (pointer: fine) { .r:hover .del { display: flex; } .r .del:hover { color: var(--danger); background: var(--fill); } }
 /* 방금 쓴 기록 반짝 */

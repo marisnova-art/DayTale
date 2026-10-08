@@ -134,7 +134,7 @@ const refresh = view => view.paintList?.();
 /* 밀어서 삭제 (손가락). 조금 밀면 삭제 버튼이 열리고, 반 넘게 밀면 바로 휴지통으로 */
 function swipe(view) {
   let s = null;
-  const close = except => view.querySelectorAll('.swp.open').forEach(w => { if (w !== except) { w.classList.remove('open'); w.querySelector('.r').style.transform = ''; } });
+  const close = except => view.querySelectorAll('.swp.open').forEach(w => { if (w !== except) { w.classList.remove('open'); w.querySelector('.r').style.transform = ''; w.style.setProperty('--rev', '0px'); } });
   view.addEventListener('touchstart', ev => {
     const w = ev.target.closest('.swp'); if (!w || ev.target.closest('.swp-del')) return;
     close(w); const r = w.querySelector('.r');
@@ -145,15 +145,15 @@ function swipe(view) {
     const dx = ev.touches[0].clientX - s.x, dy = ev.touches[0].clientY - s.y;
     if (!s.dir) { if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) { s.dir = 'h'; s.w.classList.add('moving'); } else if (Math.abs(dy) > 10) { s = null; return; } else return; }
     ev.preventDefault();
-    s.cur = Math.min(0, s.base + dx); s.r.style.transform = `translateX(${s.cur}px)`;
+    s.cur = Math.min(0, s.base + dx); s.r.style.transform = `translateX(${s.cur}px)`; s.w.style.setProperty('--rev', -s.cur + 'px');
   }, { passive: false });
   view.addEventListener('touchend', async () => {
     if (!s) return; const { w, r, cur, dir } = s; s = null;
     if (!dir) return;
     w.classList.remove('moving'); w.dataset.swiped = '1'; setTimeout(() => delete w.dataset.swiped, 350);
-    if (cur < -r.offsetWidth * .5) { r.style.transform = 'translateX(-100%)'; const id = w.dataset.id; setTimeout(async () => { await trashEntry(id); toast(t('ed.trashed'), { action: t('common.undo'), onAction: () => restoreEntry(id) }); }, 180); }
-    else if (cur < -44) { w.classList.add('open'); r.style.transform = 'translateX(-88px)'; }
-    else { w.classList.remove('open'); r.style.transform = ''; }
+    if (cur < -r.offsetWidth * .5) { w.classList.add('gone'); r.style.transform = 'translateX(-110%)'; const id = w.dataset.id; setTimeout(async () => { await trashEntry(id); toast(t('ed.trashed'), { action: t('common.undo'), onAction: () => restoreEntry(id) }); }, 180); }
+    else if (cur < -44) { w.classList.add('open'); r.style.transform = 'translateX(-88px)'; w.style.setProperty('--rev', '88px'); }
+    else { w.classList.remove('open'); r.style.transform = ''; w.style.setProperty('--rev', '0px'); }
   });
   // 밀던 중이거나 열려 있으면 눌러도 글로 들어가지 않고 닫혀요
   view.addEventListener('click', ev => {

@@ -54,7 +54,7 @@ export default {
   'cal.week': '주', 'cal.month': '월', 'cal.prevWeek': '지난주', 'cal.nextWeek': '다음 주', 'cal.prevMonth': '지난달', 'cal.nextMonth': '다음 달', 'cal.today': '오늘',
   'cal.add': '이 날에 추가', 'cal.empty': '비어 있어요', 'cal.records': '기록 {n}', 'cal.more': '+{n}개 더', 'cal.count': '{n}개', 'cal.events': '일정', 'cal.todos': '할 일', 'cal.recs': '기록',
   'cal.quick': '{date}에 무엇을 넣을까요?', 'cal.asEvent': '일정으로', 'cal.asTodo': '할 일로',
-  'ed.photo': '사진', 'photo.open': '사진 열기', 'photo.view': '크게 보기', 'photo.cover': '커버로', 'photo.remove': '사진 빼기',
+  'ed.photo': '사진', 'photo.open': '사진 열기', 'photo.view': '크게 보기', 'photo.cover': '목록 대표 사진으로', 'photo.remove': '사진 빼기',
   'photo.perEntry': '사진은 기록마다 4장까지예요', 'photo.quota': '사진을 더 넣을 자리가 없어요', 'photo.read': '이 사진은 열 수 없어요', 'photo.bad_image': '이 사진은 올릴 수 없어요', 'photo.more': '+{n}',
   'bk.title': '백업·내보내기', 'bk.desc': '언제든 내 기록을 파일로 가져갈 수 있어요. 체험이 끝나도 열려 있어요.',
   'bk.json': 'JSON 백업', 'bk.jsonDesc': '모든 기록·폴더·설정. 다시 가져올 수 있어요.', 'bk.md': '마크다운', 'bk.mdDesc': '다른 메모 앱이나 글쓰기 도구로 옮길 때',

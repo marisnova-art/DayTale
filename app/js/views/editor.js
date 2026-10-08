@@ -119,7 +119,7 @@ function paintChips() {
 function paintPhotos() {
   const { e, el } = cur; const ps = e.photos || [];
   if (!ps.length) { el.photos.innerHTML = ''; el.photos.hidden = true; return; }
-  el.photos.hidden = false;
+  el.photos.hidden = false; el.photos.classList.toggle('one', ps.length === 1);
   el.photos.innerHTML = ps.map(p => `<button class="ph${p.pending ? ' wait' : ''}" data-act="ph" data-id="${p.id}" aria-label="${esc(t('photo.open'))}">${Photos.imgTag(p, { full: true })}</button>`).join('');
   Photos.hydrate(el.photos);
 }

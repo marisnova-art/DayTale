@@ -95,12 +95,17 @@
 .pick .on::after { content: "✓"; margin-left: auto; color: var(--accent); }
 .pick .danger { color: var(--danger); }
 
-/* 사진: 글 아래, 원래 비율 그대로 한 장씩 */
-.ed-photos { margin: 22px 0 0; display: grid; gap: 10px; }
+/* 사진: 글 아래, 자르지 않고 원래 비율 그대로. 한 장이면 크게, 여러 장이면 같은 높이로 나란히 */
+.ed-photos { margin: 22px 0 0; display: flex; flex-wrap: wrap; gap: 8px; }
 .ed-photos[hidden] { display: none; }
+.ed-photos .ph { position: relative; display: block; height: 200px; padding: 0; border: 0; border-radius: 16px; overflow: hidden; background: var(--raised); cursor: pointer; flex: none; max-width: 100%; }
+.ed-photos img { height: 100%; width: auto; max-width: 100%; display: block; object-fit: contain; }
+.ed-photos.one .ph { height: auto; }
+.ed-photos.one img { height: auto; max-height: 62vh; }
 .ed-body:has(+ .ed-photos:not([hidden])) { min-height: 3em; }
-.ed-photos .ph { position: relative; display: block; width: 100%; padding: 0; border: 0; border-radius: 18px; overflow: hidden; background: var(--raised); cursor: pointer; min-height: 80px; }
-.ed-photos img { width: 100%; height: auto; display: block; }
+/* 휴대폰: 여러 장이면 옆으로 넘겨 보는 한 줄 */
+@media (max-width: 899px) { .ed-photos:not(.one) { flex-wrap: nowrap; overflow-x: auto; scroll-snap-type: x mandatory; margin-left: -20px; margin-right: -20px; padding: 0 20px; scrollbar-width: none; } .ed-photos:not(.one) .ph { scroll-snap-align: start; height: 240px; } .ed-photos:not(.one) img { max-width: none; } }
+@media (min-width: 900px) { .ed-photos .ph { height: 260px; } .ed-photos.one img { max-height: 520px; } }
 .ed-photos .ph.wait::after { content: ''; position: absolute; right: 10px; bottom: 10px; width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(255,255,255,.35); border-top-color: #fff; animation: spin 1s linear infinite; }
 .ed-photos .ph.missing { background: repeating-linear-gradient(135deg, var(--raised) 0 10px, var(--raised-2) 10px 20px); }
 @keyframes spin { to { transform: rotate(360deg); } }
