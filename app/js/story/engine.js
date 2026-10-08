@@ -42,6 +42,8 @@ const match = (cond = {}, ctx) => Object.entries(cond).every(([k, v]) => k === '
   : k === 'cold' ? (ctx.weather?.temp ?? 99) <= 5 : k === 'hot' ? (ctx.weather?.temp ?? -99) >= 28 : k === 'dow' ? v === ctx.now.getDay() : k === 'holiday' ? v === ctx.holiday : true);
 
 /* ---------- 문장 채우기 ---------- */
+const SLOT_ST = { morning: 'sunrise', day: 'sunflower', evening: 'night', night: 'moon' };
+const SEASON_ST = { spring: 'blossom', summer: 'sunflower', autumn: 'leaf', winter: 'snowman' };
 const link = (href, html) => `<a class="w" href="${href}">${html}</a>`;
 const num = (s) => String(s).replace(/(\d[\d,.]*°?)/g, '<span class="n">$1</span>');
 function fill(text, vars) {
@@ -104,9 +106,13 @@ function compose({ name, weather = null, city = null, holiday = null, max = 3 } 
   const extra = part => (R[part] || []).filter(r => match(r.cond, ctx));
 
   // 1. 오늘의 공기
+  // 문단마다 스티커 하나: 날씨 > 계절 > 시간대 순으로 첫 문단에 하나만 붙여요
   let p1 = fill(pickText([...P.greet[ctx.slot], ...extra('greet').map(r => r)], 'greet.' + ctx.slot), vars);
-  const airs = [...P.air.filter(a => match(a.if, ctx)).flatMap(a => a.t.map(text => ({ text, w: a.w || (a.if.wx ? 3 : 1) }))), ...extra('air')];
+  const airs = [...P.air.filter(a => match(a.if, ctx)).flatMap(a => a.t.map(text => ({ text, w: a.w || (a.if.wx ? 3 : 1), st: a.if.season ? SEASON_ST[a.if.season] : '' }))), ...extra('air')];
   let air = pickText(airs, 'air');
+  const airSt = weather ? '' : airs.find(a => a.text === air)?.st || '';
+  if (airSt) air = sticker(airSt) + ' ' + air;
+  else if (!weather) p1 = sticker(SLOT_ST[ctx.slot]) + ' ' + p1;
   if (weather) {
     const wxw = `${W.wx[weather.kind] || ''} ${Math.round(weather.temp)}°`;
     const where = fill(P.where, { city: city || '', wx: { html: link('#/settings/record', sticker(weather.icon || weather.kind) + ' ' + num(esc(wxw))), plain: wxw } });
@@ -143,7 +149,9 @@ function compose({ name, weather = null, city = null, holiday = null, max = 3 } 
   const rc = ctx.first ? null : pickRecall(ctx);
   let recallP = null;
   if (rc) {
-    const v = rc.e ? { title: entryLink(rc.e), ago: W.ago(rc.n || 1) } : { label: { html: `<b class="w">${esc(rc.label)}</b>`, plain: rc.label } };
+    const tl = rc.e && entryLink(rc.e);
+    if (tl) tl.html = tl.html.replace('">', '">' + sticker(rc.e.photos?.length ? 'photo' : 'note') + ' ');
+    const v = rc.e ? { title: tl, ago: W.ago(rc.n || 1) } : { label: { html: `<b class="w">${esc(rc.label)}</b>`, plain: rc.label } };
     recallP = { recall: true, entry: rc.e || null, html: fill(pickText(P.recall[rc.kind], 'recall.' + rc.kind), v) };
     if (rc.e) { const used = { ...(S.prefs.recallSeen || {}) }; used[rc.e.id] = ctx.today; Object.keys(used).forEach(k => { if (used[k] < dayKey(addDays(ctx.now, -30))) delete used[k]; }); setPref('recallSeen', used); }
   }
@@ -152,7 +160,7 @@ function compose({ name, weather = null, city = null, holiday = null, max = 3 } 
   const rest = [stackP, recallP].filter(Boolean);
   if (out.length + rest.length > max) out.push(recallP || stackP); else out.push(...rest);
   // 5. 맺음
-  if (out.length < max) out.push(fill(pickText([...P.close[ctx.slot], ...extra('close')], 'close.' + ctx.slot), {}));
+  if (out.length < max) out.push(fill(pickText([...P.close[ctx.slot], ...extra('close')], 'close.' + ctx.slot), {}) + ' ' + sticker(ctx.slot === 'evening' || ctx.slot === 'night' ? 'moon' : 'sparkles'));
   return { ctx, paragraphs: out, recall: rc ? { kind: rc.kind, n: rc.n, label: rc.label, title: rc.e ? displayTitle(rc.e, '') : '' } : null };
 }
 
