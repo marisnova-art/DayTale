@@ -98,7 +98,8 @@
 .inst .steps li.done { color: var(--ok); }
 /* 고를 것이 많으면(언어) 3칸씩 줄 바꿈, 긴 이름은 두 줄까지 */
 .seg.wide:has(> button:nth-child(5)) { grid-auto-flow: row; grid-template-columns: repeat(3, 1fr); gap: 2px; }
-.seg.wide button { height: auto; min-height: 38px; padding: 6px 8px; line-height: 1.2; }
+.seg.wide button { height: auto; min-height: 38px; padding: 6px 8px; line-height: 1.2; white-space: normal; min-width: 0; text-align: center; }
+.seg.wide:has(> button:nth-child(5)) { border-radius: 20px; }
 /* 프로필 사진 바꾸기 */
 .avbtn { position: relative; flex: none; border-radius: 26px; }
 .avbtn i { position: absolute; right: -2px; bottom: -2px; width: 22px; height: 22px; border-radius: 11px; background: var(--text); color: #141317; display: grid; place-items: center; box-shadow: 0 0 0 2px var(--sheet); }

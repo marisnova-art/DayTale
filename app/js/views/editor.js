@@ -12,6 +12,7 @@ import { TYPE_ICON } from '../ui/shell.js';
 import { typeLabel } from './pickers.js';
 import { Photos } from '../features/photos.js';
 import { FONTS, fontOf, useFont } from '../core/fonts.js';
+import { History, setBlock } from '../features/blocks.js';
 
 /* 서식 버튼: [키, 아이콘, 이름]. 한 번 누르면 켜지고, 다시 누르면 꺼져요 */
 const STYLE = [['p', 'pilcrow', 'ed.text'], ['heading', 'type', 'ed.heading'], ['quote', 'text-quote', 'ed.quote']];
@@ -59,24 +60,26 @@ function render(view, r) {
   const el = { root: view, title: $('.ed-title', view), body: $('.ed-body', view), info: $('.ed-info', view), meta: $('.ed-meta', view), photos: $('.ed-photos', view), foot: $('.ed-foot', view), pan: $('.ed-pan', view) };
   cur = { e, isNew, wasNew: isNew, el, ro, pan: null, saved: carried ? false : undefined };
   el.title.value = e.title; el.body.innerHTML = e.content || (e.text ? e.text.split('\n').map(l => `<p>${esc(l) || '<br>'}</p>`).join('') : '');
+  if (!ro && !el.body.firstElementChild) el.body.innerHTML = '<p><br></p>';   // 첫 줄부터 문단으로 (줄 모양 바꾸기가 고르게 돼요)
   paintChips(); paintPhotos(); paintFoot(); paintFont();
   const save = debounce(() => commit(), 600); cur.save = save;
   const fit = () => { el.title.style.height = 'auto'; el.title.style.height = el.title.scrollHeight + 'px'; };   // 제목 칸은 글 길이만큼 (스크롤 없이)
   el.title.addEventListener('input', () => { fit(); save(); }); requestAnimationFrame(fit);
   el.title.addEventListener('keydown', ev => { if (ev.key === 'Enter' && !ev.isComposing) { ev.preventDefault(); placeCaret(el.body, true); } });
   el.title.addEventListener('focus', () => closePan());
-  el.body.addEventListener('input', ev => { shortcuts(ev); save(); paintState(); });
+  cur.hist = new History(el.body);
+  el.body.addEventListener('input', ev => { shortcuts(ev); cur.hist.soon(); save(); paintState(); });
   el.body.addEventListener('keydown', onKey);
   el.body.addEventListener('focus', () => document.execCommand('defaultParagraphSeparator', false, 'p'));
-  el.body.addEventListener('pointerdown', () => { if (cur?.pan) closePan(true); });   // 글을 누르면 판을 닫고 키보드로 돌아가요
-  el.body.addEventListener('click', onBodyClick);
+  // 판이 열려 있을 때: 글을 길게 눌러 고르는 동안은 판이 그대로 있고 (키보드도 안 올라와요), 그냥 톡 누르면 판을 닫고 키보드로 돌아가요
+  el.body.addEventListener('click', ev => { if (cur?.pan && !isPC() && getSelection().isCollapsed && !ev.target.closest('a')) { closePan(true); return; } onBodyClick(ev); });
   el.body.addEventListener('paste', onPaste);
   document.addEventListener('selectionchange', paintState);
   view.addEventListener('click', onAct);
   // 도구를 눌러도 글 쓰던 자리(커서)가 그대로 있게
   $$('.ed-tools, .ed-dock', view).forEach(n => n.addEventListener('mousedown', ev => { if (ev.target.closest('button') && !ev.target.closest('.ed-pan .kinds, .ed-pan .acts, .ed-pan .imgs')) ev.preventDefault(); }));
   $('.ed-file', view)?.addEventListener('change', async ev => { const files = [...ev.target.files]; ev.target.value = ''; if (await Photos.addFiles(cur.e, files)) { cur.saved = false; paintPhotos(); await commit(); Photos.flush().then(() => cur && paintPhotos()); } });
-  cur.off = onChange(w => { if (w?.type === 'external' && w.id === e.id && document.activeElement !== el.body && document.activeElement !== el.title) { const ne = S.entries.get(e.id); if (ne) { cur.e = ne; el.title.value = ne.title; el.body.innerHTML = ne.content; paintChips(); paintPhotos(); } } });
+  cur.off = onChange(w => { if (w?.type === 'external' && w.id === e.id && document.activeElement !== el.body && document.activeElement !== el.title) { const ne = S.entries.get(e.id); if (ne) { cur.e = ne; el.title.value = ne.title; el.body.innerHTML = ne.content; cur.hist = new History(el.body); paintChips(); paintPhotos(); } } });
   if (isNew && !ro) setTimeout(() => { const n = r.query.type === 'todo' || r.query.type === 'event' ? el.title : el.body; n.focus(); if (n === el.body && e.text) placeCaret(el.body, true); }, 60);
 }
 
@@ -84,7 +87,8 @@ function render(view, r) {
 async function commit() {
   if (!cur || cur.ro) return;
   const { e, el } = cur;
-  const html = sanitizeHTML(el.body.innerHTML);
+  let html = sanitizeHTML(el.body.innerHTML.replace(/\u200B/g, '').replace(/<mark><\/mark>/g, ''));
+  if (!htmlToText(html).trim() && !/<(hr|li)\b/.test(html)) html = '';   // 빈 줄만 있으면 빈 글
   const next = { title: el.title.value.trim(), content: html, text: htmlToText(html) };
   if (next.title === e.title && next.content === e.content && cur.saved !== false) return;
   Object.assign(e, next);
@@ -164,7 +168,10 @@ function openPan(kind) {
   if (kb > 120) kbH = kb;
   cur.pan = kind;
   const b = cur.el.body;
-  if (!isPC() && document.activeElement === b) b.inputMode = 'none';   // 커서는 두고 키보드만 내려요
+  if (!isPC()) {   // 커서는 두고 키보드만 내려요. 판에서 무엇을 눌러도 키보드가 다시 올라오지 않아요
+    b.inputMode = 'none';
+    if (document.activeElement === cur.el.title) { cur.el.title.blur(); placeCaret(b, true); }
+  }
   document.documentElement.style.setProperty('--pan', Math.min(Math.max(kbH, 260), 360) + 'px');
   document.documentElement.classList.add('ed-pan-open');
   cur.el.pan.hidden = false; paintPan();
@@ -177,7 +184,7 @@ function closePan(toKeyboard = false) {
   $$('[data-act=aa],[data-act=more]', cur.el.root).forEach(x => { x.classList.remove('on'); x.setAttribute('aria-expanded', 'false'); });
   $('.ed-bar .kbd', cur.el.root)?.toggleAttribute('hidden', true);
   const b = cur.el.body;
-  if (b.inputMode === 'none') { b.inputMode = ''; if (toKeyboard && had) { const r = saveRange(); b.blur(); b.focus(); restoreRange(r); } }
+  if (b.inputMode === 'none') { b.inputMode = ''; if (toKeyboard && had) { const r = saveRange(); b.blur(); b.focus({ preventScroll: true }); restoreRange(r); } }
 }
 function paintPan() {
   const { e, el } = cur, k = cur.pan;
@@ -219,10 +226,9 @@ async function fmt(f) {
   const body = cur.el.body;
   if (!body.contains(getSelection().anchorNode)) { if (document.activeElement !== body) placeCaret(body, true); }
   else if (document.activeElement !== body) { const r = saveRange(); body.focus({ preventScroll: true }); restoreRange(r); }
-  if (['bold', 'italic', 'underline'].includes(f)) document.execCommand(f);
-  else if (f === 'undo') document.execCommand('undo');
-  else if (f === 'p') { const blk = blockOf(getSelection().anchorNode); if (blk?.closest('blockquote') || blk?.tagName === 'H2') document.execCommand('formatBlock', false, 'p'); }
-  else if (f === 'mark' || f === 'link') { await fmtAction(f); return; }
+  if (['bold', 'italic', 'underline'].includes(f)) { cur.hist.snap(); document.execCommand(f); }
+  else if (f === 'undo') { if (!cur.hist.back()) return; }
+  else if (f === 'mark' || f === 'link') { cur.hist.snap(); await fmtAction(f); cur.hist?.snap(); return; }
   else applyBlock(f);
   cur.saved = false; cur.save(); paintState();
 }
@@ -293,20 +299,11 @@ function placeCaret(node, atEnd = true) {
 }
 const blockOf = n => { while (n && n !== cur.el.body) { if (n.nodeType === 1 && /^(P|DIV|H2|H3|LI|BLOCKQUOTE)$/.test(n.tagName)) return n; n = n.parentNode; } return null; };
 function applyBlock(k) {
-  const ex = cmd => document.execCommand(cmd, false, null);
-  if (k === 'heading') document.execCommand('formatBlock', false, blockOf(getSelection().anchorNode)?.tagName === 'H2' ? 'p' : 'h2');
-  else if (k === 'quote') document.execCommand('formatBlock', false, blockOf(getSelection().anchorNode)?.tagName === 'BLOCKQUOTE' ? 'p' : 'blockquote');
-  else if (k === 'bullet') ex('insertUnorderedList');
-  else if (k === 'numbered') ex('insertOrderedList');
-  else if (k === 'divider') document.execCommand('insertHTML', false, '<hr><p><br></p>');
-  else if (k === 'check') {
-    const li = getSelection().anchorNode && blockOf(getSelection().anchorNode);
-    if (li?.tagName === 'LI' && li.parentNode.classList.contains('todo')) { ex('insertUnorderedList'); }
-    else { if (li?.tagName !== 'LI' || li.parentNode.tagName !== 'UL') ex('insertUnorderedList'); const ul = blockOf(getSelection().anchorNode)?.closest('ul'); ul?.classList.add('todo'); }
-  }
-  liftLists(); cur.saved = false; cur.save();
+  cur.hist?.snap();
+  if (k === 'divider') { document.execCommand('insertHTML', false, '<hr><p><br></p>'); liftLists(); }
+  else setBlock(cur.el.body, k);
+  cur.hist?.snap(); cur.saved = false; cur.save();
 }
-/* 크롬이 <p> 안에 목록을 넣는 경우가 있어 밖으로 꺼내요 (캐럿 유지) */
 function liftLists() {
   $$('p > ul, p > ol, div > ul, div > ol, h2 > ul, h2 > ol', cur.el.body).forEach(list => {
     const par = list.parentNode; if (par === cur.el.body) return;
@@ -330,8 +327,9 @@ function shortcuts(ev) {
 function onKey(ev) {
   if (ev.key === 'Escape' && cur?.pan) { closePan(true); return; }
   const mod = ev.metaKey || ev.ctrlKey;
-  if (mod && ['b', 'i', 'u'].includes(ev.key.toLowerCase())) { ev.preventDefault(); document.execCommand({ b: 'bold', i: 'italic', u: 'underline' }[ev.key.toLowerCase()]); cur.save(); paintState(); }
-  if (mod && ev.key.toLowerCase() === 'k') { ev.preventDefault(); fmtAction('link'); }
+  if (mod && ['b', 'i', 'u'].includes(ev.key.toLowerCase())) { ev.preventDefault(); cur.hist.snap(); document.execCommand({ b: 'bold', i: 'italic', u: 'underline' }[ev.key.toLowerCase()]); cur.save(); paintState(); }
+  if (mod && ev.key.toLowerCase() === 'k') { ev.preventDefault(); fmt('link'); }
+  if (mod && (ev.key.toLowerCase() === 'z' || ev.key.toLowerCase() === 'y')) { ev.preventDefault(); const redo = ev.key.toLowerCase() === 'y' || ev.shiftKey; if (redo ? cur.hist.fwd() : cur.hist.back()) { cur.saved = false; cur.save(); paintState(); } }
   // 체크리스트 줄에서 Enter: 새 줄은 체크 안 된 상태로
   if (ev.key === 'Enter' && !ev.shiftKey) setTimeout(() => { const li = blockOf(getSelection().anchorNode); if (li?.tagName === 'LI') li.classList.remove('done'); }, 0);
 }
@@ -368,14 +366,61 @@ function linkPop(a) {
 }
 
 /* ---------- 형광펜 · 링크 ---------- */
+// 형광펜은 굵게처럼 켜고 꺼요: 글을 고르면 그 부분에, 고르지 않으면 이어서 쓰는 글자부터 칠하거나 멈춰요
+const ZW = '\u200B';
+function mark(s, range) {
+  if (!range) return;
+  const body = cur.el.body, markOf = n => (n?.nodeType === 1 ? n : n?.parentElement)?.closest('mark');
+  const place = (node, off) => { const r = document.createRange(); r.setStart(node, off); r.collapse(true); s.removeAllRanges(); s.addRange(r); };
+  if (!range.collapsed) {
+    const hit = [...body.querySelectorAll('mark')].filter(m => range.intersectsNode(m));
+    const m0 = markOf(range.startContainer);
+    if (m0 && m0 === markOf(range.endContainer)) {          // 칠한 곳 안에서 고르면: 고른 부분만 지워요
+      const before = document.createRange(); before.setStart(m0, 0); before.setEnd(range.startContainer, range.startOffset);
+      const after = document.createRange(); after.setStart(range.endContainer, range.endOffset); after.setEnd(m0, m0.childNodes.length);
+      const wrap = r => { if (!r.toString()) return []; const x = document.createElement('mark'); x.append(r.cloneContents()); return [x]; };
+      const a = document.createTextNode(''), z = document.createTextNode('');
+      m0.replaceWith(...wrap(before), a, range.cloneContents(), z, ...wrap(after));
+      const r = document.createRange(); r.setStartAfter(a); r.setEndBefore(z); s.removeAllRanges(); s.addRange(r);
+      return;
+    }
+    // 고른 글자가 모두 칠해져 있으면 지우고, 아니면 고른 곳 전체를 칠해요
+    const texts = [], w = document.createTreeWalker(range.commonAncestorContainer.nodeType === 1 ? range.commonAncestorContainer : range.commonAncestorContainer.parentElement, NodeFilter.SHOW_TEXT);
+    while (w.nextNode()) if (range.intersectsNode(w.currentNode) && w.currentNode.textContent.replace(/[\s\u200B]/g, '')) texts.push(w.currentNode);
+    if (texts.length && texts.every(n => markOf(n))) { hit.forEach(x => x.replaceWith(...x.childNodes)); return; }
+    // 글자 조각마다 칠해요 (여러 줄에 걸쳐도 줄 모양이 그대로예요)
+    const { startContainer: sc, startOffset: so, endContainer: ec, endOffset: eo } = range;
+    let first = null, last = null;
+    texts.forEach(n => {
+      let t0 = n;
+      if (n === ec && eo < n.length) n.splitText(eo);
+      if (n === sc && so > 0) t0 = n.splitText(so);
+      if (!markOf(t0)) { const m = document.createElement('mark'); t0.replaceWith(m); m.append(t0); }
+      first = first || t0; last = t0;
+    });
+    body.querySelectorAll('mark + mark').forEach(m => { const p = m.previousSibling; if (p?.nodeName === 'MARK') { p.append(...m.childNodes); m.remove(); } });
+    if (first) { const r = document.createRange(); r.setStart(first, 0); r.setEnd(last, last.length); s.removeAllRanges(); s.addRange(r); }
+    return;
+  }
+  const inMark = markOf(range.startContainer);
+  if (inMark) {   // 칠하는 중이면 여기서 멈춰요: 커서 뒤는 칠한 채로 두고, 이어서 쓰는 글자는 칠하지 않아요
+    const tail = document.createRange(); tail.setStart(range.startContainer, range.startOffset); tail.setEnd(inMark, inMark.childNodes.length);
+    const rest = tail.extractContents(), txt = document.createTextNode(ZW);
+    inMark.after(txt);
+    if (rest.textContent.replace(new RegExp(ZW, 'g'), '')) { const m2 = document.createElement('mark'); m2.append(rest); txt.after(m2); }
+    if (!inMark.textContent.replace(new RegExp(ZW, 'g'), '')) inMark.remove();
+    place(txt, 1);
+  } else {        // 지금부터 쓰는 글자를 칠해요
+    const m = document.createElement('mark'), txt = document.createTextNode(ZW); m.append(txt);
+    range.insertNode(m); place(txt, 1);
+  }
+}
+
 async function fmtAction(f) {
   const s = getSelection(); const range = s.rangeCount ? s.getRangeAt(0).cloneRange() : null;
   const at = range && (range.commonAncestorContainer.nodeType === 1 ? range.commonAncestorContainer : range.commonAncestorContainer.parentElement);
-  if (f === 'mark') {
-    const inMark = at?.closest('mark');
-    if (inMark) inMark.replaceWith(...inMark.childNodes);          // 다시 누르면 형광펜이 빠져요
-    else if (range && !range.collapsed) { const m = document.createElement('mark'); m.append(range.extractContents()); range.insertNode(m); }
-  } else if (f === 'link') {
+  if (f === 'mark') mark(s, range);
+  else if (f === 'link') {
     if (at?.closest('a')) { const a = at.closest('a'); a.replaceWith(...a.childNodes); }   // 다시 누르면 링크가 빠져요
     else {
       const url = await promptDlg(t('ed.link'), { placeholder: t('ed.linkAsk'), type: 'url', maxlength: 2000 });
