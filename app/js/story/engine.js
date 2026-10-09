@@ -7,6 +7,7 @@ import es from './es.js';
 import fr from './fr.js';
 import { S, displayTitle, live, setPref } from '../data/store.js';
 import { fmtHM, getLang, t } from '../core/i18n.js';
+import { LIT, pickLit } from './lit.js';
 import { addDays, dayKey, esc, ls, parseDay, seasonOf, slotOf, todayKey } from '../core/utils.js';
 import { sticker } from '../core/stickers.js';
 
@@ -159,9 +160,20 @@ function compose({ name, weather = null, city = null, holiday = null, max = 3 } 
   // 화면이 좁으면 문단을 줄여요: 공기 · 할 것 · (회상 또는 쌓아 온 것) · 맺음은 자리가 남을 때만
   const rest = [stackP, recallP].filter(Boolean);
   if (out.length + rest.length > max) out.push(recallP || stackP); else out.push(...rest);
+  const roomForClose = out.length < max;
+  // 문학 한 줄: 저작권이 끝난 작가의 짧은 구절을 이야기 말투로. 날짜·시간대마다 하나, 2주 안에는 되풀이하지 않아요
+  const lit = litLine(ctx, lang); if (lit) out.push(lit);
   // 5. 맺음
-  if (out.length < max) out.push(fill(pickText([...P.close[ctx.slot], ...extra('close')], 'close.' + ctx.slot), {}) + ' ' + sticker(ctx.slot === 'evening' || ctx.slot === 'night' ? 'moon' : 'sparkles'));
+  if (roomForClose) out.push(fill(pickText([...P.close[ctx.slot], ...extra('close')], 'close.' + ctx.slot), {}) + ' ' + sticker(ctx.slot === 'evening' || ctx.slot === 'night' ? 'moon' : 'sparkles'));
   return { ctx, paragraphs: out, recall: rc ? { kind: rc.kind, n: rc.n, label: rc.label, title: rc.e ? displayTitle(rc.e, '') : '' } : null };
+}
+
+function litLine(ctx, lang) {
+  const key = ctx.today + '|' + ctx.slot, cut = dayKey(addDays(ctx.now, -14));
+  const log = Object.fromEntries(Object.entries(ls.get('daytale.lit') || {}).filter(([k]) => k.slice(0, 10) >= cut));
+  let i = log[key];
+  if (!(i >= 0) || !LIT[i]?.[lang]) { const p = pickLit(ctx, lang, Object.values(log)); if (!p) return ''; i = p.i; log[key] = i; ls.set('daytale.lit', log); }
+  return esc(LIT[i][lang]).replace(/\*\*(.+?)\*\*/g, '<b class="w">$1</b>');
 }
 
 export { batchim, compose, gather, josa, setRemote };
