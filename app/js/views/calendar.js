@@ -83,11 +83,12 @@ function paint(root) {
   if (state.view === 'week') {
     const s0 = startOfWeek(sel, ws), days = [...Array(7)].map((_, i) => addDays(s0, i));
     main = `<div class="wkrow"><button class="navbtn" data-nav="-1" aria-label="${esc(t('cal.prevWeek'))}">${icon('chevron-left', 24)}</button>
+      <span class="wkrange">${esc(fmtDate(days[0], { month: 'long', day: 'numeric' }))} – ${esc(fmtDate(days[6], days[6].getMonth() === days[0].getMonth() ? { day: 'numeric' } : { month: 'long', day: 'numeric' }))}</span>
       <div class="weekstrip">${days.map(d => { const k = dayKey(d); return `<button class="day${k === state.sel ? ' on' : ''}${d.getDay() === 0 || d.getDay() === 6 ? ' we' : ''}" data-day="${k}">${esc(fmtDate(d, { weekday: 'narrow' }))}<b>${d.getDate()}</b><span class="dots">${dots(idx.get(k)).replace(/<u /g, '<i ').replace(/<\/u>/g, '</i>')}</span></button>`; }).join('')}</div>
       <button class="navbtn" data-nav="1" aria-label="${esc(t('cal.nextWeek'))}">${icon('chevron-right', 24)}</button></div>
       <div class="agenda">${days.filter(d => !days.some(x => dayKey(x) === today) || dayKey(d) >= today).map(d => dayBlock(dayKey(d), idx.get(dayKey(d)))).join('')}</div>
       <div class="pcw">${days.map(d => { const k = dayKey(d), x = idx.get(k); const list = x ? [...(pass('event') ? x.event.map(e => item(e, 'event')) : []), ...(pass('todo') ? x.todo.map(e => item(e, 'todo')) : []), ...(state.filter === 'all' ? x.record.map(e => item(e, 'record')) : [])] : [];
-        return `<div class="col${k === today ? ' today' : ''}"><div class="hd" data-day="${k}">${esc(fmtDate(d, { weekday: 'short' }))}<b>${d.getDate()}</b></div>${list.join('')}<button class="add only" data-add="${k}" aria-label="${esc(t('cal.add'))}" style="align-self:flex-start;margin-top:auto">${icon('plus', 15)}</button></div>`; }).join('')}</div>`;
+        return `<div class="col${k === today ? ' now' : ''}"><div class="hd" data-day="${k}">${esc(fmtDate(d, { weekday: 'short' }))}<b>${d.getDate()}</b></div>${list.join('')}<button class="add only" data-add="${k}" aria-label="${esc(t('cal.add'))}" style="align-self:flex-start;margin-top:auto">${icon('plus', 15)}</button></div>`; }).join('')}</div>`;
   } else {
     const first = new Date(sel.getFullYear(), sel.getMonth(), 1), g0 = startOfWeek(first, ws);
     const weeks = Math.ceil(((first - g0) / 864e5 + new Date(sel.getFullYear(), sel.getMonth() + 1, 0).getDate()) / 7);

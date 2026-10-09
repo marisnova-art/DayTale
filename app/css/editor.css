@@ -154,8 +154,8 @@
 .lk-pop { position: fixed; z-index: 70; display: inline-flex; align-items: center; gap: 8px; max-width: 260px; height: 42px; padding: 0 14px; border-radius: 21px; background: #26252C; border: 1px solid var(--line-2); box-shadow: 0 12px 30px rgba(0,0,0,.45); color: var(--text); font-size: var(--fs-s); font-weight: 700; animation: rise .15s ease-out; }
 .lk-pop small { font-weight: 500; color: var(--muted-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 /* 쓰기 막대: 서식 · 옵션은 글자 버튼 (아이콘만으로는 알아보기 어려워서) */
-.ed-bar .tb.lbl { width: auto; padding: 0 13px 0 11px; gap: 6px; font-size: var(--fs-s); font-weight: 700; color: rgba(255,255,255,.88); background: rgba(255,255,255,.07); margin: 0 2px; }
-.ed-bar .tb.lbl.on { background: var(--text); color: #141317; }
+.ed-bar .tb.lbl, .ed-tools .tb.lbl { width: auto; padding: 0 13px 0 11px; gap: 6px; font-size: var(--fs-s); font-weight: 700; color: rgba(255,255,255,.88); background: rgba(255,255,255,.07); margin: 0 2px; }
+.ed-bar .tb.lbl.on, .ed-tools .tb.lbl.on { background: var(--text); color: #141317; }
 @media (max-width: 370px) { .ed-bar .tb.lbl { padding: 0 10px; } .ed-bar .tb.lbl .i { display: none; } }
 /* 서식 · 옵션 판: 설정·메뉴 시트처럼 위가 둥근 판이 아래에서 올라와요 */
 @media (max-width: 899px) {

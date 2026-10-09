@@ -23,7 +23,7 @@ function frame() {
       <div class="foot"><button class="m" data-go="/trash">${icon('trash-2', 18)}${esc(t('nav.trash'))}</button><button class="m" data-go="/settings">${icon('settings', 18)}${esc(t('nav.settings'))}</button></div>
     </aside>
     <div class="main">
-      <div class="pc-top"><button class="btn primary" data-act="new" style="height:44px;border-radius:22px;padding:0 18px">${icon('pencil', 18)}${esc(t('nav.new'))}</button><button class="icon-btn glass bell" data-go="/notices" aria-label="${esc(t('nav.notices'))}">${icon('bell', 19)}</button></div>
+      <div class="pc-top"><button class="btn primary" data-act="new" style="height:44px;border-radius:22px;padding:0 18px">${icon('pencil', 18)}${esc(t('nav.write'))}</button><button class="icon-btn glass bell" data-go="/notices" aria-label="${esc(t('nav.notices'))}">${icon('bell', 19)}</button></div>
       <main id="view" class="view" tabindex="-1"></main>
     </div>
     <nav class="mbar glass" aria-label="${esc(t('nav.menu'))}">

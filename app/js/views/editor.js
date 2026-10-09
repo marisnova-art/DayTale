@@ -20,7 +20,7 @@ const INLINE = [['bold', 'bold', 'ed.bold'], ['italic', 'italic', 'ed.italic'], 
 const LISTS = [['bullet', 'list', 'ed.bullet'], ['numbered', 'list-ordered', 'ed.numbered'], ['check', 'list-todo', 'ed.check'], ['divider', 'minus', 'ed.divider'], ['undo', 'undo-2', 'ed.undo']];
 let cur = null;   // { e, isNew, saved, el, off, pan }
 
-const fbtn = ([k, ic, l], cls = 'tb') => `<button class="${cls}" data-f="${k}" aria-label="${esc(t(l))}" aria-pressed="false">${icon(ic, 20)}</button>`;
+const fbtn = ([k, ic, l], cls = 'tb') => `<button class="${cls}" data-f="${k}" aria-label="${esc(t(l))}" title="${esc(t(l))}" aria-pressed="false">${icon(ic, 20)}</button>`;
 const isPC = () => matchMedia('(min-width: 900px)').matches;
 
 function render(view, r) {
@@ -33,12 +33,12 @@ function render(view, r) {
     if (c?.url) { e.type = 'scrap'; e.meta = { ...e.meta, url: safeUrl(c.url) || undefined }; e.title = (c.title || '').slice(0, 300); if (!e.title) { try { e.title = new URL(c.url).hostname.replace(/^www\./, ''); } catch {} } } } catch {} }
   if (!e) { view.innerHTML = `<div class="ed-page"><div class="ed"><button class="icon-btn" data-act="back" aria-label="${esc(t('ed.back'))}">${icon('chevron-left', 22)}</button><p class="note" style="padding:40px 4px">${esc(t('list.noResults'))}</p></div></div>`; view.querySelector('[data-act=back]').onclick = () => history.length > 1 ? history.back() : go('/home'); return; }
   const ro = !S.canWrite;
-  const photoBtn = `<button class="tb" data-act="photo" aria-label="${esc(t('ed.photo'))}">${icon('camera', 20)}</button>`;
+  const photoBtn = `<button class="tb" data-act="photo" aria-label="${esc(t('ed.photo'))}" title="${esc(t('ed.photo'))}">${icon('camera', 20)}</button>`;
   view.innerHTML = `<div class="ed-page"><div class="ed">
     <div class="ed-tools" role="toolbar">
       <button class="tb" data-act="back" aria-label="${esc(t('ed.back'))}">${icon('chevron-left', 22)}</button>
       ${ro ? '<span class="sp"></span>' : `<span class="sep"></span>${STYLE.slice(1).map(f => fbtn(f)).join('')}<span class="sep"></span>${INLINE.map(f => fbtn(f)).join('')}<span class="sep"></span>${LISTS.slice(0, 4).map(f => fbtn(f)).join('')}<span class="sep"></span>${photoBtn}<span class="sp"></span>`}
-      <button class="tb" data-act="more" aria-label="${esc(t('ed.more'))}" aria-expanded="false">${icon('more-horizontal', 20)}</button>
+      <button class="tb lbl" data-act="more" aria-expanded="false" title="${esc(t('ed.options'))}">${icon('sliders-horizontal', 18)}<span>${esc(t('ed.options'))}</span></button>
       <button class="ed-done" data-act="done">${icon('check', 18)}<span>${esc(t('ed.finish'))}</span></button></div>
     ${ro ? `<div class="ed-locked"><span>${esc(t('ed.locked'))}</span><button data-act="plans">${esc(t('trial.plans'))}</button></div>` : ''}
     <button class="ed-info" data-act="more"></button><div class="ed-meta"></div>
