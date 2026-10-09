@@ -37,7 +37,7 @@ function render(view, r) {
   view.innerHTML = `<div class="ed-page"><div class="ed">
     <div class="ed-tools" role="toolbar">
       <button class="tb" data-act="back" aria-label="${esc(t('ed.back'))}">${icon('chevron-left', 22)}</button>
-      ${ro ? '<span class="sp"></span>' : `<span class="sep"></span>${STYLE.slice(1).map(f => fbtn(f)).join('')}<span class="sep"></span>${INLINE.map(f => fbtn(f)).join('')}<span class="sep"></span>${LISTS.slice(0, 4).map(f => fbtn(f)).join('')}<span class="sep"></span>${photoBtn}<span class="sp"></span>`}
+      ${ro ? '<span class="sp"></span>' : `<span class="sep"></span>${STYLE.slice(1).map(f => fbtn(f)).join('')}<span class="sep"></span>${INLINE.map(f => fbtn(f)).join('')}<span class="sep"></span>${LISTS.slice(0, 4).map(f => fbtn(f)).join('')}<span class="sep"></span>${fbtn(LISTS[4])}${photoBtn}<span class="sp"></span>`}
       <button class="tb lbl" data-act="more" aria-expanded="false" title="${esc(t('ed.options'))}">${icon('sliders-horizontal', 18)}<span>${esc(t('ed.options'))}</span></button>
       <button class="ed-done" data-act="done">${icon('check', 18)}<span>${esc(t('ed.finish'))}</span></button></div>
     ${ro ? `<div class="ed-locked"><span>${esc(t('ed.locked'))}</span><button data-act="plans">${esc(t('trial.plans'))}</button></div>` : ''}

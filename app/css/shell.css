@@ -44,10 +44,12 @@
 .profile-card .who { display: flex; align-items: center; gap: 12px; }
 .profile-card .nm { font-size: var(--fs-m); font-weight: 700; color: var(--text-2); letter-spacing: -.02em; display: block; }
 .profile-card .em { font-size: var(--fs-s); font-weight: 500; color: var(--muted-2); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 190px; }
-.trialbar { display: flex; flex-direction: column; gap: 8px; }
+.trialbar { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
 .trialbar .tx { display: flex; justify-content: space-between; font-size: var(--fs-s); font-weight: 600; color: var(--text-3); }
 .trialbar .tx em { font-style: normal; color: var(--accent); }
-.trialbar .tx span:last-child { color: #A9A29A; font-weight: 500; }
+.trialbar .tx span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* 구독 보기: 체험 막대 아래 한 줄 (글자가 커져도 두 줄로 갈라지지 않게) */
+.trialbar .tb-plans { display: flex; align-items: center; justify-content: flex-start; gap: 2px; font-size: var(--fs-s); font-weight: 600; color: #A9A29A; white-space: nowrap; }
 .trialbar .bar { height: 3px; border-radius: 2px; background: var(--line-2); }
 .trialbar .bar i { display: block; height: 3px; border-radius: 2px; background: var(--accent); }
 .search { flex: none; margin: 12px 4px 4px; height: 48px; border-radius: 16px; background: var(--fill); border: 1px solid var(--fill-2); display: flex; align-items: center; gap: 10px; padding: 0 16px; color: var(--muted-2); }
