@@ -7,9 +7,8 @@ import { FAQ } from '../core/faq.js';
 import { openSheet } from '../ui/feedback.js';
 
 function docSheet(title, html) {
-  const el = h(`<div class="docv"><div class="docv-top"><h2>${esc(title)}</h2><button class="icon-btn" data-x aria-label="${esc(t('common.close'))}">${icon('x', 22)}</button></div><div class="docv-body">${html}</div></div>`);
+  const el = h(`<div class="docv"><h2>${esc(title)}</h2><div class="docv-body">${html}</div></div>`);
   const sh = openSheet(el, { label: title });
-  el.querySelector('[data-x]').onclick = () => sh.close();
   el.querySelector('.docv-body').addEventListener('click', e => {   // 글 안의 다른 약관 링크도 시트 안에서 바꿔 열어요
     const a = e.target.closest('a[href]'); if (!a) return;
     const k = /(terms|privacy)/.exec(a.getAttribute('href') || '');

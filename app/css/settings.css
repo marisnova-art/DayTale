@@ -105,9 +105,6 @@
 .avbtn i { position: absolute; right: -2px; bottom: -2px; width: 22px; height: 22px; border-radius: 11px; background: var(--text); color: #141317; display: grid; place-items: center; box-shadow: 0 0 0 2px var(--sheet); }
 
 /* 정보 탭 글 (약관 · 자주 묻는 질문 · 회사 소개): 앱 안 시트에서 읽고 닫아요 */
-.docv-top { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0 10px; background: var(--sheet); }
-.docv-top h2 { margin: 0 !important; }
-.docv-top .icon-btn { width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.08); color: var(--text); flex: none; }
 .docv-body { padding-bottom: 20px; font-size: var(--fs-s); line-height: 1.7; color: var(--text-3); }
 .docv-body h2 { font-size: var(--fs-m) !important; margin: 26px 0 8px !important; color: var(--text-2); }
 .docv-body h3 { font-size: var(--fs-s); margin: 18px 0 6px; color: var(--text-2); }
