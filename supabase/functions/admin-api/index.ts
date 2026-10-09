@@ -1,6 +1,6 @@
 // Daytale 관리자 API — 관리자 페이지가 부르는 유일한 서버 창구
 // Deploy:  supabase functions deploy admin-api            (JWT 검사 켜 둔 채로 배포: --no-verify-jwt 쓰지 마세요)
-// Secrets: supabase secrets set ADMIN_ORIGIN=https://admin.example.com
+// Secrets: (선택) ADMIN_ORIGIN — 비워 두면 https://daytale-admin.pages.dev 만 받아요. 주소가 바뀌면 쉼표로 여러 개
 //          (선택) PADDLE_API_KEY=pdl_… PADDLE_ENV=sandbox|production   → 관리자 페이지에서 구독 해지
 //          CRON_SECRET=…  → 예약 작업이 x-cron-secret 헤더로 {action:'ops_daily'}를 부름 (체험 안내 알림)
 // 흐름: 브라우저(관리자 로그인 토큰) → 이 함수 → 토큰 주인 확인 → admins 명단 확인 → service role로 조회/처리 → admin_audit 기록
@@ -212,7 +212,7 @@ if (typeof Deno !== 'undefined' && import.meta.main) {
   const env = (k: string) => Deno.env.get(k) ?? '';
   const { createClient } = await import('npm:@supabase/supabase-js@2');
   const db = createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'), { auth: { persistSession: false, autoRefreshToken: false } });
-  const deps: Deps = { db, fetch, env: { ADMIN_ORIGIN: env('ADMIN_ORIGIN'), PADDLE_API_KEY: env('PADDLE_API_KEY'), PADDLE_ENV: env('PADDLE_ENV'), CRON_SECRET: env('CRON_SECRET') } };
+  const deps: Deps = { db, fetch, env: { ADMIN_ORIGIN: env('ADMIN_ORIGIN') || 'https://daytale-admin.pages.dev', PADDLE_API_KEY: env('PADDLE_API_KEY'), PADDLE_ENV: env('PADDLE_ENV'), CRON_SECRET: env('CRON_SECRET') } };
   // @ts-ignore Deno globals
   Deno.serve(req => handle(req, deps));
 }
