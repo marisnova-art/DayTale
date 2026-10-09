@@ -63,7 +63,7 @@ async function openCard(e) {
   const text = htmlToText(e.content || '') || e.text || '';
   const title = displayTitle(e, '') || '';
   if (!text.trim() && !title.trim()) { toast(t('card.empty')); return; }
-  const o = { ratio: '4:5', dim: .45, photo: null, grad: stops(), font: fontOf(e), title, body: title && text.startsWith(title) ? text.slice(title.length).trim() : text,
+  const o = { ratio: '9:16', dim: .45, photo: null, grad: stops(), font: fontOf(e), title, body: title && text.startsWith(title) ? text.slice(title.length).trim() : text,
     date: fmtDate(e.created_at, { year: 'numeric', month: 'long', day: 'numeric' }), brand: brand(getLang()), logo: null };
   try { o.logo = await loadImg('./icons/icon-192.png'); } catch {}
   const fam = FAMILY[o.font]; try { await Promise.all([document.fonts.load(`700 72px ${fam}`, title + o.body.slice(0, 200)), document.fonts.load("700 34px 'Pretendard Variable'")]); } catch {}
@@ -73,7 +73,6 @@ async function openCard(e) {
     <div class="cm-ctl">
       <div><div class="lab">${esc(t('card.bg'))}</div><div class="segs"><button data-bg="photo">${icon('image', 17)}${esc(t('card.myPhoto'))}</button><button data-bg="grad" class="on">${esc(t('card.gradient'))}</button></div></div>
       <div><div class="lab">${esc(t('card.dim'))}</div><label class="cm-dim"><input type="range" min="0" max="80" value="45" aria-label="${esc(t('card.dim'))}"><span>45%</span></label></div>
-      <div><div class="lab">${esc(t('card.ratio'))}</div><div class="segs" data-g="ratio"><button data-r="4:5" class="on">4:5</button><button data-r="9:16">9:16</button><button data-r="1:1">1:1</button></div></div>
     </div>
     <div class="cm-btns"><button data-c="share">${icon('share', 18)}${esc(t('card.share'))}</button><button data-c="save" class="main">${icon('download', 18)}${esc(t('card.save'))}</button></div>
     <input type="file" accept="image/*" hidden>`;
@@ -100,7 +99,6 @@ async function openCard(e) {
     const b = ev.target.closest('button'); if (!b) return;
     if (b.dataset.bg === 'photo') file.click();
     else if (b.dataset.bg === 'grad') { o.photo = null; d.querySelectorAll('[data-bg]').forEach(x => x.classList.toggle('on', x === b)); paint(); }
-    else if (b.dataset.r) { o.ratio = b.dataset.r; d.querySelectorAll('[data-r]').forEach(x => x.classList.toggle('on', x === b)); paint(); }
     else if (b.dataset.c === 'close') close();
     else if (b.dataset.c === 'share') { if (!(await share())) await download(); }
     else if (b.dataset.c === 'save') {

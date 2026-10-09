@@ -16,7 +16,7 @@ export default {
   'auth.signin': 'Iniciar sesión', 'auth.signup': 'Crear cuenta', 'auth.google': 'Continuar con Google', 'auth.or': 'o',
   'auth.forgot': '¿Olvidó su contraseña?', 'auth.toSignup': '¿Es nuevo aquí? <b>Cree una cuenta</b>', 'auth.toSignin': '¿Ya tiene una cuenta? <b>Inicie sesión</b>',
   'auth.signupTitle': 'Pruébelo gratis durante un mes', 'auth.signupNote': 'No necesita tarjeta. Después de la prueba, podrá seguir leyendo y exportando todo.',
-  'auth.agree': 'Al continuar, acepta los <a href="./legal/terms.html" target="_blank">Términos</a> y la <a href="./legal/privacy.html" target="_blank">Política de privacidad</a>.',
+  'auth.agree': 'Al continuar, acepta los <a href="./legal/terms.html">Términos</a> y la <a href="./legal/privacy.html">Política de privacidad</a>.',
   'auth.checkMail': 'Enviamos un enlace de confirmación a {email}. Ábralo para empezar.', 'auth.resetSent': 'Enviamos un enlace para restablecer la contraseña a {email}.',
   'auth.resetTitle': 'Elija una nueva contraseña', 'auth.resetDone': 'Su contraseña se ha cambiado.', 'auth.signout': 'Cerrar sesión', 'auth.expired': 'Vuelva a iniciar sesión, por favor.',
   'auth.bad': 'El correo y la contraseña no coinciden.', 'auth.weak': 'Use al menos 8 caracteres, por favor.', 'auth.exists': 'Este correo ya está registrado. Inicie sesión, por favor.',
@@ -92,5 +92,6 @@ export default {
   'plan.afterTrial': 'Si no se suscribe', 'plan.afterTrialBody': 'Sus registros se conservan después de la prueba. Siempre podrá leer, buscar, exportar y eliminar. Las cuentas se eliminan un año después del último inicio de sesión, con avisos por correo 30 y 7 días antes.',
   'plan.paddle': 'Los pagos los gestiona <a href="https://www.paddle.com" target="_blank" rel="noopener">Paddle</a>. Los datos de su tarjeta nunca llegan a nosotros.',
   'plan.manageLater': 'Cargando su suscripción…', 'plan.updatePay': 'Actualizar el método de pago', 'plan.cancel': 'Cancelar la suscripción', 'plan.cancelSub': 'Mantiene el acceso hasta el final del período', 'plan.recheck': 'Volver a comprobar la suscripción',
-  'plan.notReady': 'Estamos preparando los pagos. Muy pronto estarán disponibles.', 'plan.loadFail': 'No se pudo abrir el pago. Inténtelo de nuevo en unos momentos.', 'plan.thanks': '¡Gracias! Su suscripción ha comenzado.'
+  'plan.notReady': 'Estamos preparando los pagos. Muy pronto estarán disponibles.', 'plan.loadFail': 'No se pudo abrir el pago. Inténtelo de nuevo en unos momentos.', 'plan.thanks': '¡Gracias! Su suscripción ha comenzado.',
+  "list.upcoming": "Próximos", "list.past": "Pasados", "ed.urlPh": "Pegue un enlace (https://…)", "ed.open": "Abrir", "ed.paste": "Pegar", "ed.openLink": "Abrir enlace", "set.faq": "Preguntas frecuentes", "set.about": "Sobre nosotros", "set.co.name": "Empresa", "set.co.ceo": "Representante", "set.co.addr": "Dirección", "set.co.reg": "Datos fiscales", "set.co.mail": "Contacto", "set.co.soon": "La presentación de la empresa se añadirá antes del lanzamiento."
 };

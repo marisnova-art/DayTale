@@ -3,7 +3,7 @@ import { Account } from '../data/account.js';
 import { S, TYPES, folderList, live, onChange } from '../data/store.js';
 import { brand } from '../core/config.js';
 import { getLang, t } from '../core/i18n.js';
-import { $, $$, esc, icon } from '../core/utils.js';
+import { $, $$, esc, icon, todayKey } from '../core/utils.js';
 import { go, now } from './router.js';
 
 const TYPE_ICON = { note: 'file-text', todo: 'check-square', event: 'calendar', idea: 'lightbulb', item: 'map-pin', personal: 'feather', scrap: 'bookmark' };
@@ -15,9 +15,8 @@ function frame() {
   <div class="layout">
     <div class="scrim" data-act="close-menu"></div>
     <aside class="drawer" aria-label="${esc(t('nav.menu'))}">
-      <div class="head"><span class="logo"></span><span class="brand">${esc(brand(getLang()))}</span>
-        <button class="icon-btn close" data-act="close-menu" aria-label="${esc(t('nav.closeMenu'))}">${icon('x', 22)}</button>
-        <button class="icon-btn mo" data-go="/settings" aria-label="${esc(t('nav.settings'))}">${icon('settings', 21)}</button></div>
+      <div class="head"><button class="icon-btn close" data-act="close-menu" aria-label="${esc(t('nav.closeMenu'))}">${icon('x', 22)}</button>
+        <span class="mark"><span class="logo"></span><span class="brand">${esc(brand(getLang()))}</span></span></div>
       <button class="profile-card" data-go="/settings/account"></button>
       <label class="search">${icon('search', 18)}<input type="search" enterkeyhint="search" placeholder="${esc(t('nav.search'))}" aria-label="${esc(t('nav.search'))}"></label>
       <nav class="nav"></nav>
@@ -42,14 +41,24 @@ function frame() {
     const b = e.target.closest('[data-go],[data-act]'); if (!b) return;
     if (b.dataset.go) { closeMenu(); go(b.dataset.go); return; }
     const a = b.dataset.act;
-    if (a === 'menu') openMenu(); else if (a === 'close-menu') closeMenu(); else if (a === 'new') { closeMenu(); go('/new'); }
+    if (a === 'menu') openMenu(); else if (a === 'close-menu') closeMenu(); else if (a === 'new') { closeMenu(); go(newPath()); }
     else if (a === 'new-folder') import('../views/folders.js').then(m => m.newFolderDialog());
   });
   $('.search input').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.value.trim()) { closeMenu(); go('/search?q=' + encodeURIComponent(e.target.value.trim())); } });
   addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
-  onChange(w => { if (['entries', 'folders', 'account', 'prefs'].includes(w)) paint(); });
+  onChange(w => { if (w === 'quiet') paintSoon(); else if (['entries', 'folders', 'account', 'prefs'].includes(w)) paint(); });
   trackKeyboard();
+  const nav = $('.drawer .nav'); nav.addEventListener('scroll', () => fades(nav), { passive: true }); addEventListener('resize', () => fades(nav));
   paint();
+}
+/* 쓰기: 지금 보는 목록에 맞춰 시작해요 (할 일 → 할 일, 일정·캘린더 → 일정, 폴더 → 그 폴더) */
+function newPath() {
+  const p = now()?.path || '', q = now()?.query || {};
+  if (p === '/todo') return '/new?type=todo';
+  if (p.startsWith('/type/')) return '/new?type=' + p.slice(6);
+  if (p === '/calendar') return '/new?type=event' + (q.d ? '&date=' + q.d : '');
+  if (p.startsWith('/folder/')) return '/new?folder=' + p.slice(8);
+  return '/new';
 }
 /* 화면 키보드 높이(--kb): 편집기 막대가 키보드 바로 위에 붙고, 홈의 아래 막대는 쓰는 동안 숨어요 */
 function trackKeyboard() {
@@ -58,25 +67,28 @@ function trackKeyboard() {
   const upd = () => { const h = Math.max(0, Math.round(innerHeight - vv.height - vv.offsetTop)); root.style.setProperty('--kb', h + 'px'); root.classList.toggle('kb-open', h > 80); };
   vv.addEventListener('resize', upd); vv.addEventListener('scroll', upd); upd();
 }
+let pt = 0; const paintSoon = () => { clearTimeout(pt); pt = setTimeout(paint, 600); };
 const isPC = () => matchMedia('(min-width: 900px)').matches;
 function openMenu() {
+  paint(); document.documentElement.classList.add('menu-open');
   $('.drawer').classList.add('open'); $('.scrim').classList.add('open'); $('.mbar')?.classList.add('away'); $('.menu-btn')?.setAttribute('aria-expanded', 'true');
   if (isPC()) setTimeout(() => $('.drawer .search input')?.focus({ preventScroll: true }), 260);   // 모바일은 키보드가 메뉴를 가리지 않게 자동으로 열지 않아요
 }
-function closeMenu() { $('.drawer')?.classList.remove('open'); $('.scrim')?.classList.remove('open'); $('.mbar')?.classList.remove('away'); $('.menu-btn')?.setAttribute('aria-expanded', 'false'); }
+function closeMenu() { document.documentElement.classList.remove('menu-open'); $('.drawer')?.classList.remove('open'); $('.scrim')?.classList.remove('open'); $('.mbar')?.classList.remove('away'); $('.menu-btn')?.setAttribute('aria-expanded', 'false'); }
 
 function paint() {
   if (!$('.drawer')) return;
   const all = live(), cnt = {}; let nofolder = 0;
   all.forEach(e => { cnt[e.type] = (cnt[e.type] || 0) + 1; if (!e.folder_id) nofolder++; });
   const openTodos = all.filter(e => e.type === 'todo' && !e.meta.done).length;
+  const today = todayKey(), upEvents = all.filter(e => e.type === 'event' && (e.meta.date || '') >= today).length;   // 오늘부터 남은 일정
   const fc = {}; all.forEach(e => { if (e.folder_id) fc[e.folder_id] = (fc[e.folder_id] || 0) + 1; });
   const c = n => n ? `<span class="c">${n}</span>` : '';
   const item = (path, ic, label, n, cls = '') => `<a class="m${cls}" href="#${path}" data-path="${path}">${icon(ic, 18)}${esc(label)}${c(n)}</a>`;
   const types = TYPES.filter(x => x !== 'todo' && x !== 'event');
   $('.drawer .nav').innerHTML =
     item('/home', 'home', t('nav.home')) + item('/all', 'layers', t('nav.all'), all.length) + item('/favorites', 'star', t('nav.fav'), all.filter(e => e.favorite).length) +
-    `<div class="h">${esc(t('nav.byType'))}</div>` + item('/todo', 'check-square', t('nav.todo'), openTodos) + item('/calendar', 'calendar-days', t('nav.calendar')) +
+    `<div class="h">${esc(t('nav.byType'))}</div>` + item('/todo', 'check-square', t('nav.todo'), openTodos) + item('/type/event', 'calendar', t('type.event'), upEvents) + item('/calendar', 'calendar-days', t('nav.calendar')) +
     types.map(x => item('/type/' + x, TYPE_ICON[x], t('type.' + x), cnt[x])).join('') +
     `<div class="h">${esc(t('nav.folders'))}<button data-act="new-folder" aria-label="${esc(t('nav.newFolder'))}">${icon('plus', 16)}</button></div>` +
     folderList().map(f => `<a class="m" href="#/folder/${f.id}" data-path="/folder/${f.id}"><svg class="i" width="18" height="18" viewBox="0 0 24 24" style="color:${esc(f.color || '#A9A5AF')}">${'<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>'}</svg>${esc(f.name)}${c(fc[f.id])}</a>`).join('') +
@@ -86,8 +98,9 @@ function paint() {
   $('.profile-card').innerHTML = `<span class="who">${Account.avatarHTML('l')}<span style="flex:1;min-width:0"><span class="nm">${esc(Account.name())}</span><span class="em">${esc(S.user?.email || '')}</span></span>${icon('chevron-right', 18)}</span>` +
     (sub ? `<span class="trialbar"><span class="tx"><span>${esc(t('sub.active'))}</span></span></span>` : d == null ? '' :
       `<span class="trialbar"><span class="tx"><span>${d > 0 ? t('trial.left', { n: `<em>${d}</em>` }) : esc(t('trial.ended'))}</span><span>${esc(t('trial.plans'))}</span></span><span class="bar"><i style="width:${Math.round(Account.trialRatio() * 100)}%"></i></span></span>`);
-  paintBadges(); mark();
+  paintBadges(); mark(); requestAnimationFrame(() => fades($('.drawer .nav')));
 }
+function fades(n) { if (!n) return; n.classList.toggle('more-t', n.scrollTop > 4); n.classList.toggle('more-b', n.scrollTop + n.clientHeight < n.scrollHeight - 4); }
 function paintBadges() { $$('.bell').forEach(b => { b.querySelector('.badge-dot')?.remove(); if (unread) b.insertAdjacentHTML('beforeend', '<span class="badge-dot"></span>'); }); }
 /* 지금 화면 표시 */
 function mark() {

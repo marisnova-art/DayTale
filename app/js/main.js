@@ -20,7 +20,7 @@ import { Install } from './features/install.js';
 import * as Backdrop from './ui/backdrop.js';
 import { toast } from './ui/feedback.js';
 import { go, now, render as rerender, route, start as startRouter } from './ui/router.js';
-import { frame, mark } from './ui/shell.js';
+import { frame, paint } from './ui/shell.js';
 import { hideAuth, showAuth } from './views/auth.js';
 
 register('ko', ko); register('en', en); register('ja', ja); register('es', es); register('fr', fr);
@@ -46,7 +46,7 @@ async function show(r) {
   const mod = await r.view();
   if (now() !== r) return;   // 그 사이 다른 화면으로 감
   if (mounted && mounted !== mod) mounted.leave?.();
-  mounted = mod; mod.render(view, r); mark();
+  mounted = mod; mod.render(view, r); paint();
   view.focus({ preventScroll: true }); scrollTo(0, 0);
 }
 
@@ -108,17 +108,31 @@ onChange(w => {
   else if (w === 'quota') toast(t('err.quota'), { bad: true });
   else if (w?.type === 'photo') toast(t(w.error === 'per_entry' ? 'photo.perEntry' : w.error === 'photo_quota' ? 'photo.quota' : w.error === 'bad_image' ? 'photo.bad_image' : 'photo.read'), { bad: true, ...(w.error === 'photo_quota' && !S.status?.subscriber ? { action: t('trial.plans'), onAction: () => go('/plans') } : {}) });
   else if (w?.type === 'conflict') toast(t('sync.conflict'), { action: t('common.open'), onAction: () => go('/e/' + w.id), ms: 8000 });
-  if (w === 'entries' || w === 'prefs') reschedule();
+  if (w === 'entries' || w === 'quiet' || w === 'prefs') reschedule();
   if (w === 'entries' && live().length && !ls.get('daytale.installAsked')) Install.maybeOffer();
   if (w === 'notices') checkNotices();
   if ((w === 'entries' || w === 'folders' || w === 'account') && mounted?.refresh && now()) mounted.refresh($('#view'), now());
+});
+/* 약관 링크(가입 화면 등)는 새 창이나 소개 사이트가 아니라 앱 안 시트로 열어요 */
+document.addEventListener('click', ev => {
+  const a = ev.target.closest('a[href*="legal/"]'); if (!a) return;
+  const k = /(terms|privacy)/.exec(a.getAttribute('href')); if (!k) return;
+  ev.preventDefault(); import('./views/info.js').then(m => m.openLegal(k[1]));
 });
 addEventListener('online', () => { S.online = true; Sync.run(); });
 addEventListener('offline', () => { S.online = false; emit('sync'); });
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && S.user) { Sync.run(); Weather.refresh(); Backdrop.apply(document.documentElement); if (now()?.path === '/home') rerender(); } });
 
 /* ---------- 부팅 ---------- */
+/* 다른 앱의 '공유'로 들어온 링크 → 새 스크랩 (안드로이드에 설치된 앱) */
+function takeShare() {
+  const q = new URLSearchParams(location.search); if (!q.has('url') && !q.has('text') && !q.has('title')) return;
+  const text = q.get('text') || '', url = q.get('url') || (text.match(/https?:\/\/\S+/) || [''])[0];
+  try { sessionStorage.setItem('daytale.carry', JSON.stringify({ url, title: q.get('title') || '', text: text.replace(url, '').trim() })); } catch {}
+  history.replaceState(null, '', location.pathname + '#/new?type=scrap');
+}
 async function boot() {
+  takeShare();
   if (!configured()) { showAuth('signin', t('err.noServer')); return; }
   let sb;
   try { sb = await getSupabase(); } catch {

@@ -19,7 +19,7 @@
 .seg.wide button { height: 38px; }
 .sw { appearance: none; -webkit-appearance: none; width: 46px; height: 28px; border-radius: 14px; background: var(--fill-2); border: 1px solid var(--line-2); position: relative; flex: none; cursor: pointer; transition: background .2s; }
 .sw::after { content: ''; position: absolute; top: 2px; left: 2px; width: 22px; height: 22px; border-radius: 11px; background: #CFCBD5; transition: transform .2s; }
-.sw:checked { background: var(--accent); border-color: transparent; }
+.sw:checked { background: linear-gradient(135deg, #FF8A6A, #FFB37A); border-color: transparent; box-shadow: 0 0 0 3px rgba(255,138,106,.18); }   /* 켜짐은 항상 주황 (작성 완료 버튼과 같은 색) */
 .sw:checked::after { transform: translateX(18px); background: #fff; }
 .sgh { margin: 26px 8px 10px; font-size: var(--fs-s); font-weight: 700; color: var(--muted-2); letter-spacing: .02em; }
 .sgroup > .scard:first-child, .sgroup > .scard + .scard { margin-top: 14px; }
@@ -102,3 +102,34 @@
 /* 프로필 사진 바꾸기 */
 .avbtn { position: relative; flex: none; border-radius: 26px; }
 .avbtn i { position: absolute; right: -2px; bottom: -2px; width: 22px; height: 22px; border-radius: 11px; background: var(--text); color: #141317; display: grid; place-items: center; box-shadow: 0 0 0 2px var(--sheet); }
+
+/* 정보 탭 글 (약관 · 자주 묻는 질문 · 회사 소개): 앱 안 시트에서 읽고 닫아요 */
+.docv-top { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0 10px; background: var(--sheet); }
+.docv-top h2 { margin: 0 !important; }
+.docv-top .icon-btn { width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.08); color: var(--text); flex: none; }
+.docv-body { padding-bottom: 20px; font-size: var(--fs-s); line-height: 1.7; color: var(--text-3); }
+.docv-body h2 { font-size: var(--fs-m) !important; margin: 26px 0 8px !important; color: var(--text-2); }
+.docv-body h3 { font-size: var(--fs-s); margin: 18px 0 6px; color: var(--text-2); }
+.docv-body p, .docv-body li { margin: 0 0 10px; }
+.docv-body ul, .docv-body ol { padding-left: 20px; margin: 0 0 10px; }
+.docv-body a { color: var(--text-2); text-decoration: underline; text-underline-offset: 2px; }
+.docv-body .meta { color: var(--muted-2); }
+.docv-body .note { padding: 14px 16px; border-radius: 16px; background: rgba(255,255,255,.05); border: 1px solid var(--line); }
+.docv-body .tablewrap { overflow-x: auto; margin: 0 0 12px; }
+.docv-body table { border-collapse: collapse; width: 100%; min-width: 420px; }
+.docv-body th, .docv-body td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+.docv-body th { color: var(--text-2); font-weight: 700; }
+.faq { border-bottom: 1px solid var(--line); }
+.faq summary { list-style: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 2px; font-size: var(--fs-m); font-weight: 700; color: var(--text-2); cursor: pointer; letter-spacing: -.02em; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary svg { flex: none; color: var(--muted-2); transition: transform .2s; }
+.faq[open] summary svg { transform: rotate(180deg); }
+.faq p { margin: -4px 2px 16px !important; color: var(--text-3); }
+.co-hero { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 0 6px; }
+.co-hero img { border-radius: 14px; }
+.co-hero b { font-size: var(--fs-l); color: var(--text); }
+.co-intro { text-align: center; color: var(--text-3); margin: 8px 0 18px !important; }
+.co-dl { display: grid; grid-template-columns: max-content 1fr; gap: 10px 16px; margin: 0; padding: 16px; border-radius: 18px; background: rgba(255,255,255,.05); border: 1px solid var(--line); }
+.co-dl dt { color: var(--muted-2); font-weight: 600; }
+.co-dl dd { margin: 0; color: var(--text-2); word-break: break-all; }
+.co-dl .tbd { color: var(--faint); }

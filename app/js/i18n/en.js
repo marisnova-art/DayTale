@@ -16,7 +16,7 @@ export default {
   'auth.signin': 'Sign in', 'auth.signup': 'Create account', 'auth.google': 'Continue with Google', 'auth.or': 'or',
   'auth.forgot': 'Forgot your password?', 'auth.toSignup': 'New here? <b>Create an account</b>', 'auth.toSignin': 'Already have an account? <b>Sign in</b>',
   'auth.signupTitle': 'Try it free for a month', 'auth.signupNote': 'No card needed. After the trial, you can still read and export everything.',
-  'auth.agree': 'By continuing you agree to the <a href="./legal/terms.html" target="_blank">Terms</a> and <a href="./legal/privacy.html" target="_blank">Privacy Policy</a>.',
+  'auth.agree': 'By continuing you agree to the <a href="./legal/terms.html">Terms</a> and <a href="./legal/privacy.html">Privacy Policy</a>.',
   'auth.checkMail': 'We sent a confirmation link to {email}. Open it to get started.', 'auth.resetSent': 'We sent a password reset link to {email}.',
   'auth.resetTitle': 'Choose a new password', 'auth.resetDone': 'Your password has been changed.', 'auth.signout': 'Sign out', 'auth.expired': 'Please sign in again.',
   'auth.bad': "That email and password don't match.", 'auth.weak': 'Please use at least 8 characters.', 'auth.exists': 'This email is already registered. Please sign in.',
@@ -91,5 +91,6 @@ export default {
   'plan.afterTrial': 'If you don’t subscribe', 'plan.afterTrialBody': 'Your records stay after the trial. You can always read, search, export and delete. Accounts are removed one year after the last sign-in, with emails 30 and 7 days before.',
   'plan.paddle': 'Payments are handled by <a href="https://www.paddle.com" target="_blank" rel="noopener">Paddle</a>. Your card details never reach us.',
   'plan.manageLater': 'Loading your subscription…', 'plan.updatePay': 'Update payment method', 'plan.cancel': 'Cancel subscription', 'plan.cancelSub': 'You keep access until the end of the period', 'plan.recheck': 'Check subscription again',
-  'plan.notReady': 'Payments are being set up. Coming soon.', 'plan.loadFail': 'Couldn’t open checkout. Please try again shortly.', 'plan.thanks': 'Thank you! Your subscription has started.'
+  'plan.notReady': 'Payments are being set up. Coming soon.', 'plan.loadFail': 'Couldn’t open checkout. Please try again shortly.', 'plan.thanks': 'Thank you! Your subscription has started.',
+  "list.upcoming": "Upcoming", "list.past": "Past", "ed.urlPh": "Paste a link (https://…)", "ed.open": "Open", "ed.paste": "Paste", "ed.openLink": "Open link", "set.faq": "FAQ", "set.about": "About us", "set.co.name": "Company", "set.co.ceo": "Representative", "set.co.addr": "Address", "set.co.reg": "Business info", "set.co.mail": "Contact", "set.co.soon": "Our company introduction will be added before launch."
 };

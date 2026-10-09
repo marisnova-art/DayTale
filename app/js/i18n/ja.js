@@ -16,7 +16,7 @@ export default {
   'auth.signin': 'ログイン', 'auth.signup': 'アカウントを作成', 'auth.google': 'Googleで続ける', 'auth.or': 'または',
   'auth.forgot': 'パスワードをお忘れですか？', 'auth.toSignup': '初めてですか？ <b>アカウントを作成</b>', 'auth.toSignin': 'アカウントをお持ちですか？ <b>ログイン</b>',
   'auth.signupTitle': '1か月間、無料でお試しください', 'auth.signupNote': 'カードは不要です。体験が終わっても、記録はいつでも読んだり書き出したりできます。',
-  'auth.agree': '続けると<a href="./legal/terms.html" target="_blank">利用規約</a>と<a href="./legal/privacy.html" target="_blank">プライバシーポリシー</a>に同意したことになります。',
+  'auth.agree': '続けると<a href="./legal/terms.html">利用規約</a>と<a href="./legal/privacy.html">プライバシーポリシー</a>に同意したことになります。',
   'auth.checkMail': '{email} に確認メールを送りました。メール内のリンクを開くと始められます。', 'auth.resetSent': '{email} にパスワード再設定のメールを送りました。',
   'auth.resetTitle': '新しいパスワードを決めてください', 'auth.resetDone': 'パスワードを変更しました。', 'auth.signout': 'ログアウト', 'auth.expired': 'もう一度ログインしてください。',
   'auth.bad': 'メールアドレスまたはパスワードが正しくありません。', 'auth.weak': 'パスワードは8文字以上にしてください。', 'auth.exists': 'このメールアドレスはすでに登録されています。ログインしてください。',
@@ -92,5 +92,6 @@ export default {
   'plan.paddle': 'お支払いは<a href="https://www.paddle.com" target="_blank" rel="noopener">Paddle</a>が代行します。カード情報が私たちに届くことはありません。',
   'plan.manageLater': '購読情報を読み込んでいます…', 'plan.updatePay': '支払い方法を変更', 'plan.cancel': '購読を解約', 'plan.cancelSub': '期間の終わりまでは引き続き使えます', 'plan.recheck': '購読状況を再確認',
   'plan.notReady': 'お支払いは準備中です。もうしばらくお待ちください。', 'plan.loadFail': 'お支払い画面を開けませんでした。少し時間をおいてお試しください。', 'plan.thanks': 'ありがとうございます。購読が始まりました。',
-  'lang.ja': '日本語', 'lang.es': 'Español', 'lang.fr': 'Français'
+  'lang.ja': '日本語', 'lang.es': 'Español', 'lang.fr': 'Français',
+  "list.upcoming": "これからの予定", "list.past": "過去の予定", "ed.urlPh": "リンクを貼り付け (https://…)", "ed.open": "開く", "ed.paste": "貼り付け", "ed.openLink": "リンクを開く", "set.faq": "よくある質問", "set.about": "会社概要", "set.co.name": "会社名", "set.co.ceo": "代表者", "set.co.addr": "所在地", "set.co.reg": "事業者情報", "set.co.mail": "お問い合わせ", "set.co.soon": "会社概要は正式リリース前に掲載予定です。"
 };

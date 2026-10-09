@@ -17,7 +17,7 @@ export default {
   'auth.signin': '로그인', 'auth.signup': '계정 만들기', 'auth.google': 'Google로 계속하기', 'auth.or': '또는',
   'auth.forgot': '비밀번호를 잊으셨나요?', 'auth.toSignup': '처음이신가요? <b>계정 만들기</b>', 'auth.toSignin': '이미 계정이 있나요? <b>로그인</b>',
   'auth.signupTitle': '한 달 동안 무료로 써 보세요', 'auth.signupNote': '카드 없이 시작해요. 체험이 끝나도 기록은 그대로 읽고 내보낼 수 있어요.',
-  'auth.agree': '계속하면 <a href="./legal/terms.ko.html" target="_blank">이용약관</a>과 <a href="./legal/privacy.ko.html" target="_blank">개인정보 처리방침</a>에 동의하게 돼요.',
+  'auth.agree': '계속하면 <a href="./legal/terms.ko.html">이용약관</a>과 <a href="./legal/privacy.ko.html">개인정보 처리방침</a>에 동의하게 돼요.',
   'auth.checkMail': '{email}로 확인 메일을 보냈어요. 메일의 링크를 누르면 바로 시작돼요.', 'auth.resetSent': '{email}로 비밀번호 재설정 메일을 보냈어요.',
   'auth.resetTitle': '새 비밀번호를 정해 주세요', 'auth.resetDone': '비밀번호를 바꿨어요.', 'auth.signout': '로그아웃', 'auth.expired': '다시 로그인해 주세요.',
   'auth.bad': '이메일이나 비밀번호가 맞지 않아요.', 'auth.weak': '비밀번호는 8자 이상으로 정해 주세요.', 'auth.exists': '이미 가입된 이메일이에요. 로그인해 주세요.',
@@ -96,5 +96,6 @@ export default {
   'plan.afterTrial': '구독하지 않으면', 'plan.afterTrialBody': '체험이 끝나도 기록은 그대로 있어요. 읽기, 찾기, 내보내기, 삭제는 언제나 돼요. 마지막 접속 후 1년이 지나면 계정이 정리되고, 30일 전과 7일 전에 메일로 알려 드려요.',
   'plan.paddle': '결제는 <a href="https://www.paddle.com" target="_blank" rel="noopener">Paddle</a>이 대신 처리해요. 카드 정보는 저희에게 오지 않아요.',
   'plan.manageLater': '구독 정보를 불러오는 중이에요.', 'plan.updatePay': '결제 수단 바꾸기', 'plan.cancel': '구독 해지', 'plan.cancelSub': '남은 기간까지는 계속 쓸 수 있어요', 'plan.recheck': '구독 상태 다시 확인',
-  'plan.notReady': '결제 준비 중이에요. 곧 열려요.', 'plan.loadFail': '결제 창을 열지 못했어요. 잠시 뒤 다시 해 주세요.', 'plan.thanks': '고마워요! 구독이 시작됐어요.'
+  'plan.notReady': '결제 준비 중이에요. 곧 열려요.', 'plan.loadFail': '결제 창을 열지 못했어요. 잠시 뒤 다시 해 주세요.', 'plan.thanks': '고마워요! 구독이 시작됐어요.',
+  "list.upcoming": "다가오는 일정", "list.past": "지난 일정", "ed.urlPh": "링크를 붙여 넣으세요 (https://…)", "ed.open": "열기", "ed.paste": "붙여넣기", "ed.openLink": "링크 열기", "set.faq": "자주 묻는 질문", "set.about": "회사 소개", "set.co.name": "회사", "set.co.ceo": "대표", "set.co.addr": "주소", "set.co.reg": "사업자 정보", "set.co.mail": "문의", "set.co.soon": "회사 소개는 정식 오픈 전에 채워질 예정이에요."
 };

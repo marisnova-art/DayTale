@@ -43,7 +43,7 @@ function newEntry(fields = {}) {
   return Object.assign({ id: uid(), type: S.prefs.defaultType || 'note', title: '', content: '', text: '', folder_id: null, tags: [], favorite: false, pinned: false,
     meta: {}, photos: [], created_at: n, updated_at: n, deleted_at: null, _sv: null, _dirty: true }, fields);
 }
-const isEmpty = e => !e.title.trim() && !e.text.trim() && !e.photos.length && !e.tags.length && !e.meta.date && !e.meta.place;
+const isEmpty = e => !e.title.trim() && !e.text.trim() && !e.photos.length && !e.tags.length && !e.meta.date && !e.meta.place && !e.meta.url;
 function displayTitle(e, fallback = '') {
   if (e.title.trim()) return e.title.trim();
   const first = (e.text || '').split('\n').find(l => l.trim());
@@ -60,7 +60,7 @@ async function saveEntry(e, { quiet = false, meta = false } = {}) {
   e.tags = [...new Set((e.tags || []).map(t => t.trim().slice(0, LIMITS.tagLen)).filter(Boolean))].slice(0, LIMITS.tags);
   e.updated_at = nowISO(); e._dirty = true;
   S.entries.set(e.id, e); await S.db.put('entries', e);
-  if (!quiet) emit('entries');
+  emit(quiet ? 'quiet' : 'entries');   // 편집기의 조용한 저장도 메뉴 숫자·알림 예약에는 알려요
   syncHook();
   return true;
 }

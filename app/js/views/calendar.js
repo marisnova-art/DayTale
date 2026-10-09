@@ -1,9 +1,10 @@
 /* 캘린더: 주 | 월. 하루 점은 종류별로 3개까지(일정·할 일·기록). 끝낸 할 일은 점에서 빠져요. */
-import { S, addEntry, displayTitle, live, patchEntry } from '../data/store.js';
+import { S, addEntry, displayTitle, live, patchEntry, restoreEntry, trashEntry } from '../data/store.js';
+import { swipe } from './list.js';
 import { TYPE_ICON } from '../ui/shell.js';
 import { fmtDate, fmtHM, t } from '../core/i18n.js';
 import { addDays, dayKey, esc, icon, nowISO, parseDay, startOfWeek, todayKey } from '../core/utils.js';
-import { promptDlg } from '../ui/feedback.js';
+import { promptDlg, toast } from '../ui/feedback.js';
 import { go } from '../ui/router.js';
 
 const COL = { event: 'var(--event)', todo: 'var(--todo)', record: 'var(--record)' };
@@ -30,7 +31,8 @@ function item(e, kind) {
     : kind === 'todo' ? `<button class="chk${m.done ? ' on' : ''}" data-done="${e.id}" aria-label="${esc(t('common.done'))}">${m.done ? icon('check', 12) : ''}</button>`
     : `<span class="ki">${icon(TYPE_ICON[e.type] || 'file-text', 18)}</span>`;
   const meta = kind === 'event' ? (m.time ? fmtHM(m.time) : '') : kind === 'todo' ? (!m.done && m.date === todayKey() ? t('todo.due') : '') : fmtHM(new Date(e.created_at).toTimeString().slice(0, 5));
-  return `<a class="ev" href="#/e/${e.id}">${lead}<span class="t${m.done ? ' done' : ''}">${esc(displayTitle(e, t('common.untitled')))}</span><span class="mt">${esc(meta)}</span></a>`;
+  // 왼쪽으로 밀면 삭제 (목록과 같아요). PC는 마우스를 올리면 휴지통 버튼
+  return `<div class="swp" data-id="${e.id}"><button class="swp-del" data-del="${e.id}" tabindex="-1">${icon('trash-2', 20)}<span>${esc(t('list.del'))}</span></button><a class="ev" href="#/e/${e.id}">${lead}<span class="t${m.done ? ' done' : ''}">${esc(displayTitle(e, t('common.untitled')))}</span><span class="mt">${esc(meta)}</span><button class="del" data-del="${e.id}" aria-label="${esc(t('list.del'))}">${icon('trash-2', 17)}</button></a></div>`;
 }
 function dayBlock(k, d, { full = true } = {}) {
   const day = parseDay(k), today = todayKey();
@@ -48,6 +50,7 @@ function render(view, r) {
   const root = view.querySelector('.cal');
   root.addEventListener('click', async ev => {
     const b = ev.target.closest('button,[data-day]'); if (!b) return;
+    if (b.dataset.del) { ev.preventDefault(); const id = b.dataset.del; await trashEntry(id); toast(t('ed.trashed'), { action: t('common.undo'), onAction: () => restoreEntry(id) }); return; }
     if (b.dataset.done) { ev.preventDefault(); const e = S.entries.get(b.dataset.done); const d = !e.meta.done; await patchEntry(e.id, { meta: { ...e.meta, done: d, doneAt: d ? nowISO() : null } }); return; }
     if (b.dataset.v) { state.view = b.dataset.v; }
     else if (b.dataset.nav) { const n = +b.dataset.nav; const d = parseDay(state.sel); state.sel = dayKey(state.view === 'week' ? addDays(d, 7 * n) : new Date(d.getFullYear(), d.getMonth() + n, 1)); }
@@ -58,6 +61,7 @@ function render(view, r) {
     else return;
     paint(root);
   });
+  swipe(root);
   view.paintCal = () => paint(root);
   paint(root);
 }
@@ -78,9 +82,9 @@ function paint(root) {
   let main = '', side = '';
   if (state.view === 'week') {
     const s0 = startOfWeek(sel, ws), days = [...Array(7)].map((_, i) => addDays(s0, i));
-    main = `<div class="wkrow"><button class="navbtn" data-nav="-1" aria-label="${esc(t('cal.prevWeek'))}">${icon('chevron-left', 18)}</button>
+    main = `<div class="wkrow"><button class="navbtn" data-nav="-1" aria-label="${esc(t('cal.prevWeek'))}">${icon('chevron-left', 24)}</button>
       <div class="weekstrip">${days.map(d => { const k = dayKey(d); return `<button class="day${k === state.sel ? ' on' : ''}${d.getDay() === 0 || d.getDay() === 6 ? ' we' : ''}" data-day="${k}">${esc(fmtDate(d, { weekday: 'narrow' }))}<b>${d.getDate()}</b><span class="dots">${dots(idx.get(k)).replace(/<u /g, '<i ').replace(/<\/u>/g, '</i>')}</span></button>`; }).join('')}</div>
-      <button class="navbtn" data-nav="1" aria-label="${esc(t('cal.nextWeek'))}">${icon('chevron-right', 18)}</button></div>
+      <button class="navbtn" data-nav="1" aria-label="${esc(t('cal.nextWeek'))}">${icon('chevron-right', 24)}</button></div>
       <div class="agenda">${days.filter(d => !days.some(x => dayKey(x) === today) || dayKey(d) >= today).map(d => dayBlock(dayKey(d), idx.get(dayKey(d)))).join('')}</div>
       <div class="pcw">${days.map(d => { const k = dayKey(d), x = idx.get(k); const list = x ? [...(pass('event') ? x.event.map(e => item(e, 'event')) : []), ...(pass('todo') ? x.todo.map(e => item(e, 'todo')) : []), ...(state.filter === 'all' ? x.record.map(e => item(e, 'record')) : [])] : [];
         return `<div class="col${k === today ? ' today' : ''}"><div class="hd" data-day="${k}">${esc(fmtDate(d, { weekday: 'short' }))}<b>${d.getDate()}</b></div>${list.join('')}<button class="add only" data-add="${k}" aria-label="${esc(t('cal.add'))}" style="align-self:flex-start;margin-top:auto">${icon('plus', 15)}</button></div>`; }).join('')}</div>`;
@@ -88,11 +92,11 @@ function paint(root) {
     const first = new Date(sel.getFullYear(), sel.getMonth(), 1), g0 = startOfWeek(first, ws);
     const weeks = Math.ceil(((first - g0) / 864e5 + new Date(sel.getFullYear(), sel.getMonth() + 1, 0).getDate()) / 7);
     const cells = [...Array(weeks * 7)].map((_, i) => addDays(g0, i));
-    main = `<div class="mbox"><div class="bar"><button class="navbtn" data-nav="-1" aria-label="${esc(t('cal.prevMonth'))}">${icon('chevron-left', 18)}</button>
+    main = `<div class="mbox"><div class="bar"><button class="navbtn" data-nav="-1" aria-label="${esc(t('cal.prevMonth'))}">${icon('chevron-left', 24)}</button>
         <span class="legend"><span><u style="background:var(--event)"></u>${esc(t('cal.events'))}</span><span><u style="background:var(--todo)"></u>${esc(t('cal.todos'))}</span><span><u style="background:var(--record)"></u>${esc(t('cal.recs'))}</span></span>
-        <button class="navbtn" data-nav="1" aria-label="${esc(t('cal.nextMonth'))}">${icon('chevron-right', 18)}</button></div>${wkh}
+        <button class="navbtn" data-nav="1" aria-label="${esc(t('cal.nextMonth'))}">${icon('chevron-right', 24)}</button></div>${wkh}
       <div class="mgrid">${cells.map(d => { const k = dayKey(d); const cls = [d.getMonth() !== sel.getMonth() && 'o', (d.getDay() === 0 || d.getDay() === 6) && 'we', k === state.sel && 'on', k === today && 'today'].filter(Boolean).join(' '); return `<button class="mc ${cls}" data-day="${k}">${d.getDate()}<i>${d.getMonth() === sel.getMonth() ? dots(idx.get(k)) : ''}</i></button>`; }).join('')}</div></div>
-      <div class="pcm"><div class="bar" style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px 0"><button class="navbtn" data-nav="-1" aria-label="${esc(t('cal.prevMonth'))}">${icon('chevron-left', 18)}</button><span class="legend"><span><u style="background:var(--event)"></u>${esc(t('cal.events'))}</span><span><u style="background:var(--todo)"></u>${esc(t('cal.todos'))}</span><span><u style="background:var(--record)"></u>${esc(t('cal.recs'))}</span></span><button class="navbtn" data-nav="1" aria-label="${esc(t('cal.nextMonth'))}">${icon('chevron-right', 18)}</button></div>${wkh}
+      <div class="pcm"><div class="bar" style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px 0"><button class="navbtn" data-nav="-1" aria-label="${esc(t('cal.prevMonth'))}">${icon('chevron-left', 24)}</button><span class="legend"><span><u style="background:var(--event)"></u>${esc(t('cal.events'))}</span><span><u style="background:var(--todo)"></u>${esc(t('cal.todos'))}</span><span><u style="background:var(--record)"></u>${esc(t('cal.recs'))}</span></span><button class="navbtn" data-nav="1" aria-label="${esc(t('cal.nextMonth'))}">${icon('chevron-right', 24)}</button></div>${wkh}
         <div class="g">${cells.map(d => { const k = dayKey(d), x = idx.get(k); const cls = [d.getMonth() !== sel.getMonth() && 'o', (d.getDay() === 0 || d.getDay() === 6) && 'we', k === state.sel && 'on', k === today && 'today'].filter(Boolean).join(' ');
           const chips = x ? [...(pass('event') ? x.event.map(e => `<a class="chipx e" href="#/e/${e.id}">${e.meta.time ? `<span class="tm">${esc(e.meta.time)}</span>` : ''}${esc(displayTitle(e, ''))}</a>`) : []), ...(pass('todo') ? x.todo.map(e => `<a class="chipx t${e.meta.done ? ' done' : ''}" href="#/e/${e.id}">${esc(displayTitle(e, ''))}</a>`) : [])] : [];
           return `<div class="c ${cls}" data-day="${k}"><span class="n">${d.getDate()}</span>${chips.slice(0, 3).join('')}${chips.length > 3 ? `<span class="more">${esc(t('cal.more', { n: chips.length - 3 }))}</span>` : ''}${x?.record.length && state.filter === 'all' ? `<span class="rec">${esc(t('cal.records', { n: x.record.length }))}</span>` : ''}</div>`; }).join('')}</div></div>`;

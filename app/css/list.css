@@ -29,9 +29,6 @@
 .r .side button.bad { color: var(--danger); }
 .lst .empty { padding: 60px 8px; text-align: center; color: var(--muted); font-size: var(--fs-m); }
 .lst .hint { padding: 12px 8px 0; font-size: var(--fs-s); color: var(--muted-2); }
-.addrow { display: flex; align-items: center; gap: 12px; height: 54px; padding: 0 16px; margin-top: 16px; border-radius: 18px; background: rgba(22,21,26,.62); border: 1px solid rgba(255,255,255,.08); }
-.addrow input { flex: 1; min-width: 0; border: 0; background: none; outline: none; color: var(--text-2); }
-.addrow input::placeholder { color: var(--muted-2); }
 .searchbar { margin: 16px 4px 0; }
 @media (min-width: 900px) { .lst { padding: 40px 56px 0; margin: 0 auto; } }
 /* 사진 미리보기 (~30KB) */

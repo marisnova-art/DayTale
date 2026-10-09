@@ -16,7 +16,7 @@ export default {
   'auth.signin': 'Se connecter', 'auth.signup': 'Créer un compte', 'auth.google': 'Continuer avec Google', 'auth.or': 'ou',
   'auth.forgot': 'Mot de passe oublié ?', 'auth.toSignup': 'Première visite ? <b>Créer un compte</b>', 'auth.toSignin': 'Vous avez déjà un compte ? <b>Se connecter</b>',
   'auth.signupTitle': 'Essayez gratuitement pendant un mois', 'auth.signupNote': 'Aucune carte requise. Après l’essai, vous pourrez toujours tout lire et tout exporter.',
-  'auth.agree': 'En continuant, vous acceptez les <a href="./legal/terms.html" target="_blank">Conditions d’utilisation</a> et la <a href="./legal/privacy.html" target="_blank">Politique de confidentialité</a>.',
+  'auth.agree': 'En continuant, vous acceptez les <a href="./legal/terms.html">Conditions d’utilisation</a> et la <a href="./legal/privacy.html">Politique de confidentialité</a>.',
   'auth.checkMail': 'Nous avons envoyé un lien de confirmation à {email}. Ouvrez-le pour commencer.', 'auth.resetSent': 'Nous avons envoyé un lien de réinitialisation du mot de passe à {email}.',
   'auth.resetTitle': 'Choisissez un nouveau mot de passe', 'auth.resetDone': 'Votre mot de passe a été modifié.', 'auth.signout': 'Se déconnecter', 'auth.expired': 'Veuillez vous reconnecter.',
   'auth.bad': 'L’adresse e-mail et le mot de passe ne correspondent pas.', 'auth.weak': 'Veuillez utiliser au moins 8 caractères.', 'auth.exists': 'Cette adresse e-mail est déjà enregistrée. Veuillez vous connecter.',
@@ -91,5 +91,6 @@ export default {
   'plan.afterTrial': 'Si vous ne vous abonnez pas', 'plan.afterTrialBody': 'Vos entrées restent disponibles après l’essai. Vous pouvez toujours les lire, les rechercher, les exporter et les supprimer. Les comptes sont supprimés un an après la dernière connexion, avec un e-mail de rappel 30 jours puis 7 jours avant.',
   'plan.paddle': 'Les paiements sont gérés par <a href="https://www.paddle.com" target="_blank" rel="noopener">Paddle</a>. Vos données de carte ne nous parviennent jamais.',
   'plan.manageLater': 'Chargement de votre abonnement…', 'plan.updatePay': 'Modifier le moyen de paiement', 'plan.cancel': 'Résilier l’abonnement', 'plan.cancelSub': 'Vous gardez l’accès jusqu’à la fin de la période', 'plan.recheck': 'Vérifier à nouveau l’abonnement',
-  'plan.notReady': 'Les paiements sont en cours de mise en place. Bientôt disponible.', 'plan.loadFail': 'Impossible d’ouvrir la page de paiement. Veuillez réessayer dans un instant.', 'plan.thanks': 'Merci ! Votre abonnement a commencé.'
+  'plan.notReady': 'Les paiements sont en cours de mise en place. Bientôt disponible.', 'plan.loadFail': 'Impossible d’ouvrir la page de paiement. Veuillez réessayer dans un instant.', 'plan.thanks': 'Merci ! Votre abonnement a commencé.',
+  "list.upcoming": "À venir", "list.past": "Passés", "ed.urlPh": "Collez un lien (https://…)", "ed.open": "Ouvrir", "ed.paste": "Coller", "ed.openLink": "Ouvrir le lien", "set.faq": "Questions fréquentes", "set.about": "À propos de nous", "set.co.name": "Société", "set.co.ceo": "Représentant", "set.co.addr": "Adresse", "set.co.reg": "Informations légales", "set.co.mail": "Contact", "set.co.soon": "La présentation de la société sera ajoutée avant le lancement."
 };

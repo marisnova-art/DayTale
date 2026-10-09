@@ -77,8 +77,8 @@ function group(g) {
   if (g === 'info') return card('', `<div class="sabout"><img src="icons/icon-192.png" alt="" width="56" height="56"><b>${esc(brand(getLang()))}</b><small>${esc(CFG.BRAND?.tagline || '')}</small><small>${esc(t('set.version', { v: APP_VERSION }))}</small></div>`)
     + card('', row({ ic: 'smartphone', label: t('inst.title'), sub: esc(Install.Platform.standalone() ? t('inst.done') : t('set.installSub')), act: 'install' })
       + row({ ic: 'mail', label: t('set.contact'), sub: esc(CFG.CONTACT || ''), href: `mailto:${CFG.CONTACT}` }))
-    + card('', row({ ic: 'scroll-text', label: t('set.terms'), href: `./legal/terms${getLang() === 'ko' ? '.ko' : ''}.html` }) + row({ ic: 'shield', label: t('set.privacy'), href: `./legal/privacy${getLang() === 'ko' ? '.ko' : ''}.html` }) + row({ ic: 'book-open', label: t('set.licenses'), act: 'licenses' }))
-    + `<p class="snote">${t('set.metCredit')}</p>`;
+    + card('', row({ ic: 'circle-help', label: t('set.faq'), act: 'faq' }) + row({ ic: 'building-2', label: t('set.about'), act: 'about' }))
+    + card('', row({ ic: 'scroll-text', label: t('set.terms'), act: 'terms' }) + row({ ic: 'shield', label: t('set.privacy'), act: 'privacy' }) + row({ ic: 'book-open', label: t('set.licenses'), act: 'licenses' }));
   return '';
 }
 
@@ -124,7 +124,10 @@ async function onClick(ev, paint) {
   else if (a === 'sync') { await Sync.run(); toast(t('sync.done')); paint(); }
   else if (a === 'deleteAccount') deleteAccount();
   else if (a === 'install') Install.guide();
-  else if (a === 'licenses') { const el = h(`<div><h2>${esc(t('set.licenses'))}</h2><div class="scard">${LICENSES.map(([n, l, u]) => `<a class="srow" href="${u}" target="_blank" rel="noopener"><span class="stx"><b>${esc(n)}</b><small>${esc(l)}</small></span>${icon('external-link', 16)}</a>`).join('')}</div><p class="snote">${esc(t('set.licensesSub'))}</p></div>`); openSheet(el, { label: t('set.licenses') }); }
+  else if (a === 'licenses') { const el = h(`<div><h2>${esc(t('set.licenses'))}</h2><div class="scard">${LICENSES.map(([n, l, u]) => `<a class="srow" href="${u}" target="_blank" rel="noopener"><span class="stx"><b>${esc(n)}</b><small>${esc(l)}</small></span>${icon('external-link', 16)}</a>`).join('')}</div><p class="snote">${esc(t('set.licensesSub'))}</p><p class="snote">${t('set.metCredit')}</p></div>`); openSheet(el, { label: t('set.licenses') }); }
+  else if (a === 'terms' || a === 'privacy') (await import('./info.js')).openLegal(a);
+  else if (a === 'faq') (await import('./info.js')).openFaq();
+  else if (a === 'about') (await import('./info.js')).openAbout();
 }
 
 /* 날씨 도시: 자동 + 나라별 목록 검색. 결과: id | null(자동) | undefined(취소) */

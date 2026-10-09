@@ -92,7 +92,6 @@ function render(view, r, keepPh) {
       <div class="story${s.fresh ? ' fade-in' : ''}" aria-live="polite">${s.html}${justLine()}</div>
       <div class="askq"><p class="q"><button class="qtext" title="${esc(t('home.questions'))}">${esc(q)}</button></p>
         ${askBox(q)}</div>
-      ${s.ctx.weather ? '<p class="wxcredit">Weather data from <a href="https://www.met.no/en" target="_blank" rel="noopener">MET Norway</a></p>' : ''}
       <div class="spacer"></div>
     </section><aside class="today-side"></aside></div>`;
   s.fresh = false; Photos.hydrate(view);

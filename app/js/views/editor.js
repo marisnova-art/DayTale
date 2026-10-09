@@ -27,7 +27,9 @@ function render(view, r) {
   const isNew = r.path === '/new';
   const e = isNew ? newEntry({ type: r.query.type || S.prefs.defaultType || 'note', folder_id: r.query.folder || null, meta: r.query.date ? { date: r.query.date } : {} })
     : S.entries.get(r.params.id);
-  if (isNew) { try { const c = JSON.parse(sessionStorage.getItem('daytale.carry') || 'null'); sessionStorage.removeItem('daytale.carry'); if (c?.text) { e.content = c.text.split('\n').map(l => `<p>${esc(l) || '<br>'}</p>`).join(''); e.text = c.text; if (c.prompt) e.meta = { ...e.meta, prompt: c.prompt }; } } catch {} }
+  let carried = false;
+  if (isNew) { try { const c = JSON.parse(sessionStorage.getItem('daytale.carry') || 'null'); sessionStorage.removeItem('daytale.carry'); carried = !!c; if (c?.text) { e.content = c.text.split('\n').map(l => `<p>${esc(l) || '<br>'}</p>`).join(''); e.text = c.text; if (c.prompt) e.meta = { ...e.meta, prompt: c.prompt }; }
+    if (c?.url) { e.type = 'scrap'; e.meta = { ...e.meta, url: safeUrl(c.url) || undefined }; e.title = (c.title || '').slice(0, 300); if (!e.title) { try { e.title = new URL(c.url).hostname.replace(/^www\./, ''); } catch {} } } } catch {} }
   if (!e) { view.innerHTML = `<div class="ed-page"><div class="ed"><button class="icon-btn" data-act="back" aria-label="${esc(t('ed.back'))}">${icon('chevron-left', 22)}</button><p class="note" style="padding:40px 4px">${esc(t('list.noResults'))}</p></div></div>`; view.querySelector('[data-act=back]').onclick = () => history.length > 1 ? history.back() : go('/home'); return; }
   const ro = !S.canWrite;
   const photoBtn = `<button class="tb" data-act="photo" aria-label="${esc(t('ed.photo'))}">${icon('camera', 20)}</button>`;
@@ -55,7 +57,7 @@ function render(view, r) {
   </div>
   <input type="file" accept="image/*" multiple hidden class="ed-file"></div>`;
   const el = { root: view, title: $('.ed-title', view), body: $('.ed-body', view), info: $('.ed-info', view), meta: $('.ed-meta', view), photos: $('.ed-photos', view), foot: $('.ed-foot', view), pan: $('.ed-pan', view) };
-  cur = { e, isNew, wasNew: isNew, el, ro, pan: null };
+  cur = { e, isNew, wasNew: isNew, el, ro, pan: null, saved: carried ? false : undefined };
   el.title.value = e.title; el.body.innerHTML = e.content || (e.text ? e.text.split('\n').map(l => `<p>${esc(l) || '<br>'}</p>`).join('') : '');
   paintChips(); paintPhotos(); paintFoot(); paintFont();
   const save = debounce(() => commit(), 600); cur.save = save;
@@ -111,11 +113,17 @@ function paintChips() {
   const m = e.meta || {}, ro = cur.ro ? 'disabled' : '';
   el.meta.innerHTML = e.type === 'event' ? `<label>${icon('calendar', 16)}<input type="date" data-m="date" value="${esc(m.date || todayKey())}" ${ro}></label><label>${icon('clock', 16)}<input type="time" data-m="time" value="${esc(m.time || '')}" ${ro}></label><label>${icon('map-pin', 16)}<input type="text" data-m="place" maxlength="120" placeholder="${esc(t('ed.place'))}" value="${esc(m.place || '')}" ${ro}></label>`
     : e.type === 'todo' ? `<label>${icon('calendar', 16)}${esc(t('ed.due'))}<input type="date" data-m="date" value="${esc(m.date || '')}" ${ro}></label>`
+    : e.type === 'scrap' ? `<label class="url" style="flex:1">${icon('link', 16)}<input type="url" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" data-m="url" maxlength="2000" style="width:100%" placeholder="${esc(t('ed.urlPh'))}" value="${esc(m.url || '')}" ${ro}></label>${m.url ? `<button class="urlbtn open" data-act="open-url">${icon('external-link', 16)}${esc(t('ed.open'))}</button>` : ro ? '' : `<button class="urlbtn" data-act="paste-url">${icon('copy', 16)}${esc(t('ed.paste'))}</button>`}`
     : e.type === 'item' ? `<label style="flex:1">${icon('map-pin', 16)}<input type="text" data-m="place" maxlength="120" style="width:100%" placeholder="${esc(t('ed.where'))}" value="${esc(m.place || '')}" ${ro}></label>` : '';
   el.meta.hidden = !el.meta.innerHTML;
   if (e.type === 'event' && !m.date) m.date = todayKey();
-  $$('[data-m]', el.meta).forEach(i => i.addEventListener('change', () => { cur.e.meta = { ...cur.e.meta, [i.dataset.m]: i.value || undefined }; cur.saved = false; commit(); }));
+  $$('[data-m]', el.meta).forEach(i => i.addEventListener('change', () => { setMeta(i.dataset.m, i.value); }));
   if (cur.pan === 'more') paintPan();
+}
+function setMeta(k, v) {
+  if (k === 'url') { v = safeUrl(v); if (v && !cur.el.title.value.trim()) { try { cur.el.title.value = new URL(v).hostname.replace(/^www\./, ''); } catch {} } }   // 제목이 비어 있으면 사이트 이름을 넣어 둬요
+  cur.e.meta = { ...cur.e.meta, [k]: v || undefined }; cur.saved = false; commit();
+  if (k === 'url') paintChips();
 }
 /* 글꼴: 기록 하나 전체(제목+본문)에 적용 */
 function paintFont() { const f = fontOf(cur.e); useFont(f); cur.el.root.querySelector('.ed').dataset.font = f; }
@@ -186,7 +194,7 @@ function paintPan() {
     const fav = e.favorite, pin = e.pinned;
     el.pan.innerHTML = `${isPC() ? `<div class="lab">${esc(t('ed.font'))}</div>${fonts}` : ''}<div class="lab">${esc(t('ed.kind'))}</div><div class="kinds">${TYPES.map(ty => `<button class="kc${ty === e.type ? ' on' : ''}" data-type="${ty}" aria-pressed="${ty === e.type}" ${cur.ro ? 'disabled' : ''}>${icon(TYPE_ICON[ty], 18)}${esc(typeLabel(ty))}</button>`).join('')}</div>
       <div class="lab">${esc(t('ed.folder'))}</div><div class="kinds"><button class="kc${!e.folder_id ? ' on' : ''}" data-folder="" ${cur.ro ? 'disabled' : ''}>${icon('folder-x', 18)}${esc(t('folder.none'))}</button>${folderList().map(f => `<button class="kc${f.id === e.folder_id ? ' on' : ''}" data-folder="${f.id}" ${cur.ro ? 'disabled' : ''}><svg class="i" width="18" height="18" viewBox="0 0 24 24" style="color:${esc(f.color || '#A9A5AF')}"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>${esc(f.name)}</button>`).join('')}${cur.ro ? '' : `<button class="kc" data-folder="+">${icon('plus', 18)}${esc(t('folder.new'))}</button>`}</div>
-      ${isPC() ? '' : `<div class="lab">${esc(t('ed.image'))}</div><div class="imgs"><button data-act="photo" ${cur.ro ? 'disabled' : ''}>${icon('image-plus', 19)}${esc(t('ed.attach'))}</button><button data-act="card">${icon('image', 19)}${esc(t('card.title'))}</button></div>`}
+      ${isPC() ? '' : `<div class="lab">${esc(t('ed.image'))}</div><div class="kinds imgs"><button class="kc" data-act="photo" ${cur.ro ? 'disabled' : ''}>${icon('image-plus', 18)}${esc(t('ed.attach'))}</button><button class="kc" data-act="card">${icon('image', 18)}${esc(t('card.title'))}</button></div>`}
       <div class="acts"><button data-x="fav" class="${fav ? 'on' : ''}">${icon('star', 19)}${esc(t(fav ? 'ed.unfavorite' : 'ed.favorite'))}</button><button data-x="pin" class="${pin ? 'on' : ''}">${icon('pin', 19)}${esc(t(pin ? 'ed.unpin' : 'ed.pin'))}</button><button data-x="trash" class="bad">${icon('trash-2', 19)}${esc(t('ed.trash'))}</button></div>`;
   }
 }
@@ -246,6 +254,8 @@ async function onAct(ev) {
   else if (a === 'kbd') closePan(true);
   else if (a === 'photo') { if (!CFG.PHOTOS_URL) toast(t('photo.soon')); else if ((e.photos || []).length >= 4) toast(t('photo.perEntry')); else cur.el.root.querySelector('.ed-file').click(); }
   else if (a === 'ph') photoMenu(b.dataset.id);
+  else if (a === 'open-url') openUrl(e.meta.url);
+  else if (a === 'paste-url') { try { const v = (await navigator.clipboard.readText()).trim(); if (v) setMeta('url', v); else cur.el.meta.querySelector('[data-m=url]')?.focus(); } catch { cur.el.meta.querySelector('[data-m=url]')?.focus(); } }
   else if (a === 'card') { await commit(); if (!cur) return; closePan(); const { openCard } = await import('../features/card.js'); openCard(cur.e); }
 }
 /* 작성 완료: 짧게 축하하고, 새 기록은 모든 기록(맨 위에 반짝), 고친 기록은 원래 있던 화면으로 */
@@ -326,6 +336,8 @@ function onKey(ev) {
   if (ev.key === 'Enter' && !ev.shiftKey) setTimeout(() => { const li = blockOf(getSelection().anchorNode); if (li?.tagName === 'LI') li.classList.remove('done'); }, 0);
 }
 function onBodyClick(ev) {
+  const a = ev.target.closest('a[href]');
+  if (a) { if (ev.metaKey || ev.ctrlKey || cur.ro) { ev.preventDefault(); openUrl(a.getAttribute('href')); } else linkPop(a); return; }
   const li = ev.target.closest('ul.todo > li'); if (!li || cur.ro) return;
   const x = ev.clientX - li.getBoundingClientRect().left; if (x > 28) return;
   li.classList.toggle('done'); cur.saved = false; cur.save();
@@ -333,8 +345,26 @@ function onBodyClick(ev) {
 function onPaste(ev) {
   const html = ev.clipboardData.getData('text/html'); const text = ev.clipboardData.getData('text/plain');
   ev.preventDefault();
-  if (html) document.execCommand('insertHTML', false, sanitizeHTML(html));
+  const u = text.trim();
+  if (/^https?:\/\/\S+$/i.test(u) && !/\s/.test(u)) document.execCommand('insertHTML', false, `<a href="${esc(u)}">${esc(u)}</a>&nbsp;`);   // 주소만 붙여 넣으면 바로 링크로
+  else if (html) document.execCommand('insertHTML', false, sanitizeHTML(html));
   else document.execCommand('insertText', false, text);
+}
+/* 링크: 글 안의 링크를 누르면 바로 아래 '링크 열기' 단추가 떠요 (쓰는 중엔 커서가 들어가야 하니까 바로 열지는 않아요) */
+const safeUrl = u => { u = String(u || '').trim(); if (!u) return ''; if (!/^[a-z][a-z0-9+.-]*:/i.test(u)) u = 'https://' + u; return /^(https?|mailto|tel):/i.test(u) ? u : ''; };
+function openUrl(u) { u = safeUrl(u); if (u) window.open(u, '_blank', 'noopener'); }
+function linkPop(a) {
+  document.querySelector('.lk-pop')?.remove();
+  const u = safeUrl(a.getAttribute('href')); if (!u) return;
+  const r = a.getBoundingClientRect(), p = document.createElement('button');
+  p.className = 'lk-pop'; p.innerHTML = `${icon('external-link', 16)}<span>${esc(t('ed.openLink'))}</span><small>${esc(u.replace(/^https?:\/\/(www\.)?/, '').slice(0, 32))}</small>`;
+  p.style.left = Math.max(12, Math.min(r.left, innerWidth - 260)) + 'px'; p.style.top = (r.bottom + 8) + 'px';
+  p.onmousedown = e => e.preventDefault();
+  p.onclick = () => { p.remove(); openUrl(u); };
+  document.body.append(p);
+  const off = e => { if (e.target.closest?.('.lk-pop')) return; p.remove(); removeEventListener('pointerdown', off, true); removeEventListener('scroll', off2, true); };
+  const off2 = () => { p.remove(); removeEventListener('pointerdown', off, true); removeEventListener('scroll', off2, true); };
+  setTimeout(() => { addEventListener('pointerdown', off, true); addEventListener('scroll', off2, true); }, 0);
 }
 
 /* ---------- 형광펜 · 링크 ---------- */

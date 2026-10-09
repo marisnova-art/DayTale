@@ -32,12 +32,12 @@
 /* 아래 막대가 그 자리에서 위로 늘어나며 메뉴가 돼요 */
 .drawer.open { clip-path: inset(0 0 0 0 round 33px); opacity: 1; pointer-events: auto; visibility: visible; transition: clip-path .3s cubic-bezier(.2,.8,.2,1), opacity .12s, visibility 0s; }
 .drawer .head { display: flex; align-items: center; gap: 4px; padding: 6px 0 0 2px; flex: none; order: 20; border-top: 1px solid var(--line); margin-top: 6px; }
-.drawer .head .close { order: -1; color: var(--text); width: 48px; height: 48px; background: rgba(255,255,255,.1); }
+/* 모바일 메뉴 맨 아래 줄: 왼쪽 닫기, 오른쪽 로고·브랜드 */
+.drawer .head .close { color: var(--text); width: 48px; height: 48px; background: rgba(255,255,255,.1); flex: none; }
+.drawer .head .mark { margin-left: auto; display: flex; align-items: center; gap: 8px; padding-right: 12px; }
 .drawer .head .logo { width: 26px; height: 26px; border-radius: 8px; }
-.drawer .head .brand { margin-left: 6px; }
-.drawer .head .mo { width: 48px; height: 48px; color: var(--text-3); }
+.drawer .head .brand { flex: none; }
 .drawer .profile-card { margin-top: 0; }
-.drawer .foot .m[data-go="/settings"] { display: none; }
 .logo { width: 30px; height: 30px; border-radius: 10px; background: linear-gradient(140deg, #FFB37A, #E5577A); flex: none; }
 .brand { flex: 1; font-size: var(--fs-m); font-weight: 700; color: var(--text); }
 .profile-card { flex: none; margin: 14px 4px 0; padding: 14px; border-radius: 18px; background: var(--fill); border: 1px solid var(--fill-2); display: flex; flex-direction: column; gap: 12px; text-align: left; }
@@ -53,7 +53,12 @@
 .search { flex: none; margin: 12px 4px 4px; height: 48px; border-radius: 16px; background: var(--fill); border: 1px solid var(--fill-2); display: flex; align-items: center; gap: 10px; padding: 0 16px; color: var(--muted-2); }
 .search input { border: 0; background: none; color: var(--text-2); width: 100%; outline: none; }
 .search input::placeholder { color: var(--muted-2); }
-.nav { display: flex; flex-direction: column; margin-top: 6px; flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; }
+.nav { display: flex; flex-direction: column; margin-top: 6px; flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
+/* 더 내릴 게 있으면 위·아래 끝이 흐려져서 스크롤된다는 걸 알 수 있어요 */
+.nav.more-b { -webkit-mask-image: linear-gradient(#000 calc(100% - 36px), transparent); mask-image: linear-gradient(#000 calc(100% - 36px), transparent); }
+.nav.more-t { -webkit-mask-image: linear-gradient(transparent, #000 36px); mask-image: linear-gradient(transparent, #000 36px); }
+.nav.more-t.more-b { -webkit-mask-image: linear-gradient(transparent, #000 36px, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(transparent, #000 36px, #000 calc(100% - 36px), transparent); }
+:root.menu-open, :root.menu-open body { overflow: hidden; }
 .nav::-webkit-scrollbar { display: none; }
 .m { flex: none; display: flex; align-items: center; gap: 12px; height: 40px; padding: 0 12px; border-radius: 12px; border: 1px solid transparent; color: var(--text-3); font-size: var(--fs-s); font-weight: 500; text-align: left; width: 100%; }
 .m svg { color: var(--muted-2); }
@@ -72,12 +77,12 @@
   .drawer { position: sticky; top: 0; bottom: auto; left: auto; right: auto; margin: 0; max-width: none; max-height: none; height: 100dvh; transform: none; width: 268px; border-radius: 0; border: 0; border-right: 1px solid rgba(255,255,255,.06);
     clip-path: none; opacity: 1; visibility: visible; pointer-events: auto; transition: none;
     background: rgba(12,12,16,.30); box-shadow: none; -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); padding-top: 26px; flex: none; }
-  .drawer .close, .drawer .mo, .scrim, .mbar { display: none !important; }
+  .drawer .close, .scrim, .mbar { display: none !important; }
+  .drawer .head .mark { margin-left: 0; padding-right: 0; gap: 10px; }
   .drawer .head { order: 0; border-top: 0; margin-top: 0; padding: 0 4px 0 8px; gap: 10px; }
   .drawer .head .logo { width: 30px; height: 30px; border-radius: 10px; }
   .drawer .head .brand { margin-left: 0; }
   .drawer .profile-card { margin-top: 14px; }
-  .drawer .foot .m[data-go="/settings"] { display: flex; }
   .view { padding-top: 0; }
   .drawer .profile-card { order: 10; margin-top: 10px; }
   .drawer .foot { order: 9; border-top: 0; }
@@ -130,4 +135,6 @@ dialog.dlg .btn { height: 44px; }
 .netbar { position: fixed; top: 0; left: 0; right: 0; z-index: 70; text-align: center; font-size: var(--fs-s); font-weight: 700; padding: calc(4px + var(--safe-t)) 0 4px; background: #3A2E20; color: #FFD9A0; }
 .pc-top[hidden], .mbar[hidden] { display: none !important; }
 /* 모바일 메뉴 글씨는 한 단계 크게 */
-@media (max-width: 899px) { .m { height: 46px; font-size: var(--fs-m); } .m .c { font-size: var(--fs-s); } .drawer .foot .m { font-size: var(--fs-m); } }
+@media (max-width: 899px) { .m { height: 46px; font-size: var(--fs-m); } .m .c { font-size: var(--fs-s); } .drawer .foot .m { font-size: var(--fs-m); }
+  /* 휴지통 아래에 설정 */
+  .drawer .foot { flex-direction: column; gap: 0; } }

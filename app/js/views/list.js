@@ -1,5 +1,5 @@
 /* 정리형 목록: 모든 기록, 종류별, 폴더, 폴더 없음, 할 일, 휴지통, 찾기 */
-import { S, TYPES, addEntry, displayTitle, live, patchEntry, purgeEntries, restoreEntry, trash, trashEntry } from '../data/store.js';
+import { S, TYPES, displayTitle, live, patchEntry, purgeEntries, restoreEntry, trash, trashEntry } from '../data/store.js';
 import { TYPE_ICON } from '../ui/shell.js';
 import { fmtDate, fmtHM, fmtNum, fmtTime, t } from '../core/i18n.js';
 import { addDays, dayKey, debounce, esc, icon, nowISO, todayKey } from '../core/utils.js';
@@ -29,6 +29,7 @@ function row(e, { terms = [], mode = '' } = {}) {
   if (e.type === 'event' && m.date) sub = [m.date === today ? t('list.today') : fmtDate(m.date + 'T00:00', { month: 'short', day: 'numeric' }), m.time && fmtHM(m.time), m.place].filter(Boolean).join(' · ');
   if (e.type === 'todo' && m.date && !m.done) sub = `<span class="due">${esc(m.date <= today ? t('todo.due') : fmtDate(m.date + 'T00:00', { month: 'short', day: 'numeric' }))}</span>` + (sub ? ' · ' + esc(sub) : '');
   else if (e.type === 'item' && m.place) sub = m.place;
+  else if (e.type === 'scrap' && m.url) { let host = ''; try { host = new URL(m.url).hostname.replace(/^www\./, ''); } catch {} sub = [host, sub].filter(Boolean).join(' · '); }
   const subHtml = sub.startsWith('<span') ? sub : hl(sub, terms);
   const f = e.folder_id && S.folders.get(e.folder_id);
   const time = mode === 'trash' ? '' : dayKey(new Date(e.created_at)) === today ? fmtTime(new Date(e.created_at)) : fmtDate(e.created_at, { month: 'numeric', day: 'numeric' });
@@ -56,7 +57,6 @@ function render(view, r) {
   const title = mode === 'todo' ? t('nav.todo') : mode === 'trash' ? t('nav.trash') : mode === 'search' ? t('nav.search') : mode === 'folder' ? folder.name : mode === 'nofolder' ? t('nav.noFolder') : mode === 'type' ? typeLabel(r.params.type) : mode === 'fav' ? t('nav.fav') : t('nav.all');
   view.innerHTML = `<section class="lst"><div class="lst-head"><h1>${esc(title)}</h1><span class="c"></span><span class="act"></span></div><div class="filters"></div>
     ${mode === 'search' ? `<label class="field searchbar">${icon('search', 18)}<input type="search" enterkeyhint="search" placeholder="${esc(t('list.search'))}" aria-label="${esc(t('nav.search'))}"></label>` : ''}
-    ${mode === 'todo' ? `<label class="addrow">${icon('plus', 20)}<input placeholder="${esc(t('list.addTodo'))}" enterkeyhint="done" maxlength="300" aria-label="${esc(t('list.addTodo'))}"></label>` : ''}
     <div class="body"></div><div style="height:120px"></div></section>`;
   const act = view.querySelector('.act');
   if (mode === 'folder') act.innerHTML = `<button class="icon-btn" data-folder-more aria-label="${esc(t('ed.more'))}">${icon('more-horizontal', 20)}</button>`;
@@ -83,8 +83,6 @@ function render(view, r) {
     else return;
     paint();
   });
-  const add = view.querySelector('.addrow input');
-  add?.addEventListener('keydown', async ev => { if (ev.key === 'Enter' && !ev.isComposing && add.value.trim()) { const title = add.value.trim(); add.value = ''; await addEntry({ type: 'todo', title, text: '' }); paint(); } });
 }
 function paintBody(view, { mode, r, folder, q }) {
   const body = view.querySelector('.body'), count = view.querySelector('.lst-head .c'), fl = view.querySelector('.filters');
@@ -125,6 +123,15 @@ function paintBody(view, { mode, r, folder, q }) {
     body.innerHTML = found.length ? `<p class="hint">${esc(t('list.found', { n: fmtNum(found.length) }))}</p><div class="card" style="margin-top:12px">${found.map(e => row(e, { terms })).join('')}</div>` : `<div class="empty">${esc(t('list.noResults'))}</div>`;
     return;
   }
+  if (mode === 'type' && r.params.type === 'event') {   // 일정: 다가오는 일정(가까운 순) · 지난 일정(최근 순)
+    const today = todayKey(), up = list.filter(e => (e.meta.date || '') >= today).sort((a, b) => (a.meta.date + (a.meta.time || '')).localeCompare(b.meta.date + (b.meta.time || '')));
+    const past = list.filter(e => (e.meta.date || '') < today).sort((a, b) => (b.meta.date || '').localeCompare(a.meta.date || '')).slice(0, 200);
+    count.textContent = up.length ? fmtNum(up.length) : '';
+    body.innerHTML = (up.length ? `<div class="grp"><span>${esc(t('list.upcoming'))}</span><span>${up.length}</span></div><div class="card">${up.map(e => row(e, { mode })).join('')}</div>` : '') +
+      (past.length ? `<div class="grp"><span>${esc(t('list.past'))}</span><span>${past.length}</span></div><div class="card">${past.map(e => row(e, { mode })).join('')}</div>` : '') +
+      (!list.length ? `<div class="empty">${esc(t('list.empty'))}</div>` : '');
+    return;
+  }
   count.textContent = list.length ? fmtNum(list.length) : '';
   const pinned = list.filter(e => e.pinned).sort(byNew), rest = list.filter(e => !e.pinned).sort(byNew);
   body.innerHTML = (pinned.length ? `<div class="grp"><span>${esc(t('list.pinned'))}</span><span>${pinned.length}</span></div><div class="card">${pinned.map(e => row(e, { mode })).join('')}</div>` : '') +
@@ -135,10 +142,10 @@ const refresh = view => view.paintList?.();
 /* 밀어서 삭제 (손가락). 조금 밀면 삭제 버튼이 열리고, 반 넘게 밀면 바로 휴지통으로 */
 function swipe(view) {
   let s = null;
-  const close = except => view.querySelectorAll('.swp.open').forEach(w => { if (w !== except) { w.classList.remove('open'); w.querySelector('.r').style.transform = ''; w.style.setProperty('--rev', '0px'); } });
+  const close = except => view.querySelectorAll('.swp.open').forEach(w => { if (w !== except) { w.classList.remove('open'); w.querySelector('.r, .ev').style.transform = ''; w.style.setProperty('--rev', '0px'); } });
   view.addEventListener('touchstart', ev => {
     const w = ev.target.closest('.swp'); if (!w || ev.target.closest('.swp-del')) return;
-    close(w); const r = w.querySelector('.r');
+    close(w); const r = w.querySelector('.r, .ev');
     s = { w, r, x: ev.touches[0].clientX, y: ev.touches[0].clientY, base: w.classList.contains('open') ? -88 : 0, cur: 0, dir: null };
   }, { passive: true });
   view.addEventListener('touchmove', ev => {
@@ -164,4 +171,4 @@ function swipe(view) {
   }, true);
 }
 
-export { refresh, render, row };
+export { refresh, render, row, swipe };
