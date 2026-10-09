@@ -1,6 +1,6 @@
 // 날씨: MET Norway Locationforecast (무료, 출처 표시 필요: "Weather data from MET Norway").
 // 앱 → 이 함수 → (0.1도 칸마다 캐시) → api.met.no. 로그인한 사용자만 부를 수 있어요 (verify_jwt 기본값).
-// 환경 변수: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (Supabase가 자동으로 넣어 줌), WEATHER_CONTACT (MET 요청 규칙: 연락처가 든 User-Agent)
+// 환경 변수: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (Supabase가 자동으로 넣어 줌), WEATHER_CONTACT (선택. MET 요청 규칙: 연락처가 든 User-Agent. 없으면 운영 메일)
 
 type Deps = { fetch: typeof fetch; env: (k: string) => string | undefined; now?: () => number };
 
@@ -32,7 +32,7 @@ export async function handle(req: Request, deps: Deps): Promise<Response> {
     const rows = c.ok ? await c.json() : [];
     if (rows[0] && Date.parse(rows[0].expires_at) > now) return json(rows[0].data, 200, cors);
   } catch { /* 캐시가 안 되면 바로 받아요 */ }
-  const ua = `Daytale/1.0 ${deps.env('WEATHER_CONTACT') || 'contact@example.com'}`;
+  const ua = `Daytale/1.0 ${deps.env('WEATHER_CONTACT') || '24story@gmail.com'}`;
   const r = await deps.fetch(`https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${clat}&lon=${clon}`, { headers: { 'user-agent': ua, accept: 'application/json' } });
   if (!r.ok) return json({ error: 'upstream', status: r.status }, 502, cors);
   const j = await r.json();
