@@ -45,7 +45,14 @@ function wireAsk(view, { prompt, onSaved }) {
   const recaret = () => { if (document.activeElement !== ta) return; const a = ta.selectionStart, b = ta.selectionEnd; ta.setSelectionRange(a, b); };
   // 바탕을 눌러 나올 때는 들어가기 전 스크롤 자리로 돌려놔요 (아이폰이 키보드 때문에 밀어 둔 화면이 남아, 다시 들어가면 칸이 아래로 내려가 보였어요)
   let y0 = null;
-  const back = () => { if (y0 == null) return; const y = y0; y0 = null; scrollTo(0, y); setTimeout(() => scrollTo(0, y), 320); };
+  // V 로 나올 때처럼 화면을 새로 그리고 (쓰던 글은 그대로), 키보드가 다 내려간 뒤 스크롤을 되돌려요
+  const back = () => {
+    const y = y0 ?? scrollY; y0 = null;
+    refresh(view);
+    const put = () => scrollTo(0, y), vv = window.visualViewport;
+    put(); [150, 400, 800].forEach(ms => setTimeout(put, ms));
+    vv?.addEventListener('resize', put, { once: true });
+  };
   ta.addEventListener('focus', () => {
     if (y0 == null) y0 = scrollY;
     document.documentElement.classList.add('home-focus'); addEventListener('hashchange', unfocus, { once: true });
