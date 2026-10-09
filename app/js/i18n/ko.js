@@ -74,16 +74,16 @@ export default {
   'set.weekStart': '한 주의 시작', 'set.sun': '일요일', 'set.mon': '월요일',
   'set.defaultType': '새 기록 기본 종류', 'set.city': '날씨 도시', 'set.cityAuto': '자동 (기기 시간대)', 'set.cityManual': '직접 고름', 'set.citySearch': '도시나 나라 이름', 'set.dictation': '말로 입력', 'set.dictationSub': '마이크 버튼으로 말한 내용을 글로 받아 적어요.',
   'set.days': '기억할 날', 'set.daysSub': '생일, 기념일을 넣으면 그날 홈 이야기에서 챙겨 드려요.', 'set.addDay': '기억할 날 추가', 'set.everyYear': '매년 {date}', 'set.dayName': '어떤 날인가요?', 'set.dayNamePh': '예: 엄마 생신', 'set.dayDate': '날짜',
-  'set.notifyOn': '알림이 켜져 있어요.', 'set.notifyNo': '이 브라우저는 알림을 지원하지 않아요.', 'set.notifyAsk': '알림 켜기', 'set.notifyAskSub': '일정 10분 전, 할 일 마감일 아침에 알려 드려요.', 'set.notifyDenied': '브라우저 설정에서 알림이 막혀 있어요. 사이트 설정에서 허용해 주세요.',
+  'set.notifyOn': '알림이 켜져 있어요.', 'set.notifyNo': "이 화면에서는 알림을 켤 수 없어요. 홈 화면에 앱을 설치한 뒤 켜 주세요. (아이폰은 iOS 16.4 이상)", 'set.notifyAsk': '알림 켜기', 'set.notifyAskSub': '일정 10분 전, 할 일 마감일 아침에 알려 드려요.', 'set.notifyDenied': '브라우저 설정에서 알림이 막혀 있어요. 사이트 설정에서 허용해 주세요.',
   'set.reminders': '일정·할 일 알림', 'set.remindersSub': '일정 10분 전, 할 일은 마감일 오전 9시', 'set.morning': '아침 인사', 'set.evening': '저녁 돌아보기', 'set.eveningSub': '오늘 아직 기록이 없을 때만', 'set.at': '시각',
-  'set.notifyHonest': '지금은 앱이 열려 있거나 홈 화면에 설치된 앱이 켜져 있을 때 알림이 와요. 앱을 꺼 두어도 오는 알림은 준비하고 있어요.',
+  'set.notifyHonest': "이 기기에서는 앱이 열려 있을 때만 알림이 와요. 앱을 닫아도 받으려면 홈 화면에 설치한 앱에서 알림을 켜 주세요. (아이폰은 iOS 16.4 이상)",
   'sync.syncing': '맞추는 중…', 'sync.at': '{when} 맞춤', 'sync.never': '아직 맞추지 않았어요', 'sync.done': '맞췄어요', 'err.offline': '인터넷에 연결되어 있지 않아요.',
   'set.syncNow': '지금 동기화', 'set.usage': '사용량', 'set.uEntries': '기록', 'set.uPhotos': '사진', 'set.uFolders': '폴더', 'set.backupSub': 'JSON · 마크다운 · PDF', 'set.trashSub': '30일 뒤 완전히 지워져요',
   'set.danger': '계정', 'set.deleteAccount': '계정 삭제', 'set.deleteSub': '모든 기록과 사진이 지워지고 되돌릴 수 없어요.', 'set.deleteQ': '계정을 삭제할까요?', 'set.deleteBody': '삭제하기 전에 백업을 받아 두세요. 기록, 사진, 설정이 모두 지워지고 되돌릴 수 없어요.',
   'set.deleteType': '확인을 위해 "{word}"라고 적어 주세요', 'set.deleteWord': '삭제', 'set.cancelFirst': '구독을 먼저 해지해 주세요. 해지 후에 계정을 삭제할 수 있어요.',
   'set.version': '버전 {v}', 'set.installSub': '홈 화면에 앱처럼 두기', 'set.contact': '문의', 'set.terms': '이용약관', 'set.privacy': '개인정보 처리방침', 'set.licenses': '오픈소스 라이선스', 'set.licensesSub': '모두 상업적으로 쓸 수 있는 공개 라이선스예요.',
   'set.metCredit': '날씨 정보: <a href="https://www.met.no/en" target="_blank" rel="noopener">MET Norway</a> (CC BY 4.0)',
-  'inst.title': '앱으로 설치하기', 'inst.done': '이미 앱으로 쓰고 있어요', 'inst.why': '홈 화면에 두면 앱처럼 바로 열리고, 인터넷이 없어도 기록할 수 있어요.', 'inst.inApp': '카카오톡 같은 앱 안의 브라우저에서는 설치할 수 없어요. Safari나 Chrome으로 열어 주세요.',
+  'inst.title': '앱으로 설치하기', 'inst.done': '이미 앱으로 쓰고 있어요', 'inst.why': "홈 화면에 두면 앱처럼 바로 열리고, 앱을 닫아도 일정·할 일 알림을 받을 수 있어요. 인터넷이 없어도 기록할 수 있어요.", 'inst.inApp': '카카오톡 같은 앱 안의 브라우저에서는 설치할 수 없어요. Safari나 Chrome으로 열어 주세요.',
   'inst.ios1': '아래쪽 공유 버튼을 눌러요', 'inst.ios1Sub': 'Safari 화면 아래 가운데 (아이패드는 위쪽)', 'inst.ios2': '"홈 화면에 추가"를 골라요', 'inst.ios3': '오른쪽 위 "추가"를 눌러요', 'inst.add': '추가', 'inst.open': '홈 화면의 아이콘으로 열어요',
   'inst.and1': '오른쪽 위 ⋮ 메뉴를 눌러요', 'inst.and2': '"앱 설치" 또는 "홈 화면에 추가"를 골라요', 'inst.desk1': '주소창 오른쪽의 설치 버튼을 눌러요', 'inst.desk1Sub': 'Chrome · Edge', 'inst.desk2': '앱 창으로 열려요', 'inst.now': '지금 설치',
   'notify.eventSoon': '{time} 시작', 'notify.todoDue': '오늘까지예요', 'notify.morning': '좋은 아침이에요', 'notify.morningBody': '오늘 일정 {n}개가 있어요. 하루를 한 줄로 시작해 볼까요?', 'notify.evening': '오늘은 어땠어요?', 'notify.eveningBody': '잠들기 전에 한 줄만 남겨 두세요.',
@@ -97,5 +97,6 @@ export default {
   'plan.paddle': '결제는 <a href="https://www.paddle.com" target="_blank" rel="noopener">Paddle</a>이 대신 처리해요. 카드 정보는 저희에게 오지 않아요.',
   'plan.manageLater': '구독 정보를 불러오는 중이에요.', 'plan.updatePay': '결제 수단 바꾸기', 'plan.cancel': '구독 해지', 'plan.cancelSub': '남은 기간까지는 계속 쓸 수 있어요', 'plan.recheck': '구독 상태 다시 확인',
   'plan.notReady': '결제 준비 중이에요. 곧 열려요.', 'plan.loadFail': '결제 창을 열지 못했어요. 잠시 뒤 다시 해 주세요.', 'plan.thanks': '고마워요! 구독이 시작됐어요.',
-  "list.upcoming": "다가오는 일정", "list.past": "지난 일정", "ed.urlPh": "링크를 붙여 넣으세요 (https://…)", "ed.open": "열기", "ed.paste": "붙여넣기", "ed.openLink": "링크 열기", "set.faq": "자주 묻는 질문", "set.about": "회사 소개", "set.co.name": "회사", "set.co.ceo": "대표", "set.co.addr": "주소", "set.co.reg": "사업자 정보", "set.co.mail": "문의", "set.co.soon": "회사 소개는 정식 오픈 전에 채워질 예정이에요."
+  "list.upcoming": "다가오는 일정", "list.past": "지난 일정", "ed.urlPh": "링크를 붙여 넣으세요 (https://…)", "ed.open": "열기", "ed.paste": "붙여넣기", "ed.openLink": "링크 열기", "set.faq": "자주 묻는 질문", "set.about": "회사 소개", "set.co.name": "회사", "set.co.ceo": "대표", "set.co.addr": "주소", "set.co.reg": "사업자 정보", "set.co.mail": "문의", "set.co.soon": "회사 소개는 정식 오픈 전에 채워질 예정이에요.",
+  'set.notifyPush': "앱을 닫아도 알림이 와요. 알림을 받을 기기마다 한 번씩 켜 주세요."
 };

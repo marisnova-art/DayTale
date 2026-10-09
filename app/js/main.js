@@ -73,7 +73,7 @@ async function startUser(user, { offline = false } = {}) {
   Sync.suffix = t('sync.suffix');
   Sync.run();
   Account.load().catch(() => {}).finally(() => { Photos.flush(); trialNudge(); checkNotices(); });
-  Reminders.schedule();
+  Reminders.schedule(); Reminders.subscribe();   // 푸시 주소·시간대를 새로 맞춰요
   Sync.pullPrefs().then(ch => { if (ch) applyPrefs(); }).catch(() => {});
   loadPhrases();
   Weather.refresh().then(w => { if (w) { Backdrop.apply(document.documentElement, { weather: w.kind }); if (now()?.path === '/home') rerender(); } });

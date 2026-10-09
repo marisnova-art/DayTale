@@ -69,16 +69,16 @@ export default {
   'set.weekStart': '週の始まり', 'set.sun': '日曜日', 'set.mon': '月曜日',
   'set.defaultType': '新しい記録の種類', 'set.city': '天気の都市', 'set.cityAuto': '自動（端末のタイムゾーン）', 'set.cityManual': '手動で選択', 'set.citySearch': '都市名または国名', 'set.dictation': '音声入力', 'set.dictationSub': 'マイクボタンで、話した内容を文字にします。',
   'set.days': '覚えておく日', 'set.daysSub': '誕生日や記念日を登録すると、その日のホームのお話で触れます。', 'set.addDay': '日を追加', 'set.everyYear': '毎年{date}', 'set.dayName': 'どんな日ですか？', 'set.dayNamePh': '例：母の誕生日', 'set.dayDate': '日付',
-  'set.notifyOn': '通知はオンです。', 'set.notifyNo': 'このブラウザは通知に対応していません。', 'set.notifyAsk': '通知をオンにする', 'set.notifyAskSub': '予定の10分前と、やることの期限日の朝にお知らせします。', 'set.notifyDenied': 'ブラウザで通知がブロックされています。サイトの設定で許可してください。',
+  'set.notifyOn': '通知はオンです。', 'set.notifyNo': "ここでは通知をオンにできません。ホーム画面にアプリを追加してからオンにしてください（iPhoneはiOS 16.4以降）。", 'set.notifyAsk': '通知をオンにする', 'set.notifyAskSub': '予定の10分前と、やることの期限日の朝にお知らせします。', 'set.notifyDenied': 'ブラウザで通知がブロックされています。サイトの設定で許可してください。',
   'set.reminders': '予定・やることの通知', 'set.remindersSub': '予定は10分前、やることは期限日の午前9時', 'set.morning': '朝のあいさつ', 'set.evening': '夜のふり返り', 'set.eveningSub': '今日まだ記録がないときだけ', 'set.at': '時刻',
-  'set.notifyHonest': '現在、通知はアプリを開いているときか、インストールしたアプリが起動しているときに届きます。アプリを閉じていても届く通知は準備中です。',
+  'set.notifyHonest': "この端末では、アプリを開いている間だけ通知が届きます。閉じていても受け取るには、ホーム画面に追加したアプリで通知をオンにしてください（iPhoneはiOS 16.4以降）。",
   'sync.syncing': '同期中…', 'sync.at': '{when}に同期', 'sync.never': 'まだ同期していません', 'sync.done': '同期しました', 'err.offline': 'オフラインです。',
   'set.syncNow': '今すぐ同期', 'set.usage': '使用量', 'set.uEntries': '記録', 'set.uPhotos': '写真', 'set.uFolders': 'フォルダ', 'set.backupSub': 'JSON · Markdown · PDF', 'set.trashSub': '30日後に完全に削除されます',
   'set.danger': 'アカウント', 'set.deleteAccount': 'アカウントを削除', 'set.deleteSub': 'すべての記録と写真が削除され、元に戻せません。', 'set.deleteQ': 'アカウントを削除しますか？', 'set.deleteBody': '先にバックアップを取っておいてください。記録・写真・設定はすべて削除され、元に戻せません。',
   'set.deleteType': '確認のため「{word}」と入力してください', 'set.deleteWord': '削除', 'set.cancelFirst': '先に購読を解約してください。解約後にアカウントを削除できます。',
   'set.version': 'バージョン {v}', 'set.installSub': 'ホーム画面にアプリのように置く', 'set.contact': 'お問い合わせ', 'set.terms': '利用規約', 'set.privacy': 'プライバシーポリシー', 'set.licenses': 'オープンソースライセンス', 'set.licensesSub': 'いずれも商用利用できるオープンなライセンスです。',
   'set.metCredit': '天気データ：<a href="https://www.met.no/en" target="_blank" rel="noopener">MET Norway</a> (CC BY 4.0)',
-  'inst.title': 'アプリをインストール', 'inst.done': 'すでにアプリとして使っています', 'inst.why': 'ホーム画面に置くとアプリのようにすぐ開き、インターネットがなくても記録できます。', 'inst.inApp': 'ほかのアプリ内のブラウザからはインストールできません。SafariまたはChromeで開いてください。',
+  'inst.title': 'アプリをインストール', 'inst.done': 'すでにアプリとして使っています', 'inst.why': "ホーム画面に置くとアプリのようにすぐ開き、閉じていても予定やToDoの通知が届きます。インターネットがなくても記録できます。", 'inst.inApp': 'ほかのアプリ内のブラウザからはインストールできません。SafariまたはChromeで開いてください。',
   'inst.ios1': '共有ボタンをタップします', 'inst.ios1Sub': 'Safariの画面下（iPadでは上）', 'inst.ios2': '「ホーム画面に追加」を選びます', 'inst.ios3': '右上の「追加」をタップします', 'inst.add': '追加', 'inst.open': 'ホーム画面のアイコンから開きます',
   'inst.and1': '右上の ⋮ メニューをタップします', 'inst.and2': '「アプリをインストール」または「ホーム画面に追加」を選びます', 'inst.desk1': 'アドレスバーのインストールボタンをクリックします', 'inst.desk1Sub': 'Chrome · Edge', 'inst.desk2': '専用のウィンドウで開きます', 'inst.now': '今すぐインストール',
   'notify.eventSoon': '{time}に始まります', 'notify.todoDue': '今日が期限です', 'notify.morning': 'おはようございます', 'notify.morningBody': '今日は予定が{n}件あります。一行から一日を始めてみませんか？', 'notify.evening': '今日はどうでしたか？', 'notify.eveningBody': '寝る前に一行だけ残しておきましょう。',
@@ -93,5 +93,6 @@ export default {
   'plan.manageLater': '購読情報を読み込んでいます…', 'plan.updatePay': '支払い方法を変更', 'plan.cancel': '購読を解約', 'plan.cancelSub': '期間の終わりまでは引き続き使えます', 'plan.recheck': '購読状況を再確認',
   'plan.notReady': 'お支払いは準備中です。もうしばらくお待ちください。', 'plan.loadFail': 'お支払い画面を開けませんでした。少し時間をおいてお試しください。', 'plan.thanks': 'ありがとうございます。購読が始まりました。',
   'lang.ja': '日本語', 'lang.es': 'Español', 'lang.fr': 'Français',
-  "list.upcoming": "これからの予定", "list.past": "過去の予定", "ed.urlPh": "リンクを貼り付け (https://…)", "ed.open": "開く", "ed.paste": "貼り付け", "ed.openLink": "リンクを開く", "set.faq": "よくある質問", "set.about": "会社概要", "set.co.name": "会社名", "set.co.ceo": "代表者", "set.co.addr": "所在地", "set.co.reg": "事業者情報", "set.co.mail": "お問い合わせ", "set.co.soon": "会社概要は正式リリース前に掲載予定です。"
+  "list.upcoming": "これからの予定", "list.past": "過去の予定", "ed.urlPh": "リンクを貼り付け (https://…)", "ed.open": "開く", "ed.paste": "貼り付け", "ed.openLink": "リンクを開く", "set.faq": "よくある質問", "set.about": "会社概要", "set.co.name": "会社名", "set.co.ceo": "代表者", "set.co.addr": "所在地", "set.co.reg": "事業者情報", "set.co.mail": "お問い合わせ", "set.co.soon": "会社概要は正式リリース前に掲載予定です。",
+  'set.notifyPush': "アプリを閉じていても通知が届きます。通知を受け取る端末ごとに一度オンにしてください。"
 };

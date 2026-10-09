@@ -62,7 +62,7 @@ function group(g) {
       + card('', toggle('notify.reminders', t('set.reminders'), t('set.remindersSub'), n.reminders !== false)
         + toggle('notify.morning', t('set.morning'), '', !!n.morning) + (n.morning ? `<label class="srow sub"><span class="stx"><b>${esc(t('set.at'))}</b></span><input type="time" data-time="morningAt" value="${esc(n.morningAt || '08:00')}"></label>` : '')
         + toggle('notify.evening', t('set.evening'), t('set.eveningSub'), !!n.evening) + (n.evening ? `<label class="srow sub"><span class="stx"><b>${esc(t('set.at'))}</b></span><input type="time" data-time="eveningAt" value="${esc(n.eveningAt || '21:00')}"></label>` : ''))
-      + `<p class="snote">${esc(t('set.notifyHonest'))}</p>`;
+      + `<p class="snote">${esc(t(Reminders.pushOn() ? 'set.notifyPush' : 'set.notifyHonest'))}</p>`;
   }
   if (g === 'data') {
     const st = S.status || {}; const ents = S.entries.size;
@@ -116,7 +116,7 @@ async function onClick(ev, paint) {
   else if (a === 'code') { const c = S.status?.referral_code; if (!c) return; const text = t('set.inviteText', { name: brand(getLang()), code: c, url: CFG.SITE_URL || location.origin }); if (navigator.share) navigator.share({ text }).catch(() => {}); else { navigator.clipboard?.writeText(text); toast(t('set.copied')); } }
   else if (a === 'redeem') { const v = await promptDlg(t('set.enterCode'), { placeholder: 'abcd1234', maxlength: 16 }); if (!v) return; const { data } = await Sync.sb.rpc('redeem_referral', { code: v.trim() }); toast(data ? t('set.codeOk') : t('set.codeBad'), { bad: !data }); if (data) { await Account.load(); paint(); } }
   else if (a === 'password') { const v = await promptDlg(t('set.newPassword'), { type: 'password', maxlength: 72 }); if (!v) return; if (v.length < 8) { toast(t('auth.weak'), { bad: true }); return; } const { error } = await Sync.sb.auth.updateUser({ password: v }); toast(error ? t('err.generic') : t('set.passwordOk'), { bad: !!error }); }
-  else if (a === 'signout') { if (await confirmDlg(t('set.signOutQ'), t('set.signOutBody'), t('set.signOut'))) { await Sync.run().catch(() => {}); await endSession(); location.hash = ''; location.reload(); } }
+  else if (a === 'signout') { if (await confirmDlg(t('set.signOutQ'), t('set.signOutBody'), t('set.signOut'))) { await Sync.run().catch(() => {}); await Reminders.unsubscribe(); await endSession(); location.hash = ''; location.reload(); } }
   else if (a === 'type') { const v = await pickType(S.prefs.defaultType); if (v) { setPref('defaultType', v); paint(); } }
   else if (a === 'city') { const v = await pickCity(); if (v !== undefined) { setPref('city', v); Weather.refresh({ force: true }).then(() => emit('weather')); paint(); } }
   else if (a === 'addDay') addDay(paint);
@@ -158,7 +158,7 @@ async function deleteAccount() {
   if ((v || '').trim() !== t('set.deleteWord')) return;
   const { error } = await Sync.sb.rpc('delete_my_account');
   if (error) { toast(/cancel_subscription_first/.test(error.message) ? t('set.cancelFirst') : t('err.generic'), { bad: true }); return; }
-  await S.db.destroy().catch(() => {}); await endSession(); location.hash = ''; location.reload();
+  await Reminders.unsubscribe(); await S.db.destroy().catch(() => {}); await endSession(); location.hash = ''; location.reload();
 }
 const refresh = view => view.paintSet?.();
 export { refresh, render };

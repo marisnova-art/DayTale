@@ -16,6 +16,11 @@ self.addEventListener('fetch', e => {
   if (/\/(fonts|stickers|vendor|icons)\//.test(url.pathname)) { e.respondWith(caches.match(req).then(hit => hit || fetch(req).then(r => putCopy(req, r)))); return; }
   e.respondWith(fetch(req).then(r => putCopy(req, r)).catch(() => caches.match(req, { ignoreSearch: true })));   // 앱 파일: 네트워크 먼저
 });
+/* 웹 푸시: 앱이 닫혀 있어도 서버가 보낸 알림을 띄워요 */
+self.addEventListener('push', e => {
+  let m = {}; try { m = e.data ? e.data.json() : {}; } catch { m = { title: e.data?.text() || '' }; }
+  e.waitUntil(self.registration.showNotification(m.title || 'Daytale', { body: m.body || '', tag: m.tag, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', data: { id: m.id || null } }));
+});
 self.addEventListener('notificationclick', e => {
   e.notification.close(); const id = e.notification.data?.id;
   e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(cs => {

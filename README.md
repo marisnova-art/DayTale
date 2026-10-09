@@ -23,6 +23,11 @@
    - 비밀 값(Edge Functions → Secrets): `WEATHER_CONTACT`(운영 메일), `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `CRON_SECRET`(아무 긴 문자열), `APP_ORIGIN`(배포 주소)
    - `SUPABASE_URL`·`SUPABASE_SERVICE_ROLE_KEY`·`SUPABASE_ANON_KEY`는 Supabase가 자동으로 넣어 줘요. 서비스 키는 서버 함수 안에서만 쓰고 앱에는 절대 넣지 않아요.
 
+## 알림 (웹 푸시, 앱을 닫아도 와요 · 무료)
+- `supabase/push.sql`: 기기 푸시 주소(`push_subs`), 보낸 기록(`push_sent`), 열쇠(`push_config`, 서버만 읽음), 지금 보낼 알림을 고르는 `push_due()`, 1분마다 부르는 pg_cron 작업.
+- 서버 함수 `push` (verify_jwt 꺼짐): GET = 앱에 줄 공개 키 (처음 불릴 때 VAPID 열쇠를 만들어 DB에 저장), POST = cron 토큰 확인 후 보내기.
+- 따로 넣을 비밀 값은 없어요. 아이폰은 iOS 16.4 이상, 홈 화면에 설치한 앱에서만 받아요.
+
 ## 사진 (Cloudflare R2, 무료 10GB · 내려받기 요금 없음)
 1. Cloudflare → R2 → 버킷 만들기 (예: `daytale-photos`) → 공개 접근: r2.dev 주소 켜기(나중에 `photos.도메인`으로 바꾸기)
 2. R2 → API 토큰 만들기(이 버킷만 읽기·쓰기) → 키 두 개를 위 Secrets에 넣기
