@@ -16,11 +16,11 @@
 .askq { margin-top: 26px; }
 .askq .q { margin: 0 0 12px; font-size: var(--story); line-height: var(--story-lh); color: #fff; font-weight: 700; letter-spacing: -.035em; }
 .askq .q button { color: inherit; text-align: left; font-weight: inherit; letter-spacing: inherit; }
-.ask { display: flex; flex-direction: column; border-radius: 18px; padding: 8px 10px 8px 18px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14);
+.ask { display: flex; flex-direction: column; border-radius: 24px; padding: 14px 14px 14px 20px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14);
   -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); transition: background .25s, box-shadow .25s, border-color .25s; }
-.ask .ta-row { display: flex; align-items: center; gap: 10px; min-height: 38px; }
-.ask .pen { display: flex; flex: none; margin-left: -4px; color: rgba(255,255,255,.55); }
-.ask textarea { flex: 1; min-width: 0; border: 0; background: none; outline: none; resize: none; font-size: max(16px, calc(var(--body))); font-weight: 500; color: var(--text); letter-spacing: -.02em; line-height: 1.45; padding: 6px 0; max-height: 40vh; field-sizing: content; }
+.ask .ta-row { display: flex; align-items: center; gap: 14px; min-height: 64px; }   /* 예전보다 약 1.8배 높이 */
+.ask .pen { display: flex; flex: none; margin-left: -2px; color: rgba(255,255,255,.62); }
+.ask textarea { flex: 1; min-width: 0; border: 0; background: none; outline: none; resize: none; font-size: var(--fs-l); font-weight: 500; color: var(--text); letter-spacing: -.02em; line-height: 1.45; padding: 6px 0; max-height: 40vh; field-sizing: content; }
 .ask textarea::placeholder { color: rgba(255,255,255,.62); }
 .ask-btns { display: none; justify-content: flex-end; gap: 8px; margin-top: 8px; }
 .ask-btns button { display: inline-flex; align-items: center; gap: 6px; height: 42px; padding: 0 16px 0 12px; border-radius: 21px; font-size: var(--fs-s); font-weight: 700; white-space: nowrap; transition: background .2s, color .2s, box-shadow .2s; }
@@ -31,9 +31,9 @@
 .home .story, .home .when, .home .wxcredit, .home-wrap .today-side, .layout > nav, .layout > aside { transition: opacity .3s, filter .3s; }
 :root.home-focus .home .story, :root.home-focus .home .when, :root.home-focus .home .wxcredit, :root.home-focus .home-wrap .today-side, :root.home-focus .layout > nav, :root.home-focus .layout > aside { opacity: .18; filter: blur(3px); pointer-events: none; }
 :root.home-focus .mbar, :root.home-focus .pc-top { display: none !important; }
-:root.home-focus .ask { padding: 14px 12px 12px 18px; background: rgba(18,17,22,.82); border-color: rgba(255,255,255,.22); box-shadow: 0 24px 60px rgba(0,0,0,.5); }
+:root.home-focus .ask { padding: 18px 14px 14px 20px; background: rgba(18,17,22,.82); border-color: rgba(255,255,255,.22); box-shadow: 0 24px 60px rgba(0,0,0,.5); }
 :root.home-focus .ask .pen { display: none; }
-:root.home-focus .ask textarea { min-height: 76px; align-self: stretch; }
+:root.home-focus .ask textarea { min-height: 120px; align-self: stretch; }
 :root.home-focus .ask .ta-row { align-items: flex-start; }
 :root.home-focus .ask-btns { display: flex; }
 /* 방금 남긴 한 줄 */
