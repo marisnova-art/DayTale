@@ -47,9 +47,9 @@ function render(view, r) {
   <div class="ed-dock">
     <div class="ed-bar"><div class="cap" role="toolbar">
       <button class="tb" data-act="back" aria-label="${esc(t('ed.back'))}">${icon('chevron-left', 22)}</button><span class="sep"></span>
-      ${ro ? '' : `<button class="tb aa" data-act="aa" aria-label="${esc(t('ed.format'))}" aria-expanded="false">Aa</button>${photoBtn}`}
-      <button class="tb" data-act="more" aria-label="${esc(t('ed.more'))}" aria-expanded="false">${icon('more-horizontal', 20)}</button>
-      <span class="sp"></span><button class="tb kbd" data-act="kbd" aria-label="${esc(t('ed.keyboard'))}" hidden>${icon('keyboard', 20)}</button>
+      ${ro ? '' : `<button class="tb aa" data-act="aa" aria-label="${esc(t('ed.format'))}" aria-expanded="false">Aa</button>`}
+      <button class="tb big" data-act="more" aria-label="${esc(t('ed.more'))}" aria-expanded="false">${icon('more-horizontal', 26)}</button>
+      <span class="sp"></span><button class="tb kbd big" data-act="kbd" aria-label="${esc(t('ed.keyboard'))}" hidden>${icon('keyboard', 26)}</button>
       <button class="ed-done" data-act="done">${icon('check', 18)}<span>${esc(t('ed.finish'))}</span></button></div></div>
     <div class="ed-pan" hidden></div>
   </div>
@@ -72,7 +72,7 @@ function render(view, r) {
   document.addEventListener('selectionchange', paintState);
   view.addEventListener('click', onAct);
   // 도구를 눌러도 글 쓰던 자리(커서)가 그대로 있게
-  $$('.ed-tools, .ed-dock', view).forEach(n => n.addEventListener('mousedown', ev => { if (ev.target.closest('button') && !ev.target.closest('.ed-pan .kinds, .ed-pan .acts')) ev.preventDefault(); }));
+  $$('.ed-tools, .ed-dock', view).forEach(n => n.addEventListener('mousedown', ev => { if (ev.target.closest('button') && !ev.target.closest('.ed-pan .kinds, .ed-pan .acts, .ed-pan .imgs')) ev.preventDefault(); }));
   $('.ed-file', view)?.addEventListener('change', async ev => { const files = [...ev.target.files]; ev.target.value = ''; if (await Photos.addFiles(cur.e, files)) { cur.saved = false; paintPhotos(); await commit(); Photos.flush().then(() => cur && paintPhotos()); } });
   cur.off = onChange(w => { if (w?.type === 'external' && w.id === e.id && document.activeElement !== el.body && document.activeElement !== el.title) { const ne = S.entries.get(e.id); if (ne) { cur.e = ne; el.title.value = ne.title; el.body.innerHTML = ne.content; paintChips(); paintPhotos(); } } });
   if (isNew && !ro) setTimeout(() => { const n = r.query.type === 'todo' || r.query.type === 'event' ? el.title : el.body; n.focus(); if (n === el.body && e.text) placeCaret(el.body, true); }, 60);
@@ -186,6 +186,7 @@ function paintPan() {
     const fav = e.favorite, pin = e.pinned;
     el.pan.innerHTML = `${isPC() ? `<div class="lab">${esc(t('ed.font'))}</div>${fonts}` : ''}<div class="lab">${esc(t('ed.kind'))}</div><div class="kinds">${TYPES.map(ty => `<button class="kc${ty === e.type ? ' on' : ''}" data-type="${ty}" aria-pressed="${ty === e.type}" ${cur.ro ? 'disabled' : ''}>${icon(TYPE_ICON[ty], 18)}${esc(typeLabel(ty))}</button>`).join('')}</div>
       <div class="lab">${esc(t('ed.folder'))}</div><div class="kinds"><button class="kc${!e.folder_id ? ' on' : ''}" data-folder="" ${cur.ro ? 'disabled' : ''}>${icon('folder-x', 18)}${esc(t('folder.none'))}</button>${folderList().map(f => `<button class="kc${f.id === e.folder_id ? ' on' : ''}" data-folder="${f.id}" ${cur.ro ? 'disabled' : ''}><svg class="i" width="18" height="18" viewBox="0 0 24 24" style="color:${esc(f.color || '#A9A5AF')}"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>${esc(f.name)}</button>`).join('')}${cur.ro ? '' : `<button class="kc" data-folder="+">${icon('plus', 18)}${esc(t('folder.new'))}</button>`}</div>
+      ${isPC() ? '' : `<div class="lab">${esc(t('ed.image'))}</div><div class="imgs"><button data-act="photo" ${cur.ro ? 'disabled' : ''}>${icon('image-plus', 19)}${esc(t('ed.attach'))}</button><button data-act="card">${icon('image', 19)}${esc(t('card.title'))}</button></div>`}
       <div class="acts"><button data-x="fav" class="${fav ? 'on' : ''}">${icon('star', 19)}${esc(t(fav ? 'ed.unfavorite' : 'ed.favorite'))}</button><button data-x="pin" class="${pin ? 'on' : ''}">${icon('pin', 19)}${esc(t(pin ? 'ed.unpin' : 'ed.pin'))}</button><button data-x="trash" class="bad">${icon('trash-2', 19)}${esc(t('ed.trash'))}</button></div>`;
   }
 }
@@ -245,6 +246,7 @@ async function onAct(ev) {
   else if (a === 'kbd') closePan(true);
   else if (a === 'photo') { if (!CFG.PHOTOS_URL) toast(t('photo.soon')); else if ((e.photos || []).length >= 4) toast(t('photo.perEntry')); else cur.el.root.querySelector('.ed-file').click(); }
   else if (a === 'ph') photoMenu(b.dataset.id);
+  else if (a === 'card') { await commit(); if (!cur) return; closePan(); const { openCard } = await import('../features/card.js'); openCard(cur.e); }
 }
 /* 작성 완료: 짧게 축하하고, 새 기록은 모든 기록(맨 위에 반짝), 고친 기록은 원래 있던 화면으로 */
 async function finish(b) {

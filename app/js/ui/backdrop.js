@@ -52,5 +52,10 @@ function apply(el = document.body, { weather = null } = {}) {
   return current;
 }
 const now = () => current;
+/* 지금 배경의 색 단계 (이미지 카드 배경용) */
+function stops() {
+  const p = Object.values(PAL).flat().find(x => x[0] === current?.name) || PAL.evening[0];
+  const [, d, hot, warm, mid, deep] = p; return [d, dk(hot, .62), dk(warm, .55), dk(mid, .85), deep];
+}
 
-export { PAL, apply, css, cssWide, now };
+export { PAL, apply, css, cssWide, now, stops };
