@@ -17,7 +17,8 @@ const wide = matchMedia('(min-width: 1200px)');
 const SPLIT = new Set(['all', 'fav', 'type', 'todo', 'folder', 'nofolder', 'search']);
 let sel = null;
 wide.addEventListener('change', () => { if (document.querySelector('#view .lst')) rerender(); });
-const preview = e => (e.text || '').split('\n').map(s => s.trim()).filter(Boolean).filter(s => s !== e.title.trim()).join(' ').slice(0, 140);
+// 미리보기: 제목으로 보이는 줄(제목이 없으면 첫 줄)은 빼고 그다음 줄부터
+const preview = e => { const ls = (e.text || '').split('\n').map(s => s.trim()).filter(Boolean), tt = e.title.trim(); return (tt ? ls.filter(s => s !== tt) : ls.slice(1)).join(' ').slice(0, 140); };
 function dayLabel(k) {
   const today = todayKey();
   if (k === today) return t('list.today');
