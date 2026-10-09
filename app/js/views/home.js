@@ -41,7 +41,13 @@ function wireAsk(view, { prompt, onSaved }) {
   const box = view.querySelector('.ask'), ta = box.querySelector('textarea'), fin = box.querySelector('.fin'), more = box.querySelector('.more');
   const sync = () => { fin.disabled = !ta.value.trim(); };
   ta.addEventListener('input', sync);
-  ta.addEventListener('focus', () => { document.documentElement.classList.add('home-focus'); addEventListener('hashchange', unfocus, { once: true }); });
+  // 아이폰은 칸 모양이 바뀌고 키보드가 올라오는 동안 커서를 예전 자리에 그려 둘 때가 있어서, 자리를 잡은 뒤 커서를 한 번 다시 놓아요
+  const recaret = () => { if (document.activeElement !== ta) return; const a = ta.selectionStart, b = ta.selectionEnd; ta.setSelectionRange(a, b); };
+  ta.addEventListener('focus', () => {
+    document.documentElement.classList.add('home-focus'); addEventListener('hashchange', unfocus, { once: true });
+    [120, 360, 700].forEach(ms => setTimeout(recaret, ms));
+    window.visualViewport?.addEventListener('resize', recaret, { once: true });
+  });
   box.addEventListener('focusout', () => setTimeout(() => { if (!box.contains(document.activeElement)) unfocus(); }, 0));
   box.querySelectorAll('.ask-btns button').forEach(b => b.addEventListener('mousedown', e => e.preventDefault()));   // 버튼을 눌러도 글 쓰던 자리 그대로
   const send = async () => {
