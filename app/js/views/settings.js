@@ -18,6 +18,7 @@ const GROUPS = [['account', 'user'], ['display', 'palette'], ['record', 'noteboo
 const isPC = () => matchMedia('(min-width: 900px)').matches;
 const LICENSES = [
   ['Pretendard', 'SIL Open Font License 1.1', 'https://github.com/orioncactus/pretendard'],
+  ['Gowun Batang · Noto Serif JP · Caveat · Nanum Pen Script · Klee One', 'SIL Open Font License 1.1', './fonts/OFL.txt'],
   ['Lucide Icons', 'ISC License', 'https://lucide.dev/license'],
   ['Fluent Emoji (Microsoft)', 'MIT License', 'https://github.com/microsoft/fluentui-emoji'],
   ['Pixelarticons', 'MIT License', 'https://github.com/halfmage/pixelarticons'],

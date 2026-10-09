@@ -16,14 +16,30 @@
 .askq { margin-top: 26px; }
 .askq .q { margin: 0 0 12px; font-size: var(--story); line-height: var(--story-lh); color: #fff; font-weight: 700; letter-spacing: -.035em; }
 .askq .q button { color: inherit; text-align: left; font-weight: inherit; letter-spacing: inherit; }
-.ask { display: flex; align-items: center; gap: 10px; min-height: 56px; border-radius: 18px; padding: 8px 8px 8px 18px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14);
-  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
-.ask:focus-within { border-color: rgba(255,255,255,.26); }
+.ask { display: flex; flex-direction: column; border-radius: 18px; padding: 8px 10px 8px 18px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14);
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); transition: background .25s, box-shadow .25s, border-color .25s; }
+.ask .ta-row { display: flex; align-items: center; gap: 10px; min-height: 38px; }
+.ask .pen { display: flex; flex: none; margin-left: -4px; color: rgba(255,255,255,.55); }
 .ask textarea { flex: 1; min-width: 0; border: 0; background: none; outline: none; resize: none; font-size: max(16px, calc(var(--body))); font-weight: 500; color: var(--text); letter-spacing: -.02em; line-height: 1.45; padding: 6px 0; max-height: 40vh; field-sizing: content; }
 .ask textarea::placeholder { color: rgba(255,255,255,.62); }
-.ask .go { width: 40px; height: 40px; border-radius: 20px; display: flex; align-items: center; justify-content: center; flex: none; align-self: flex-end; }
-.ask .go { background: var(--text); color: #141317; }
-.ask .go[hidden] { display: none; }
+.ask-btns { display: none; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+.ask-btns button { display: inline-flex; align-items: center; gap: 6px; height: 42px; padding: 0 16px 0 12px; border-radius: 21px; font-size: var(--fs-s); font-weight: 700; white-space: nowrap; transition: background .2s, color .2s, box-shadow .2s; }
+.ask-btns .more { background: rgba(255,255,255,.1); color: rgba(255,255,255,.85); }
+.ask-btns .fin { background: linear-gradient(135deg, #FF8A6A, #FFB37A); color: #2A1408; box-shadow: 0 6px 18px rgba(255,138,106,.35); }
+.ask-btns .fin:disabled { background: rgba(255,255,255,.06); color: rgba(255,255,255,.35); box-shadow: none; }
+/* 집중 모드: 쓰는 칸만 또렷하게, 나머지는 흐리게(딤 + 블러), 아래 막대는 숨김 */
+.home .story, .home .when, .home .wxcredit, .home-wrap .today-side, .layout > nav, .layout > aside { transition: opacity .3s, filter .3s; }
+:root.home-focus .home .story, :root.home-focus .home .when, :root.home-focus .home .wxcredit, :root.home-focus .home-wrap .today-side, :root.home-focus .layout > nav, :root.home-focus .layout > aside { opacity: .18; filter: blur(3px); pointer-events: none; }
+:root.home-focus .mbar, :root.home-focus .pc-top { display: none !important; }
+:root.home-focus .ask { padding: 14px 12px 12px 18px; background: rgba(18,17,22,.82); border-color: rgba(255,255,255,.22); box-shadow: 0 24px 60px rgba(0,0,0,.5); }
+:root.home-focus .ask .pen { display: none; }
+:root.home-focus .ask textarea { min-height: 76px; align-self: stretch; }
+:root.home-focus .ask .ta-row { align-items: flex-start; }
+:root.home-focus .ask-btns { display: flex; }
+/* 방금 남긴 한 줄 */
+.story .just { border-radius: 12px; }
+.story .just.hl { animation: justHl 4s ease-out both; }
+@keyframes justHl { 0%, 40% { background: rgba(255,138,106,.18); box-shadow: 0 0 0 8px rgba(255,138,106,.18); } 100% { background: transparent; box-shadow: 0 0 0 8px transparent; } }
 .home .spacer { height: 140px; }
 
 /* 오늘 패널 (시트 · PC 오른쪽) */

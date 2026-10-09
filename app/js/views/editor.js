@@ -11,6 +11,7 @@ import { go } from '../ui/router.js';
 import { TYPE_ICON } from '../ui/shell.js';
 import { typeLabel } from './pickers.js';
 import { Photos } from '../features/photos.js';
+import { FONTS, fontOf, useFont } from '../core/fonts.js';
 
 /* 서식 버튼: [키, 아이콘, 이름]. 한 번 누르면 켜지고, 다시 누르면 꺼져요 */
 const STYLE = [['p', 'pilcrow', 'ed.text'], ['heading', 'type', 'ed.heading'], ['quote', 'text-quote', 'ed.quote']];
@@ -26,6 +27,7 @@ function render(view, r) {
   const isNew = r.path === '/new';
   const e = isNew ? newEntry({ type: r.query.type || S.prefs.defaultType || 'note', folder_id: r.query.folder || null, meta: r.query.date ? { date: r.query.date } : {} })
     : S.entries.get(r.params.id);
+  if (isNew) { try { const c = JSON.parse(sessionStorage.getItem('daytale.carry') || 'null'); sessionStorage.removeItem('daytale.carry'); if (c?.text) { e.content = c.text.split('\n').map(l => `<p>${esc(l) || '<br>'}</p>`).join(''); e.text = c.text; if (c.prompt) e.meta = { ...e.meta, prompt: c.prompt }; } } catch {} }
   if (!e) { view.innerHTML = `<div class="ed-page"><div class="ed"><button class="icon-btn" data-act="back" aria-label="${esc(t('ed.back'))}">${icon('chevron-left', 22)}</button><p class="note" style="padding:40px 4px">${esc(t('list.noResults'))}</p></div></div>`; view.querySelector('[data-act=back]').onclick = () => history.length > 1 ? history.back() : go('/home'); return; }
   const ro = !S.canWrite;
   const photoBtn = `<button class="tb" data-act="photo" aria-label="${esc(t('ed.photo'))}">${icon('camera', 20)}</button>`;
@@ -55,7 +57,7 @@ function render(view, r) {
   const el = { root: view, title: $('.ed-title', view), body: $('.ed-body', view), info: $('.ed-info', view), meta: $('.ed-meta', view), photos: $('.ed-photos', view), foot: $('.ed-foot', view), pan: $('.ed-pan', view) };
   cur = { e, isNew, wasNew: isNew, el, ro, pan: null };
   el.title.value = e.title; el.body.innerHTML = e.content || (e.text ? e.text.split('\n').map(l => `<p>${esc(l) || '<br>'}</p>`).join('') : '');
-  paintChips(); paintPhotos(); paintFoot();
+  paintChips(); paintPhotos(); paintFoot(); paintFont();
   const save = debounce(() => commit(), 600); cur.save = save;
   const fit = () => { el.title.style.height = 'auto'; el.title.style.height = el.title.scrollHeight + 'px'; };   // 제목 칸은 글 길이만큼 (스크롤 없이)
   el.title.addEventListener('input', () => { fit(); save(); }); requestAnimationFrame(fit);
@@ -73,7 +75,7 @@ function render(view, r) {
   $$('.ed-tools, .ed-dock', view).forEach(n => n.addEventListener('mousedown', ev => { if (ev.target.closest('button') && !ev.target.closest('.ed-pan .kinds, .ed-pan .acts')) ev.preventDefault(); }));
   $('.ed-file', view)?.addEventListener('change', async ev => { const files = [...ev.target.files]; ev.target.value = ''; if (await Photos.addFiles(cur.e, files)) { cur.saved = false; paintPhotos(); await commit(); Photos.flush().then(() => cur && paintPhotos()); } });
   cur.off = onChange(w => { if (w?.type === 'external' && w.id === e.id && document.activeElement !== el.body && document.activeElement !== el.title) { const ne = S.entries.get(e.id); if (ne) { cur.e = ne; el.title.value = ne.title; el.body.innerHTML = ne.content; paintChips(); paintPhotos(); } } });
-  if (isNew && !ro) setTimeout(() => (r.query.type === 'todo' || r.query.type === 'event' ? el.title : el.body).focus(), 60);
+  if (isNew && !ro) setTimeout(() => { const n = r.query.type === 'todo' || r.query.type === 'event' ? el.title : el.body; n.focus(); if (n === el.body && e.text) placeCaret(el.body, true); }, 60);
 }
 
 /* ---------- 저장: 조용히 저장하고, 실패했을 때만 알려요 ---------- */
@@ -115,6 +117,8 @@ function paintChips() {
   $$('[data-m]', el.meta).forEach(i => i.addEventListener('change', () => { cur.e.meta = { ...cur.e.meta, [i.dataset.m]: i.value || undefined }; cur.saved = false; commit(); }));
   if (cur.pan === 'more') paintPan();
 }
+/* 글꼴: 기록 하나 전체(제목+본문)에 적용 */
+function paintFont() { const f = fontOf(cur.e); useFont(f); cur.el.root.querySelector('.ed').dataset.font = f; }
 /* ---------- 사진: 글 아래, 원래 비율 그대로 (잘리지 않게) ---------- */
 function paintPhotos() {
   const { e, el } = cur; const ps = e.photos || [];
@@ -172,13 +176,15 @@ function paintPan() {
   $$('[data-act=aa]', el.root).forEach(x => { x.classList.toggle('on', k === 'aa'); x.setAttribute('aria-expanded', String(k === 'aa')); });
   $$('[data-act=more]', el.root).forEach(x => { x.classList.toggle('on', k === 'more'); x.setAttribute('aria-expanded', String(k === 'more')); });
   $('.ed-bar .kbd', el.root)?.toggleAttribute('hidden', !k || isPC());
+  const fonts = cur.ro ? '' : `<div class="fonts" role="group" aria-label="${esc(t('ed.font'))}">${FONTS.map(f => `<button class="ff-${f}${fontOf(e) === f ? ' on' : ''}" data-ff="${f}" aria-pressed="${fontOf(e) === f}">${esc(t('ed.font.' + f))}</button>`).join('')}</div>`;
+  if (fonts && (k === 'aa' || isPC())) { useFont('serif'); useFont('hand'); }
   if (k === 'aa') {
-    el.pan.innerHTML = `<div class="segs" role="group">${STYLE.map(([f, , l]) => `<button data-f="${f}" aria-pressed="false">${esc(t(l))}</button>`).join('')}</div>
+    el.pan.innerHTML = `${fonts}<div class="segs" role="group">${STYLE.map(([f, , l]) => `<button data-f="${f}" aria-pressed="false">${esc(t(l))}</button>`).join('')}</div>
       <div class="row">${INLINE.map(f => fbtn(f, 'pb')).join('')}</div><div class="row">${LISTS.map(f => fbtn(f, 'pb')).join('')}</div>`;
     paintState();
   } else if (k === 'more') {
     const fav = e.favorite, pin = e.pinned;
-    el.pan.innerHTML = `<div class="lab">${esc(t('ed.kind'))}</div><div class="kinds">${TYPES.map(ty => `<button class="kc${ty === e.type ? ' on' : ''}" data-type="${ty}" aria-pressed="${ty === e.type}" ${cur.ro ? 'disabled' : ''}>${icon(TYPE_ICON[ty], 18)}${esc(typeLabel(ty))}</button>`).join('')}</div>
+    el.pan.innerHTML = `${isPC() ? `<div class="lab">${esc(t('ed.font'))}</div>${fonts}` : ''}<div class="lab">${esc(t('ed.kind'))}</div><div class="kinds">${TYPES.map(ty => `<button class="kc${ty === e.type ? ' on' : ''}" data-type="${ty}" aria-pressed="${ty === e.type}" ${cur.ro ? 'disabled' : ''}>${icon(TYPE_ICON[ty], 18)}${esc(typeLabel(ty))}</button>`).join('')}</div>
       <div class="lab">${esc(t('ed.folder'))}</div><div class="kinds"><button class="kc${!e.folder_id ? ' on' : ''}" data-folder="" ${cur.ro ? 'disabled' : ''}>${icon('folder-x', 18)}${esc(t('folder.none'))}</button>${folderList().map(f => `<button class="kc${f.id === e.folder_id ? ' on' : ''}" data-folder="${f.id}" ${cur.ro ? 'disabled' : ''}><svg class="i" width="18" height="18" viewBox="0 0 24 24" style="color:${esc(f.color || '#A9A5AF')}"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>${esc(f.name)}</button>`).join('')}${cur.ro ? '' : `<button class="kc" data-folder="+">${icon('plus', 18)}${esc(t('folder.new'))}</button>`}</div>
       <div class="acts"><button data-x="fav" class="${fav ? 'on' : ''}">${icon('star', 19)}${esc(t(fav ? 'ed.unfavorite' : 'ed.favorite'))}</button><button data-x="pin" class="${pin ? 'on' : ''}">${icon('pin', 19)}${esc(t(pin ? 'ed.unpin' : 'ed.pin'))}</button><button data-x="trash" class="bad">${icon('trash-2', 19)}${esc(t('ed.trash'))}</button></div>`;
   }
@@ -217,6 +223,8 @@ async function onAct(ev) {
   if (!cur) return;
   const fb = ev.target.closest('[data-f]');
   if (fb && !cur.ro) { fmt(fb.dataset.f); return; }
+  const fn = ev.target.closest("[data-ff]");
+  if (fn && !cur.ro) { if (fn.dataset.ff !== fontOf(cur.e)) { cur.e.meta = { ...cur.e.meta, font: fn.dataset.ff === 'base' ? undefined : fn.dataset.ff }; cur.saved = false; paintFont(); paintPan(); commit(); } return; }
   const ty = ev.target.closest('[data-type]'), fo = ev.target.closest('[data-folder]'), x = ev.target.closest('[data-x]');
   const e = cur.e;
   if (ty && !cur.ro) { if (ty.dataset.type !== e.type) { e.type = ty.dataset.type; cur.saved = false; paintChips(); commit(); } return; }
