@@ -64,8 +64,8 @@
 .ed-bar .tb[hidden] { display: none; }
 .ed-pan { height: var(--pan, 300px); padding: 16px 14px calc(14px + var(--safe-b)); background: #1B1A20; border-top: 1px solid rgba(255,255,255,.08); overflow-y: auto; }
 .ed-pan[hidden] { display: none; }
-.ed-pan .segs { display: flex; padding: 4px; border-radius: 16px; background: rgba(255,255,255,.06); margin-bottom: 12px; }
-.ed-pan .segs button { flex: 1; height: 46px; border-radius: 12px; font-size: var(--fs-m); font-weight: 600; color: rgba(255,255,255,.75); }
+.ed-pan .segs { display: flex; padding: 4px; border-radius: 27px; background: rgba(255,255,255,.06); margin-bottom: 12px; }
+.ed-pan .segs button { flex: 1; height: 46px; border-radius: 23px; font-size: var(--fs-m); font-weight: 600; color: rgba(255,255,255,.75); }
 .ed-pan .segs button.on { background: var(--text); color: #141317; }
 .ed-pan .row { display: flex; gap: 8px; margin-bottom: 8px; }
 .pb { flex: 1; height: 56px; border-radius: 16px; background: rgba(255,255,255,.06); color: rgba(255,255,255,.85); display: grid; place-items: center; }
@@ -138,8 +138,8 @@
 .card-maker canvas { display: block; max-width: 100%; max-height: 52vh; height: auto; width: auto; border-radius: 14px; box-shadow: 0 18px 40px rgba(0,0,0,.5); }
 .card-maker .cm-ctl { display: flex; flex-direction: column; gap: 12px; padding: 16px 18px 0; }
 .card-maker .lab { font-size: var(--fs-s); font-weight: 700; color: rgba(255,255,255,.5); margin: 0 4px 6px; }
-.card-maker .segs { display: flex; padding: 4px; border-radius: 14px; background: rgba(255,255,255,.06); }
-.card-maker .segs button { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; height: 42px; border-radius: 10px; font-size: var(--fs-s); font-weight: 600; color: rgba(255,255,255,.75); }
+.card-maker .segs { display: flex; padding: 4px; border-radius: 25px; background: rgba(255,255,255,.06); }
+.card-maker .segs button { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; height: 42px; border-radius: 21px; font-size: var(--fs-s); font-weight: 600; color: rgba(255,255,255,.75); }
 .card-maker .segs button.on { background: var(--text); color: #141317; }
 .card-maker .cm-dim { display: flex; align-items: center; gap: 12px; padding: 0 4px; font-size: var(--fs-s); color: rgba(255,255,255,.8); }
 .card-maker .cm-dim input { flex: 1; accent-color: #FFB37A; height: 28px; }

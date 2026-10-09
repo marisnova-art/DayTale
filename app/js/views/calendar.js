@@ -78,7 +78,7 @@ function paint(root) {
   const head = `<div class="cal-head"><h1>${esc(fmtDate(sel, { month: 'long' }))}<small>${sel.getFullYear()}</small></h1><span class="r">
     <button class="today-btn" data-today>${esc(t('cal.today'))}</button>
     <span class="seg" role="tablist"><button data-v="week" class="${state.view === 'week' ? 'on' : ''}" role="tab">${esc(t('cal.week'))}</button><button data-v="month" class="${state.view === 'month' ? 'on' : ''}" role="tab">${esc(t('cal.month'))}</button></span></span></div>
-    <div class="filters">${['all', 'event', 'todo'].map(f => `<button class="chip${state.filter === f ? ' on' : ''}" data-f="${f}">${esc(t(f === 'all' ? 'list.all' : f === 'event' ? 'cal.events' : 'cal.todos'))}</button>`).join('')}</div>`;
+    <div class="filters">${['all', 'event', 'todo'].map(f => `<button class="${state.filter === f ? 'on' : ''}" data-f="${f}">${esc(t(f === 'all' ? 'list.all' : f === 'event' ? 'cal.events' : 'cal.todos'))}</button>`).join('')}</div>`;
   let main = '', side = '';
   if (state.view === 'week') {
     const s0 = startOfWeek(sel, ws), days = [...Array(7)].map((_, i) => addDays(s0, i));

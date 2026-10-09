@@ -86,6 +86,7 @@ function render(view, r) {
 }
 function paintBody(view, { mode, r, folder, q }) {
   const body = view.querySelector('.body'), count = view.querySelector('.lst-head .c'), fl = view.querySelector('.filters');
+  fl.addEventListener('scroll', e => edges(e.target), { passive: true, capture: true });
   let list = mode === 'trash' ? trash() : live();
   if (mode === 'type') list = list.filter(e => e.type === r.params.type);
   if (mode === 'folder') list = list.filter(e => e.folder_id === folder.id);
@@ -94,7 +95,9 @@ function paintBody(view, { mode, r, folder, q }) {
   // 종류 칩 (모든 기록·폴더에서)
   if (mode === 'all' || mode === 'folder' || mode === 'nofolder' || mode === 'fav') {
     const kinds = TYPES.filter(ty => list.some(e => e.type === ty));
-    fl.innerHTML = kinds.length > 1 ? [`<button class="chip${filter === 'all' ? ' on' : ''}" data-f="all">${esc(t('list.all'))}</button>`, ...kinds.map(ty => `<button class="chip${filter === ty ? ' on' : ''}" data-f="${ty}">${esc(typeLabel(ty))}</button>`)].join('') : '';
+    const x = fl.firstElementChild?.scrollLeft || 0;
+    fl.innerHTML = kinds.length > 1 ? '<div class="fs">' + [`<button class="${filter === 'all' ? 'on' : ''}" data-f="all">${esc(t('list.all'))}</button>`, ...kinds.map(ty => `<button class="${filter === ty ? 'on' : ''}" data-f="${ty}">${esc(typeLabel(ty))}</button>`)].join('') + '</div>' : '';
+    if (fl.firstElementChild) { fl.firstElementChild.scrollLeft = x; capsule(fl.firstElementChild); }
     if (filter !== 'all') list = list.filter(e => e.type === filter);
   } else fl.innerHTML = '';
   const byNew = (a, b) => b.created_at.localeCompare(a.created_at);
@@ -172,3 +175,18 @@ function swipe(view) {
 }
 
 export { refresh, render, row, swipe };
+
+// 종류가 많아 캡슐이 넘치면 옆으로 밀어요: 고른 칸이 보이게 두고, 더 있는 쪽 끝을 흐리게
+function edges(fl) {
+  const max = fl.scrollWidth - fl.clientWidth;
+  fl.classList.toggle('more-l', max > 2 && fl.scrollLeft > 2);
+  fl.classList.toggle('more-r', max > 2 && fl.scrollLeft < max - 2);
+}
+function capsule(fl) {
+  const on = fl.querySelector('.on');
+  if (on && fl.scrollWidth > fl.clientWidth) {
+    const b = on.getBoundingClientRect(), f = fl.getBoundingClientRect();
+    if (b.left < f.left + 24) fl.scrollLeft -= f.left + 24 - b.left; else if (b.right > f.right - 24) fl.scrollLeft += b.right - f.right + 24;
+  }
+  edges(fl);
+}

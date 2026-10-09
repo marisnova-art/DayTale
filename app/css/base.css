@@ -25,6 +25,18 @@ svg.i { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: rou
 .btn.ghost { color: var(--muted); font-weight: 600; }
 .btn.danger { background: rgba(255,107,107,.14); color: var(--danger); }
 .btn:disabled { opacity: .5; cursor: default; }
+/* 캡슐 하나: 아래 막대와 같은 유리 캡슐 안에서 고른 칸만 하얗게. 필터·주/월·설정 고르기 모두 이 모양 */
+.seg, .filters { display: flex; padding: 4px; gap: 2px; border-radius: 22px; background: rgba(20,19,24,.55); border: 1px solid rgba(255,255,255,.12); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+.seg button, .filters button { flex: 1 0 auto; height: 36px; padding: 0 14px; border-radius: 18px; font-size: var(--fs-s); font-weight: 700; color: rgba(255,255,255,.65); white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; transition: background .2s, color .2s; }
+.seg button.on, .filters button.on { background: rgba(255,255,255,.92); color: #141317; box-shadow: 0 2px 10px rgba(0,0,0,.25); }
+.seg button:disabled { opacity: .4; }
+.filters { overflow: hidden; }
+/* 넘치는 캡슐: 안쪽 줄만 옆으로 밀리고, 더 있는 쪽 끝을 흐리게 (캡슐 테두리는 그대로) */
+.filters > .fs { flex: 1; min-width: 0; display: flex; gap: 2px; border-radius: 18px; overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
+.filters > .fs::-webkit-scrollbar { display: none; }
+.fs.more-r { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); }
+.fs.more-l { -webkit-mask-image: linear-gradient(90deg, transparent, #000 28px); mask-image: linear-gradient(90deg, transparent, #000 28px); }
+.fs.more-l.more-r { -webkit-mask-image: linear-gradient(90deg, transparent, #000 28px, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(90deg, transparent, #000 28px, #000 calc(100% - 28px), transparent); }
 .chip { height: 34px; padding: 0 14px; border-radius: 17px; background: var(--raised-2); font-size: var(--fs-s); font-weight: 700; color: var(--text-3); display: inline-flex; align-items: center; gap: 6px; }
 .icon-btn { width: 44px; height: 44px; border-radius: 22px; display: inline-flex; align-items: center; justify-content: center; color: var(--text); position: relative; }
 .icon-btn:hover { background: var(--fill); }

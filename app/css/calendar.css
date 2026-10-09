@@ -4,11 +4,8 @@
 .cal-head h1 { margin: 0; font-size: var(--fs-xl); font-weight: 800; color: var(--text-2); letter-spacing: -.04em; display: flex; align-items: baseline; gap: 8px; }
 .cal-head h1 small { font-size: var(--fs-s); font-weight: 600; color: var(--muted-2); letter-spacing: 0; }
 .cal-head .r { display: flex; align-items: center; gap: 6px; }
-.seg { display: flex; padding: 3px; border-radius: 16px; background: rgba(22,21,26,.7); border: 1px solid rgba(255,255,255,.08); }
-.seg button { height: 32px; padding: 0 14px; border-radius: 13px; font-size: var(--fs-s); font-weight: 700; color: var(--muted-2); }
-.seg button.on { background: var(--text-2); color: #141317; }
 .cal .navbtn { width: 32px; height: 32px; border-radius: 16px; display: inline-flex; align-items: center; justify-content: center; color: var(--muted-2); }
-.cal .today-btn { height: 32px; padding: 0 12px; border-radius: 16px; font-size: var(--fs-s); font-weight: 700; color: var(--text-3); background: rgba(22,21,26,.7); border: 1px solid rgba(255,255,255,.08); }
+.cal .today-btn { height: 40px; padding: 0 14px; border-radius: 20px; font-size: var(--fs-s); font-weight: 700; color: #fff; background: rgba(20,19,24,.55); border: 1px solid rgba(255,255,255,.12); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
 .wkrow { margin: 18px 0 0; display: flex; align-items: center; gap: 2px; }
 .wkrow .weekstrip { flex: 1; margin: 0; background: var(--sheet); border: 1px solid rgba(255,255,255,.06); }
 .mbox { margin-top: 16px; padding: 12px 10px 8px; border-radius: 24px; background: var(--sheet); border: 1px solid rgba(255,255,255,.06); }
@@ -39,7 +36,7 @@
 .ev .chk { width: 20px; height: 20px; border-radius: 10px; }
 .ev .ki { display: flex; color: var(--text-3); flex: none; }
 .agenda .blank { margin-top: 8px; height: 46px; border-radius: 16px; border: 1px dashed rgba(255,255,255,.10); display: flex; align-items: center; padding: 0 14px; font-size: var(--fs-s); font-weight: 500; color: var(--faint); }
-.cal .filters { padding: 12px 0 0; }
+.cal .filters { margin: 14px 0 0; }
 
 /* PC 월: 칸 안에 제목 칩 */
 .pcm, .pcw { display: none; }
