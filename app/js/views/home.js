@@ -43,23 +43,27 @@ function wireAsk(view, { prompt, onSaved }) {
   ta.addEventListener('input', sync);
   // 아이폰은 칸 모양이 바뀌고 키보드가 올라오는 동안 커서를 예전 자리에 그려 둘 때가 있어서, 자리를 잡은 뒤 커서를 한 번 다시 놓아요
   const recaret = () => { if (document.activeElement !== ta) return; const a = ta.selectionStart, b = ta.selectionEnd; ta.setSelectionRange(a, b); };
+  // 바탕을 눌러 나올 때는 들어가기 전 스크롤 자리로 돌려놔요 (아이폰이 키보드 때문에 밀어 둔 화면이 남아, 다시 들어가면 칸이 아래로 내려가 보였어요)
+  let y0 = null;
+  const back = () => { if (y0 == null) return; const y = y0; y0 = null; scrollTo(0, y); setTimeout(() => scrollTo(0, y), 320); };
   ta.addEventListener('focus', () => {
+    if (y0 == null) y0 = scrollY;
     document.documentElement.classList.add('home-focus'); addEventListener('hashchange', unfocus, { once: true });
     [120, 360, 700].forEach(ms => setTimeout(recaret, ms));
     window.visualViewport?.addEventListener('resize', recaret, { once: true });
   });
-  box.addEventListener('focusout', () => setTimeout(() => { if (!box.contains(document.activeElement)) unfocus(); }, 0));
+  box.addEventListener('focusout', () => setTimeout(() => { if (!box.contains(document.activeElement) && document.documentElement.classList.contains('home-focus')) { unfocus(); back(); } }, 0));
   box.querySelectorAll('.ask-btns button').forEach(b => b.addEventListener('mousedown', e => e.preventDefault()));   // 버튼을 눌러도 글 쓰던 자리 그대로
   const send = async () => {
     const text = ta.value.trim(); if (!text) return;
     const e = await addEntry({ type: 'note', content: text.split('\n').map(l => `<p>${esc(l) || '<br>'}</p>`).join(''), text, meta: prompt ? { prompt: prompt() } : {} });
     if (!e) return;
     navigator.vibrate?.(12);
-    ta.value = ''; sync(); ph = phrase(); ta.placeholder = ph; ta.blur(); unfocus();
+    y0 = null; ta.value = ''; sync(); ph = phrase(); ta.placeholder = ph; ta.blur(); unfocus();
     onSaved(e, text);
   };
   fin.onclick = send;
-  more.onclick = () => { try { sessionStorage.setItem('daytale.carry', JSON.stringify({ text: ta.value.trim(), prompt: prompt?.() })); } catch {} ta.value = ''; unfocus(); go('/new'); };
+  more.onclick = () => { try { sessionStorage.setItem('daytale.carry', JSON.stringify({ text: ta.value.trim(), prompt: prompt?.() })); } catch {} y0 = null; ta.value = ''; unfocus(); go('/new'); };
   ta.addEventListener('keydown', e => {
     if (e.key === 'Escape') { ta.blur(); return; }
     if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && matchMedia('(pointer:fine)').matches) { e.preventDefault(); send(); }
