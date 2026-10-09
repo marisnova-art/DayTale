@@ -75,7 +75,7 @@ function paint() {
   const item = (path, ic, label, n, cls = '') => `<a class="m${cls}" href="#${path}" data-path="${path}">${icon(ic, 18)}${esc(label)}${c(n)}</a>`;
   const types = TYPES.filter(x => x !== 'todo' && x !== 'event');
   $('.drawer .nav').innerHTML =
-    item('/home', 'home', t('nav.home')) + item('/all', 'layers', t('nav.all'), all.length) +
+    item('/home', 'home', t('nav.home')) + item('/all', 'layers', t('nav.all'), all.length) + item('/favorites', 'star', t('nav.fav'), all.filter(e => e.favorite).length) +
     `<div class="h">${esc(t('nav.byType'))}</div>` + item('/todo', 'check-square', t('nav.todo'), openTodos) + item('/calendar', 'calendar-days', t('nav.calendar')) +
     types.map(x => item('/type/' + x, TYPE_ICON[x], t('type.' + x), cnt[x])).join('') +
     `<div class="h">${esc(t('nav.folders'))}<button data-act="new-folder" aria-label="${esc(t('nav.newFolder'))}">${icon('plus', 16)}</button></div>` +

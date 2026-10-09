@@ -34,7 +34,7 @@ function row(e, { terms = [], mode = '' } = {}) {
   const time = mode === 'trash' ? '' : dayKey(new Date(e.created_at)) === today ? fmtTime(new Date(e.created_at)) : fmtDate(e.created_at, { month: 'numeric', day: 'numeric' });
   const lead = e.type === 'todo' && mode !== 'trash' ? `<button class="chk${m.done ? ' on' : ''}" data-done="${e.id}" aria-label="${esc(t('common.done'))}" aria-pressed="${!!m.done}">${m.done ? icon('check', 14) : ''}</button>`
     : `<span class="kc">${icon(TYPE_ICON[e.type] || 'file-text', 20)}</span>`;
-  const side = mode === 'trash' ? `<span class="side"><button data-restore="${e.id}">${esc(t('list.restore'))}</button><button class="bad" data-purge="${e.id}" aria-label="${esc(t('list.purge'))}">${icon('trash-2', 15)}</button></span>` : `<span class="tm">${e.pinned ? icon('pin', 13) + ' ' : ''}${esc(time)}</span>`;
+  const side = mode === 'trash' ? `<span class="side"><button data-restore="${e.id}">${esc(t('list.restore'))}</button><button class="bad" data-purge="${e.id}" aria-label="${esc(t('list.purge'))}">${icon('trash-2', 15)}</button></span>` : `<span class="tm">${e.favorite ? icon('star', 13) + ' ' : ''}${e.pinned ? icon('pin', 13) + ' ' : ''}${esc(time)}</span>`;
   const ps = e.photos || [];
   const th = ps.length && mode !== 'trash' ? `<span class="th">${Photos.imgTag(ps[0])}${ps.length > 1 ? `<b>${esc(t('photo.more', { n: ps.length - 1 }))}</b>` : ''}</span>` : '';
   const a = `<a class="r" href="#/e/${e.id}">${lead}<span class="tx"><div class="t${m.done ? ' done' : ''}">${hl(displayTitle(e, t('common.untitled')), terms)}</div>${subHtml || f ? `<div class="p">${subHtml}${f && mode !== 'folder' ? (subHtml ? ' · ' : '') + esc(f.name) : ''}</div>` : ''}</span>${th}${mode === 'trash' ? '' : `<button class="del" data-del="${e.id}" aria-label="${esc(t('list.del'))}">${icon('trash-2', 17)}</button>`}${side}</a>`;
@@ -49,11 +49,11 @@ function groups(list, opts, key = e => dayKey(new Date(e.created_at))) {
 
 function render(view, r) {
   const p = r.path;
-  const mode = p === '/todo' ? 'todo' : p === '/trash' ? 'trash' : p === '/search' ? 'search' : p.startsWith('/folder/') ? 'folder' : p === '/nofolder' ? 'nofolder' : p.startsWith('/type/') ? 'type' : 'all';
+  const mode = p === '/todo' ? 'todo' : p === '/trash' ? 'trash' : p === '/search' ? 'search' : p.startsWith('/folder/') ? 'folder' : p === '/nofolder' ? 'nofolder' : p.startsWith('/type/') ? 'type' : p === '/favorites' ? 'fav' : 'all';
   if (mode !== 'all') filter = 'all';
   const folder = mode === 'folder' ? S.folders.get(r.params.id) : null;
   if (mode === 'folder' && !folder) { go('/all', { replace: true }); return; }
-  const title = mode === 'todo' ? t('nav.todo') : mode === 'trash' ? t('nav.trash') : mode === 'search' ? t('nav.search') : mode === 'folder' ? folder.name : mode === 'nofolder' ? t('nav.noFolder') : mode === 'type' ? typeLabel(r.params.type) : t('nav.all');
+  const title = mode === 'todo' ? t('nav.todo') : mode === 'trash' ? t('nav.trash') : mode === 'search' ? t('nav.search') : mode === 'folder' ? folder.name : mode === 'nofolder' ? t('nav.noFolder') : mode === 'type' ? typeLabel(r.params.type) : mode === 'fav' ? t('nav.fav') : t('nav.all');
   view.innerHTML = `<section class="lst"><div class="lst-head"><h1>${esc(title)}</h1><span class="c"></span><span class="act"></span></div><div class="filters"></div>
     ${mode === 'search' ? `<label class="field searchbar">${icon('search', 18)}<input type="search" enterkeyhint="search" placeholder="${esc(t('list.search'))}" aria-label="${esc(t('nav.search'))}"></label>` : ''}
     ${mode === 'todo' ? `<label class="addrow">${icon('plus', 20)}<input placeholder="${esc(t('list.addTodo'))}" enterkeyhint="done" maxlength="300" aria-label="${esc(t('list.addTodo'))}"></label>` : ''}
@@ -92,8 +92,9 @@ function paintBody(view, { mode, r, folder, q }) {
   if (mode === 'type') list = list.filter(e => e.type === r.params.type);
   if (mode === 'folder') list = list.filter(e => e.folder_id === folder.id);
   if (mode === 'nofolder') list = list.filter(e => !e.folder_id);
+  if (mode === 'fav') list = list.filter(e => e.favorite);
   // 종류 칩 (모든 기록·폴더에서)
-  if (mode === 'all' || mode === 'folder' || mode === 'nofolder') {
+  if (mode === 'all' || mode === 'folder' || mode === 'nofolder' || mode === 'fav') {
     const kinds = TYPES.filter(ty => list.some(e => e.type === ty));
     fl.innerHTML = kinds.length > 1 ? [`<button class="chip${filter === 'all' ? ' on' : ''}" data-f="all">${esc(t('list.all'))}</button>`, ...kinds.map(ty => `<button class="chip${filter === ty ? ' on' : ''}" data-f="${ty}">${esc(typeLabel(ty))}</button>`)].join('') : '';
     if (filter !== 'all') list = list.filter(e => e.type === filter);
@@ -127,7 +128,7 @@ function paintBody(view, { mode, r, folder, q }) {
   count.textContent = list.length ? fmtNum(list.length) : '';
   const pinned = list.filter(e => e.pinned).sort(byNew), rest = list.filter(e => !e.pinned).sort(byNew);
   body.innerHTML = (pinned.length ? `<div class="grp"><span>${esc(t('list.pinned'))}</span><span>${pinned.length}</span></div><div class="card">${pinned.map(e => row(e, { mode })).join('')}</div>` : '') +
-    (rest.length ? groups(rest.slice(0, 600), { mode }) : pinned.length ? '' : `<div class="empty">${esc(t('list.empty'))}</div>`);
+    (rest.length ? groups(rest.slice(0, 600), { mode }) : pinned.length ? '' : `<div class="empty">${esc(t(mode === 'fav' ? 'list.emptyFav' : 'list.empty'))}</div>`);
 }
 const refresh = view => view.paintList?.();
 
