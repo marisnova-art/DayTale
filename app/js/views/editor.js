@@ -49,8 +49,8 @@ function render(view, r) {
   <div class="ed-dock">
     <div class="ed-bar"><div class="cap" role="toolbar">
       <button class="tb" data-act="back" aria-label="${esc(t('ed.back'))}">${icon('chevron-left', 22)}</button><span class="sep"></span>
-      ${ro ? '' : `<button class="tb aa" data-act="aa" aria-label="${esc(t('ed.format'))}" aria-expanded="false">Aa</button>`}
-      <button class="tb big" data-act="more" aria-label="${esc(t('ed.more'))}" aria-expanded="false">${icon('more-horizontal', 26)}</button>
+      ${ro ? '' : `<button class="tb lbl" data-act="aa" aria-expanded="false">${icon('type', 18)}<span>${esc(t('ed.format'))}</span></button>`}
+      <button class="tb lbl" data-act="more" aria-expanded="false">${icon('sliders-horizontal', 18)}<span>${esc(t('ed.options'))}</span></button>
       <span class="sp"></span><button class="tb kbd big" data-act="kbd" aria-label="${esc(t('ed.keyboard'))}" hidden>${icon('keyboard', 26)}</button>
       <button class="ed-done" data-act="done">${icon('check', 18)}<span>${esc(t('ed.finish'))}</span></button></div></div>
     <div class="ed-pan" hidden></div>

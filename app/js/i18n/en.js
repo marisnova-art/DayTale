@@ -93,5 +93,6 @@ export default {
   'plan.manageLater': 'Loading your subscription…', 'plan.updatePay': 'Update payment method', 'plan.cancel': 'Cancel subscription', 'plan.cancelSub': 'You keep access until the end of the period', 'plan.recheck': 'Check subscription again',
   'plan.notReady': 'Payments are being set up. Coming soon.', 'plan.loadFail': 'Couldn’t open checkout. Please try again shortly.', 'plan.thanks': 'Thank you! Your subscription has started.',
   "list.upcoming": "Upcoming", "list.past": "Past", "ed.urlPh": "Paste a link (https://…)", "ed.open": "Open", "ed.paste": "Paste", "ed.openLink": "Open link", "set.faq": "FAQ", "set.about": "About us", "set.co.name": "Company", "set.co.ceo": "Representative", "set.co.addr": "Address", "set.co.reg": "Business info", "set.co.mail": "Contact", "set.co.soon": "Our company introduction will be added before launch.",
-  'set.notifyPush': "Notifications arrive even when the app is closed. Turn them on once on each device."
+  'set.notifyPush': "Notifications arrive even when the app is closed. Turn them on once on each device.",
+  'ed.options': "Options"
 };

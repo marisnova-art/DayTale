@@ -58,7 +58,9 @@
 .nav.more-b { -webkit-mask-image: linear-gradient(#000 calc(100% - 36px), transparent); mask-image: linear-gradient(#000 calc(100% - 36px), transparent); }
 .nav.more-t { -webkit-mask-image: linear-gradient(transparent, #000 36px); mask-image: linear-gradient(transparent, #000 36px); }
 .nav.more-t.more-b { -webkit-mask-image: linear-gradient(transparent, #000 36px, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(transparent, #000 36px, #000 calc(100% - 36px), transparent); }
-:root.menu-open, :root.menu-open body { overflow: hidden; }
+/* 메뉴가 열려 있을 때 뒤 화면은 손가락에 반응하지 않아요 (body를 잠그면 휴대폰 주소창이 바뀌며 화면이 밀려서 잠그지 않아요) */
+.scrim { touch-action: none; }
+.drawer { overscroll-behavior: contain; }
 .nav::-webkit-scrollbar { display: none; }
 .m { flex: none; display: flex; align-items: center; gap: 12px; height: 40px; padding: 0 12px; border-radius: 12px; border: 1px solid transparent; color: var(--text-3); font-size: var(--fs-s); font-weight: 500; text-align: left; width: 100%; }
 .m svg { color: var(--muted-2); }
@@ -137,4 +139,4 @@ dialog.dlg .btn { height: 44px; }
 /* 모바일 메뉴 글씨는 한 단계 크게 */
 @media (max-width: 899px) { .m { height: 46px; font-size: var(--fs-m); } .m .c { font-size: var(--fs-s); } .drawer .foot .m { font-size: var(--fs-m); }
   /* 휴지통 아래에 설정 */
-  .drawer .foot { flex-direction: column; gap: 0; } }
+  .drawer .foot { flex-direction: column; gap: 0; } .drawer .foot .m { flex: none; } }
