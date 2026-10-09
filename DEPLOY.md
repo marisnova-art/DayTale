@@ -47,9 +47,8 @@ npx supabase functions deploy paddle-webhook --no-verify-jwt
 
 `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`는 Supabase가 자동으로 넣어요. 앱 코드에는 절대 들어가지 않아요.
 
-**매일 작업** ★ Integrations → Cron → 새 작업 2개 (하루 한 번, HTTP POST, 헤더 두 개: `x-cron-secret: <CRON_SECRET>`, `Authorization: Bearer <anon 키>`)
+**매일 작업** 체험 7일·3일 전 앱 알림은 DB 예약 작업(`daytale-ops-daily`, 매시간)으로 이미 돌아가요(5개 언어). 사진 정리만 R2 연결 후 ★ Integrations → Cron → 새 작업 1개 (하루 한 번, HTTP POST, 헤더 두 개: `x-cron-secret: <CRON_SECRET>`, `Authorization: Bearer <anon 키>`)
 - `…/functions/v1/photos?action=sweep` : 지운 사진을 R2에서도 정리
-- `…/functions/v1/admin-api` : 체험 7일·3일 전 앱 알림
 
 ## 4. 결제 (Paddle, 먼저 샌드박스)
 1. ★ sandbox-vendors.paddle.com 가입 → Catalog: 상품 1개, 가격 2개 (월 3.99 USD, 연 39.90 USD)

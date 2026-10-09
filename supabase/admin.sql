@@ -164,32 +164,29 @@ create or replace function public.ops_daily() returns jsonb
 language plpgsql security definer set search_path = public, auth as $$
 declare n7 int; n3 int;
 begin
-  with t as (
-    select p.id, coalesce(p.lang, 'en') lang, p.trial_ends_at + make_interval(days => p.bonus_days) ends from public.profiles p
-    where not public.is_subscriber(p.id)
+  -- 앱이 쓰는 5개 언어 문구 (없는 언어는 영어)
+  with txt(kind, lang, title, body) as (values
+    ('trial_7d', 'ko', '무료 체험이 7일 남았어요', '구독하면 계속 쓸 수 있어요. 구독하지 않아도 기록은 그대로 남고, 읽기·내보내기는 언제나 돼요.'),
+    ('trial_7d', 'en', 'Your free trial ends in 7 days', 'Subscribe to keep writing. Your records stay either way, and you can always read and export them.'),
+    ('trial_7d', 'ja', '無料体験はあと7日です', '購読すると続けて書けます。購読しなくても記録はそのまま残り、閲覧・書き出しはいつでもできます。'),
+    ('trial_7d', 'es', 'Su prueba gratuita termina en 7 días', 'Suscríbase para seguir escribiendo. Sus registros se conservan de todos modos y siempre podrá leerlos y exportarlos.'),
+    ('trial_7d', 'fr', 'Votre essai gratuit se termine dans 7 jours', 'Abonnez-vous pour continuer à écrire. Vos notes restent dans tous les cas, et vous pouvez toujours les lire et les exporter.'),
+    ('trial_3d', 'ko', '무료 체험이 3일 남았어요', '체험이 끝나면 새로 쓰기와 고치기가 멈춰요. 연간 구독이 가장 알뜰해요.'),
+    ('trial_3d', 'en', 'Your free trial ends in 3 days', 'When the trial ends, writing and editing pause. The yearly plan is the best value.'),
+    ('trial_3d', 'ja', '無料体験はあと3日です', '体験が終わると、新しく書くことと編集が止まります。年間プランがいちばんお得です。'),
+    ('trial_3d', 'es', 'Su prueba gratuita termina en 3 días', 'Cuando termine la prueba, se pausarán la escritura y la edición. El plan anual es el más conveniente.'),
+    ('trial_3d', 'fr', 'Votre essai gratuit se termine dans 3 jours', 'À la fin de l’essai, l’écriture et la modification seront suspendues. L’offre annuelle est la plus avantageuse.')
+  ), t as (
+    select p.id, case when p.lang in ('ko','en','ja','es','fr') then p.lang else 'en' end lang, p.trial_ends_at + make_interval(days => p.bonus_days) ends
+    from public.profiles p where not public.is_subscriber(p.id)
   ), ins as (
     insert into public.notices(user_id, kind, lang, title, body)
-    select t.id, 'trial_7d', t.lang,
-      case when t.lang = 'ko' then '무료 체험이 7일 남았어요' else 'Your free trial ends in 7 days' end,
-      case when t.lang = 'ko' then '구독하면 계속 쓸 수 있어요. 구독하지 않아도 기록은 그대로 남고, 읽기·내보내기는 언제나 돼요.'
-           else 'Subscribe to keep writing. Your records stay either way, and you can always read and export them.' end
-    from t where t.ends between now() + interval '6 days' and now() + interval '7 days'
-      and not exists (select 1 from public.notices n where n.user_id = t.id and n.kind = 'trial_7d')
-    returning 1
-  ) select count(*) into n7 from ins;
-  with t as (
-    select p.id, coalesce(p.lang, 'en') lang, p.trial_ends_at + make_interval(days => p.bonus_days) ends from public.profiles p
-    where not public.is_subscriber(p.id)
-  ), ins as (
-    insert into public.notices(user_id, kind, lang, title, body)
-    select t.id, 'trial_3d', t.lang,
-      case when t.lang = 'ko' then '무료 체험이 3일 남았어요' else 'Your free trial ends in 3 days' end,
-      case when t.lang = 'ko' then '체험이 끝나면 새로 쓰기와 고치기가 멈춰요. 연간 구독이 가장 알뜰해요.'
-           else 'When the trial ends, writing and editing pause. The yearly plan is the best value.' end
-    from t where t.ends between now() and now() + interval '3 days'
-      and not exists (select 1 from public.notices n where n.user_id = t.id and n.kind = 'trial_3d')
-    returning 1
-  ) select count(*) into n3 from ins;
+    select t.id, x.kind, t.lang, x.title, x.body from t join txt x on x.lang = t.lang
+    where ((x.kind = 'trial_7d' and t.ends between now() + interval '6 days' and now() + interval '7 days')
+        or (x.kind = 'trial_3d' and t.ends between now() and now() + interval '3 days'))
+      and not exists (select 1 from public.notices n where n.user_id = t.id and n.kind = x.kind)
+    returning kind
+  ) select count(*) filter (where kind = 'trial_7d'), count(*) filter (where kind = 'trial_3d') into n7, n3 from ins;
   return jsonb_build_object('trial_7d', n7, 'trial_3d', n3);
 end $$;
 
@@ -198,6 +195,10 @@ revoke execute on function public.admin_stats(), public.admin_usage(), public.ad
   public.admin_subscriptions(text, int, int), public.ops_daily() from public, anon, authenticated;
 grant execute on function public.admin_stats(), public.admin_usage(), public.admin_users(text, text, int, int), public.admin_user(uuid),
   public.admin_subscriptions(text, int, int), public.ops_daily() to service_role;
+
+-- 매시간 체험 안내를 만들어요 (이미 받은 사람은 건너뛰어서 여러 번 돌아도 안전)
+select cron.schedule('daytale-ops-daily', '7 * * * *', 'select public.ops_daily()')
+  where exists (select 1 from pg_extension where extname = 'pg_cron');
 
 -- 대표 계정(24story@gmail.com)은 schema.sql의 owner_emails로 가입하는 순간 owner가 됩니다.
 -- 운영자를 더 두려면: insert into public.admins (user_id, role) select id, 'staff' from auth.users where email = '…';
