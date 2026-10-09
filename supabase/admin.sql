@@ -197,8 +197,60 @@ grant execute on function public.admin_stats(), public.admin_usage(), public.adm
   public.admin_subscriptions(text, int, int), public.ops_daily() to service_role;
 
 -- 매시간 체험 안내를 만들어요 (이미 받은 사람은 건너뛰어서 여러 번 돌아도 안전)
-select cron.schedule('daytale-ops-daily', '7 * * * *', 'select public.ops_daily()')
-  where exists (select 1 from pg_extension where extname = 'pg_cron');
+do $$ begin
+  if exists (select 1 from pg_extension where extname = 'pg_cron') then perform cron.schedule('daytale-ops-daily', '7 * * * *', 'select public.ops_daily()'); end if;
+end $$;
 
 -- 대표 계정(24story@gmail.com)은 schema.sql의 owner_emails로 가입하는 순간 owner가 됩니다.
 -- 운영자를 더 두려면: insert into public.admins (user_id, role) select id, 'staff' from auth.users where email = '…';
+
+-- =====================================================================
+-- 2026-10-09 추가: 알림(푸시) 상태 · 이용 현황 (숫자만) · 이야기 문장 관리
+-- =====================================================================
+
+-- ---------- 알림 하루 집계 (push 함수가 보낼 때마다 더해요) ----------
+create table if not exists public.push_daily (
+  day     date primary key default current_date,
+  sent    int not null default 0,
+  failed  int not null default 0,
+  gone    int not null default 0
+);
+alter table public.push_daily enable row level security;
+revoke all on public.push_daily from anon, authenticated;
+
+create or replace function public.push_count(p_sent int, p_failed int, p_gone int) returns void
+language sql security definer set search_path = public as $$
+  insert into public.push_daily (day, sent, failed, gone) values (current_date, greatest(p_sent, 0), greatest(p_failed, 0), greatest(p_gone, 0))
+  on conflict (day) do update set sent = push_daily.sent + excluded.sent, failed = push_daily.failed + excluded.failed, gone = push_daily.gone + excluded.gone
+$$;
+
+create or replace function public.admin_push() returns jsonb
+language sql stable security definer set search_path = public as $$
+  select jsonb_build_object(
+    'devices',   (select count(*) from public.push_subs),
+    'users',     (select count(distinct user_id) from public.push_subs),
+    'ok_7d',     (select count(*) from public.push_subs where last_ok_at > now() - interval '7 days'),
+    'langs',     coalesce((select jsonb_object_agg(lang, n) from (select lang, count(*) n from public.push_subs group by 1) x), '{}'),
+    'today',     coalesce((select jsonb_build_object('sent', sent, 'failed', failed, 'gone', gone) from public.push_daily where day = current_date), '{"sent":0,"failed":0,"gone":0}'),
+    'series_14d', coalesce((select jsonb_agg(jsonb_build_object('day', day, 'sent', sent, 'failed', failed, 'gone', gone) order by day) from public.push_daily where day > current_date - 14), '[]')
+  )
+$$;
+
+-- ---------- 이용 현황: 어떤 화면·기능을 쓰는지 (개수만, 내용은 보지 않음) ----------
+create or replace function public.admin_features() returns jsonb
+language sql stable security definer set search_path = public as $$
+  select jsonb_build_object(
+    'modes',     coalesce((select jsonb_object_agg(m, n) from (select coalesce(s.prefs->>'mode', 'story') m, count(*) n from public.profiles p left join public.user_settings s on s.user_id = p.id group by 1) x), '{}'),
+    'text_size', coalesce((select jsonb_object_agg(m, n) from (select coalesce(s.prefs->>'textSize', 'm') m, count(*) n from public.profiles p left join public.user_settings s on s.user_id = p.id group by 1) x), '{}'),
+    'types',     coalesce((select jsonb_object_agg(type, n) from (select type, count(*) n from public.entries where deleted_at is null group by 1 order by 2 desc limit 12) x), '{}'),
+    'types_30d', coalesce((select jsonb_object_agg(type, n) from (select type, count(*) n from public.entries where deleted_at is null and created_at > now() - interval '30 days' group by 1 order by 2 desc limit 12) x), '{}'),
+    'fonts',     coalesce((select jsonb_object_agg(f, n) from (select coalesce(meta->>'font', 'base') f, count(*) n from public.entries where deleted_at is null group by 1) x), '{}'),
+    'writers_7d', (select count(distinct user_id) from public.entries where created_at > now() - interval '7 days'),
+    'avg_per_writer_30d', (select round(avg(n), 1) from (select count(*) n from public.entries where created_at > now() - interval '30 days' group by user_id) x),
+    'with_folders', (select count(distinct user_id) from public.folders),
+    'push_users', (select count(distinct user_id) from public.push_subs)
+  )
+$$;
+
+revoke execute on function public.push_count(int, int, int), public.admin_push(), public.admin_features() from public, anon, authenticated;
+grant execute on function public.push_count(int, int, int), public.admin_push(), public.admin_features() to service_role;

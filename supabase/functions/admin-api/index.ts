@@ -52,6 +52,31 @@ async function targetUser(db: any, id: string) {
   return data.user;
 }
 
+// 이야기 문장 조건: 앱(js/story/engine.js match)이 아는 것만 받아요
+const LANGS = ['ko', 'en', 'ja', 'es', 'fr'], SLOTS = ['greet', 'air', 'close'];
+const COND: Record<string, (v: any) => boolean> = {
+  tod: v => ['morning', 'day', 'evening', 'night'].includes(v),
+  season: v => ['spring', 'summer', 'autumn', 'winter'].includes(v),
+  wx: v => ['sun', 'suncloud', 'cloud', 'fog', 'rain', 'snow', 'thunder'].includes(v),
+  dow: v => Number.isInteger(v) && v >= 0 && v <= 6,
+  cold: v => v === true, hot: v => v === true,
+  between: v => Array.isArray(v) && v.length === 2 && v.every(x => typeof x === 'string' && /^(\d{4}-)?\d{2}-\d{2}$/.test(x)) && v[0].length === v[1].length
+};
+function phraseRow(b: any) {
+  const lang = LANGS.includes(b.lang) ? b.lang : null, slot = SLOTS.includes(b.slot) ? b.slot : null;
+  const text = String(b.text ?? '').trim().slice(0, 300), weight = Math.round(Number(b.weight ?? 1));
+  if (!lang || !slot) throw new Fail(400, 'bad phrase');
+  if (!text) throw new Fail(400, 'text required');
+  if (!(weight >= 1 && weight <= 10)) throw new Fail(400, 'bad phrase');
+  const cond: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(b.cond && typeof b.cond === 'object' ? b.cond : {})) {
+    if (v === '' || v == null) continue;
+    if (!COND[k] || !COND[k](v)) throw new Fail(400, 'bad condition');
+    cond[k] = v;
+  }
+  return { lang, slot, text, weight, cond, active: b.active !== false, updated_at: new Date().toISOString() };
+}
+
 async function act(a: Admin, body: any, { db, env, fetch }: Deps) {
   switch (body.action) {
     case 'me':
@@ -68,6 +93,47 @@ async function act(a: Admin, body: any, { db, env, fetch }: Deps) {
       const r = await rpc(db, 'ops_daily');
       await audit(db, a, 'ops_daily', {}, r);
       return r;
+    }
+
+    case 'push':
+      return rpc(db, 'admin_push');
+
+    case 'features':
+      return rpc(db, 'admin_features');
+
+    case 'phrases': {
+      let q = db.from('phrase_packs').select('id,lang,slot,cond,text,weight,active,updated_at').order('updated_at', { ascending: false }).range(0, 499);
+      if (LANGS.includes(body.lang)) q = q.eq('lang', body.lang);
+      const { data, error } = await q;
+      if (error) throw new Fail(500, error.message);
+      return { rows: data };
+    }
+
+    case 'phrase_save': {
+      ownerOnly(a);
+      const row = phraseRow(body), id = body.id == null ? null : Number(body.id);
+      if (id !== null && !(Number.isInteger(id) && id > 0)) throw new Fail(400, 'bad id');
+      const { error } = id ? await db.from('phrase_packs').update(row).eq('id', id) : await db.from('phrase_packs').insert(row);
+      if (error) throw new Fail(500, error.message);
+      await audit(db, a, 'phrase_save', {}, { id, lang: row.lang, slot: row.slot, text: row.text.slice(0, 80) });
+      return { ok: true };
+    }
+
+    case 'phrase_active': {
+      ownerOnly(a);
+      const id = Number(body.id); if (!Number.isInteger(id) || id <= 0) throw new Fail(400, 'bad id');
+      const { error } = await db.from('phrase_packs').update({ active: !!body.active, updated_at: new Date().toISOString() }).eq('id', id);
+      if (error) throw new Fail(500, error.message);
+      return { ok: true };
+    }
+
+    case 'phrase_delete': {
+      ownerOnly(a);
+      const id = Number(body.id); if (!Number.isInteger(id) || id <= 0) throw new Fail(400, 'bad id');
+      const { error } = await db.from('phrase_packs').delete().eq('id', id);
+      if (error) throw new Fail(500, error.message);
+      await audit(db, a, 'phrase_delete', {}, { id });
+      return { ok: true };
     }
 
     case 'notices': {

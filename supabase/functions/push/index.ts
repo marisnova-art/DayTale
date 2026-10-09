@@ -51,7 +51,7 @@ Deno.serve(async req => {
     if (!Array.isArray(due) || !due.length) return json({ sent: 0 });
     const vapidKeys = await webpush.importVapidKeys(cfg.vapid!);
     const app = await webpush.ApplicationServer.new({ contactInformation: Deno.env.get('PUSH_CONTACT') || 'mailto:24story@gmail.com', vapidKeys });
-    let sent = 0; const gone: number[] = [], done: { sub_id: number; key: string }[] = [], ok = new Set<number>();
+    let sent = 0, failed = 0; const gone: number[] = [], done: { sub_id: number; key: string }[] = [], ok = new Set<number>();
     await Promise.all(due.map(async d => {
       try {
         await app.subscribe({ endpoint: d.endpoint, keys: { p256dh: d.p256dh, auth: d.auth } }).pushTextMessage(JSON.stringify(message(d)), { ttl: 3600, urgency: webpush.Urgency.High });
@@ -59,14 +59,15 @@ Deno.serve(async req => {
       } catch (e) {
         const st = (e as webpush.PushMessageError)?.response?.status;
         if (st === 404 || st === 410) gone.push(d.sub_id);          // 앱을 지웠거나 알림을 껐어요 → 주소 정리
-        else done.push({ sub_id: d.sub_id, key: d.key });          // 다른 오류는 다시 보내지 않아요 (같은 알림이 여러 번 울리지 않게)
+        else { failed++; done.push({ sub_id: d.sub_id, key: d.key }); }   // 다른 오류는 다시 보내지 않아요 (같은 알림이 여러 번 울리지 않게)
         console.error('push fail', st, String(e));
       }
     }));
     if (done.length) await db('push_sent', { method: 'POST', headers: { prefer: 'resolution=ignore-duplicates' }, body: JSON.stringify(done.filter(x => !gone.includes(x.sub_id))) });
     if (gone.length) await db(`push_subs?id=in.(${[...new Set(gone)].join(',')})`, { method: 'DELETE' });
     if (ok.size) await db(`push_subs?id=in.(${[...ok].join(',')})`, { method: 'PATCH', body: JSON.stringify({ last_ok_at: new Date().toISOString() }) });
-    return json({ sent, gone: gone.length });
+    await db('rpc/push_count', { method: 'POST', body: JSON.stringify({ p_sent: sent, p_failed: failed, p_gone: gone.length }) });   // 관리자 화면의 하루 집계
+    return json({ sent, failed, gone: gone.length });
   } catch (e) {
     console.error(e); return json({ error: 'server' }, 500);
   }

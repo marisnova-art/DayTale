@@ -40,7 +40,10 @@ function pickText(list, key) {
   return text;
 }
 const match = (cond = {}, ctx) => Object.entries(cond).every(([k, v]) => k === 'tod' ? v === ctx.slot : k === 'wx' ? v === ctx.weather?.kind : k === 'season' ? v === ctx.season
-  : k === 'cold' ? (ctx.weather?.temp ?? 99) <= 5 : k === 'hot' ? (ctx.weather?.temp ?? -99) >= 28 : k === 'dow' ? v === ctx.now.getDay() : k === 'holiday' ? v === ctx.holiday : true);
+  : k === 'cold' ? (ctx.weather?.temp ?? 99) <= 5 : k === 'hot' ? (ctx.weather?.temp ?? -99) >= 28 : k === 'dow' ? v === ctx.now.getDay() : k === 'holiday' ? v === ctx.holiday
+  : k === 'between' ? inDays(v, dayKey(ctx.now)) : false);   // 모르는 조건은 맞지 않는 것으로 (앱이 오래된 버전일 때 엉뚱한 날 나오지 않게)
+// 관리자에서 넣는 날짜 범위: ['2026-09-24', '2026-09-27'] 또는 해마다 ['12-24', '12-25']
+const inDays = (v, key) => Array.isArray(v) && v.length === 2 && (v[0].length === 5 ? (v[0] <= v[1] ? v[0] <= key.slice(5) && key.slice(5) <= v[1] : key.slice(5) >= v[0] || key.slice(5) <= v[1]) : v[0] <= key && key <= v[1]);
 
 /* ---------- 문장 채우기 ---------- */
 const SLOT_ST = { morning: 'sunrise', day: 'sunflower', evening: 'night', night: 'moon' };

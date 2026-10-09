@@ -26,6 +26,8 @@ await pg.query(`select set_config('request.jwt.claim.sub', $1, false)`, [BOB]);
 await pg.exec(`set role authenticated; insert into entries(id, type, title) select gen_random_uuid(), 'note', 't' from generate_series(1, 37); reset role;`);
 await pg.exec(`insert into photos(id, user_id, entry_id, key, bytes, thumb_bytes) select gen_random_uuid(), '${BOB}', null, 'k' || i, 180000, 25000 from generate_series(1, 12) i`);
 await pg.query(`select set_config('request.jwt.claim.sub', '', false)`);
+await pg.exec(`insert into push_subs(user_id, endpoint, lang, last_ok_at) values ('${BOB}', 'https://fcm.googleapis.com/a', 'ko', now()), ('${ANN}', 'https://web.push.apple.com/b', 'ko', null);
+  insert into push_daily(day, sent, failed, gone) select current_date - i, 3 + i % 4, case when i = 2 then 1 else 0 end, 0 from generate_series(1, 9) i; select public.push_count(4, 0, 1);`);
 
 const FAKE_SB = `window.supabase = { createClient: () => { let s = JSON.parse(localStorage.getItem('fake.sess') || 'null'); return { auth: {
   getSession: async () => ({ data: { session: s } }),
@@ -97,6 +99,22 @@ await p.goto('http://admin.test/#/ops'); await p.waitForSelector('.gauge');
 ok(await p.locator('.gauge').count() === 3, '운영: 무료 한도 게이지 3개');
 ok((await p.textContent('.grid2')).includes('2명'), '운영: 1년 미접속 안내 대상');
 await p.screenshot({ path: `${out}/admin-ops.png`, fullPage: true });
+ok((await p.textContent('#main')).includes('알림을 켠 기기') && await p.locator('.bars span').count() === 14, '운영: 알림 상태 + 14일 막대');
+await p.goto('http://admin.test/#/usage'); await p.waitForSelector('.blist');
+ok((await p.textContent('#main')).includes('감성형') && (await p.textContent('#main')).includes('메모'), '이용 현황: 홈 화면 · 기록 종류');
+await p.screenshot({ path: `${out}/admin-usage.png`, fullPage: true });
+await p.goto('http://admin.test/#/phrases'); await p.waitForSelector('#pf');
+await p.fill('#pf textarea[name=text]', '추석 연휴예요. 맛있는 것 많이 먹어요.'); await p.fill('#pf input[name=from]', '2026-09-24'); await p.fill('#pf input[name=to]', '2026-09-27'); await p.selectOption('#pf select[name=tod]', 'morning');
+await p.click('#pf .btn.primary'); await p.waitForFunction(() => document.querySelectorAll('.tablebox tbody tr td').length > 1);
+ok((await p.textContent('.tablebox')).includes('2026-09-24 ~ 2026-09-27') && (await p.textContent('.tablebox')).includes('시간대 아침'), '이야기 문장: 더하기 (날짜·시간대 조건)');
+await p.fill('#pf textarea[name=text]', '메리 크리스마스, {name} 님.'); await p.selectOption('#pf select[name=slot]', 'greet'); await p.fill('#pf input[name=from]', '12-24'); await p.fill('#pf input[name=to]', '12-25'); await p.click('#pf .btn.primary');
+await p.waitForFunction(() => document.querySelectorAll('.tablebox tbody tr').length === 2);
+await p.screenshot({ path: `${out}/admin-phrases.png`, fullPage: true });
+await p.click('[data-act]'); await p.waitForSelector('tr.off'); ok(true, '이야기 문장: 끄기');
+await p.click('tbody tr:first-child a.btn'); await p.waitForFunction(() => document.querySelector('#pf h2')?.textContent === '문장 고치기');
+await p.fill('#pf textarea[name=text]', '메리 크리스마스!'); await p.click('#pf .btn.primary'); await p.waitForFunction(() => document.querySelector('.tablebox').textContent.includes('메리 크리스마스!'));
+ok((await pg.query(`select count(*)::int n from phrase_packs where text = '메리 크리스마스!' and cond->'between'->>0 = '12-24'`)).rows[0].n === 1, '이야기 문장: 고치기 (조건 유지)');
+await p.click('[data-pdel]'); await p.click('dialog button[value=ok]'); await p.waitForFunction(() => document.querySelectorAll('.tablebox tbody tr').length === 1); ok(true, '이야기 문장: 지우기');
 await p.goto('http://admin.test/#/notices'); await p.waitForSelector('#nf');
 await p.fill('#nf input[name=title]', '사진을 넣을 수 있어요'); await p.fill('#nf textarea', '기록마다 4장까지 넣을 수 있어요.'); await p.selectOption('#nf select', 'ko'); await p.click('#nf .btn.primary');
 await p.waitForSelector('.audit li'); ok((await p.textContent('.audit')).includes('사진을 넣을 수 있어요'), '공지 올리기');

@@ -6,7 +6,10 @@ const R = p => readFileSync(new URL(p, import.meta.url), 'utf8');
 export async function makeDb() {
   const pg = new PGlite();
   await pg.exec(R('../../tools/sql-test/supabase-mock.sql'));
-  for (const f of ['../../supabase/schema.sql', '../../supabase/admin.sql']) { await pg.exec(R(f)); await pg.exec(R(f)); }
+  await pg.exec(R('../../supabase/schema.sql')); await pg.exec(R('../../supabase/schema.sql'));
+  // push.sql 은 pg_cron·pg_net 이 있어야 해서, 관리자 집계가 읽는 표만 흉내 내요
+  await pg.exec(`create table if not exists public.push_subs (id bigint generated always as identity primary key, user_id uuid references auth.users(id) on delete cascade, endpoint text unique, lang text not null default 'en', last_ok_at timestamptz)`);
+  await pg.exec(R('../../supabase/admin.sql')); await pg.exec(R('../../supabase/admin.sql'));
   return pg;
 }
 

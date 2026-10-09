@@ -20,7 +20,7 @@ const ago = d => {
 };
 const STATUS = { active: '이용 중', trialing: '체험 중', past_due: '결제 실패', paused: '일시정지', canceled: '해지됨' };
 const PLAN = { monthly: '월간', yearly: '연간' };
-const ACTION = { ban: '이용 정지', unban: '정지 해제', delete_user: '계정 삭제', cancel_subscription: '구독 해지', extend_trial: '체험 연장', notice_create: '공지 올림', notice_delete: '공지 내림', ops_daily: '매일 운영 실행' };
+const ACTION = { ban: '이용 정지', unban: '정지 해제', delete_user: '계정 삭제', cancel_subscription: '구독 해지', extend_trial: '체험 연장', notice_create: '공지 올림', notice_delete: '공지 내림', ops_daily: '매일 운영 실행', phrase_save: '문장 저장', phrase_delete: '문장 삭제' };
 const FLAG = c => !c || c === '—' ? '🌐' : String.fromCodePoint(...[...c.toUpperCase()].map(x => 0x1F1E6 + x.charCodeAt(0) - 65));
 const bytes = n => { n = Number(n || 0); return n >= 1024 ** 3 ? (n / 1024 ** 3).toFixed(2) + 'GB' : n >= 1024 ** 2 ? (n / 1024 ** 2).toFixed(1) + 'MB' : Math.round(n / 1024) + 'KB'; };
 const trialLeft = d => { if (!d) return ''; const n = Math.ceil((new Date(d) - Date.now()) / 864e5); return n > 0 ? `체험 ${n}일` : '체험 끝'; };
@@ -28,7 +28,7 @@ const ERR = {
   'login required': '다시 로그인해 주세요.', 'not an admin': '이 계정은 관리자 명단에 없습니다.', 'owner only': '최고 관리자(owner)만 할 수 있습니다.',
   'cannot change your own account': '내 계정은 여기서 바꿀 수 없습니다.', 'cannot delete your own account': '내 계정은 여기서 삭제할 수 없습니다.',
   'remove admin role first': '관리자 계정입니다. 먼저 관리자 명단에서 빼 주세요.', 'email does not match': '확인용 이메일이 일치하지 않습니다.',
-  'cancel the subscription first': '이용 중인 구독이 있습니다. 먼저 구독을 해지해 주세요.', 'PADDLE_API_KEY not set': '서버에 Paddle API 키가 없어 여기서 해지할 수 없습니다. Paddle 대시보드에서 해지해 주세요.', 'days must be 1-90': '연장은 1~90일까지입니다.', 'title required': '제목을 적어 주세요.'
+  'cancel the subscription first': '이용 중인 구독이 있습니다. 먼저 구독을 해지해 주세요.', 'PADDLE_API_KEY not set': '서버에 Paddle API 키가 없어 여기서 해지할 수 없습니다. Paddle 대시보드에서 해지해 주세요.', 'days must be 1-90': '연장은 1~90일까지입니다.', 'title required': '제목을 적어 주세요.', 'text required': '문장을 적어 주세요.', 'bad condition': '조건이 맞지 않습니다. 날짜는 2026-09-24 또는 12-24 모양으로 적어 주세요.', 'bad phrase': '언어·자리·가중치(1~10)를 확인해 주세요.'
 };
 const badge = (s, cls = '') => `<span class="badge ${esc(cls || s)}">${esc(STATUS[s] || s)}</span>`;
 /* 초록 알약(↗ +21) — 참고 이미지의 변화량 표시 */
@@ -65,6 +65,8 @@ const I = {
   bell: svg('<path d="M10.3 21a2 2 0 0 0 3.4 0"/><path d="M3.3 15.3A1 1 0 0 0 4 17h16a1 1 0 0 0 .7-1.7C19.4 14 18 12.5 18 8A6 6 0 0 0 6 8c0 4.5-1.4 6-2.7 7.3"/>'),
   globe: svg('<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5a13 13 0 0 1 0 17M12 3.5a13 13 0 0 0 0 17"/>'),
   gauge: svg('<path d="M4 16a8 8 0 1 1 16 0"/><path d="m12 16 4-5"/>'),
+  chart: svg('<path d="M4 20h16"/><rect x="5.5" y="11" width="3" height="6.5" rx="1"/><rect x="10.5" y="6.5" width="3" height="11" rx="1"/><rect x="15.5" y="13.5" width="3" height="4" rx="1"/>'),
+  quote: svg('<path d="M5 6.5h14a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5H10l-4.5 3v-3H5A1.5 1.5 0 0 1 3.5 16V8A1.5 1.5 0 0 1 5 6.5z"/><path d="M8 11h8M8 14h5"/>'),
   gift: svg('<rect x="3.5" y="8" width="17" height="4" rx="1"/><path d="M12 8v12.5M5.5 12v8.5h13V12M12 8S10.5 3.5 8 4.5 9 8 12 8zm0 0s1.5-4.5 4-3.5S15 8 12 8z"/>')
 };
 
@@ -195,7 +197,7 @@ async function start() {
 }
 
 /* ---------- shell: 검은 프레임 + 아이콘 레일 + 상단바 + 둥근 패널 ---------- */
-const NAV = [['#/', '대시보드', I.dash], ['#/users', '회원', I.users], ['#/subs', '구독·결제', I.card], ['#/ops', '운영', I.gauge], ['#/notices', '공지', I.bell], ['#/audit', '관리 기록', I.log]];
+const NAV = [['#/', '대시보드', I.dash], ['#/users', '회원', I.users], ['#/subs', '구독·결제', I.card], ['#/usage', '이용 현황', I.chart], ['#/ops', '운영', I.gauge], ['#/notices', '공지', I.bell], ['#/phrases', '이야기 문장', I.quote], ['#/audit', '관리 기록', I.log]];
 function greet() { const h = new Date().getHours(); return h < 6 ? '늦은 밤이에요' : h < 12 ? '좋은 아침이에요' : h < 18 ? '좋은 오후예요' : '좋은 저녁이에요'; }
 function shell(active, inner) {
   const q = active === '#/users' ? new URLSearchParams((location.hash.split('?')[1]) || '').get('q') || '' : '';
@@ -479,7 +481,7 @@ async function viewAudit(q) {
 /* ---------- 운영: 무료 한도 사용량 · 정리 예정 · 언어 ---------- */
 async function viewOps() {
   loading('#/ops');
-  let u, s; try { [u, s] = await Promise.all([api('usage'), api('stats')]); } catch (e) { return failed('#/ops', e); }
+  let u, s, pu; try { [u, s, pu] = await Promise.all([api('usage'), api('stats'), api('push').catch(() => null)]); } catch (e) { return failed('#/ops', e); }
   const r = s.retention || {};
   shell('#/ops', `${head('운영', '무료 한도와 정리', '<p class="muted">70%가 넘으면 빨갛게 표시돼요. 업그레이드 비용은 대표가 정합니다.</p>')}
     <section class="gauges">${u.map(g => `<div class="box pad gauge${g.warn ? ' warn' : ''}"><div class="row between"><b>${esc(g.label)}</b>${g.warn ? pill('70% 넘음', 'down') : pill(g.pct + '%', 'flat')}</div>
@@ -491,10 +493,115 @@ async function viewOps() {
         <p class="muted xs">안내 메일은 메일 서비스를 연결한 뒤 보냅니다. 실제 삭제는 대표 확인 후에만 합니다.</p>
         <a class="btn ghost sm" href="#/users?filter=inactive">대상 회원 보기</a></div>
       <div class="box pad"><h2>언어</h2><dl>${Object.entries(s.langs || {}).sort((a, b) => b[1] - a[1]).map(([l, n]) => `<dt>${esc(l)}</dt><dd>${num(n)}명</dd>`).join('')}</dl>
-        ${me.role === 'owner' ? `<button class="btn ghost sm" id="daily" style="margin-top:14px">${I.refresh}매일 운영 지금 실행 (체험 안내 알림)</button>` : ''}</div>
-    </section>`);
+        ${me.role === 'owner' ? `<button class="btn ghost sm" id="daily" style="margin-top:14px">${I.refresh}매일 운영 지금 실행 (체험 안내 알림)</button>` : ''}
+        <p class="muted xs">체험 7일·3일 전 안내는 매시간 자동으로 만들어요. 버튼은 바로 확인하고 싶을 때만 눌러요.</p></div>
+    </section>
+    ${pu ? pushBox(pu) : ''}`);
   const d = document.getElementById('daily');
   if (d) d.onclick = async () => { try { const x = await api('ops_daily'); toast(`체험 안내: 7일 전 ${x.trial_7d}건 · 3일 전 ${x.trial_3d}건`); } catch (e) { toast(e.message, true); } };
+}
+
+/* 알림(푸시): 켠 기기 · 오늘 보낸 수 · 최근 14일 */
+function pushBox(p) {
+  const days = Array.from({ length: 14 }, (_, i) => { const d = new Date(Date.now() - (13 - i) * 864e5).toISOString().slice(0, 10); return (p.series_14d || []).find(x => String(x.day).slice(0, 10) === d) || { day: d, sent: 0, failed: 0, gone: 0 }; });
+  const max = Math.max(1, ...days.map(d => d.sent + d.failed));
+  const t = p.today || {};
+  return `${sectionHead('알림 (앱을 닫아도 오는 알림)')}
+    <section class="grid2">
+      <div class="box pad"><h2>지금</h2><dl>
+        <dt>알림을 켠 기기</dt><dd>${num(p.devices)}대 <span class="muted xs">(${num(p.users)}명)</span></dd>
+        <dt>7일 안에 받은 기기</dt><dd>${num(p.ok_7d)}대</dd>
+        <dt>오늘 보냄</dt><dd>${num(t.sent)}건</dd>
+        <dt>오늘 실패</dt><dd>${t.failed ? `<span class="warn-t">${num(t.failed)}건</span>` : '0건'}</dd>
+        <dt>오늘 정리된 기기</dt><dd>${num(t.gone)}대 <span class="muted xs">앱을 지웠거나 알림을 끈 기기</span></dd>
+        <dt>언어</dt><dd>${Object.entries(p.langs || {}).map(([l, n]) => `${esc(l)} ${num(n)}`).join(' · ') || '—'}</dd></dl></div>
+      <div class="box pad"><h2>최근 14일 보낸 알림</h2>
+        <div class="bars" role="img" aria-label="최근 14일 보낸 알림">${days.map(d => `<span title="${esc(d.day.slice(5))} · 보냄 ${d.sent} · 실패 ${d.failed}"><i style="--h:${Math.round(d.sent / max * 100)}%"></i>${d.failed ? `<i class="bad" style="--h:${Math.max(4, Math.round(d.failed / max * 100))}%"></i>` : ''}</span>`).join('')}</div>
+        <p class="muted xs">실패가 계속 늘면 알려 주세요. 보통은 0에 가까워요.</p></div>
+    </section>`;
+}
+
+/* ---------- 이용 현황: 어떤 기능을 쓰는지 (숫자만) ---------- */
+const TYPE = { note: '메모', todo: '할 일', event: '일정', idea: '아이디어', item: '물건 둔 곳', personal: '개인 기록', scrap: '스크랩' };
+const MODE = { story: '감성형 (이야기 홈)', tidy: '정리형 (실용 모드)' };
+const FONT = { base: '기본', serif: '명조', hand: '손글씨' };
+const SIZE = { s: '작게', m: '보통', l: '크게' };
+function barList(obj, labels = {}) {
+  const rows = Object.entries(obj || {}).sort((a, b) => b[1] - a[1]), total = rows.reduce((a, [, n]) => a + Number(n), 0) || 1;
+  if (!rows.length) return '<p class="muted">아직 없음</p>';
+  return `<ul class="blist">${rows.map(([k, n]) => { const pct = Math.round(n / total * 100); return `<li><div class="row between"><span>${esc(labels[k] || k)}</span><b>${num(n)} <span class="muted xs">${pct}%</span></b></div><div class="meter thin"><i style="--w:${Math.max(2, pct)}%"></i></div></li>`; }).join('')}</ul>`;
+}
+async function viewUsage() {
+  loading('#/usage');
+  let f; try { f = await api('features'); } catch (e) { return failed('#/usage', e); }
+  shell('#/usage', `${head('이용 현황', '어떻게 쓰고 있나요', '<p class="muted">개수만 봐요. 기록 내용은 관리자에게도 보이지 않아요.</p>')}
+    <section class="cards">
+      <div class="card violet"><div class="ctop"><span class="cicon">${I.note}</span><div><b>7일 안에 쓴 사람</b><small>새 기록을 남긴 회원</small></div></div><p class="cnum">${num(f.writers_7d)}</p></div>
+      <div class="card mustard"><div class="ctop"><span class="cicon">${I.chart}</span><div><b>한 사람 평균</b><small>30일 동안 쓴 기록 (지운 것 포함)</small></div></div><p class="cnum">${esc(f.avg_per_writer_30d ?? 0)}</p></div>
+      <div class="card coral"><div class="ctop"><span class="cicon">${I.folder}</span><div><b>폴더를 쓰는 사람</b><small>폴더를 하나 이상 만든 회원</small></div></div><p class="cnum">${num(f.with_folders)}</p></div>
+      <div class="card black"><div class="ctop"><span class="cicon">${I.bell}</span><div><b>알림을 켠 사람</b><small>앱을 닫아도 오는 알림</small></div></div><p class="cnum">${num(f.push_users)}</p></div>
+    </section>
+    <section class="grid2">
+      <div class="box pad"><h2>홈 화면</h2>${barList(f.modes, MODE)}</div>
+      <div class="box pad"><h2>기록 종류 · 전체</h2>${barList(f.types, TYPE)}</div>
+      <div class="box pad"><h2>기록 종류 · 최근 30일</h2>${barList(f.types_30d, TYPE)}</div>
+      <div class="box pad"><h2>글꼴 (기록마다)</h2>${barList(f.fonts, FONT)}</div>
+      <div class="box pad"><h2>글자 크기</h2>${barList(f.text_size, SIZE)}</div>
+    </section>`);
+}
+
+/* ---------- 이야기 문장: 앱을 다시 배포하지 않고 계절·명절 문장 더하기 ---------- */
+const PLANG = [['ko', '한국어'], ['en', 'English'], ['ja', '日本語'], ['es', 'Español'], ['fr', 'Français']];
+const PSLOT = { greet: '인사 (첫 문장)', air: '오늘의 공기 (인사 뒤)', close: '맺음 (마지막 문장)' };
+const PCOND = {
+  tod: ['시간대', { morning: '아침 5–11시', day: '낮 11–17시', evening: '저녁 17–21시', night: '밤 21–5시' }],
+  season: ['계절', { spring: '봄', summer: '여름', autumn: '가을', winter: '겨울' }],
+  wx: ['날씨', { sun: '맑음', suncloud: '구름 조금', cloud: '흐림', fog: '안개', rain: '비', snow: '눈', thunder: '천둥' }],
+  dow: ['요일', { 0: '일', 1: '월', 2: '화', 3: '수', 4: '목', 5: '금', 6: '토' }]
+};
+const condText = c => Object.entries(c || {}).map(([k, v]) => k === 'between' ? `${v[0]} ~ ${v[1]}` : k === 'cold' ? '추운 날 (5° 이하)' : k === 'hot' ? '더운 날 (28° 이상)' : PCOND[k] ? `${PCOND[k][0]} ${PCOND[k][1][v] ?? v}` : `${k} ${v}`).join(' · ') || '언제나';
+async function viewPhrases(q) {
+  const lang = q.get('lang') || 'all', editId = Number(q.get('edit') || 0);
+  loading('#/phrases');
+  let r; try { r = await api('phrases', lang === 'all' ? {} : { lang }); } catch (e) { return failed('#/phrases', e); }
+  const ed = r.rows.find(x => x.id === editId) || null, c = ed?.cond || {};
+  const sel = (name, opts, v, empty = '상관없음') => `<select name="${name}"><option value="">${empty}</option>${Object.entries(opts).map(([k, l]) => `<option value="${esc(k)}"${String(v ?? '') === String(k) ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select>`;
+  shell('#/phrases', `${head('이야기 문장', big(num(r.rows.length)) + '<span class="unit">개</span>', '<p class="muted">홈 이야기에 섞여 나오는 문장이에요. 앱을 다시 올리지 않아도 하루 안에 반영돼요.</p>')}
+    <div class="ranges left">${[['all', '전체'], ...PLANG].map(([k, l]) => `<a href="${link('#/phrases', { lang: k })}" class="${k === lang ? 'on' : ''}">${l}</a>`).join('')}</div>
+    ${me.role === 'owner' ? `<form id="pf" class="box pad nform"><h2>${ed ? '문장 고치기' : '새 문장'}</h2>
+      <div class="grid3">
+        <label>언어<select name="lang">${PLANG.map(([k, l]) => `<option value="${k}"${(ed?.lang || (lang !== 'all' ? lang : 'ko')) === k ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
+        <label>자리<select name="slot">${Object.entries(PSLOT).map(([k, l]) => `<option value="${k}"${(ed?.slot || 'air') === k ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
+        <label>자주 나오게 (1~10)<input name="weight" type="number" min="1" max="10" value="${esc(ed?.weight ?? 3)}"></label>
+      </div>
+      <label>문장<textarea name="text" maxlength="300" rows="2" required placeholder="예: 추석 연휴예요. 맛있는 것 많이 먹어요.">${esc(ed?.text || '')}</textarea></label>
+      <p class="muted xs">인사 문장에 {name}을 넣으면 회원 이름으로 바뀌어요. 예: 메리 크리스마스, {name} 님.</p>
+      <h3 class="label">언제 나올까요 (비워 두면 언제나)</h3>
+      <div class="grid3">
+        <label>날짜 시작<input name="from" placeholder="2026-09-24 또는 12-24" value="${esc(c.between?.[0] || '')}"></label>
+        <label>날짜 끝<input name="to" placeholder="2026-09-27 또는 12-25" value="${esc(c.between?.[1] || '')}"></label>
+        ${Object.entries(PCOND).map(([k, [l, opts]]) => `<label>${l}${sel(k, opts, c[k])}</label>`).join('')}
+        <label>기온${sel('temp', { cold: '추운 날 (5° 이하)', hot: '더운 날 (28° 이상)' }, c.cold ? 'cold' : c.hot ? 'hot' : '')}</label>
+      </div>
+      <p class="muted xs">명절처럼 해마다 날짜가 바뀌면 연도까지 적어요 (2026-09-24). 크리스마스처럼 같은 날이면 월-일만 적어요 (12-24).</p>
+      <div class="row end gap">${ed ? `<a class="btn ghost" href="${link('#/phrases', { lang })}">취소</a>` : ''}<button class="btn primary">${ed ? '저장' : '더하기'}</button></div></form>` : ''}
+    <section class="box tablebox"><table><thead><tr><th>문장</th><th>언어 · 자리</th><th>언제</th><th class="r">빈도</th><th></th></tr></thead><tbody>
+      ${r.rows.map(x => `<tr class="${x.active ? '' : 'off'}"><td>${esc(x.text)}</td><td>${esc(x.lang)} · ${esc({ greet: '인사', air: '오늘의 공기', close: '맺음' }[x.slot] || x.slot)}</td><td class="muted">${esc(condText(x.cond))}</td><td class="r num">${num(x.weight)}</td>
+        <td class="r nowrap">${me.role === 'owner' ? `<button class="btn ghost sm" data-act="${x.id}" data-on="${x.active ? 0 : 1}">${x.active ? '끄기' : '켜기'}</button>
+          <a class="btn ghost sm" href="${link('#/phrases', { lang, edit: x.id })}">고치기</a><button class="btn ghost sm" data-pdel="${x.id}">지우기</button>` : (x.active ? '' : '<span class="muted xs">꺼짐</span>')}</td></tr>`).join('') || '<tr><td colspan="5" class="muted pad">아직 더한 문장이 없어요. 앱 안의 기본 문장은 그대로 나와요.</td></tr>'}
+    </tbody></table></section>`);
+  const f = document.getElementById('pf');
+  if (f) f.onsubmit = async e => {
+    e.preventDefault();
+    const v = Object.fromEntries(new FormData(f)), cond = {};
+    for (const k of Object.keys(PCOND)) if (v[k] !== '') cond[k] = k === 'dow' ? Number(v[k]) : v[k];
+    if (v.temp) cond[v.temp] = true;
+    if (v.from || v.to) cond.between = [v.from.trim(), (v.to || v.from).trim()];
+    try { await api('phrase_save', { id: ed?.id, lang: v.lang, slot: v.slot, text: v.text, weight: Number(v.weight), cond, active: ed ? ed.active : true }); toast(ed ? '고쳤어요.' : '더했어요.'); location.hash = link('#/phrases', { lang }); if (!ed) viewPhrases(q); }
+    catch (er) { toast(er.message, true); }
+  };
+  document.querySelectorAll('[data-act]').forEach(b => b.onclick = async () => { try { await api('phrase_active', { id: Number(b.dataset.act), active: b.dataset.on === '1' }); viewPhrases(q); } catch (e) { toast(e.message, true); } });
+  document.querySelectorAll('[data-pdel]').forEach(b => b.onclick = async () => { if (!await confirmBox({ title: '문장 지우기', body: '이 문장이 앱에서 더 나오지 않아요. 잠깐 멈추려면 끄기를 쓰세요.', ok: '지우기', danger: true })) return; try { await api('phrase_delete', { id: Number(b.dataset.pdel) }); viewPhrases(q); } catch (e) { toast(e.message, true); } });
 }
 
 /* ---------- 공지 (앱 알림함에 모두에게) ---------- */
@@ -526,6 +633,8 @@ function route() {
   if (path === '#/audit') return viewAudit(q);
   if (path === '#/ops') return viewOps();
   if (path === '#/notices') return viewNotices();
+  if (path === '#/usage') return viewUsage();
+  if (path === '#/phrases') return viewPhrases(q);
   return viewDash();
 }
 window.addEventListener('hashchange', route);

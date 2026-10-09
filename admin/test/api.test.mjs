@@ -86,5 +86,33 @@ let sent;
 const r = await call('ann', { action: 'cancel_subscription', subscription_id: 'sub_01bob', reason: '요청' }, { key: 'pdl_test', fetch: async (url, init) => { sent = { url, init }; return new Response('{}'); } });
 ok(r.status === 200 && sent.url === 'https://sandbox-api.paddle.com/subscriptions/sub_01bob/cancel', 'Paddle 샌드박스로 해지 요청');
 const au = (await call('cat', { action: 'audit' })).body.rows.map(a => a.action);
-ok(au.join() === 'cancel_subscription,delete_user,unban,ban,notice_delete,notice_create,extend_trial', '관리 기록: ' + au.join());
+ok(au.slice(0, 7).join() === 'cancel_subscription,delete_user,unban,ban,notice_delete,notice_create,extend_trial', '관리 기록: ' + au.join());
+
+// 알림 상태 · 이용 현황 (숫자만)
+await pg.exec(`insert into push_subs(user_id, endpoint, lang, last_ok_at) values ('${U.ann}', 'https://fcm.googleapis.com/x', 'ko', now())`);
+const pu = await call('cat', { action: 'push' });
+ok(pu.status === 200 && pu.body.devices === 1 && pu.body.ok_7d === 1, '알림 상태: 기기 수');
+await pg.exec(`select public.push_count(3, 1, 0); select public.push_count(2, 0, 1)`);
+ok((await call('cat', { action: 'push' })).body.today.sent === 5, '알림 하루 집계가 더해짐');
+await denied(asRole('authenticated', 'select public.push_count(1, 0, 0)'), '앱 사용자는 집계를 못 바꿈');
+const fe = await call('cat', { action: 'features' });
+ok(fe.status === 200 && fe.body.types.note === 2 && fe.body.modes.story >= 1, '이용 현황: 종류·모드 개수');
+ok(!JSON.stringify(fe.body).includes('비밀'), '이용 현황에 기록 내용 없음');
+
+// 이야기 문장 관리
+ok((await call('cat', { action: 'phrase_save', lang: 'ko', slot: 'air', text: '가을비가 와요.' })).status === 403, 'staff는 문장 못 바꿈');
+ok((await call('ann', { action: 'phrase_save', lang: 'ko', slot: 'air', text: '가을비', cond: { wx: 'lava' } })).body.error === 'bad condition', '모르는 조건은 거절');
+ok((await call('ann', { action: 'phrase_save', lang: 'xx', slot: 'air', text: 'a' })).body.error === 'bad phrase', '모르는 언어 거절');
+ok((await call('ann', { action: 'phrase_save', lang: 'ko', slot: 'air', text: ' 추석 연휴예요. ', weight: 3, cond: { between: ['2026-09-24', '2026-09-27'], tod: '' } })).status === 200, '문장 추가');
+const ph = (await call('cat', { action: 'phrases', lang: 'ko' })).body.rows;
+ok(ph.length === 1 && ph[0].text === '추석 연휴예요.' && ph[0].cond.between[1] === '2026-09-27' && !('tod' in ph[0].cond), '문장 목록 (빈 조건은 빠짐)');
+ok((await asRole('authenticated', `select text from phrase_packs where active`)).length === 1, '앱이 켜진 문장을 읽음');
+ok((await call('ann', { action: 'phrase_active', id: ph[0].id, active: false })).status === 200 && (await asRole('authenticated', `select text from phrase_packs where active`)).length === 0, '문장 끄기');
+ok((await call('ann', { action: 'phrase_save', id: ph[0].id, lang: 'ko', slot: 'close', text: '연휴 잘 보내요.' })).status === 200 && (await call('cat', { action: 'phrases' })).body.rows[0].slot === 'close', '문장 고치기');
+ok((await call('ann', { action: 'phrase_delete', id: ph[0].id })).status === 200 && (await call('cat', { action: 'phrases' })).body.rows.length === 0, '문장 지우기');
+await denied(asRole('authenticated', `insert into phrase_packs(lang, slot, text) values ('ko', 'air', 'x')`), '앱 사용자는 문장을 못 넣음');
+
+// 체험 안내: 일본어
+await pg.exec(`insert into auth.users(id, email) values ('eeeeeeee-0000-4000-8000-000000000005', 'eve@x.com'); update profiles set lang = 'ja', trial_ends_at = now() + interval '2 days' where id = 'eeeeeeee-0000-4000-8000-000000000005'`);
+ok((await call(null, {}, { headers: { 'x-cron-secret': 'cron' } })).body.trial_3d === 1 && (await pg.query(`select title from notices where kind = 'trial_3d'`)).rows[0]?.title === '無料体験はあと3日です', '체험 안내: 일본어');
 console.log(fails ? `${fails} FAILED` : 'ALL PASSED'); process.exit(fails ? 1 : 0);

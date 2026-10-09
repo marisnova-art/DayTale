@@ -213,3 +213,14 @@ dialog.confirm::backdrop{ background:rgba(0,0,0,.7) } dialog.confirm p{ color:va
 .nform input, .nform textarea, .nform select{ background:var(--raise); border:1px solid transparent; border-radius:12px; padding:10px 12px; color:var(--text); font:inherit }
 .audit li{ align-items:flex-start }
 .audit li > .btn{ margin-left:auto }
+
+/* 2026-10-09: 알림 막대 · 이용 현황 막대 목록 · 이야기 문장 */
+.bars{ display:flex; align-items:flex-end; gap:6px; height:120px; margin:18px 0 10px }
+.bars span{ flex:1; height:100%; display:flex; flex-direction:column; justify-content:flex-end; gap:2px }
+.bars i{ display:block; height:var(--h, 0%); min-height:2px; border-radius:4px; background:var(--ok) }
+.bars i.bad{ background:#FF8A75 }
+.blist{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:14px }
+.meter.thin{ height:6px; margin:8px 0 0; color:var(--ok) }
+.grid3{ display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:12px }
+.nform h3.label{ margin:6px 0 0 }
+tr.off td{ opacity:.45 } td.nowrap{ white-space:nowrap }
