@@ -8,8 +8,15 @@ import { go } from '../ui/router.js';
 import { removeFolder, renameFolder } from './folders.js';
 import { pickAction, typeLabel } from './pickers.js';
 import { Photos } from '../features/photos.js';
+import * as Editor from './editor.js';
+import { render as rerender } from '../ui/router.js';
 
 let filter = 'all';
+/* PC 나란히 보기 (넓은 화면): 왼쪽 목록 + 오른쪽에 고른 기록. 처음엔 맨 위 기록이 열려 있어요 */
+const wide = matchMedia('(min-width: 1200px)');
+const SPLIT = new Set(['all', 'fav', 'type', 'todo', 'folder', 'nofolder', 'search']);
+let sel = null;
+wide.addEventListener('change', () => { if (document.querySelector('#view .lst')) rerender(); });
 const preview = e => (e.text || '').split('\n').map(s => s.trim()).filter(Boolean).filter(s => s !== e.title.trim()).join(' ').slice(0, 140);
 function dayLabel(k) {
   const today = todayKey();
@@ -49,27 +56,38 @@ function groups(list, opts, key = e => dayKey(new Date(e.created_at))) {
 }
 
 function render(view, r) {
+  Editor.leave();
   const p = r.path;
   const mode = p === '/todo' ? 'todo' : p === '/trash' ? 'trash' : p === '/search' ? 'search' : p.startsWith('/folder/') ? 'folder' : p === '/nofolder' ? 'nofolder' : p.startsWith('/type/') ? 'type' : p === '/favorites' ? 'fav' : 'all';
   if (mode !== 'all') filter = 'all';
   const folder = mode === 'folder' ? S.folders.get(r.params.id) : null;
   if (mode === 'folder' && !folder) { go('/all', { replace: true }); return; }
   const title = mode === 'todo' ? t('nav.todo') : mode === 'trash' ? t('nav.trash') : mode === 'search' ? t('nav.search') : mode === 'folder' ? folder.name : mode === 'nofolder' ? t('nav.noFolder') : mode === 'type' ? typeLabel(r.params.type) : mode === 'fav' ? t('nav.fav') : t('nav.all');
-  view.innerHTML = `<section class="lst"><div class="lst-head"><h1>${esc(title)}</h1><span class="c"></span><span class="act"></span></div><div class="filters"></div>
+  const split = wide.matches && SPLIT.has(mode);
+  view.innerHTML = (split ? '<div class="split">' : '') + `<section class="lst"><div class="lst-head"><h1>${esc(title)}</h1><span class="c"></span><span class="act"></span></div><div class="filters"></div>
     ${mode === 'search' ? `<label class="field searchbar">${icon('search', 18)}<input type="search" enterkeyhint="search" placeholder="${esc(t('list.search'))}" aria-label="${esc(t('nav.search'))}"></label>` : ''}
-    <div class="body"></div><div style="height:120px"></div></section>`;
+    <div class="body"></div><div style="height:120px"></div></section>` + (split ? '<aside class="pane"></aside></div>' : '');
   const act = view.querySelector('.act');
   if (mode === 'folder') act.innerHTML = `<button class="icon-btn" data-folder-more aria-label="${esc(t('ed.more'))}">${icon('more-horizontal', 20)}</button>`;
   if (mode === 'trash') act.innerHTML = `<button class="chip" data-empty-trash>${esc(t('list.emptyTrash'))}</button>`;
   if (mode !== 'search' && mode !== 'trash') act.insertAdjacentHTML('beforeend', `<a class="icon-btn" href="#/search" aria-label="${esc(t('nav.search'))}">${icon('search', 20)}</a>`);
   const q = r.query.q || '';
   const sInput = view.querySelector('.searchbar input'); if (sInput) { sInput.value = q; setTimeout(() => sInput.focus(), 50); sInput.addEventListener('input', debounce(() => { history.replaceState(null, '', '#/search?q=' + encodeURIComponent(sInput.value)); paint(); }, 200)); }
-  const paint = () => { paintBody(view, { mode, r, folder, q: sInput ? sInput.value : q }); Photos.hydrate(view); };
+  const paint = () => { paintBody(view, { mode, r, folder, q: sInput ? sInput.value : q }); Photos.hydrate(view); if (split) syncSel(view); };
   view.paintList = paint; paint(); swipe(view);
   // 방금 쓴 기록은 잠깐 반짝여요
   let hid = null; try { hid = sessionStorage.getItem('daytale.hl'); sessionStorage.removeItem('daytale.hl'); } catch {}
   const hr = hid && view.querySelector(`.swp[data-id="${hid}"] .r`);
   if (hr) { hr.classList.add('hl'); hr.scrollIntoView({ block: 'center' }); setTimeout(() => hr.classList.remove('hl'), 1800); }
+  if (split) {
+    // 줄을 누르면 오른쪽에 열려요 (주소는 그대로)
+    view.addEventListener('click', ev => {
+      const a = ev.target.closest('.lst a.r'); if (!a || ev.defaultPrevented || ev.target.closest('button') || ev.metaKey || ev.ctrlKey) return;
+      ev.preventDefault(); const id = a.closest('.swp')?.dataset.id; if (!id) return;
+      sel = id; markSel(view); openPane(view, id);
+    });
+    view.addEventListener('split-new', ev => openPane(view, null, Object.fromEntries(new URLSearchParams((ev.detail || '').split('?')[1] || ''))));
+  }
   view.addEventListener('click', async ev => {
     const b = ev.target.closest('button'); if (!b) return;
     if (b.dataset.del) { ev.preventDefault(); const id = b.dataset.del; await trashEntry(id); toast(t('ed.trashed'), { action: t('common.undo'), onAction: () => restoreEntry(id) }); }
@@ -79,6 +97,7 @@ function render(view, r) {
     else if ('emptyTrash' in b.dataset) { const ids = trash().map(e => e.id); if (ids.length && await confirmDlg(t('list.emptyTrashQ'), t('list.emptyTrashBody', { n: ids.length }), t('list.emptyTrash'), { danger: true })) await purgeEntries(ids); }
     else if ('folderMore' in b.dataset) { const v = await pickAction(folder.name, [{ v: 'rename', label: t('folder.rename'), icon: 'pencil' }, { v: 'delete', label: t('folder.delete'), icon: 'trash-2', danger: true }]); if (v === 'rename') renameFolder(folder.id); else if (v === 'delete') removeFolder(folder.id); }
     else if (b.dataset.f) { filter = b.dataset.f; paint(); }
+    else if ('new' in b.dataset && split) openPane(view, null, newQuery(mode, r, folder));
     else if ('new' in b.dataset) go('/new' + (mode === 'type' ? '?type=' + r.params.type : mode === 'folder' ? '?folder=' + folder.id : mode === 'todo' ? '?type=todo' : ''));
     else return;
     paint();
@@ -141,6 +160,46 @@ function paintBody(view, { mode, r, folder, q }) {
     (rest.length ? groups(rest.slice(0, 600), { mode }) : pinned.length ? '' : `<div class="empty">${esc(t(mode === 'fav' ? 'list.emptyFav' : 'list.empty'))}</div>`);
 }
 const refresh = view => view.paintList?.();
+const leave = () => Editor.leave();
+const newQuery = (mode, r, folder) => mode === 'type' ? { type: r.params.type } : mode === 'folder' ? { folder: folder.id } : mode === 'todo' ? { type: 'todo' } : {};
+
+/* ---------- 나란히 보기 ---------- */
+function markSel(view) {
+  view.querySelectorAll('.swp.sel').forEach(w => w.classList.remove('sel'));
+  if (sel) view.querySelector(`.lst .swp[data-id="${sel}"]`)?.classList.add('sel');
+}
+// 목록이 바뀔 때: 열린 기록이 목록에 그대로 있으면 두고, 없어졌으면 맨 위 기록을 열어요
+function syncSel(view) {
+  const pane = view.querySelector('.pane'); if (!pane) return;
+  if (pane.dataset.new) { markSel(view); return; }   // 새로 쓰는 중
+  const ids = [...view.querySelectorAll('.lst .swp[data-id]')].map(w => w.dataset.id);
+  if (!sel || !ids.includes(sel)) sel = ids.includes(pane.dataset.id) ? pane.dataset.id : ids[0] || null;
+  markSel(view);
+  if ((pane.dataset.id || null) !== sel || (!sel && !pane.firstChild)) openPane(view, sel);
+}
+function openPane(view, id, query) {
+  const old = view.querySelector('.pane'); if (!old) return;
+  const pane = old.cloneNode(false); old.replaceWith(pane);   // 열 때마다 새 그릇 (이벤트가 쌓이지 않게)
+  delete pane.dataset.new; pane.dataset.id = id || '';
+  if (!id && !query) {
+    Editor.leave();
+    pane.innerHTML = `<div class="pane-empty">${icon('feather', 30)}<p>${esc(t('list.empty'))}</p><button class="btn primary" data-new>${icon('pencil', 18)}${esc(t('nav.write'))}</button></div>`;
+    return;
+  }
+  if (query) { pane.dataset.new = '1'; sel = null; markSel(view); }
+  Editor.render(pane, query ? { path: '/new', params: {}, query } : { path: '/e/' + id, params: { id }, query: {} }, {
+    pane: true,
+    onSaved: e => { if (pane.dataset.new) { delete pane.dataset.new; pane.dataset.id = e.id; sel = e.id; } view.paintList?.(); },
+    onDone: e => {
+      if (e) { sel = e.id; pane.dataset.id = ''; }                 // 다시 열어서 '새 기록' 상태를 끝내요
+      else { sel = null; pane.dataset.id = ''; delete pane.dataset.new; }
+      view.paintList?.();
+      const r = e && view.querySelector(`.lst .swp[data-id="${e.id}"] .r`);
+      if (r) { r.classList.add('hl'); r.scrollIntoView({ block: 'nearest' }); setTimeout(() => r.classList.remove('hl'), 1800); }
+    },
+    onGone: () => { sel = null; pane.dataset.id = ''; delete pane.dataset.new; view.paintList?.(); }
+  });
+}
 
 /* 밀어서 삭제 (손가락). 조금 밀면 삭제 버튼이 열리고, 반 넘게 밀면 바로 휴지통으로 */
 function swipe(view) {
@@ -174,7 +233,7 @@ function swipe(view) {
   }, true);
 }
 
-export { refresh, render, row, swipe };
+export { leave, refresh, render, row, swipe };
 
 // 종류가 많아 캡슐이 넘치면 옆으로 밀어요: 고른 칸이 보이게 두고, 더 있는 쪽 끝을 흐리게
 function edges(fl) {

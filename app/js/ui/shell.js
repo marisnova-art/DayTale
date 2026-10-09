@@ -41,7 +41,7 @@ function frame() {
     const b = e.target.closest('[data-go],[data-act]'); if (!b) return;
     if (b.dataset.go) { closeMenu(); go(b.dataset.go); return; }
     const a = b.dataset.act;
-    if (a === 'menu') openMenu(); else if (a === 'close-menu') closeMenu(); else if (a === 'new') { closeMenu(); go(newPath()); }
+    if (a === 'menu') openMenu(); else if (a === 'close-menu') closeMenu(); else if (a === 'new') { closeMenu(); const sp = document.querySelector('#view .split'); if (sp) sp.closest('#view').dispatchEvent(new CustomEvent('split-new', { detail: newPath() })); else go(newPath()); }
     else if (a === 'new-folder') import('../views/folders.js').then(m => m.newFolderDialog());
   });
   $('.search input').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.value.trim()) { closeMenu(); go('/search?q=' + encodeURIComponent(e.target.value.trim())); } });

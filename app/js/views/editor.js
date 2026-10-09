@@ -23,7 +23,7 @@ let cur = null;   // { e, isNew, saved, el, off, pan }
 const fbtn = ([k, ic, l], cls = 'tb') => `<button class="${cls}" data-f="${k}" aria-label="${esc(t(l))}" title="${esc(t(l))}" aria-pressed="false">${icon(ic, 20)}</button>`;
 const isPC = () => matchMedia('(min-width: 900px)').matches;
 
-function render(view, r) {
+function render(view, r, opts = {}) {   // opts.pane: PC 나란히 보기의 오른쪽 칸 (onSaved · onDone · onGone)
   leave();
   const isNew = r.path === '/new';
   const e = isNew ? newEntry({ type: r.query.type || S.prefs.defaultType || 'note', folder_id: r.query.folder || null, meta: r.query.date ? { date: r.query.date } : {} })
@@ -37,7 +37,7 @@ function render(view, r) {
   view.innerHTML = `<div class="ed-page"><div class="ed">
     <div class="ed-tools" role="toolbar">
       <button class="tb" data-act="back" aria-label="${esc(t('ed.back'))}">${icon('chevron-left', 22)}</button>
-      ${ro ? '<span class="sp"></span>' : `<span class="sep"></span>${STYLE.slice(1).map(f => fbtn(f)).join('')}<span class="sep"></span>${INLINE.map(f => fbtn(f)).join('')}<span class="sep"></span>${LISTS.slice(0, 4).map(f => fbtn(f)).join('')}<span class="sep"></span>${fbtn(LISTS[4])}${photoBtn}<span class="sp"></span>`}
+      ${ro ? '<span class="sp"></span>' : `<span class="sep"></span><span class="tb-scroll">${STYLE.slice(1).map(f => fbtn(f)).join('')}<span class="sep"></span>${INLINE.map(f => fbtn(f)).join('')}<span class="sep"></span>${LISTS.slice(0, 4).map(f => fbtn(f)).join('')}<span class="sep"></span>${fbtn(LISTS[4])}${photoBtn}</span><span class="sp"></span>`}
       <button class="tb lbl" data-act="more" aria-expanded="false" title="${esc(t('ed.options'))}">${icon('sliders-horizontal', 18)}<span>${esc(t('ed.options'))}</span></button>
       <button class="ed-done" data-act="done">${icon('check', 18)}<span>${esc(t('ed.finish'))}</span></button></div>
     ${ro ? `<div class="ed-locked"><span>${esc(t('ed.locked'))}</span><button data-act="plans">${esc(t('trial.plans'))}</button></div>` : ''}
@@ -58,7 +58,7 @@ function render(view, r) {
   </div>
   <input type="file" accept="image/*" multiple hidden class="ed-file"></div>`;
   const el = { root: view, title: $('.ed-title', view), body: $('.ed-body', view), info: $('.ed-info', view), meta: $('.ed-meta', view), photos: $('.ed-photos', view), foot: $('.ed-foot', view), pan: $('.ed-pan', view) };
-  cur = { e, isNew, wasNew: isNew, el, ro, pan: null, saved: carried ? false : undefined };
+  cur = { e, isNew, wasNew: isNew, el, ro, pan: null, saved: carried ? false : undefined, pane: opts.pane ? opts : null };
   el.title.value = e.title; el.body.innerHTML = e.content || (e.text ? e.text.split('\n').map(l => `<p>${esc(l) || '<br>'}</p>`).join('') : '');
   if (!ro && !el.body.firstElementChild) el.body.innerHTML = '<p><br></p>';   // 첫 줄부터 문단으로 (줄 모양 바꾸기가 고르게 돼요)
   paintChips(); paintPhotos(); paintFoot(); paintFont();
@@ -68,6 +68,10 @@ function render(view, r) {
   el.title.addEventListener('keydown', ev => { if (ev.key === 'Enter' && !ev.isComposing) { ev.preventDefault(); placeCaret(el.body, true); } });
   el.title.addEventListener('focus', () => closePan());
   cur.hist = new History(el.body);
+  const sc = $('.tb-scroll', view);   // 서식 단추 줄이 넘치면 오른쪽 끝을 흐리게, 마우스 휠로도 옆으로
+  if (sc) { const upd = () => sc.classList.toggle('more-r', sc.scrollLeft < sc.scrollWidth - sc.clientWidth - 2);
+    sc.addEventListener('scroll', upd, { passive: true }); new ResizeObserver(upd).observe(sc);
+    sc.addEventListener('wheel', ev => { if (sc.scrollWidth > sc.clientWidth && Math.abs(ev.deltaY) > Math.abs(ev.deltaX)) { ev.preventDefault(); sc.scrollLeft += ev.deltaY; } }, { passive: false }); }
   el.body.addEventListener('input', ev => { shortcuts(ev); cur.hist.soon(); save(); paintState(); });
   el.body.addEventListener('keydown', onKey);
   el.body.addEventListener('focus', () => document.execCommand('defaultParagraphSeparator', false, 'p'));
@@ -97,7 +101,8 @@ async function commit() {
   if (!cur) return;
   if (!ok && cur.saved !== 'failed') toast(t('ed.saveFail'));
   cur.saved = ok || 'failed';
-  if (ok && cur.isNew) { cur.isNew = false; history.replaceState(null, '', '#/e/' + e.id); }
+  if (ok && cur.isNew) { cur.isNew = false; if (!cur.pane) history.replaceState(null, '', '#/e/' + e.id); }
+  if (ok) cur.pane?.onSaved?.(e);
   paintFoot();
 }
 function leave() {
@@ -273,6 +278,7 @@ async function finish(b) {
     b.classList.add('fin'); navigator.vibrate?.(12);
     await new Promise(r => setTimeout(r, 520));
   }
+  if (cur?.pane) { const p = cur.pane; leave(); p.onDone?.(wrote ? e : null); return; }
   leave();
   if (wrote && wasNew) go('/all', { replace: true }); else history.length > 1 ? history.back() : go('/home');
 }
@@ -283,10 +289,11 @@ async function more(v) {
     if (cur.isNew) e[k] = !e[k]; else await patchEntry(e.id, { [k]: !e[k] });
     if (cur) paintChips();
   } else if (v === 'trash') {
-    if (cur.isNew) { leave(); history.back(); return; }
+    const p = cur.pane;
+    if (cur.isNew) { leave(); p ? p.onGone?.() : history.back(); return; }
     await commit(); const id = e.id; leave(); await trashEntry(id);
     toast(t('ed.trashed'), { action: t('common.undo'), onAction: () => import('../data/store.js').then(m => m.restoreEntry(id)) });
-    history.length > 1 ? history.back() : go('/home');
+    if (p) p.onGone?.(); else history.length > 1 ? history.back() : go('/home');
   }
 }
 
