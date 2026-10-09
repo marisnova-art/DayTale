@@ -33,7 +33,7 @@ function story() {
 /* 한 줄 쓰기 칸: 누르면 나머지는 흐려지고 이 칸에만 집중해요. 안내 문구는 30개 중 무작위 */
 let ph = '';
 const phrase = () => { const a = t('home.phs'); return Array.isArray(a) ? a[Math.floor(Math.random() * a.length)] : ''; };
-const askBox = label => `<div class="ask"><div class="ta-row"><span class="pen">${icon('pencil', 28)}</span><textarea rows="1" placeholder="${esc(ph)}" aria-label="${esc(label)}" enterkeyhint="send" maxlength="5000"></textarea></div>
+const askBox = label => `<div class="ask"><div class="ta-row"><span class="pen">${icon('pencil', 32)}</span><textarea rows="1" placeholder="${esc(ph)}" aria-label="${esc(label)}" enterkeyhint="send" maxlength="5000"></textarea></div>
   <div class="ask-btns"><button type="button" class="more">${icon('maximize-2', 16)}${esc(t('home.more'))}</button><button type="button" class="fin" disabled>${icon('check', 18)}${esc(t('ed.finish'))}</button></div></div>`;
 let just = null;   // 방금 남긴 한 줄 { id, text, day, fresh }
 const unfocus = () => document.documentElement.classList.remove('home-focus');
