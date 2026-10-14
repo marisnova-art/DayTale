@@ -57,11 +57,20 @@ let mounted = null;
 async function show(r) {
   const old = $('#view'); if (!old) return;
   const view = old.cloneNode(false); old.replaceWith(view);   // 화면마다 새 그릇 (이벤트가 쌓이지 않게)
+  const slow = setTimeout(showLoader, 180);   // 화면 준비가 늦으면 반쯤 그려진 화면 대신 로고 로딩만 보여요
   const mod = await r.view();
+  clearTimeout(slow);
   if (now() !== r) return;   // 그 사이 다른 화면으로 감
   if (mounted && mounted !== mod) mounted.leave?.();
-  mounted = mod; mod.render(view, r); paint();
+  mounted = mod; await mod.render(view, r); paint();
   view.focus({ preventScroll: true }); scrollTo(0, 0);
+  if (S.settled) hideLoader();
+}
+/* 로고 로딩: 처음 열 때는 기록·이름·날씨까지 다 준비될 때까지, 다른 화면은 준비가 늦을 때만 */
+const showLoader = () => $('#boot')?.classList.remove('gone');
+function hideLoader() {
+  const b = $('#boot'); if (!b || b.classList.contains('gone')) return;
+  Promise.race([document.fonts?.ready, new Promise(r => setTimeout(r, 500))]).then(() => requestAnimationFrame(() => requestAnimationFrame(() => b.classList.add('gone'))));
 }
 
 /* ---------- 로그인한 사람으로 시작 ---------- */
@@ -80,7 +89,7 @@ async function startUser(user, { offline = false } = {}) {
   S.settled = false; if (!offline) document.documentElement.classList.add('story-wait');
   hideAuth(); frame(); applyI18n();
   startRouter(show);
-  $('#boot').classList.add('gone');
+  setTimeout(settle, 4000);   // 무슨 일이 있어도 로딩 화면이 계속 남지 않게
   if (S.db.volatile) toast(t('err.noStorage'), { bad: true, ms: 7000 });
   purgeOldTrash();
   if (offline) { settle(); return; }
@@ -99,6 +108,7 @@ function settle() {
   if (S.settled) return; S.settled = true;
   emit('settled');
   document.documentElement.classList.remove('story-wait');
+  hideLoader();
 }
 /* 체험 끝나기 7일·3일 전 한 번씩 알려요 (메일은 서버가 따로 보내요) */
 function trialNudge() {
