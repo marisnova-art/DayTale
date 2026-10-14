@@ -92,7 +92,7 @@ function apply(el = document.body, { weather = null } = {}) {
   let p = saved?.key === key ? Object.values(PAL).flat().find(x => x[0] === saved.name) : null;
   if (!p) { p = pick(slot, weather); ls.set('daytale.bgNow', { key, name: p[0] }); ls.set('daytale.bg', [p[0], ...ls.get('daytale.bg', [])].slice(0, 7)); }
   current = { name: p[0], slot, accent: lighten(p[2], .6) };
-  paint(el, { bg: css(p), wide: cssWide(p), ink: inkOf(p), body: .74, accent: current.accent, theme: p[1], scrim: .25 });
+  paint(el, { bg: css(p), wide: cssWide(p), ink: inkOf(p), body: .62, accent: current.accent, theme: p[1], scrim: .25 });
   return current;
 }
 const now = () => current;
