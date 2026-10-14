@@ -53,7 +53,8 @@ const opts = (list = [], ctx) => list.flatMap(x => typeof x === 'string' ? [{ te
 const SLOT_ST = { morning: 'sunrise', day: 'sunflower', evening: 'night', night: 'moon' };
 const SEASON_ST = { spring: 'blossom', summer: 'sunflower', autumn: 'leaf', winter: 'snowman' };
 /* 스티커는 바로 뒤 낱말과 한 덩어리(nowrap)라서 줄이 바뀌어도 같이 움직여요 */
-const glue = (n, html = '') => { const st = sticker(n); if (!st) return html; const m = /^([^\s<]+)([\s\S]*)$/.exec(html); return m ? `<span class="glue">${st}${m[1]}</span>${m[2]}` : st + html; };
+// 스티커와 바로 뒤 글자 몇 자만 한 줄에 묶어요 (띄어쓰기 없는 긴 글이 통째로 묶이면 화면 밖으로 나가요)
+const glue = (n, html = '') => { const st = sticker(n); if (!st) return html; const m = /^((?:&[a-z0-9#]+;|[^\s<&]){1,4})([\s\S]*)$/i.exec(html); return m ? `<span class="glue">${st}${m[1]}</span>${m[2]}` : st + html; };
 const link = (href, html) => `<a class="w" href="${href}">${html}</a>`;
 const num = (s) => String(s).replace(/(\d[\d,.]*°?)/g, '<span class="n">$1</span>');
 function fill(text, vars) {
