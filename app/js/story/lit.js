@@ -147,6 +147,8 @@ const LIT = [
 const SEASON = { spring: 1, summer: 1, autumn: 1, winter: 1 };
 const DARK_OK = x => x.t === 'night';   // 밤 풍경 줄
 /* 오늘(날짜·시간대) 하나를 골라요. 계절·시간대·날씨가 맞을수록 먼저, 최근 2주에 나온 줄은 건너뛰어요 */
+// 작가: 한국어 줄의 첫 이름 ("릴케는 …" → 릴케)
+const who = x => (x.ko?.match(/^(.+?)(?:은|는)\s/) || [])[1] || x.ko?.slice(0, 6);
 function pickLit(ctx, lang, seen = []) {
   const kind = ctx.weather?.kind; const wx = kind === 'sun' ? 'clear' : kind === 'rain' || kind === 'thunder' ? 'rain' : kind === 'snow' ? 'snow' : kind ? 'cloud' : '';
   const light = ctx.light ?? (ctx.slot === 'morning' || ctx.slot === 'day');
@@ -154,11 +156,13 @@ function pickLit(ctx, lang, seen = []) {
   const tOk = x => !x.t || [].concat(x.t).includes(ctx.slot) || (DARK_OK(x) && ctx.slot === 'evening' && !light);
   const fits = LIT.map((x, i) => ({ x, i })).filter(({ x }) => x[lang] && (!x.s || x.s === ctx.season) && tOk(x) && (!x.w || x.w === wx) && (!x.sun || light) && !(DARK_OK(x) && light));
   const score = x => (x.s ? 2 : 0) + (x.t ? 2 : 0) + (x.w ? 3 : 0);
-  const fresh = fits.filter(({ i }) => !seen.includes(i));
-  const pool = fresh.length ? fresh : fits;
+  // 같은 작가가 며칠 내리 나오지 않게: 최근 여섯 번(약 사흘) 안에 나온 작가는 쉬어요. 줄 하나는 14일 동안 다시 나오지 않아요
+  const recent = new Set(seen.slice(-6).map(i => LIT[i] && who(LIT[i])));
+  const fresh = fits.filter(({ i, x }) => !seen.includes(i) && !recent.has(who(x)));
+  const pool = fresh.length ? fresh : fits.filter(({ i }) => !seen.includes(i)).length ? fits.filter(({ i }) => !seen.includes(i)) : fits;
   if (!pool.length) return null;
   // 계절·시간대·날씨가 맞을수록 자주 나와요 (언제든 어울리는 줄도 가끔)
-  const weight = x => 1 + score(x) * 2, total = pool.reduce((n, { x }) => n + weight(x), 0);
+  const weight = x => 1 + score(x), total = pool.reduce((n, { x }) => n + weight(x), 0);
   let h = 0; for (const c of ctx.today + ctx.slot) h = (h * 31 + c.charCodeAt(0)) >>> 0;
   h ^= h >>> 16; h = Math.imul(h, 0x45d9f3b) >>> 0; h ^= h >>> 16;
   let r = h % total, pick = pool[0];
