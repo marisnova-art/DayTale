@@ -111,3 +111,10 @@
 :root[data-pixel] .home :is(.story, .when) { font-family: var(--f-pixel); letter-spacing: 0; -webkit-font-smoothing: none; }
 :root[data-pixel] .home .story { font-size: calc(var(--story) * .82); font-weight: 400; line-height: 1.55; }
 :root[data-pixel] .home .story :is(.w, .n) { font-weight: 700; }
+/* 패턴 글꼴은 홈 질문 문장과 쓰기 칸에도 (줄노트 = 손글씨, 모눈 = 픽셀) */
+:root[data-lined] .home .askq .q, :root[data-lined] .home .ask textarea { font-family: var(--f-pad); letter-spacing: 0; }
+:root[data-lined] .home .askq .q { font-weight: 700; }
+:root[data-lined] .home .ask textarea { font-weight: 400; font-size: calc(var(--fs-l) * 1.05); }
+:root[data-pixel] .home .askq .q, :root[data-pixel] .home .ask textarea { font-family: var(--f-pixel); letter-spacing: 0; -webkit-font-smoothing: none; }
+:root[data-pixel] .home .askq .q { font-size: calc(var(--story) * .82); }
+:root[data-pixel] .home .ask textarea { font-weight: 400; font-size: calc(var(--fs-l) * .9); }
