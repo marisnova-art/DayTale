@@ -19,7 +19,7 @@
 .seg.wide button { height: 38px; }
 .sw { appearance: none; -webkit-appearance: none; width: 46px; height: 28px; border-radius: 14px; background: var(--fill-2); border: 1px solid var(--line-2); position: relative; flex: none; cursor: pointer; transition: background .2s; }
 .sw::after { content: ''; position: absolute; top: 2px; left: 2px; width: 22px; height: 22px; border-radius: 11px; background: #CFCBD5; transition: transform .2s; }
-.sw:checked { background: linear-gradient(135deg, #FF8A6A, #FFB37A); border-color: transparent; box-shadow: 0 0 0 3px rgba(255,138,106,.18); }   /* 켜짐은 항상 주황 (작성 완료 버튼과 같은 색) */
+.sw:checked { background: var(--kick); border-color: transparent; box-shadow: 0 0 0 3px rgba(255,59,92,.18); }   /* 켜짐은 작성 완료 버튼과 같은 강조색 */
 .sw:checked::after { transform: translateX(18px); background: #fff; }
 .sgh { margin: 26px 8px 10px; font-size: var(--fs-s); font-weight: 700; color: var(--muted-2); letter-spacing: .02em; }
 .sgroup > .scard:first-child, .sgroup > .scard + .scard { margin-top: 14px; }

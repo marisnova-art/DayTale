@@ -31,7 +31,7 @@
 .ask-btns { display: none; justify-content: flex-end; gap: 8px; margin: 8px 0 16px; }   /* 아래 여백 = 위쪽 연필 아이콘 여백 (20px) */
 .ask-btns button { display: inline-flex; align-items: center; gap: 6px; height: 42px; padding: 0 16px 0 12px; border-radius: 21px; font-size: var(--fs-s); font-weight: 700; white-space: nowrap; transition: background .2s, color .2s, box-shadow .2s; }
 .ask-btns .more { background: rgba(var(--fg),.1); color: rgba(var(--fg),.85); }
-.ask-btns .fin { background: linear-gradient(135deg, #FF8A6A, #FFB37A); color: #2A1408; box-shadow: 0 6px 18px rgba(255,138,106,.35); }
+.ask-btns .fin { background: var(--kick); color: var(--kick-on); box-shadow: 0 6px 18px var(--kick-glow); }
 .ask-btns .fin:disabled { background: rgba(var(--fg),.06); color: rgba(var(--fg),.35); box-shadow: none; }
 /* 집중 모드: 쓰는 칸만 또렷하게, 나머지는 흐리게(딤 + 블러), 아래 막대는 숨김 */
 .home .story, .home .when, .home .wxcredit, .home-wrap .today-side, .layout > nav, .layout > aside { transition: opacity .3s, filter .3s; }

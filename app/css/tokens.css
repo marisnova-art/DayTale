@@ -23,6 +23,7 @@
   --fg: 255,255,255; --srf: 22,21,26; --on-text: #141317;   /* 글자·선 색의 바탕(흰색), 반투명 판의 바탕(어두운 색), 밝은 버튼 위 글자 */
   --event: #FF9D7A; --todo: #FFC86B; --record: #B7A4FF;
   --danger: #FF6B6B; --ok: #6FD39A;
+  --kick: linear-gradient(135deg, #FF3B5C, #FF7A3D); --kick-on: #FFFFFF; --kick-glow: rgba(255,59,92,.42);   /* 작성 완료처럼 꼭 눌러야 하는 단추 하나에만 쓰는 강조색 */
   --bg-grad: linear-gradient(160deg, #2A1418 0%, #8A271A 16%, #844B22 36%, #274F4C 62%, #173638 86%, #16181C 100%);
   --r-s: 12px; --r-m: 16px; --r-l: 24px; --r-xl: 32px;
   --f-serif: 'DT Gowun Batang', 'DT Noto Serif JP', 'Noto Serif KR', serif;
