@@ -1,10 +1,11 @@
 /* 설정: 계정·구독 · 화면 · 기록 · 알림 · 데이터 · 정보 (휴대폰은 목록 → 그룹, PC는 왼쪽 목록 + 오른쪽 내용) */
 import { APP_VERSION, CFG, LANGS, LIMITS, brand } from '../core/config.js';
 import { fmtDate, fmtNum, fmtRel, getLang, t } from '../core/i18n.js';
-import { esc, h, icon, uid } from '../core/utils.js';
+import { esc, h, icon, slotOf, uid } from '../core/utils.js';
 import { Account } from '../data/account.js';
 import { CITIES, cityLookup, guessCity } from '../data/cities.js';
-import { S, emit, live, onChange, setPref, textSize } from '../data/store.js';
+import { S, emit, live, onChange, setPref, textSize, uiStyle } from '../data/store.js';
+import { PAL, SOLID, css } from '../ui/backdrop.js';
 import { endSession } from '../data/supabase.js';
 import { Sync } from '../data/sync.js';
 import { Install } from '../features/install.js';
@@ -30,6 +31,9 @@ const LICENSES = [
 const row = ({ ic, label, sub = '', value = '', act = '', href = '', danger = false, chev = true }) =>
   `<${href ? `a href="${href}"` : `button data-a="${act}"`} class="srow${danger ? ' danger' : ''}">${ic ? `<span class="si">${icon(ic, 19)}</span>` : ''}<span class="stx"><b>${esc(label)}</b>${sub ? `<small>${sub}</small>` : ''}</span>${value ? `<span class="sv">${esc(value)}</span>` : ''}${chev ? icon('chevron-right', 18) : ''}</${href ? 'a' : 'button'}>`;
 const toggle = (key, label, sub, on) => `<label class="srow"><span class="stx"><b>${esc(label)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</span><input type="checkbox" class="sw" data-t="${key}" ${on ? 'checked' : ''}></label>`;
+/* 배경 고르기: 그라데이션 + 단색 견본 (글자 'Aa'는 그 배경의 글자색) */
+const bgRow = cur => `<div class="srow col"><span class="stx"><b>${esc(t('set.bg'))}</b></span><span class="bgsw">${[['grad', css(PAL[slotOf()][0]), '#F5F3EF', t('set.bgGrad')], ...Object.entries(SOLID).map(([k, [bg, ink]]) => [k, bg, ink, t('bg.' + k)])]
+  .map(([v, bg, ink, name]) => `<button data-s="bg" data-v="${v}" class="${v === cur ? 'on' : ''}" aria-label="${esc(name)}" aria-pressed="${v === cur}"><i style="background:${bg};color:${ink}">Aa</i><small>${esc(name)}</small></button>`).join('')}</span></div>`;
 const seg = (key, label, opts, cur) => `<div class="srow col"><span class="stx"><b>${esc(label)}</b></span><span class="seg wide">${opts.map(([v, l]) => `<button data-s="${key}" data-v="${v}" class="${String(cur) === String(v) ? 'on' : ''}">${esc(l)}</button>`).join('')}</span></div>`;
 const card = (title, inner) => `${title ? `<h3 class="sgh">${esc(title)}</h3>` : ''}<div class="scard">${inner}</div>`;
 
@@ -48,7 +52,9 @@ function group(g) {
   if (g === 'display') return card('', seg('mode', t('set.mode'), [['story', t('set.story')], ['tidy', t('set.tidy')]], p.mode) + `<p class="snote">${esc(t('set.modeSub'))}</p>`)
     + card('', seg('textSize', t('set.textSize'), [['s', t('set.sizeS')], ['m', t('set.sizeM')], ['l', t('set.sizeL')]], textSize())
       + seg('lang', t('set.lang'), [['', t('set.langAuto')], ...LANGS.map(l => [l, t('lang.' + l)])], p.lang || '')
-      + seg('weekStart', t('set.weekStart'), [[0, t('set.sun')], [1, t('set.mon')]], p.weekStart || 0));
+      + seg('weekStart', t('set.weekStart'), [[0, t('set.sun')], [1, t('set.mon')]], p.weekStart || 0))
+    + card('', seg('ui', t('set.ui'), [['white', t('set.uiWhite')], ['glass', t('set.uiGlass')], ['dark', t('set.uiDark')]], uiStyle()) + bgRow(p.bg in SOLID ? p.bg : 'grad'))
+    + `<p class="snote">${esc(t('set.bgSub'))}</p>`;
   if (g === 'record') {
     const c = Weather.city();
     return card('', row({ ic: 'shapes', label: t('set.defaultType'), value: typeLabel(p.defaultType || 'note'), act: 'type' })

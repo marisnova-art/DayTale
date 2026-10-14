@@ -9,6 +9,8 @@ const DEFAULT_PREFS = {
   lang: null,            // 비어 있으면 기기 언어
   mode: 'story',         // story = 감성형, tidy = 정리형
   textSize: 'm',         // s · m(기본) · l
+  ui: 'white',           // 메뉴 색: white(기본) · glass · dark
+  bg: 'grad',            // 배경: grad = 시간대 그라데이션, 아니면 단색 이름 (backdrop.js SOLID)
   weekStart: 0,          // 일요일
   defaultType: 'note',
   sort: 'updated',
@@ -110,6 +112,7 @@ const setPrefsHook = f => { prefsHook = f; };
 function setPref(k, v) { S.prefs[k] = v; ls.set('daytale.prefs', S.prefs); S.db?.set('prefs', S.prefs); emit('prefs'); prefsHook(); }
 
 /* 글자 크기: 예전 값 xl 은 이제 l(크게) */
+const uiStyle = () => ['white', 'glass', 'dark'].includes(S.prefs.ui) ? S.prefs.ui : 'white';
 const textSize = () => S.prefs.textSize === 'xl' ? 'l' : ['s', 'm', 'l'].includes(S.prefs.textSize) ? S.prefs.textSize : 'm';
-export { textSize, DEFAULT_PREFS, FOLDER_COLORS, S, TYPES, addEntry, addFolder, deleteFolder, displayTitle, emit, folderList, isEmpty, live, newEntry, onChange,
+export { textSize, uiStyle, DEFAULT_PREFS, FOLDER_COLORS, S, TYPES, addEntry, addFolder, deleteFolder, displayTitle, emit, folderList, isEmpty, live, newEntry, onChange,
   patchEntry, purgeEntries, purgeOldTrash, restoreEntry, saveEntry, saveFolder, setPref, setPrefsHook, setSyncHook, trash, trashEntry };

@@ -161,3 +161,33 @@ dialog.dlg .btn { height: 44px; }
 :root.rot .sheet { max-height: calc(var(--rh) * .92); }
 :root.rot .auth, :root.rot .ed-page { min-height: var(--rh); }
 :root.rot .ask textarea { max-height: calc(var(--rh) * .4); }   /* 대화상자는 body 밖(맨 위 층)에 그려져서 따로 돌려요 */
+
+/* 메뉴 색 (설정 > 화면 > 메뉴 색): dark = 다크그레이 · glass = 흰 유리 · white = 흰색 (기본).
+   아래 막대 · 모바일 메뉴 · 홈 쓰기 칸에 적용돼요. PC 왼쪽 사이드바는 그대로예요. */
+:root[data-ui="white"] .mbar { background: #FFFFFF; box-shadow: 0 10px 30px rgba(0,0,0,.28); }
+:root[data-ui="white"] .mbar .icon-btn { color: #6E6A76; }
+:root[data-ui="white"] .mbar .tab.on { color: #18171C; background: #EFEDF2; }
+:root[data-ui="white"] .mbar .sep { background: #E4E1E8; }
+:root[data-ui="white"] .mbar .write { background: #18171C; color: #FFFFFF; }
+:root[data-ui="white"] .mbar .badge-dot { box-shadow: 0 0 0 2px #FFFFFF; }
+:root[data-ui="glass"] .mbar { background: linear-gradient(rgba(255,255,255,.18), rgba(255,255,255,.18)), rgba(28,26,34,.42); border: 1px solid rgba(255,255,255,.28); box-shadow: 0 10px 30px rgba(0,0,0,.2);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4); backdrop-filter: blur(24px) saturate(1.4); }
+:root[data-ui="glass"] .mbar .icon-btn { color: rgba(255,255,255,.82); }
+:root[data-ui="glass"] .mbar .tab.on { color: #fff; background: rgba(255,255,255,.22); }
+:root[data-ui="glass"] .mbar .sep { background: rgba(255,255,255,.3); }
+:root[data-ui="glass"] .mbar .write { background: #FFFFFF; color: #1A1820; }
+@media (max-width: 899.98px), (max-height: 500px) and (pointer: coarse) {
+  :root[data-ui="white"] .drawer { background: #FFFFFF; border-color: transparent; box-shadow: 0 20px 60px rgba(0,0,0,.35);
+    --text: #18171C; --text-2: #211F26; --text-3: #3A3741; --muted: #77737F; --muted-2: #77737F; --faint: #8F8B97;
+    --fill: #F2F0F5; --fill-2: #ECEAF0; --line: #ECEAF0; --line-2: #E2DFE6; }
+  :root[data-ui="white"] .drawer .m.on { background: #F0EEF3; border-color: transparent; color: #18171C; }
+  :root[data-ui="white"] .drawer .m.on svg { color: #18171C; }
+  :root[data-ui="white"] .drawer .head .close { background: #F0EEF3; }
+  :root[data-ui="white"] .drawer .trialbar .tb-plans { color: #77737F; }
+  :root[data-ui="glass"] .drawer { background: linear-gradient(rgba(255,255,255,.16), rgba(255,255,255,.16)), rgba(28,26,34,.72); border-color: rgba(255,255,255,.28);
+    -webkit-backdrop-filter: blur(30px) saturate(1.4); backdrop-filter: blur(30px) saturate(1.4);
+    --text-3: #FFFFFF; --muted-2: rgba(255,255,255,.72); --faint: rgba(255,255,255,.6); --fill: rgba(255,255,255,.14); --fill-2: rgba(255,255,255,.2); --line: rgba(255,255,255,.2); --line-2: rgba(255,255,255,.28); }
+  :root[data-ui="glass"] .drawer .m.on { background: rgba(255,255,255,.2); border-color: transparent; }
+  :root[data-ui="glass"] .drawer .head .close { background: rgba(255,255,255,.2); }
+  :root[data-ui="glass"] .scrim { background: rgba(0,0,0,.35); }
+}

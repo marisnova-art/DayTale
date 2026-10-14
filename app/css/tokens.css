@@ -19,6 +19,7 @@
   --muted-2: #8E8A94;
   --faint: #6F6B77;
   --accent: #FFB37A;      /* 배경 팔레트에서 바뀌어요 */
+  --ink: #F5F3EF; --ink-rgb: 255,255,255; --ink-body: .7; --scrim: .25;   /* 배경 위 글자: 배경마다 짝을 맞춰요 (backdrop.js) */
   --event: #FF9D7A; --todo: #FFC86B; --record: #B7A4FF;
   --danger: #FF6B6B; --ok: #6FD39A;
   --bg-grad: linear-gradient(160deg, #2A1418 0%, #8A271A 16%, #844B22 36%, #274F4C 62%, #173638 86%, #16181C 100%);

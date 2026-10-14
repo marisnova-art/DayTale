@@ -9,7 +9,7 @@ import es from './i18n/es.js';
 import fr from './i18n/fr.js';
 import { Account } from './data/account.js';
 import { LocalDB } from './data/local-db.js';
-import { S, emit, live, onChange, purgeOldTrash, setPrefsHook, setSyncHook, textSize } from './data/store.js';
+import { S, emit, live, onChange, purgeOldTrash, setPrefsHook, setSyncHook, textSize, uiStyle } from './data/store.js';
 import { configured, getSupabase } from './data/supabase.js';
 import { Sync } from './data/sync.js';
 import { setRemote } from './story/engine.js';
@@ -27,6 +27,7 @@ register('ko', ko); register('en', en); register('ja', ja); register('es', es); 
 setLang(S.prefs.lang || detectLang());
 document.title = brand(getLang());
 document.documentElement.dataset.size = textSize();
+document.documentElement.dataset.ui = uiStyle();
 Backdrop.apply(document.documentElement);
 /* 휴대폰은 세로로만: 설치한 안드로이드 앱은 화면을 고정하고, 그래도 가로가 되면 화면을 기기 방향에 맞춰 반대로 돌려서 세로 그대로 보여요 (shell.css :root.rot) */
 if (Math.min(screen.width, screen.height) < 500) screen.orientation?.lock?.('portrait').catch(() => {});
@@ -111,6 +112,9 @@ const reschedule = debounce(() => Reminders.schedule(), 800);
 function applyPrefs() {
   const l = S.prefs.lang || detectLang(); if (l !== getLang()) { setLang(l); frame(); rerender(); }
   document.documentElement.dataset.size = textSize();
+  document.documentElement.dataset.ui = uiStyle();
+  const bg = S.prefs.bg in Backdrop.SOLID ? S.prefs.bg : 'grad', cur = Backdrop.now();   // 배경을 바꾸면 바로 칠해요
+  if (bg !== (cur?.solid ? cur.name : 'grad')) Backdrop.apply(document.documentElement);
 }
 /* 서버 문장 묶음: 하루 한 번 받아 두기 */
 async function loadPhrases() {

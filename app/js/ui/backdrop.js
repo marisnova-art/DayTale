@@ -1,5 +1,7 @@
-/* 배경 그라데이션 24종 (시간대마다 6종, 무작위, 최근 7번은 피함) + 필름 입자 */
+/* 배경 그라데이션 24종 (시간대마다 6종, 무작위, 최근 7번은 피함) + 필름 입자.
+   설정 > 화면 > 배경에서 단색도 고를 수 있어요. 글자색은 배경마다 짝을 맞춰요. */
 import { ls, slotOf } from '../core/utils.js';
+import { S } from '../data/store.js';
 
 // 이름, 어두운 모서리, 뜨거운 빛, 따뜻한 빛, 중간, 깊은 색
 const PAL = {
@@ -37,25 +39,45 @@ function pick(slot = slotOf(), weather = null) {
   if (weather === 'rain' || weather === 'snow') { const calm = pool.filter(p => CALM.has(p[0])); if (calm.length) pool = calm; }
   return pool[Math.floor(Math.random() * pool.length)];
 }
+/* 단색: 이름 → [배경, 글자, 본문 진하기, 포인트]. 본문 대비 4.5:1 이상, 포인트 3:1 이상 (큰 글씨) */
+const SOLID = {
+  terracotta: ['#8C3F2E', '#FFF2E8', .8, '#FFD58A'], plum: ['#3A2240', '#F7E9F3', .74, '#FFAFCB'],
+  olive: ['#3B3D26', '#F3F0DC', .74, '#E8C65A'], navy: ['#131B32', '#E6ECFF', .72, '#9DB8FF'], charcoal: ['#1C1C1E', '#F2F0EC', .7, '#FFB37A']
+};
+const rgb = c => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16)).join(',');
+/* 그라데이션 글자: 배경의 따뜻한 빛 색을 아주 옅게 섞은 흰색 */
+const inkOf = p => lighten(p[3], .86);
+function paint(el, { bg, wide, ink, body, accent, theme, scrim }) {
+  el.style.setProperty('--bg-grad', bg);
+  el.style.setProperty('--bg-grad-wide', wide || bg);
+  el.style.setProperty('--accent', accent);
+  el.style.setProperty('--ink', ink); el.style.setProperty('--ink-rgb', rgb(ink)); el.style.setProperty('--ink-body', body);
+  el.style.setProperty('--scrim', scrim);
+  document.querySelector('meta[name=theme-color]')?.setAttribute('content', theme);
+}
 let current = null;
 /* 하루 한 시간대 동안은 같은 배경을 유지해요 */
 function apply(el = document.body, { weather = null } = {}) {
-  const slot = slotOf(), key = new Date().toDateString() + slot;
+  const slot = slotOf(), sol = SOLID[S.prefs.bg];
+  if (sol) {
+    const [bg, ink, a, acc] = sol; current = { name: S.prefs.bg, slot, accent: acc, solid: bg };
+    paint(el, { bg, ink, body: a, accent: acc, theme: bg, scrim: 0 });
+    return current;
+  }
+  const key = new Date().toDateString() + slot;
   const saved = ls.get('daytale.bgNow', null);
   let p = saved?.key === key ? Object.values(PAL).flat().find(x => x[0] === saved.name) : null;
   if (!p) { p = pick(slot, weather); ls.set('daytale.bgNow', { key, name: p[0] }); ls.set('daytale.bg', [p[0], ...ls.get('daytale.bg', [])].slice(0, 7)); }
   current = { name: p[0], slot, accent: lighten(p[2], .6) };
-  el.style.setProperty('--bg-grad', css(p));
-  el.style.setProperty('--bg-grad-wide', cssWide(p));
-  el.style.setProperty('--accent', current.accent);
-  document.querySelector('meta[name=theme-color]')?.setAttribute('content', p[1]);
+  paint(el, { bg: css(p), wide: cssWide(p), ink: inkOf(p), body: .74, accent: current.accent, theme: p[1], scrim: .25 });
   return current;
 }
 const now = () => current;
 /* 지금 배경의 색 단계 (이미지 카드 배경용) */
 function stops() {
+  if (current?.solid) { const c = current.solid; return [dk(c, .8), c, c, dk(c, .9), dk(c, .75)]; }
   const p = Object.values(PAL).flat().find(x => x[0] === current?.name) || PAL.evening[0];
   const [, d, hot, warm, mid, deep] = p; return [d, dk(hot, .62), dk(warm, .55), dk(mid, .85), deep];
 }
 
-export { PAL, apply, css, cssWide, now, stops };
+export { PAL, SOLID, apply, css, cssWide, now, stops };
