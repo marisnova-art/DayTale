@@ -45,7 +45,7 @@ const SOLID = {
   cream: ['#F3EADB', '#2A2018', .66, '#A8461F', 1], sage: ['#CFE2C4', '#1E2A20', .68, '#2E663C', 1], sky: ['#D4E4F1', '#13243A', .68, '#2C62B4', 1],
   blush: ['#F4E1DD', '#2E1A1C', .66, '#B23A48', 1], lavender: ['#E3DEF2', '#221C3A', .66, '#5B45B0', 1],
   terracotta: ['#8C3F2E', '#FFF2E8', .76, '#FFD58A'], plum: ['#3A2240', '#F7E9F3', .62, '#FFAFCB'],
-  olive: ['#3B3D26', '#F3F0DC', .62, '#E8C65A'], navy: ['#131B32', '#E6ECFF', .62, '#9DB8FF'], charcoal: ['#1C1C1E', '#F2F0EC', .62, '#FFB37A'], forest: ['#173832', '#E8F3EE', .62, '#8FE0B8'],
+  olive: ['#3B3D26', '#F3F0DC', .62, '#E8C65A'], forest: ['#173832', '#E8F3EE', .62, '#8FE0B8'], navy: ['#131B32', '#E6ECFF', .62, '#9DB8FF'], charcoal: ['#1C1C1E', '#F2F0EC', .62, '#FFB37A'],
   /* 패턴: 그라데이션·단색과 섞지 않는 따로 된 배경. 여섯째 값 = 무늬 이름 (글꼴·글줄 선은 base.css :root[data-pat]) */
   pad: ['#FBEFA4', '#26303F', .7, '#C2412E', 1, 'pad'], padw: ['#FBFAF5', '#26303F', .7, '#C2412E', 1, 'padw'],
   grid: ['#F6F7F4', '#1C2533', .66, '#2C62B4', 1, 'grid'], gridd: ['#1D2228', '#ECEFF2', .62, '#F2C76A', 0, 'gridd']
