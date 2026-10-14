@@ -8,7 +8,7 @@ import { sticker } from '../core/stickers.js';
 import { go } from '../ui/router.js';
 import { nextQuestion, pickQuestion } from '../story/questions.js';
 import { fmtDate, fmtTime, t } from '../core/i18n.js';
-import { esc, h, icon, slotOf, todayKey } from '../core/utils.js';
+import { esc, h, icon, slotOf, sunUp, todayKey } from '../core/utils.js';
 import { toast } from '../ui/feedback.js';
 import { todayPanel } from './today.js';
 
@@ -16,13 +16,13 @@ let cache = null;   // 같은 시간대·같은 기록이면 이야기를 다시
 const sig = () => { const a = live(); return a.length + ':' + a.reduce((m, e) => e.updated_at > m ? e.updated_at : m, ''); };
 
 function story() {
-  const key = todayKey() + slotOf() + sig() + (Account.name() || '') + Account.avatar().length + (Weather.current()?.at || '');
+  const geo = Weather.city(), key = todayKey() + slotOf() + sunUp(new Date(), geo?.lat, geo?.lon) + sig() + (Account.name() || '') + Account.avatar().length + (Weather.current()?.at || '');
   if (cache?.key === key) return cache;
   const wx = Weather.current();
-  const { ctx, paragraphs, recall } = compose({ name: Account.name(), weather: wx, city: wx?.city, max: matchMedia('(min-width: 900px)').matches ? 5 : 3 });
+  const { ctx, paragraphs, recall } = compose({ name: Account.name(), weather: wx, city: wx?.city, geo, max: matchMedia('(min-width: 900px)').matches ? 6 : 4 });
   ctx.weather = wx;
   const recallPh = p => p.recall && p.entry?.photos?.length ? `<a class="recall-ph" href="#/e/${p.entry.id}" aria-label="${esc(displayTitle(p.entry, t('common.untitled')))}">${p.entry.photos.slice(0, 3).map(ph => Photos.imgTag(ph)).join('')}</a>` : '';
-  const html = paragraphs.map(p => typeof p === 'string' ? `<p>${p}</p>` : `<p>${p.html}</p>${recallPh(p)}`).join('');
+  const html = paragraphs.map(p => typeof p === 'string' ? `<p>${p}</p>` : `<p${p.lit ? ' class="lit"' : ''}>${p.html}</p>${recallPh(p)}`).join('');
   // 이름 앞에 스티커 크기의 프로필 사진
   const av = Account.avatar();
   const out = av ? html.replace('<a class="w" href="#/settings/account">', `<a class="w" href="#/settings/account"><img class="st av" src="${esc(av)}" alt="" referrerpolicy="no-referrer">`) : html;

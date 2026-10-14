@@ -58,7 +58,7 @@ function pickQuestion(ctx, { recall } = {}) {
   if (B.streak && ctx.streak >= 3) groups.push(B.streak.map(q => q.replace('{n}', ctx.streak)));
   if (B.empty && !ctx.writtenToday.length && !ctx.first) groups.push(ctx.all.length && !ctx.all.some(e => e.created_at >= addDays(ctx.now, -3).toISOString()) ? B.gap : B.empty);
   // 날씨, 요일
-  if (wx === 'rain' && B.rain) groups.push(B.rain); if (wx === 'sun' && B.sun) groups.push(B.sun); if (cold && B.cold) groups.push(B.cold);
+  if (wx === 'rain' && B.rain) groups.push(B.rain); if (wx === 'sun' && ctx.light !== false && B.sun) groups.push(B.sun); if (cold && B.cold) groups.push(B.cold);
   if (dow === 1 && B.dow1) groups.push(B.dow1); if (dow === 5 && B.dow5) groups.push(B.dow5); if ((dow === 0 || dow === 6) && B.weekend) groups.push(B.weekend);
   groups.push(B.base);
   // 2주 안 반복 없음

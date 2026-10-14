@@ -1,4 +1,4 @@
-/* 이야기 엔진: 오늘의 공기 → 오늘 할 것 → 쌓아 온 것 → 회상 → 맺음.
+/* 이야기 엔진: 인사·오늘의 공기 → 문학 한 구절 → 오늘 할 것 → 쌓아 온 것·회상 → (자리가 남으면) 맺음.
    문장 묶음은 앱 안 기본값 + 서버 phrase_packs(앱 배포 없이 계절·명절 문장 추가)를 합쳐 써요. */
 import ko from './ko.js';
 import en from './en.js';
@@ -8,7 +8,7 @@ import fr from './fr.js';
 import { S, displayTitle, live, setPref } from '../data/store.js';
 import { fmtHM, getLang, t } from '../core/i18n.js';
 import { LIT, pickLit } from './lit.js';
-import { addDays, dayKey, esc, ls, parseDay, seasonOf, slotOf, todayKey } from '../core/utils.js';
+import { addDays, dayKey, esc, ls, parseDay, seasonOf, slotOf, sunUp, todayKey } from '../core/utils.js';
 import { sticker } from '../core/stickers.js';
 
 const BASE = { ko, en, ja, es, fr };
@@ -39,11 +39,15 @@ function pickText(list, key) {
   const all = seen(); all[key] = [text, ...(all[key] || [])].slice(0, Math.max(1, Math.floor(list.length / 2))); ls.set('daytale.story.seen', all);
   return text;
 }
-const match = (cond = {}, ctx) => Object.entries(cond).every(([k, v]) => k === 'tod' ? v === ctx.slot : k === 'wx' ? v === ctx.weather?.kind : k === 'season' ? v === ctx.season
+const match = (cond = {}, ctx) => Object.entries(cond).every(([k, v]) => k === 'tod' ? (Array.isArray(v) ? v.includes(ctx.slot) : v === ctx.slot) : k === 'light' ? v === ctx.light : k === 'wx' ? v === ctx.weather?.kind : k === 'season' ? v === ctx.season
   : k === 'cold' ? (ctx.weather?.temp ?? 99) <= 5 : k === 'hot' ? (ctx.weather?.temp ?? -99) >= 28 : k === 'dow' ? v === ctx.now.getDay() : k === 'holiday' ? v === ctx.holiday
   : k === 'between' ? inDays(v, dayKey(ctx.now)) : false);   // 모르는 조건은 맞지 않는 것으로 (앱이 오래된 버전일 때 엉뚱한 날 나오지 않게)
 // 관리자에서 넣는 날짜 범위: ['2026-09-24', '2026-09-27'] 또는 해마다 ['12-24', '12-25']
 const inDays = (v, key) => Array.isArray(v) && v.length === 2 && (v[0].length === 5 ? (v[0] <= v[1] ? v[0] <= key.slice(5) && key.slice(5) <= v[1] : key.slice(5) >= v[0] || key.slice(5) <= v[1]) : v[0] <= key && key <= v[1]);
+
+/* 문장 목록: 글자만 있거나 { if: 조건, t: [문장], w: 가중치 } — 조건이 맞는 것만 */
+const opts = (list = [], ctx) => list.flatMap(x => typeof x === 'string' ? [{ text: x }]
+  : x.text ? (match(x.cond, ctx) ? [x] : []) : match(x.if, ctx) ? [].concat(x.t).map(text => ({ text, w: x.w || 1 })) : []);
 
 /* ---------- 문장 채우기 ---------- */
 const SLOT_ST = { morning: 'sunrise', day: 'sunflower', evening: 'night', night: 'moon' };
@@ -101,9 +105,10 @@ function pickRecall(ctx) {
 }
 
 /* 하루 한 시간대 동안은 같은 이야기를 보여 줘요 (새 기록이 생기면 다시 씀) */
-function compose({ name, weather = null, city = null, holiday = null, max = 3 } = {}) {
+function compose({ name, weather = null, city = null, geo = null, holiday = null, max = 4 } = {}) {
   const lang = BASE[getLang()] ? getLang() : 'en', P = BASE[lang], R = remote[lang] || {};
   const ctx = gather(); ctx.weather = weather; ctx.holiday = holiday;
+  ctx.light = sunUp(ctx.now, geo?.lat, geo?.lon);   // 해가 졌으면 햇살·푸른 하늘 문장은 나오지 않아요
   const W = P.words, out = [];
   const entryLink = e => ({ html: link('#/e/' + e.id, esc(displayTitle(e, t('common.untitled')))), plain: displayTitle(e, t('common.untitled')) });
   const vars = { name: { html: link('#/settings/account', esc(name)), plain: name } };
@@ -111,7 +116,7 @@ function compose({ name, weather = null, city = null, holiday = null, max = 3 } 
 
   // 1. 오늘의 공기
   // 문단마다 스티커 하나: 날씨 > 계절 > 시간대 순으로 첫 문단에 하나만 붙여요
-  let p1 = fill(pickText([...P.greet[ctx.slot], ...extra('greet').map(r => r)], 'greet.' + ctx.slot), vars);
+  let p1 = fill(pickText([...opts(P.greet[ctx.slot], ctx), ...extra('greet')], 'greet.' + ctx.slot), vars);
   const airs = [...P.air.filter(a => match(a.if, ctx)).flatMap(a => a.t.map(text => ({ text, w: a.w || (a.if.wx ? 3 : 1), st: a.if.season ? SEASON_ST[a.if.season] : '' }))), ...extra('air')];
   let air = pickText(airs, 'air');
   const airSt = weather ? '' : airs.find(a => a.text === air)?.st || '';
@@ -119,37 +124,44 @@ function compose({ name, weather = null, city = null, holiday = null, max = 3 } 
   else if (!weather) p1 = sticker(SLOT_ST[ctx.slot]) + ' ' + p1;
   if (weather) {
     const wxw = `${W.wx[weather.kind] || ''} ${Math.round(weather.temp)}°`;
-    const where = fill(P.where, { city: city || '', wx: { html: link('#/settings/record', sticker(weather.icon || weather.kind) + ' ' + num(esc(wxw))), plain: wxw } });
+    // 날씨는 몇 시간 전에 받아 둔 것일 수 있어서, 해가 졌으면 해 그림 대신 달·구름으로
+    const ic = !ctx.light && weather.kind === 'sun' ? 'moon' : !ctx.light && weather.kind === 'suncloud' ? 'cloud' : ctx.light && weather.icon === 'moon' ? 'sun' : weather.icon || weather.kind;
+    const where = fill(P.where, { city: city || '', wx: { html: link('#/settings/record', sticker(ic) + ' ' + num(esc(wxw))), plain: wxw } });
     if (lang === 'en' || lang === 'es' || lang === 'fr') air = air.charAt(0).toLowerCase() + air.slice(1);
     p1 += ' ' + (city ? where : '') + ' ' + air;
   } else p1 += ' ' + air;
   out.push(p1);
 
-  // 2. 오늘 할 것
+  // 2. 문학 한 구절: 저작권이 끝난 작가의 글을 2~3줄로. 날짜·시간대마다 하나, 2주 안에는 되풀이하지 않아요
+  const lit = litLine(ctx, lang); if (lit) out.push({ lit: true, html: lit });
+
+  // 3. 오늘 할 것
   const plan = [];
   if (ctx.upcoming.length) {
     const e = ctx.upcoming[0];
     const v = { events: { html: link('#/calendar', num(esc(W.events(ctx.events.length)))), plain: W.events(ctx.events.length) }, title: entryLink(e), time: e.meta.time ? fmtHM(e.meta.time) : '' };
-    plan.push(fill(pickText(ctx.events.length === 1 ? P.plan.events1 : P.plan.eventsN, 'plan.events'), v).replace(/\s{2,}/g, ' '));
+    let tx = pickText(ctx.events.length === 1 ? P.plan.events1 : P.plan.eventsN, 'plan.events');
+    if (!v.time) tx = tx.replace(/\s?(?:at |a las |à )?\{time\}(?:에|に|の|、|,)?/g, '');   // 시간이 없는 일정
+    plan.push(fill(tx, v).replace(/\s{2,}/g, ' '));
   } else if (ctx.events.length) plan.push(fill(pickText(P.plan.eventsPast, 'plan.past'), {}));
   if (ctx.todos.length) plan.push(fill(pickText(plan.length ? P.plan.todosAlso : P.plan.todos, plan.length ? 'plan.todosAlso' : 'plan.todos'), { todos: { html: link('#/todo', num(esc(W.todos(ctx.todos.length)))), plain: W.todos(ctx.todos.length) } }));
   else if (ctx.doneToday.length) plan.push(fill(pickText(P.plan.todosDone, 'plan.done'), {}));
-  if (!plan.length && !ctx.first) plan.push(fill(pickText(P.plan.free[ctx.slot], 'plan.free.' + ctx.slot), {}));
+  if (!plan.length && !ctx.first) plan.push(fill(pickText(opts(P.plan.free[ctx.slot], ctx), 'plan.free.' + ctx.slot), {}));
   if (plan.length) out.push(plan.join(' '));
 
-  // 3. 쌓아 온 것
+  // 4. 쌓아 온 것
   const st = [];
   if (ctx.first) st.push(fill(pickText(P.stack.first, 'stack.first'), {}));
   else {
     if (ctx.writtenToday.length === 1) st.push(fill(pickText(P.stack.today1, 'stack.1'), { latest: entryLink(ctx.writtenToday[0]) }));
     else if (ctx.writtenToday.length > 1) st.push(fill(pickText(P.stack.todayN, 'stack.n'), { latest: entryLink(ctx.writtenToday[0]), count: { html: link('#/all', num(esc(W.count(ctx.writtenToday.length)))), plain: W.count(ctx.writtenToday.length) } }));
-    else if (P.stack.none[ctx.slot]) st.push(fill(pickText(P.stack.none[ctx.slot], 'stack.none'), {}));
+    else if (P.stack.none[ctx.slot]) st.push(fill(pickText(opts(P.stack.none[ctx.slot], ctx), 'stack.none'), {}));
     if (ctx.streak >= 2) st.push(fill(pickText(P.stack.streak, 'stack.streak'), { streak: { html: num(esc(W.streak(ctx.streak))), plain: W.streak(ctx.streak) } }));
     else if (ctx.week >= 3 && !ctx.writtenToday.length) st.push(fill(pickText(P.stack.week, 'stack.week'), { week: { html: link('#/all', num(esc(W.week(ctx.week)))), plain: W.week(ctx.week) } }));
   }
   const stackP = st.length ? st.join(' ') : null;
 
-  // 4. 회상
+  // 4-2. 회상
   const rc = ctx.first ? null : pickRecall(ctx);
   let recallP = null;
   if (rc) {
@@ -160,14 +172,11 @@ function compose({ name, weather = null, city = null, holiday = null, max = 3 } 
     if (rc.e) { const used = { ...(S.prefs.recallSeen || {}) }; used[rc.e.id] = ctx.today; Object.keys(used).forEach(k => { if (used[k] < dayKey(addDays(ctx.now, -30))) delete used[k]; }); setPref('recallSeen', used); }
   }
 
-  // 화면이 좁으면 문단을 줄여요: 공기 · 할 것 · (회상 또는 쌓아 온 것) · 맺음은 자리가 남을 때만
+  // 화면이 좁으면 문단을 줄여요: 공기 · 문학 · 할 것 · (회상 또는 쌓아 온 것) · 맺음은 자리가 남을 때만
   const rest = [stackP, recallP].filter(Boolean);
-  if (out.length + rest.length > max) out.push(recallP || stackP); else out.push(...rest);
-  const roomForClose = out.length < max;
-  // 문학 한 줄: 저작권이 끝난 작가의 짧은 구절을 이야기 말투로. 날짜·시간대마다 하나, 2주 안에는 되풀이하지 않아요
-  const lit = litLine(ctx, lang); if (lit) out.push(lit);
+  if (out.length + rest.length > max) { const one = recallP || stackP; if (one) out.push(one); } else out.push(...rest);
   // 5. 맺음
-  if (roomForClose) out.push(fill(pickText([...P.close[ctx.slot], ...extra('close')], 'close.' + ctx.slot), {}) + ' ' + sticker(ctx.slot === 'evening' || ctx.slot === 'night' ? 'moon' : 'sparkles'));
+  if (out.length < max) out.push(fill(pickText([...opts(P.close[ctx.slot], ctx), ...extra('close')], 'close.' + ctx.slot), {}) + ' ' + sticker(ctx.slot === 'evening' || ctx.slot === 'night' ? 'moon' : 'sparkles'));
   return { ctx, paragraphs: out, recall: rc ? { kind: rc.kind, n: rc.n, label: rc.label, title: rc.e ? displayTitle(rc.e, '') : '' } : null };
 }
 

@@ -63,7 +63,7 @@ await p.goto('http://app.test/#/home'); await p.waitForSelector('.story p'); awa
 await p.evaluate(() => document.fonts.ready);
 const story = await p.textContent('.story');
 console.log('  이야기:', story.replace(/\s+/g, ' ').trim());
-ok(/좋은 아침|잘 잤어요|아침이 밝았어요/.test(story), '아침 인사'); ok(story.includes('바다별'), '이름'); ok(story.includes('치과 예약'), '오늘 일정');
+ok(/좋은 아침|잘 잤어요|아침이 밝았어요|새 하루|일어났군요|오늘도 반가워요|아침이에요/.test(story), '아침 인사'); ok(story.includes('바다별'), '이름'); ok(story.includes('치과 예약'), '오늘 일정');
 ok(story.includes('가을 첫 산책'), '1년 전 회상'); ok((await p.textContent('.askq .q')).length > 5, '질문');
 ok((await p.textContent('.peek')).includes('3'), '남은 일 개수');
 await shot(p, 'v1_02_home');
