@@ -1,5 +1,5 @@
 /* 로컬 우선 동기화: 버전 확인 쓰기, 충돌 사본, 삭제 표시(tombstone), 가져오기 커서 */
-import { DEFAULT_PREFS, S, displayTitle, emit } from './store.js';
+import { DEFAULT_PREFS, LOCAL_PREFS, S, displayTitle, emit, prefsAt } from './store.js';
 import { sanitizeHTML } from '../core/sanitize.js';
 import { ls, nowISO, uid } from '../core/utils.js';
 
@@ -18,7 +18,7 @@ const Sync = {
   sb: null, timer: null, prefsTimer: null, running: false, again: false, lastError: null,
   set(state) { S.sync = state; emit('sync'); },
   schedule(ms = 1200) { clearTimeout(this.timer); this.timer = setTimeout(() => this.run(), ms); },
-  schedulePrefs() { clearTimeout(this.prefsTimer); this.prefsTimer = setTimeout(() => this.pushPrefs(), 1500); },
+  schedulePrefs(onMerged) { clearTimeout(this.prefsTimer); this.prefsTimer = setTimeout(() => this.pushPrefs().then(ch => { if (ch) onMerged?.(); }).catch(() => {}), 1500); },
   async run() {
     if (!this.sb || !S.user) return;
     if (!navigator.onLine) { this.set('offline'); return; }
@@ -153,18 +153,28 @@ const Sync = {
     await S.db.set('pullCursor', maxCur);
     if (changed) { emit('entries'); emit('folders'); }
   },
+  /* 설정 합치기: 서버와 이 기기의 설정을 항목별로 비교해서 더 최근에 바꾼 쪽을 써요. 기기 전용 항목(글자 크기)은 서버에 올리지도, 받지도 않아요 */
   async pullPrefs() {
     const { data, error } = await this.sb.from('user_settings').select('prefs,updated_at').maybeSingle();
-    if (error || !data) return false;
-    const localAt = await S.db.get('prefsAt', '1970');
-    if (data.updated_at > localAt && data.prefs) { Object.assign(S.prefs, DEFAULT_PREFS, data.prefs); ls.set('daytale.prefs', S.prefs); emit('prefs'); return true; }
-    return false;
+    if (error || !data?.prefs) return false;
+    const srv = data.prefs, srvAt = srv._at || {}, mine = prefsAt();
+    let changed = false;
+    for (const k of Object.keys(DEFAULT_PREFS)) {
+      if (LOCAL_PREFS.includes(k) || !(k in srv)) continue;
+      const theirs = srvAt[k] || data.updated_at, at = mine[k] || '1970';
+      if (theirs > at && JSON.stringify(srv[k]) !== JSON.stringify(S.prefs[k])) { S.prefs[k] = srv[k]; mine[k] = theirs; changed = true; }
+    }
+    if (changed) { ls.set('daytale.prefs', S.prefs); ls.set('daytale.prefsAt', mine); S.db?.set('prefs', S.prefs); emit('prefs'); }
+    return changed;
   },
   async pushPrefs() {
     if (!this.sb || !S.user || !navigator.onLine) return;
-    const at = nowISO(); await S.db.set('prefsAt', at);
-    const { error } = await this.sb.from('user_settings').upsert({ user_id: S.user.id, prefs: S.prefs, updated_at: at }, { onConflict: 'user_id' });
+    const changed = await this.pullPrefs().catch(() => false);   // 먼저 다른 기기에서 바꾼 것을 받아 합친 뒤 올려요
+    const mine = prefsAt(), prefs = { _at: {} };
+    for (const k of Object.keys(DEFAULT_PREFS)) { if (LOCAL_PREFS.includes(k)) continue; prefs[k] = S.prefs[k]; prefs._at[k] = mine[k] || '1970-01-01T00:00:00.000Z'; }
+    const { error } = await this.sb.from('user_settings').upsert({ user_id: S.user.id, prefs, updated_at: nowISO() }, { onConflict: 'user_id' });
     if (error) console.warn('prefs sync', error);
+    return changed;
   }
 };
 

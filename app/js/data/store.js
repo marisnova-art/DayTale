@@ -109,10 +109,13 @@ const folderList = () => [...S.folders.values()].sort((a, b) => (a.sort - b.sort
 /* ---------- 설정 ---------- */
 let prefsHook = () => {};
 const setPrefsHook = f => { prefsHook = f; };
-function setPref(k, v) { S.prefs[k] = v; ls.set('daytale.prefs', S.prefs); S.db?.set('prefs', S.prefs); emit('prefs'); prefsHook(); }
+/* 설정마다 바꾼 시각을 따로 적어 둬요. 여러 기기에서 합칠 때 항목별로 더 최근 것을 고르려고요 (한 기기가 옛 설정 전체로 덮어쓰지 않게) */
+const prefsAt = () => ls.get('daytale.prefsAt', {});
+const LOCAL_PREFS = ['textSize'];   // 글자 크기는 기기마다 따로 (PC와 휴대폰 화면이 달라서)
+function setPref(k, v) { S.prefs[k] = v; ls.set('daytale.prefs', S.prefs); ls.set('daytale.prefsAt', { ...prefsAt(), [k]: new Date().toISOString() }); S.db?.set('prefs', S.prefs); emit('prefs'); prefsHook(); }
 
 /* 글자 크기: 예전 값 xl 은 이제 l(크게) */
 const uiStyle = () => ['white', 'glass', 'dark'].includes(S.prefs.ui) ? S.prefs.ui : 'white';
 const textSize = () => S.prefs.textSize === 'xl' ? 'l' : ['s', 'm', 'l'].includes(S.prefs.textSize) ? S.prefs.textSize : 'm';
 export { textSize, uiStyle, DEFAULT_PREFS, FOLDER_COLORS, S, TYPES, addEntry, addFolder, deleteFolder, displayTitle, emit, folderList, isEmpty, live, newEntry, onChange,
-  patchEntry, purgeEntries, purgeOldTrash, restoreEntry, saveEntry, saveFolder, setPref, setPrefsHook, setSyncHook, trash, trashEntry };
+  LOCAL_PREFS, patchEntry, prefsAt, purgeEntries, purgeOldTrash, restoreEntry, saveEntry, saveFolder, setPref, setPrefsHook, setSyncHook, trash, trashEntry };

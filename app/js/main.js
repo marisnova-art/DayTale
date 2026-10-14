@@ -137,7 +137,7 @@ async function loadPhrases() {
 
 /* ---------- 변경 → 화면 ---------- */
 setSyncHook(() => Sync.schedule());
-setPrefsHook(() => { Sync.schedulePrefs(); applyPrefs(); });
+setPrefsHook(() => { Sync.schedulePrefs(() => applyPrefs()); applyPrefs(); });
 onChange(w => {
   if (w === 'locked') toast(t('err.locked'), { bad: true, action: t('trial.plans'), onAction: () => go('/plans'), ms: 7000 });
   else if (w === 'quota') toast(t('err.quota'), { bad: true });
@@ -156,7 +156,7 @@ document.addEventListener('click', ev => {
 });
 addEventListener('online', () => { S.online = true; Sync.run(); });
 addEventListener('offline', () => { S.online = false; emit('sync'); });
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && S.user) { Sync.run(); Weather.refresh(); Backdrop.apply(document.documentElement); if (now()?.path === '/home') rerender(); } });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && S.user) { Sync.run(); Sync.pullPrefs?.().then(ch => { if (ch) { applyPrefs(); rerender(); } }).catch(() => {}); Weather.refresh(); Backdrop.apply(document.documentElement); if (now()?.path === '/home') rerender(); } });
 
 /* ---------- 부팅 ---------- */
 /* 다른 앱의 '공유'로 들어온 링크 → 새 스크랩 (안드로이드에 설치된 앱) */
