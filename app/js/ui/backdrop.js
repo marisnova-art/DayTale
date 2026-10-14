@@ -42,12 +42,12 @@ function pick(slot = slotOf(), weather = null) {
 }
 /* 단색: 이름 → [배경, 글자, 본문 진하기, 포인트, 밝은 배경]. 본문 대비 4.5:1 이상, 포인트 3:1 이상 (큰 글씨) */
 const SOLID = {
-  cream: ['#F3EADB', '#2A2018', .72, '#A8461F', 1], sage: ['#DCE4D4', '#1E2A20', .72, '#2E663C', 1], sky: ['#D4E4F1', '#13243A', .72, '#2C62B4', 1],
-  terracotta: ['#8C3F2E', '#FFF2E8', .8, '#FFD58A'], plum: ['#3A2240', '#F7E9F3', .74, '#FFAFCB'],
-  olive: ['#3B3D26', '#F3F0DC', .74, '#E8C65A'], navy: ['#131B32', '#E6ECFF', .72, '#9DB8FF'], charcoal: ['#1C1C1E', '#F2F0EC', .7, '#FFB37A'],
+  cream: ['#F3EADB', '#2A2018', .66, '#A8461F', 1], sage: ['#DCE4D4', '#1E2A20', .68, '#2E663C', 1], sky: ['#D4E4F1', '#13243A', .68, '#2C62B4', 1],
+  terracotta: ['#8C3F2E', '#FFF2E8', .76, '#FFD58A'], plum: ['#3A2240', '#F7E9F3', .62, '#FFAFCB'],
+  olive: ['#3B3D26', '#F3F0DC', .62, '#E8C65A'], navy: ['#131B32', '#E6ECFF', .62, '#9DB8FF'], charcoal: ['#1C1C1E', '#F2F0EC', .62, '#FFB37A'],
   /* 패턴: 그라데이션·단색과 섞지 않는 따로 된 배경. 여섯째 값 = 무늬 이름 (글꼴·글줄 선은 base.css :root[data-pat]) */
-  pad: ['#FBEFA4', '#26303F', .82, '#C2412E', 1, 'pad'], padw: ['#FBFAF5', '#26303F', .82, '#C2412E', 1, 'padw'],
-  grid: ['#F6F7F4', '#1C2533', .76, '#2C62B4', 1, 'grid'], gridd: ['#1D2228', '#ECEFF2', .76, '#F2C76A', 0, 'gridd']
+  pad: ['#FBEFA4', '#26303F', .7, '#C2412E', 1, 'pad'], padw: ['#FBFAF5', '#26303F', .7, '#C2412E', 1, 'padw'],
+  grid: ['#F6F7F4', '#1C2533', .66, '#2C62B4', 1, 'grid'], gridd: ['#1D2228', '#ECEFF2', .62, '#F2C76A', 0, 'gridd']
 };
 /* 노란 줄노트: 스케치북 같은 종이결 (선은 글줄에 맞춰 이야기 글에 그어요) */
 const paper = (r, g, b, a) => `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' seed='3' stitchTiles='stitch'/%3E%3CfeDiffuseLighting lighting-color='%23fff' surfaceScale='1.1'%3E%3CfeDistantLight azimuth='45' elevation='58'/%3E%3C/feDiffuseLighting%3E%3CfeColorMatrix values='0 0 0 0 ${r}  0 0 0 0 ${g}  0 0 0 0 ${b}  -1 0 0 0 ${a}'/%3E%3C/filter%3E%3Crect width='260' height='260' filter='url(%23n)'/%3E%3C/svg%3E")`;
