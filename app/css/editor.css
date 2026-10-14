@@ -241,3 +241,5 @@
 :root[data-lined] .ed-title { color: rgba(var(--ink-rgb),.95); }   /* 본문 첫 선이 제목 밑줄이 돼요 */
 :root[data-pat] .ed-page::before { display: none; }   /* 종이를 흐리게 덮지 않아요 */
 :root[data-pat].ed-mode, :root[data-pat].ed-mode body { background: var(--bg-grad); }
+:root[data-pixel] .ed:not([data-font="serif"]):not([data-font="hand"]) :is(.ed-title, .ed-body) { font-family: var(--f-pixel); letter-spacing: 0; -webkit-font-smoothing: none; }
+:root[data-pixel] .ed:not([data-font="serif"]):not([data-font="hand"]) .ed-title { font-size: calc(var(--fs-l) * .9); }

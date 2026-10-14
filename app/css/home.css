@@ -105,3 +105,9 @@
 :root[data-lined] .home .story .w, :root[data-lined] .home .story .n { font-weight: 700; }
 :root[data-lined] .home .when { font-family: var(--f-pad); font-weight: 400; }
 :root[data-lined] .wxcredit { color: rgba(var(--ink-rgb),.45); }
+
+/* 모눈 배경: 레트로 픽셀 글꼴(갈무리). 칸에 맞추지 않아요 */
+:root[data-pixel] { --f-pixel: 'DT Galmuri', var(--font); }
+:root[data-pixel] .home :is(.story, .when) { font-family: var(--f-pixel); letter-spacing: 0; -webkit-font-smoothing: none; }
+:root[data-pixel] .home .story { font-size: calc(var(--story) * .82); font-weight: 400; line-height: 1.55; }
+:root[data-pixel] .home .story :is(.w, .n) { font-weight: 700; }

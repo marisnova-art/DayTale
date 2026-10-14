@@ -51,11 +51,11 @@ const SOLID = {
 };
 /* 노란 줄노트: 스케치북 같은 종이결 (선은 글줄에 맞춰 이야기 글에 그어요) */
 const paper = (r, g, b, a) => `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' seed='3' stitchTiles='stitch'/%3E%3CfeDiffuseLighting lighting-color='%23fff' surfaceScale='1.1'%3E%3CfeDistantLight azimuth='45' elevation='58'/%3E%3C/feDiffuseLighting%3E%3CfeColorMatrix values='0 0 0 0 ${r}  0 0 0 0 ${g}  0 0 0 0 ${b}  -1 0 0 0 ${a}'/%3E%3C/filter%3E%3Crect width='260' height='260' filter='url(%23n)'/%3E%3C/svg%3E")`;
-/* 줄노트 = 손글씨 + 글줄에 맞춘 선 (LINED). 모눈 = 글자는 기본 글꼴, 칸은 그냥 무늬예요 */
+/* 줄노트 = 손글씨 + 글줄에 맞춘 선 (LINED). 모눈 = 픽셀 글꼴, 칸은 글자에 맞추지 않고 그냥 무늬예요 */
 const GRID = (c, a, b) => `repeating-linear-gradient(0deg, rgba(${c},${b}) 0 1px, transparent 1px 120px), repeating-linear-gradient(90deg, rgba(${c},${b}) 0 1px, transparent 1px 120px), repeating-linear-gradient(0deg, rgba(${c},${a}) 0 1px, transparent 1px 24px), repeating-linear-gradient(90deg, rgba(${c},${a}) 0 1px, transparent 1px 24px)`;
 const PATTERN = { pad: `${paper(.38, .30, .10, .8)}, #FBEFA4`, padw: `${paper(.35, .33, .28, .45)}, #FBFAF5`,
   grid: `${GRID('60,110,190', .10, .22)}, #F6F7F4`, gridd: `${GRID('255,255,255', .05, .11)}, #1D2228` };
-const LINED = new Set(['pad', 'padw']);
+const LINED = new Set(['pad', 'padw']), PIXEL = new Set(['grid', 'gridd']);   /* 모눈 = 레트로 픽셀 글꼴(갈무리) */
 const rgb = c => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16)).join(',');
 /* 그라데이션 글자: 배경의 따뜻한 빛 색을 아주 옅게 섞은 흰색 */
 const inkOf = p => lighten(p[3], .86);
@@ -75,6 +75,7 @@ function pattern(pat) {
   const r = document.documentElement;
   if (pat) r.dataset.pat = pat; else delete r.dataset.pat;
   if (LINED.has(pat)) { r.dataset.lined = ''; useFont('pad'); } else delete r.dataset.lined;
+  if (PIXEL.has(pat)) { r.dataset.pixel = ''; useFont('grid'); } else delete r.dataset.pixel;
 }
 /* 하루 한 시간대 동안은 같은 배경을 유지해요 */
 function apply(el = document.body, { weather = null } = {}) {

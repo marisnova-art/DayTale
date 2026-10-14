@@ -20,6 +20,7 @@ const isPC = () => matchMedia('(min-width: 900px) and (min-height: 501px), (min-
 const LICENSES = [
   ['Pretendard', 'SIL Open Font License 1.1', 'https://github.com/orioncactus/pretendard'],
   ['Gowun Batang · Noto Serif JP · Caveat · Nanum Pen Script · Klee One · Gamja Flower', 'SIL Open Font License 1.1', './fonts/OFL.txt'],
+  ['Galmuri (quiple)', 'SIL Open Font License 1.1', './fonts/galmuri/LICENSE.txt'],
   ['Lucide Icons', 'ISC License', 'https://lucide.dev/license'],
   ['Fluent Emoji (Microsoft)', 'MIT License', 'https://github.com/microsoft/fluentui-emoji'],
   ['Pixelarticons', 'MIT License', 'https://github.com/halfmage/pixelarticons'],
