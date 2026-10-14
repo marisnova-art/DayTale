@@ -18,7 +18,7 @@ const Q = {
       allDone: ['할 일을 모두 끝냈어요. 오늘 스스로에게 한마디 해 볼까요?'], someLeft: ['남은 일은 내일로 미뤄도 괜찮아요. 오늘 가장 잘한 일은요?'], streak: ['{n}일째 기록하고 있어요. 오늘도 이어 볼까요?'],
       dow1: ['월요일을 잘 넘겼어요. 어땠나요?'], dow5: ['한 주를 마무리하는 금요일이에요. 이번 주는 어땠나요?'], weekend: ['주말 저녁이에요. 오늘 쉰 만큼 무엇이 채워졌나요?'] },
     night: { base: ['자기 전에 남기고 싶은 말이 있나요?', '오늘 마음에 남은 장면은 무엇인가요?', '오늘 고마웠던 사람이 있나요?', '내일의 나에게 남길 말이 있나요?', '오늘 하루, 몇 점이었나요?'],
-      yearAgo: ['1년 전 오늘은 {title}을 적었어요. 오늘은 어떤가요?'], anniversary: ['오늘은 {label}이에요. 어떻게 보냈나요?'], monthEnd: ['한 달이 끝나 가요. 이번 달 가장 기억에 남는 일은요?'],
+      yearAgo: ['1년 전의 그날과 비교하면, 오늘은 어떤 하루였나요?', '1년 뒤의 내가 오늘을 읽는다면, 무엇을 남겨 두고 싶나요?'], anniversary: ['오늘은 {label}이에요. 어떻게 보냈나요?'], monthEnd: ['한 달이 끝나 가요. 이번 달 가장 기억에 남는 일은요?'],
       empty: ['오늘은 아직 한 줄도 없어요. 짧게라도 남겨 볼까요?'], gap: ['며칠 쉬었어요. 그동안 있었던 일 하나만 적어 볼까요?'] }
   },
   en: {
@@ -32,7 +32,7 @@ const Q = {
       allDone: ['Every to-do is done. A word for yourself?'], someLeft: ['It is fine to move the rest to tomorrow. What went best today?'], streak: ['Day {n} of keeping records. Keep it going?'],
       dow1: ['You got through Monday. How was it?'], dow5: ['Friday, the end of the week. How was this week?'], weekend: ['A weekend evening. What did resting give you today?'] },
     night: { base: ['Anything to keep before you sleep?', 'What scene from today stays with you?', 'Anyone you felt grateful for today?', 'Any note for tomorrow’s you?', 'How would you score today?'],
-      yearAgo: ['A year ago today you wrote {title}. How is today?'], anniversary: ['Today is {label}. How did you spend it?'], monthEnd: ['The month is almost over. What stood out the most?'],
+      yearAgo: ['Compared with that day a year ago, how was today?', 'If you read today a year from now, what would you want to find?'], anniversary: ['Today is {label}. How did you spend it?'], monthEnd: ['The month is almost over. What stood out the most?'],
       empty: ['Nothing written yet today. Maybe a short line?'], gap: ['You took a few days off. Write one thing that happened?'] }
   }
   , ja, es, fr

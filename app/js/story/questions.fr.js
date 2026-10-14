@@ -10,6 +10,6 @@ export default {
     allDone: ['Toutes les tâches sont faites. Un mot pour vous-même ?'], someLeft: ['Le reste peut attendre demain. Qu’avez-vous le mieux réussi aujourd’hui ?'], streak: ['Voilà {n} jours que vous écrivez. Vous continuez aujourd’hui ?'],
     dow1: ['Le lundi est passé. Comment était-il ?'], dow5: ['Vendredi, la semaine s’achève. Comment s’est-elle passée ?'], weekend: ['Un soir de week-end. Que vous a apporté ce repos aujourd’hui ?'] },
   night: { base: ['Quelque chose à garder avant de dormir ?', 'Quelle scène de la journée vous reste en tête ?', 'Envers qui avez-vous ressenti de la gratitude aujourd’hui ?', 'Un mot pour vous-même, demain ?', 'Quelle note donneriez-vous à cette journée ?'],
-    yearAgo: ['Il y a un an jour pour jour, vous écriviez {title}. Et aujourd’hui ?'], anniversary: ['Aujourd’hui, c’est {label}. Comment s’est passée la journée ?'], monthEnd: ['Le mois touche à sa fin. Qu’en retenez-vous le plus ?'],
+    yearAgo: ['Comparé à ce jour d’il y a un an, comment s’est passée cette journée ?', 'Si vous relisiez cette journée dans un an, qu’aimeriez-vous y trouver ?'], anniversary: ['Aujourd’hui, c’est {label}. Comment s’est passée la journée ?'], monthEnd: ['Le mois touche à sa fin. Qu’en retenez-vous le plus ?'],
     empty: ['Rien d’écrit pour l’instant aujourd’hui. Une ligne courte, peut-être ?'], gap: ['Quelques jours ont passé. Une chose à noter sur cette période ?'] }
 };

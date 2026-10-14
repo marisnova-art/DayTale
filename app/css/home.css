@@ -6,8 +6,6 @@
 .story { margin-top: 14px; font-size: var(--story); line-height: var(--story-lh); font-weight: 500; letter-spacing: -.035em; color: rgba(255,255,255,.7); }
 .story p { margin: 0 0 20px; }
 .story p:last-child { margin-bottom: 0; }
-/* 문학 한 구절: 한 단계 작은 글씨로 2~3줄 */
-.story p.lit { font-size: var(--fs-l); line-height: 1.5; letter-spacing: -.02em; }
 .story .w { color: var(--text); font-weight: 600; text-decoration: none; }
 .story a.w:hover { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: .18em; }
 .story .n { color: var(--accent); font-weight: 600; }

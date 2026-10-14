@@ -10,6 +10,6 @@ export default {
     allDone: ['Completó todas las tareas. ¿Unas palabras para usted?'], someLeft: ['Está bien dejar el resto para mañana. ¿Qué salió mejor hoy?'], streak: ['Día {n} guardando registros. ¿Sigue hoy también?'],
     dow1: ['Ya pasó el lunes. ¿Cómo le fue?'], dow5: ['Viernes, final de semana. ¿Cómo fue esta semana?'], weekend: ['Una tarde de fin de semana. ¿Qué le aportó descansar hoy?'] },
   night: { base: ['¿Algo que guardar antes de dormir?', '¿Qué escena de hoy se le quedó grabada?', '¿Hubo alguien a quien agradecer hoy?', '¿Alguna nota para el día de mañana?', '¿Qué puntuación le daría a hoy?'],
-    yearAgo: ['Hace un año, un día como hoy, escribió {title}. ¿Cómo está hoy?'], anniversary: ['Hoy es {label}. ¿Cómo lo pasó?'], monthEnd: ['El mes está por terminar. ¿Qué fue lo más destacado?'],
+    yearAgo: ['Comparado con aquel día de hace un año, ¿cómo fue hoy?', 'Si dentro de un año leyera este día, ¿qué le gustaría encontrar?'], anniversary: ['Hoy es {label}. ¿Cómo lo pasó?'], monthEnd: ['El mes está por terminar. ¿Qué fue lo más destacado?'],
     empty: ['Todavía no ha escrito nada hoy. ¿Quizá una línea breve?'], gap: ['Se tomó unos días de descanso. ¿Escribe algo que haya pasado?'] }
 };
