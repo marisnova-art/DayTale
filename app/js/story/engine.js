@@ -51,7 +51,11 @@ const opts = (list = [], ctx) => list.flatMap(x => typeof x === 'string' ? [{ te
 
 /* ---------- 문장 채우기 ---------- */
 const SLOT_ST = { morning: 'sunrise', day: 'sunflower', evening: 'night', night: 'moon' };
-const SEASON_ST = { spring: 'blossom', summer: 'sunflower', autumn: 'leaf', winter: 'snowman' };
+// 계절 스티커는 달의 날짜로 대략 한 주마다 바뀌어요 (1~8일, 9~16일, 17~24일, 25일~)
+const SEASON_ST = { spring: ['blossom', 'tulip', 'sprout', 'strawberry'], summer: ['sunflower', 'watermelon', 'shell', 'icecream'], autumn: ['leaf', 'ginkgo', 'acorn', 'mushroom'], winter: ['snowman', 'mitten', 'tangerine', 'snowflake'] };
+const seasonSt = (season, d) => SEASON_ST[season][Math.min(3, Math.floor((d.getDate() - 1) / 8))];
+// 회상 제목 앞 스티커: 사진이 있으면 사진, 아니면 기록 종류
+const TYPE_ST = { note: 'note', todo: 'todo', event: 'event', idea: 'idea', item: 'item', personal: 'personal', scrap: 'scrap' };
 /* 스티커는 바로 뒤 낱말과 한 덩어리(nowrap)라서 줄이 바뀌어도 같이 움직여요 */
 // 스티커와 바로 뒤 글자 몇 자만 한 줄에 묶어요 (띄어쓰기 없는 긴 글이 통째로 묶이면 화면 밖으로 나가요). {latest}{을} 같은 자리표시는 쪼개지 않아요
 const glue = (n, html = '') => { const st = sticker(n); if (!st) return html; const m = /^((?:\{\w+\}(?:\{[^}]+\})?|&[a-z0-9#]+;|[^\s<&{]){1,4})([\s\S]*)$/i.exec(html); return m ? `<span class="glue">${st}${m[1]}</span>${m[2]}` : st + html; };
@@ -124,7 +128,7 @@ function compose({ name, weather = null, city = null, geo = null, holiday = null
   // 1. 오늘의 공기
   // 문단마다 스티커 하나: 날씨 > 계절 > 시간대 순으로 첫 문단에 하나만 붙여요
   let p1 = fill(pickText([...opts(P.greet[ctx.slot], ctx), ...extra('greet')], 'greet.' + ctx.slot), vars);
-  const airs = [...P.air.filter(a => match(a.if, ctx)).flatMap(a => a.t.map(text => ({ text, w: a.w || (a.if.wx ? 3 : 1), st: a.if.season ? SEASON_ST[a.if.season] : '' }))), ...extra('air')];
+  const airs = [...P.air.filter(a => match(a.if, ctx)).flatMap(a => a.t.map(text => ({ text, w: a.w || (a.if.wx ? 3 : 1), st: a.if.season ? seasonSt(a.if.season, ctx.now) : '' }))), ...extra('air')];
   let air = pickText(airs, 'air');
   const airSt = weather ? '' : airs.find(a => a.text === air)?.st || '';
   if (airSt) air = glue(airSt, air);
@@ -132,7 +136,7 @@ function compose({ name, weather = null, city = null, geo = null, holiday = null
   if (weather) {
     const wxw = `${W.wx[weather.kind] || ''} ${deg(weather.temp)}°`;
     // 날씨는 몇 시간 전에 받아 둔 것일 수 있어서, 해가 졌으면 해 그림 대신 달·구름으로
-    const ic = !ctx.light && weather.kind === 'sun' ? 'moon' : !ctx.light && weather.kind === 'suncloud' ? 'cloud' : ctx.light && weather.icon === 'moon' ? 'sun' : weather.icon || weather.kind;
+    const ic = !ctx.light && weather.kind === 'sun' ? 'moon' : !ctx.light && weather.kind === 'suncloud' ? 'mooncloud' : ctx.light && weather.icon === 'moon' ? 'sun' : weather.icon || weather.kind;
     const where = fill(P.where, { city: city || '', wx: { html: link('#/settings/record', glue(ic, num(esc(wxw)))), plain: wxw } });
     if (lang === 'en' || lang === 'es' || lang === 'fr') air = air.charAt(0).toLowerCase() + air.slice(1);
     p1 += ' ' + (city ? where : '') + ' ' + air;
@@ -163,7 +167,7 @@ function compose({ name, weather = null, city = null, geo = null, holiday = null
     if (ctx.writtenToday.length === 1) st.push(fill(pickText(P.stack.today1, 'stack.1'), { latest: entryLink(ctx.writtenToday[0]) }));
     else if (ctx.writtenToday.length > 1) st.push(fill(pickText(P.stack.todayN, 'stack.n'), { latest: entryLink(ctx.writtenToday[0]), count: { html: link('#/all', num(esc(W.count(ctx.writtenToday.length)))), plain: W.count(ctx.writtenToday.length) } }));
     else if (P.stack.none[ctx.slot]) st.push(fill(pickText(opts(P.stack.none[ctx.slot], ctx), 'stack.none'), {}));
-    if (ctx.streak >= 2) st.push(fill(pickText(P.stack.streak, 'stack.streak'), { streak: { html: num(esc(W.streak(ctx.streak))), plain: W.streak(ctx.streak) } }));
+    if (ctx.streak >= 2) st.push(fill(pickText(P.stack.streak, 'stack.streak').replace('[fire]', ctx.streak >= 30 ? '[trophy]' : '[fire]'), { streak: { html: num(esc(W.streak(ctx.streak))), plain: W.streak(ctx.streak) } }));
     else if (ctx.week >= 3 && !ctx.writtenToday.length) st.push(fill(pickText(P.stack.week, 'stack.week'), { week: { html: link('#/all', num(esc(W.week(ctx.week)))), plain: W.week(ctx.week) } }));
   }
   const stackP = st.length ? st.join(' ') : null;
@@ -173,7 +177,7 @@ function compose({ name, weather = null, city = null, geo = null, holiday = null
   let recallP = null;
   if (rc) {
     const tl = rc.e && entryLink(rc.e);
-    if (tl) tl.html = tl.html.replace(/^(.*?">)([\s\S]*)$/, (_, a, b) => a + glue(rc.e.photos?.length ? 'photo' : 'note', b));
+    if (tl) tl.html = tl.html.replace(/^(.*?">)([\s\S]*)$/, (_, a, b) => a + glue(rc.e.photos?.length ? 'photo' : TYPE_ST[rc.e.type] || 'note', b));
     const v = rc.e ? { title: tl, ago: W.ago(rc.n || 1) } : { label: { html: `<b class="w">${esc(rc.label)}</b>`, plain: rc.label } };
     recallP = { recall: true, entry: rc.e || null, html: fill(pickText(P.recall[rc.kind], 'recall.' + rc.kind), v) };
     if (rc.e) { const used = { ...(S.prefs.recallSeen || {}) }; used[rc.e.id] = ctx.today; Object.keys(used).forEach(k => { if (used[k] < dayKey(addDays(ctx.now, -30))) delete used[k]; }); setPref('recallSeen', used); }
