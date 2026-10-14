@@ -31,6 +31,8 @@ create table if not exists public.profiles (
 alter table public.profiles add column if not exists avatar text;
 alter table public.profiles drop constraint if exists profiles_avatar_check;
 alter table public.profiles add constraint profiles_avatar_check check (avatar is null or (char_length(avatar) <= 60000 and avatar ~ '^(data:image/(webp|jpeg|png);base64,[A-Za-z0-9+/=]+|https://[^[:space:]"<>]+)$'));
+-- 이용권 코드로 받은 무료 이용 끝 (체험·보너스 뒤에 이어 붙어요). 서버 함수만 바꿔요.
+alter table public.profiles add column if not exists pass_until timestamptz;
 create index if not exists profiles_seen_idx on public.profiles(last_seen_at);
 create index if not exists profiles_country_idx on public.profiles(country);
 alter table public.profiles enable row level security;
@@ -88,11 +90,17 @@ language sql stable security definer set search_path = public as $$
   select exists (select 1 from public.subscriptions where user_id = u and status in ('active', 'trialing', 'past_due'))
 $$;
 
--- 쓰기 가능 = 구독 중이거나 체험 기간 안
+-- 무료로 모든 기능을 쓰는 끝 = 체험(+초대 보너스)과 이용권 중 늦은 날
+create or replace function public.free_until(p public.profiles) returns timestamptz
+language sql immutable set search_path = public, pg_temp as $$
+  select greatest(p.trial_ends_at + make_interval(days => coalesce(p.bonus_days, 0)), p.pass_until)
+$$;
+
+-- 쓰기 가능 = 구독 중이거나 체험·이용권 기간 안
 create or replace function public.can_write(u uuid default auth.uid()) returns boolean
 language sql stable security definer set search_path = public as $$
   select public.is_subscriber(u) or exists (
-    select 1 from public.profiles p where p.id = u and p.trial_ends_at + make_interval(days => p.bonus_days) > now())
+    select 1 from public.profiles p where p.id = u and public.free_until(p) > now())
 $$;
 
 -- ---------- 관리자 명단 (admin.sql에서 함수 추가) ----------
@@ -394,7 +402,8 @@ grant select, insert, update on public.user_settings to authenticated;
 create or replace function public.my_status() returns jsonb
 language sql stable security definer set search_path = public as $$
   select jsonb_build_object(
-    'trial_ends_at', p.trial_ends_at + make_interval(days => p.bonus_days),
+    'trial_ends_at', public.free_until(p),
+    'pass_until', case when p.pass_until > now() then p.pass_until end,
     'subscriber', public.is_subscriber(p.id),
     'can_write', public.can_write(p.id),
     'referral_code', p.referral_code,
@@ -425,6 +434,75 @@ begin
   if not found then return false; end if;
   update public.profiles set bonus_days = least(bonus_days + 30, 365) where id = them.id;
   return true;
+end $$;
+
+-- ---------- 이용권 코드 (관리자가 admin.sql 함수로 만들어요) ----------
+-- 코드를 넣으면 지금 남은 무료 기간(체험·보너스·이전 이용권) 끝에 이어 붙어요.
+-- 예: 체험 15일 남음 + 3개월 코드 = 오늘부터 3개월 15일 동안 모든 기능.
+create table if not exists public.vouchers (
+  code        text primary key check (code ~ '^[A-Z2-9]{12}$'),       -- 보여 줄 때는 XXXX-XXXX-XXXX
+  duration    interval not null check (duration >= interval '1 day' and extract(epoch from duration) <= 366 * 86400), -- 최대 1년
+  max_uses    int not null default 1 check (max_uses between 1 and 1000),
+  used_count  int not null default 0 check (used_count >= 0),
+  for_email   text check (for_email is null or char_length(for_email) <= 254),  -- 정해 두면 그 메일 계정만
+  expires_at  timestamptz,                                              -- 이때까지 넣어야 해요 (비우면 기한 없음)
+  note        text check (char_length(note) <= 200),                    -- 관리자 메모 (누구에게, 왜)
+  created_by  uuid references auth.users(id) on delete set null,
+  created_at  timestamptz not null default now(),
+  revoked_at  timestamptz
+);
+alter table public.vouchers enable row level security;
+revoke all on public.vouchers from anon, authenticated;
+create table if not exists public.voucher_redemptions (
+  code        text not null references public.vouchers(code) on delete cascade,
+  user_id     uuid not null references auth.users(id) on delete cascade,
+  redeemed_at timestamptz not null default now(),
+  granted_from  timestamptz not null,
+  granted_until timestamptz not null,
+  primary key (code, user_id)
+);
+create index if not exists voucher_redemptions_user_idx on public.voucher_redemptions(user_id);
+alter table public.voucher_redemptions enable row level security;
+revoke all on public.voucher_redemptions from anon, authenticated;
+-- 틀린 코드를 계속 넣어 맞히는 것을 막아요 (한 시간에 10번)
+create table if not exists public.voucher_tries (user_id uuid not null references auth.users(id) on delete cascade, at timestamptz not null default now());
+create index if not exists voucher_tries_idx on public.voucher_tries(user_id, at);
+alter table public.voucher_tries enable row level security;
+revoke all on public.voucher_tries from anon, authenticated;
+
+create or replace function public.redeem_voucher(code text) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  me uuid := auth.uid(); c text := upper(regexp_replace(coalesce(code, ''), '[^A-Za-z0-9]', '', 'g'));
+  v public.vouchers; p public.profiles; mail text; base timestamptz; until timestamptz;
+  bad constant jsonb := '{"ok": false, "error": "bad"}';
+begin
+  if me is null then return '{"ok": false, "error": "login"}'; end if;
+  if (select count(*) from public.voucher_tries t where t.user_id = me and t.at > now() - interval '1 hour') >= 10 then
+    return '{"ok": false, "error": "too_many"}';
+  end if;
+  select * into v from public.vouchers x where x.code = c for update;     -- 동시에 넣어도 횟수를 넘지 않게
+  select email into mail from auth.users where id = me;
+  if v.code is null or v.revoked_at is not null or (v.for_email is not null and lower(v.for_email) <> lower(coalesce(mail, ''))) then
+    insert into public.voucher_tries(user_id) values (me);
+    return bad;
+  end if;
+  if v.expires_at is not null and v.expires_at < now() then return '{"ok": false, "error": "expired"}'; end if;
+  if exists (select 1 from public.voucher_redemptions r where r.code = v.code and r.user_id = me) then return '{"ok": false, "error": "already"}'; end if;
+  if v.used_count >= v.max_uses then return '{"ok": false, "error": "used"}'; end if;
+  -- 자동 결제가 이어지는 구독 중이면 겹쳐서 낭비되니 받지 않아요 (해지 예약을 하면 해지일 다음부터 이어 붙어요)
+  if exists (select 1 from public.subscriptions s where s.user_id = me and s.status in ('active', 'trialing', 'past_due') and s.cancel_at is null) then
+    return '{"ok": false, "error": "subscribed"}';
+  end if;
+  select * into p from public.profiles where id = me for update;
+  if p.id is null then return bad; end if;
+  base := greatest(now(), public.free_until(p),
+    (select max(coalesce(s.cancel_at, s.current_period_end)) from public.subscriptions s where s.user_id = me and s.status in ('active', 'trialing', 'past_due')));
+  until := base + v.duration;
+  update public.profiles set pass_until = until, updated_at = now() where id = me;
+  update public.vouchers set used_count = used_count + 1 where vouchers.code = v.code;
+  insert into public.voucher_redemptions(code, user_id, granted_from, granted_until) values (v.code, me, base, until);
+  return jsonb_build_object('ok', true, 'from', base, 'until', until);
 end $$;
 
 -- ---------- 계정 삭제 (설정 > 데이터) ----------
@@ -468,7 +546,7 @@ end $$;
 -- Supabase는 새 함수를 모두에게 열어 두므로, 전부 닫고 앱이 쓰는 것만 엽니다
 revoke execute on all functions in schema public from public, anon, authenticated;
 grant execute on function public.is_subscriber(uuid), public.can_write(uuid), public.my_status(), public.touch_seen(),
-  public.redeem_referral(text), public.delete_my_account() to authenticated;
+  public.redeem_referral(text), public.redeem_voucher(text), public.delete_my_account() to authenticated;
 grant execute on function public.photo_allowance(uuid), public.sweep_orphan_photos() to service_role;
 
 -- 함수가 찾는 스키마를 고정해요 (Supabase 보안 점검 권고). create or replace 뒤에 다시 걸어야 해서 맨 끝에 둬요.

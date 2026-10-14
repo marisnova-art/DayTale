@@ -224,3 +224,6 @@ dialog.confirm::backdrop{ background:rgba(0,0,0,.7) } dialog.confirm p{ color:va
 .grid3{ display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:12px }
 .nform h3.label{ margin:6px 0 0 }
 tr.off td{ opacity:.45 } td.nowrap{ white-space:nowrap }
+/* 이용권: 방금 만든 코드 */
+.vcodes{ background:var(--raise); border-radius:14px; padding:12px 14px; display:flex; flex-direction:column; gap:8px; align-items:flex-start }
+.vcodes pre{ margin:0; font-size:15px; letter-spacing:.06em; white-space:pre-wrap; user-select:all }

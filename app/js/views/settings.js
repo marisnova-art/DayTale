@@ -36,14 +36,14 @@ const card = (title, inner) => `${title ? `<h3 class="sgh">${esc(title)}</h3>` :
 function planLine() {
   const st = S.status; if (!st) return '';
   if (st.subscriber) return t(st.plan === 'yearly' ? 'plan.yearlyOn' : 'plan.monthlyOn') + (st.cancel_at ? ' · ' + t('plan.endsOn', { date: fmtDate(st.cancel_at, { month: 'long', day: 'numeric' }) }) : '');
-  const d = Account.trialDays(); return d > 0 ? t('trial.left', { n: d }) : t('trial.ended');
+  const d = Account.trialDays(); return d > 0 ? Account.leftText(d) : t('trial.ended');
 }
 
 function group(g) {
   const p = S.prefs, n = p.notify || {};
   if (g === 'account') return card('', `<div class="sprof"><button class="avbtn" data-a="photo" aria-label="${esc(t('set.photo'))}">${Account.avatarHTML('big')}<i>${icon('camera', 14)}</i></button><input type="file" accept="image/*" hidden class="av-file"><span><b>${esc(Account.name())}</b><small>${esc(S.user?.email || '')}</small></span><button class="chip" data-a="name">${esc(t('set.editName'))}</button></div>`)
-    + card(t('set.plan'), row({ ic: 'gem', label: t('set.planNow'), sub: esc(planLine()), href: '#/plans' }))
-    + card(t('set.invite'), row({ ic: 'gift', label: t('set.myCode'), sub: esc(t('set.inviteSub')), value: S.status?.referral_code || '', act: 'code' }) + row({ ic: 'ticket', label: t('set.enterCode'), act: 'redeem' }))
+    + card(t('set.plan'), row({ ic: 'gem', label: t('set.planNow'), sub: esc(planLine()), href: '#/plans' }) + row({ ic: 'ticket', label: t('set.voucher'), sub: esc(t('set.voucherSub')), act: 'voucher' }))
+    + card(t('set.invite'), row({ ic: 'gift', label: t('set.myCode'), sub: esc(t('set.inviteSub')), value: S.status?.referral_code || '', act: 'code' }) + row({ ic: 'user-plus', label: t('set.enterCode'), act: 'redeem' }))
     + card(t('set.security'), row({ ic: 'key-round', label: t('set.password'), act: 'password' }) + row({ ic: 'log-out', label: t('set.signOut'), act: 'signout', chev: false }));
   if (g === 'display') return card('', seg('mode', t('set.mode'), [['story', t('set.story')], ['tidy', t('set.tidy')]], p.mode) + `<p class="snote">${esc(t('set.modeSub'))}</p>`)
     + card('', seg('textSize', t('set.textSize'), [['s', t('set.sizeS')], ['m', t('set.sizeM')], ['l', t('set.sizeL')]], textSize())
@@ -114,7 +114,7 @@ async function onClick(ev, paint) {
   }
   if (a === 'name') { const v = await promptDlg(t('set.editName'), { value: Account.name(), maxlength: 40 }); if (v && v.trim()) { await Account.update({ display_name: v.trim() }); paint(); } }
   else if (a === 'code') { const c = S.status?.referral_code; if (!c) return; const text = t('set.inviteText', { name: brand(getLang()), code: c, url: CFG.SITE_URL || location.origin }); if (navigator.share) navigator.share({ text }).catch(() => {}); else { navigator.clipboard?.writeText(text); toast(t('set.copied')); } }
-  else if (a === 'redeem') { const v = await promptDlg(t('set.enterCode'), { placeholder: 'abcd1234', maxlength: 16 }); if (!v) return; const { data } = await Sync.sb.rpc('redeem_referral', { code: v.trim() }); toast(data ? t('set.codeOk') : t('set.codeBad'), { bad: !data }); if (data) { await Account.load(); paint(); } }
+  else if (a === 'redeem' || a === 'voucher') redeemCode(a, paint);
   else if (a === 'password') { const v = await promptDlg(t('set.newPassword'), { type: 'password', maxlength: 72 }); if (!v) return; if (v.length < 8) { toast(t('auth.weak'), { bad: true }); return; } const { error } = await Sync.sb.auth.updateUser({ password: v }); toast(error ? t('err.generic') : t('set.passwordOk'), { bad: !!error }); }
   else if (a === 'signout') { if (await confirmDlg(t('set.signOutQ'), t('set.signOutBody'), t('set.signOut'))) { await Sync.run().catch(() => {}); await Reminders.unsubscribe(); await endSession(); location.hash = ''; location.reload(); } }
   else if (a === 'type') { const v = await pickType(S.prefs.defaultType); if (v) { setPref('defaultType', v); paint(); } }
@@ -128,6 +128,23 @@ async function onClick(ev, paint) {
   else if (a === 'terms' || a === 'privacy') (await import('./info.js')).openLegal(a);
   else if (a === 'faq') (await import('./info.js')).openFaq();
   else if (a === 'about') (await import('./info.js')).openAbout();
+}
+
+/* 코드 넣기: 초대 코드(8자, 0-9a-f)와 이용권 코드(12자, XXXX-XXXX-XXXX)는 모양으로 나눠요. 어느 칸에 넣어도 돼요. */
+async function redeemCode(a, paint) {
+  const v = await promptDlg(t(a === 'voucher' ? 'set.voucher' : 'set.enterCode'), { placeholder: a === 'voucher' ? 'XXXX-XXXX-XXXX' : 'abcd1234', maxlength: 20 }); if (!v) return;
+  if (!navigator.onLine) { toast(t('err.offline'), { bad: true }); return; }
+  const code = v.trim();
+  if (/^[0-9a-f]{8}$/i.test(code)) {
+    const { data } = await Sync.sb.rpc('redeem_referral', { code }); toast(data ? t('set.codeOk') : t('set.codeBad'), { bad: !data });
+    if (data) { await Account.load(); paint(); }
+    return;
+  }
+  const { data, error } = await Sync.sb.rpc('redeem_voucher', { code });
+  if (error || !data) { toast(t('err.generic'), { bad: true }); return; }
+  if (!data.ok) { const k = { used: 'voucher.used', expired: 'voucher.expired', already: 'voucher.already', subscribed: 'voucher.subscribed', too_many: 'voucher.tooMany' }[data.error] || 'set.codeBad'; toast(t(k), { bad: true, ms: data.error === 'subscribed' ? 7000 : undefined }); return; }
+  await Account.load(); paint();
+  toast(t('voucher.ok', { date: fmtDate(data.until, { year: 'numeric', month: 'long', day: 'numeric' }) }), { ms: 6000 });
 }
 
 /* 날씨 도시: 자동 + 나라별 목록 검색. 결과: id | null(자동) | undefined(취소) */

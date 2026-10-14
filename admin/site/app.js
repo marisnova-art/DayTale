@@ -20,13 +20,15 @@ const ago = d => {
 };
 const STATUS = { active: '이용 중', trialing: '체험 중', past_due: '결제 실패', paused: '일시정지', canceled: '해지됨' };
 const PLAN = { monthly: '월간', yearly: '연간' };
-const ACTION = { ban: '이용 정지', unban: '정지 해제', delete_user: '계정 삭제', cancel_subscription: '구독 해지', extend_trial: '체험 연장', notice_create: '공지 올림', notice_delete: '공지 내림', ops_daily: '매일 운영 실행', phrase_save: '문장 저장', phrase_delete: '문장 삭제' };
+const ACTION = { ban: '이용 정지', unban: '정지 해제', delete_user: '계정 삭제', cancel_subscription: '구독 해지', extend_trial: '체험 연장', notice_create: '공지 올림', notice_delete: '공지 내림', ops_daily: '매일 운영 실행', phrase_save: '문장 저장', phrase_delete: '문장 삭제', voucher_create: '이용권 발급', voucher_revoke: '이용권 취소' };
 const FLAG = c => !c || c === '—' ? '🌐' : String.fromCodePoint(...[...c.toUpperCase()].map(x => 0x1F1E6 + x.charCodeAt(0) - 65));
 const bytes = n => { n = Number(n || 0); return n >= 1024 ** 3 ? (n / 1024 ** 3).toFixed(2) + 'GB' : n >= 1024 ** 2 ? (n / 1024 ** 2).toFixed(1) + 'MB' : Math.round(n / 1024) + 'KB'; };
 const trialLeft = d => { if (!d) return ''; const n = Math.ceil((new Date(d) - Date.now()) / 864e5); return n > 0 ? `체험 ${n}일` : '체험 끝'; };
 const ERR = {
   'login required': '다시 로그인해 주세요.', 'not an admin': '이 계정은 관리자 명단에 없습니다.', 'owner only': '최고 관리자(owner)만 할 수 있습니다.',
   'cannot change your own account': '내 계정은 여기서 바꿀 수 없습니다.', 'cannot delete your own account': '내 계정은 여기서 삭제할 수 없습니다.',
+  'duration must be 1 day - 1 year': '기간은 1일부터 1년까지예요.', 'count must be 1-50': '한 번에 1~50개까지 만들 수 있어요.', 'uses must be 1-1000': '쓸 수 있는 사람 수는 1~1000이에요.',
+  'one code per email': '메일을 정하면 코드는 한 개만 만들어요.', 'bad email': '메일 주소를 확인해 주세요.', 'bad date': '사용 기한 날짜를 확인해 주세요 (오늘 이후).',
   'remove admin role first': '관리자 계정입니다. 먼저 관리자 명단에서 빼 주세요.', 'email does not match': '확인용 이메일이 일치하지 않습니다.',
   'cancel the subscription first': '이용 중인 구독이 있습니다. 먼저 구독을 해지해 주세요.', 'PADDLE_API_KEY not set': '서버에 Paddle API 키가 없어 여기서 해지할 수 없습니다. Paddle 대시보드에서 해지해 주세요.', 'days must be 1-90': '연장은 1~90일까지입니다.', 'title required': '제목을 적어 주세요.', 'text required': '문장을 적어 주세요.', 'bad condition': '조건이 맞지 않습니다. 날짜는 2026-09-24 또는 12-24 모양으로 적어 주세요.', 'bad phrase': '언어·자리·가중치(1~10)를 확인해 주세요.'
 };
@@ -67,6 +69,7 @@ const I = {
   gauge: svg('<path d="M4 16a8 8 0 1 1 16 0"/><path d="m12 16 4-5"/>'),
   chart: svg('<path d="M4 20h16"/><rect x="5.5" y="11" width="3" height="6.5" rx="1"/><rect x="10.5" y="6.5" width="3" height="11" rx="1"/><rect x="15.5" y="13.5" width="3" height="4" rx="1"/>'),
   quote: svg('<path d="M5 6.5h14a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5H10l-4.5 3v-3H5A1.5 1.5 0 0 1 3.5 16V8A1.5 1.5 0 0 1 5 6.5z"/><path d="M8 11h8M8 14h5"/>'),
+  ticket: svg('<path d="M3.5 8.5V7A1.5 1.5 0 0 1 5 5.5h14A1.5 1.5 0 0 1 20.5 7v1.5a2.5 2.5 0 0 0 0 5V17a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 17v-1.5a2.5 2.5 0 0 0 0-5z"/><path d="M14 6v2M14 11v2M14 16v2"/>'),
   gift: svg('<rect x="3.5" y="8" width="17" height="4" rx="1"/><path d="M12 8v12.5M5.5 12v8.5h13V12M12 8S10.5 3.5 8 4.5 9 8 12 8zm0 0s1.5-4.5 4-3.5S15 8 12 8z"/>')
 };
 
@@ -197,7 +200,7 @@ async function start() {
 }
 
 /* ---------- shell: 검은 프레임 + 아이콘 레일 + 상단바 + 둥근 패널 ---------- */
-const NAV = [['#/', '대시보드', I.dash], ['#/users', '회원', I.users], ['#/subs', '구독·결제', I.card], ['#/usage', '이용 현황', I.chart], ['#/ops', '운영', I.gauge], ['#/notices', '공지', I.bell], ['#/phrases', '이야기 문장', I.quote], ['#/audit', '관리 기록', I.log]];
+const NAV = [['#/', '대시보드', I.dash], ['#/users', '회원', I.users], ['#/subs', '구독·결제', I.card], ['#/usage', '이용 현황', I.chart], ['#/ops', '운영', I.gauge], ['#/notices', '공지', I.bell], ['#/phrases', '이야기 문장', I.quote], ['#/vouchers', '이용권', I.ticket], ['#/audit', '관리 기록', I.log]];
 function greet() { const h = new Date().getHours(); return h < 6 ? '늦은 밤이에요' : h < 12 ? '좋은 아침이에요' : h < 18 ? '좋은 오후예요' : '좋은 저녁이에요'; }
 function shell(active, inner) {
   const q = active === '#/users' ? new URLSearchParams((location.hash.split('?')[1]) || '').get('q') || '' : '';
@@ -376,13 +379,14 @@ async function viewUser(id) {
         <dt>이메일 인증</dt><dd>${u.email_confirmed_at ? when(u.email_confirmed_at) : '<span class="warn-t">미인증</span>'}</dd>
         <dt>최근 접속</dt><dd>${when(u.last_seen_at)}</dd>
         <dt>나라 · 언어</dt><dd>${FLAG(u.country)} ${esc(u.country || '—')} · ${esc(u.lang || '—')} <span class="muted xs">${esc(u.timezone || '')}</span></dd>
-        <dt>체험 끝</dt><dd>${when(u.trial_ends_at)}</dd>
+        <dt>무료 이용 끝</dt><dd>${when(u.trial_ends_at)}${u.pass_until && new Date(u.pass_until) > new Date() ? ' <span class="muted xs">이용권</span>' : ''}</dd>
+        ${(u.vouchers || []).length ? `<dt>받은 이용권</dt><dd>${u.vouchers.map(v => `<span class="mono">${esc(fmtCode(v.code))}</span> <span class="muted xs">${day(v.at)} 넣음 · ${day(v.until)}까지</span>`).join('<br>')}</dd>` : ''}
       </dl></div>
       <div class="box pad"><h2>조치</h2>
         <div class="row gap wrap">
           ${u.admin_role || u.id === me.id ? '<span class="muted">관리자 계정은 여기서 정지·삭제할 수 없습니다.</span>' : `
             ${banned ? `<button class="btn primary" id="unban">${I.check}정지 해제</button>` : `<button class="btn" id="ban">${I.ban}이용 정지</button>`}
-            ${me.role === 'owner' ? `<button class="btn" id="ext">${I.gift}체험 연장</button><button class="btn danger" id="del">${I.trash}계정 삭제</button>` : ''}`}
+            ${me.role === 'owner' ? `<button class="btn" id="ext">${I.gift}체험 연장</button><a class="btn" href="${link('#/vouchers', { email: u.email })}">${I.ticket}이용권 코드</a><button class="btn danger" id="del">${I.trash}계정 삭제</button>` : ''}`}
         </div>
         <p class="muted xs">이용 정지: 새로 로그인할 수 없고, 이미 열린 앱도 로그인 갱신 시점(최대 1시간)에 끊깁니다. 기록은 그대로 남습니다.</p>
       </div>
@@ -604,6 +608,62 @@ async function viewPhrases(q) {
   document.querySelectorAll('[data-pdel]').forEach(b => b.onclick = async () => { if (!await confirmBox({ title: '문장 지우기', body: '이 문장이 앱에서 더 나오지 않아요. 잠깐 멈추려면 끄기를 쓰세요.', ok: '지우기', danger: true })) return; try { await api('phrase_delete', { id: Number(b.dataset.pdel) }); viewPhrases(q); } catch (e) { toast(e.message, true); } });
 }
 
+/* ---------- 이용권 코드: 만들어서 전하면, 회원이 앱 설정에서 넣어요 ---------- */
+const fmtCode = c => String(c || '').match(/.{1,4}/g)?.join('-') || '';
+const VSTATE = { open: ['쓸 수 있음', 'active'], used: ['다 씀', 'paused'], expired: ['기한 지남', 'past_due'], revoked: ['취소됨', 'canceled'] };
+const VLEN = [['7d', '7일'], ['1m', '1개월'], ['3m', '3개월'], ['6m', '6개월'], ['12m', '1년'], ['custom', '직접 (일)']];
+async function viewVouchers(q) {
+  const status = q.get('status') || 'all', pg = Number(q.get('page') || 0), email = q.get('email') || '';
+  loading('#/vouchers');
+  let r; try { r = await api('vouchers', { status, page: pg }); } catch (e) { return failed('#/vouchers', e); }
+  const c = r.counts || {}, pages = Math.ceil(r.total / r.pageSize);
+  const uses = v => `${num(v.used_count)} / ${num(v.max_uses)}`;
+  const len = v => { const m = /^(\d+) (mon|year)/.exec(v.duration || ''); return m ? (m[2] === 'year' ? '1년' : `${m[1]}개월`) : `${num(v.days)}일`; };
+  shell('#/vouchers', `${head('이용권', big(num(c.on_pass)) + '<span class="unit">명 이용 중</span>', '<p class="muted">코드를 만들어 전하면, 회원이 앱 <b>설정 › 계정 › 이용권 코드 넣기</b>에서 넣어요. 남은 무료 체험 끝에 이어 붙어서, 체험 15일 + 3개월 코드 = 3개월 15일 동안 모든 기능을 써요.</p>')}
+    <div class="ranges left">${[['all', '전체'], ...Object.entries(VSTATE).map(([k, [l]]) => [k, l])].map(([k, l]) => `<a href="${link('#/vouchers', { status: k })}" class="${k === status ? 'on' : ''}">${l}${k !== 'all' ? ` ${num(c[k])}` : ''}</a>`).join('')}</div>
+    ${me.role === 'owner' ? `<form id="vf" class="box pad nform"><h2>새 코드</h2>
+      <div class="grid3">
+        <label>기간<select name="len">${VLEN.map(([k, l]) => `<option value="${k}"${k === '3m' ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
+        <label>직접 입력 (일, 최대 366)<input name="days" type="number" min="1" max="366" placeholder="예: 45"></label>
+        <label>코드 개수<input name="count" type="number" min="1" max="50" value="1"></label>
+        <label>코드 하나를 몇 명이 쓸 수 있나<input name="uses" type="number" min="1" max="1000" value="1"></label>
+        <label>이 메일 계정만 (선택)<input name="email" type="email" maxlength="254" placeholder="member@example.com" value="${esc(email)}"></label>
+        <label>넣을 수 있는 기한 (선택)<input name="expires" type="date"></label>
+      </div>
+      <label>메모 (누구에게, 왜)<input name="note" maxlength="200" placeholder="예: 베타 테스터 감사"></label>
+      <p class="muted xs">보통은 1명이 1번 쓰는 코드예요. 행사처럼 여러 명에게 같은 코드를 줄 때만 사람 수를 늘려요. 자동 결제 중인 구독자는 넣을 수 없고, 해지 예약을 하면 구독이 끝난 다음부터 이어 붙어요.</p>
+      <div id="vout"></div>
+      <div class="row end"><button class="btn primary">${I.ticket}만들기</button></div></form>` : ''}
+    <section class="box tablebox"><table><thead><tr><th>코드</th><th>기간</th><th>상태</th><th class="r">사용</th><th>대상 · 메모</th><th>쓴 사람</th><th>만든 날</th><th></th></tr></thead><tbody>
+      ${r.rows.map(v => `<tr class="${v.state === 'open' ? '' : 'off'}"><td class="mono nowrap">${esc(fmtCode(v.code))}</td><td class="nowrap">${len(v)}</td><td>${badge(VSTATE[v.state][0], VSTATE[v.state][1])}</td><td class="r num">${uses(v)}</td>
+        <td>${v.for_email ? `${esc(v.for_email)}<br>` : ''}<span class="muted xs">${esc(v.note || '')}${v.expires_at ? ` · ${day(v.expires_at)}까지 넣기` : ''}</span></td>
+        <td>${v.users.map(x => `<a href="#/users/${esc(x.id)}">${esc(x.email || '(삭제된 회원)')}</a> <span class="muted xs">${day(x.until)}까지</span>`).join('<br>') || '<span class="muted">—</span>'}</td>
+        <td class="muted xs nowrap">${day(v.created_at)}<br>${esc((v.created_by || '').split('@')[0])}</td>
+        <td class="r nowrap"><button class="btn ghost sm" data-copy="${esc(v.code)}">복사</button>${me.role === 'owner' && v.state === 'open' ? `<button class="btn ghost sm" data-revoke="${esc(v.code)}">취소</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="8" class="muted pad">아직 만든 코드가 없어요.</td></tr>'}
+    </tbody></table></section>
+    ${pager('#/vouchers', { status }, pg, pages)}`);
+  const copy = t => navigator.clipboard?.writeText(t).then(() => toast('복사했어요.'), () => toast(t));
+  document.querySelectorAll('[data-copy]').forEach(b => b.onclick = () => copy(fmtCode(b.dataset.copy)));
+  document.querySelectorAll('[data-revoke]').forEach(b => b.onclick = async () => {
+    if (!await confirmBox({ title: '이용권 취소', body: `<b>${esc(fmtCode(b.dataset.revoke))}</b> 코드를 더 넣을 수 없게 해요. 이미 넣은 회원의 기간은 그대로예요.`, ok: '취소하기', danger: true })) return;
+    try { await api('voucher_revoke', { code: b.dataset.revoke }); toast('취소했어요.'); viewVouchers(q); } catch (e) { toast(e.message, true); }
+  });
+  const f = document.getElementById('vf');
+  if (f) f.onsubmit = async e => {
+    e.preventDefault();
+    const v = Object.fromEntries(new FormData(f));
+    const [amount, unit] = v.len === 'custom' ? [Number(v.days), 'days'] : v.len === '7d' ? [7, 'days'] : [parseInt(v.len, 10), 'months'];
+    try {
+      const { codes } = await api('voucher_create', { amount, unit, count: Number(v.count || 1), uses: Number(v.uses || 1), email: v.email, expires: v.expires, note: v.note });
+      const text = codes.map(fmtCode).join('\n');
+      await viewVouchers(q);
+      document.getElementById('vout').innerHTML = `<div class="vcodes"><p class="label">만든 코드 ${num(codes.length)}개</p><pre class="mono">${esc(text)}</pre><button type="button" class="btn ghost sm" id="vcopy">모두 복사</button></div>`;
+      document.getElementById('vcopy').onclick = () => copy(text);
+      toast('코드를 만들었어요.');
+    } catch (er) { toast(er.message, true); }
+  };
+}
+
 /* ---------- 공지 (앱 알림함에 모두에게) ---------- */
 async function viewNotices() {
   loading('#/notices');
@@ -635,6 +695,7 @@ function route() {
   if (path === '#/notices') return viewNotices();
   if (path === '#/usage') return viewUsage();
   if (path === '#/phrases') return viewPhrases(q);
+  if (path === '#/vouchers') return viewVouchers(q);
   return viewDash();
 }
 window.addEventListener('hashchange', route);

@@ -45,8 +45,9 @@ language sql stable security definer set search_path = public, auth as $$
     'active_7d',      (select count(*) from public.profiles where last_seen_at > now() - interval '7 days'),
     'active_30d',     (select count(*) from public.profiles where last_seen_at > now() - interval '30 days'),
     'banned',         (select count(*) from auth.users where banned_until > now()),
-    'in_trial',       (select count(*) from public.profiles p where not public.is_subscriber(p.id) and p.trial_ends_at + make_interval(days => p.bonus_days) > now()),
-    'trial_ended',    (select count(*) from public.profiles p where not public.is_subscriber(p.id) and p.trial_ends_at + make_interval(days => p.bonus_days) <= now()),
+    'in_trial',       (select count(*) from public.profiles p where not public.is_subscriber(p.id) and public.free_until(p) > now()),
+    'trial_ended',    (select count(*) from public.profiles p where not public.is_subscriber(p.id) and public.free_until(p) <= now()),
+    'on_pass',        (select count(*) from public.profiles p where p.pass_until > now()),
     'entries',        (select count(*) from public.entries where deleted_at is null),
     'entries_7d',     (select count(*) from public.entries where created_at > now() - interval '7 days'),
     'photos',         (select count(*) from public.photos),
@@ -96,7 +97,7 @@ language sql stable security definer set search_path = public, auth as $$
   with base as (
     select u.id, u.email::text, u.created_at, p.last_seen_at, u.banned_until, p.country, p.lang,
            (select count(*) from public.entries e where e.user_id = u.id and e.deleted_at is null) entries,
-           p.trial_ends_at + make_interval(days => coalesce(p.bonus_days, 0)) trial_ends_at,
+           public.free_until(p) trial_ends_at,
            s.status sub_status, s.plan sub_plan, a.role admin_role
     from auth.users u
     left join public.profiles p on p.id = u.id
@@ -127,6 +128,9 @@ language sql stable security definer set search_path = public, auth as $$
     'email_confirmed_at', u.email_confirmed_at, 'banned_until', u.banned_until,
     'display_name', p.display_name, 'country', p.country, 'lang', p.lang, 'timezone', p.timezone, 'last_seen_at', p.last_seen_at,
     'trial_ends_at', p.trial_ends_at + make_interval(days => coalesce(p.bonus_days, 0)), 'bonus_days', p.bonus_days,
+    'pass_until', p.pass_until,
+    'vouchers', coalesce((select jsonb_agg(jsonb_build_object('code', r.code, 'at', r.redeemed_at, 'from', r.granted_from, 'until', r.granted_until) order by r.redeemed_at desc)
+                          from public.voucher_redemptions r where r.user_id = u.id), '[]'),
     'referred', p.referred_by is not null, 'invited', (select count(*) from public.profiles r where r.referred_by = u.id),
     'admin_role', (select role from public.admins where user_id = u.id),
     'entries', (select count(*) from public.entries where user_id = u.id and deleted_at is null),
@@ -177,7 +181,7 @@ begin
     ('trial_3d', 'es', 'Su prueba gratuita termina en 3 días', 'Cuando termine la prueba, se pausarán la escritura y la edición. El plan anual es el más conveniente.'),
     ('trial_3d', 'fr', 'Votre essai gratuit se termine dans 3 jours', 'À la fin de l’essai, l’écriture et la modification seront suspendues. L’offre annuelle est la plus avantageuse.')
   ), t as (
-    select p.id, case when p.lang in ('ko','en','ja','es','fr') then p.lang else 'en' end lang, p.trial_ends_at + make_interval(days => p.bonus_days) ends
+    select p.id, case when p.lang in ('ko','en','ja','es','fr') then p.lang else 'en' end lang, public.free_until(p) ends
     from public.profiles p where not public.is_subscriber(p.id)
   ), ins as (
     insert into public.notices(user_id, kind, lang, title, body)
@@ -254,3 +258,53 @@ $$;
 
 revoke execute on function public.push_count(int, int, int), public.admin_push(), public.admin_features() from public, anon, authenticated;
 grant execute on function public.push_count(int, int, int), public.admin_push(), public.admin_features() to service_role;
+
+-- =====================================================================
+-- 2026-10-14 추가: 이용권 코드 (표와 회원용 함수 redeem_voucher는 schema.sql)
+-- =====================================================================
+-- 코드 만들기: 헷갈리는 글자(0 O 1 I)는 빼고 12자. 한 번에 최대 50개.
+create or replace function public.admin_voucher_create(p_by uuid, p_duration interval, p_count int default 1, p_uses int default 1,
+  p_expires timestamptz default null, p_note text default null, p_email text default null) returns text[]
+language plpgsql security definer set search_path = public as $$
+declare
+  abc constant text := 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; out text[] := '{}'; c text; b bytea; i int;
+begin
+  if p_count is null or p_count < 1 or p_count > 50 then raise exception 'count must be 1-50'; end if;
+  if p_email is not null and p_count > 1 then raise exception 'one code per email'; end if;
+  while coalesce(array_length(out, 1), 0) < p_count loop
+    b := uuid_send(gen_random_uuid()); c := '';
+    foreach i in array array[0, 1, 2, 3, 4, 5, 9, 10, 11, 12, 13, 14] loop   -- 6·8번째 바이트는 uuid 버전 표시라 빼요
+      c := c || substr(abc, (get_byte(b, i) % 32) + 1, 1);
+    end loop;
+    insert into public.vouchers(code, duration, max_uses, for_email, expires_at, note, created_by)
+    values (c, p_duration, coalesce(p_uses, 1), nullif(lower(trim(p_email)), ''), p_expires, nullif(trim(p_note), ''), p_by)
+    on conflict (code) do nothing;
+    if found then out := out || c; end if;
+  end loop;
+  return out;
+end $$;
+
+create or replace function public.admin_vouchers(st text default 'all', lim int default 50, off int default 0) returns jsonb
+language sql stable security definer set search_path = public, auth as $$
+  with f as (
+    select v.*, case when v.revoked_at is not null then 'revoked' when v.used_count >= v.max_uses then 'used'
+                     when v.expires_at < now() then 'expired' else 'open' end state
+    from public.vouchers v
+  )
+  select jsonb_build_object(
+    'total', (select count(*) from f where coalesce(st, 'all') in ('all', f.state)),
+    'counts', (select jsonb_build_object('open', count(*) filter (where state = 'open'), 'used', count(*) filter (where state = 'used'),
+                 'expired', count(*) filter (where state = 'expired'), 'revoked', count(*) filter (where state = 'revoked'),
+                 'redeemed', (select count(*) from public.voucher_redemptions), 'on_pass', (select count(*) from public.profiles where pass_until > now())) from f),
+    'rows', coalesce((select jsonb_agg(r order by r->>'created_at' desc) from (
+      select jsonb_build_object('code', f.code, 'days', round(extract(epoch from f.duration) / 86400), 'duration', f.duration::text,
+        'max_uses', f.max_uses, 'used_count', f.used_count, 'for_email', f.for_email, 'expires_at', f.expires_at, 'note', f.note,
+        'created_at', f.created_at, 'created_by', (select email from auth.users where id = f.created_by), 'revoked_at', f.revoked_at, 'state', f.state,
+        'users', coalesce((select jsonb_agg(jsonb_build_object('id', r.user_id, 'email', u.email, 'at', r.redeemed_at, 'until', r.granted_until) order by r.redeemed_at)
+                           from public.voucher_redemptions r left join auth.users u on u.id = r.user_id where r.code = f.code), '[]')) r
+      from f where coalesce(st, 'all') in ('all', f.state)
+      order by f.created_at desc limit least(greatest(lim, 1), 200) offset greatest(off, 0)) x), '[]'))
+$$;
+
+revoke execute on function public.admin_voucher_create(uuid, interval, int, int, timestamptz, text, text), public.admin_vouchers(text, int, int) from public, anon, authenticated;
+grant execute on function public.admin_voucher_create(uuid, interval, int, int, timestamptz, text, text), public.admin_vouchers(text, int, int) to service_role;

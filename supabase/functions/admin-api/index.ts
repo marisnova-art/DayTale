@@ -175,6 +175,45 @@ async function act(a: Admin, body: any, { db, env, fetch }: Deps) {
       return { ok: true, bonus_days: next };
     }
 
+    case 'vouchers': {
+      const st = ['all', 'open', 'used', 'expired', 'revoked'].includes(body.status) ? body.status : 'all';
+      return { ...(await rpc(db, 'admin_vouchers', { st, lim: PAGE, off: page(body.page) * PAGE })), pageSize: PAGE };
+    }
+
+    case 'voucher_create': {
+      ownerOnly(a);
+      // 기간: 일(1~366) 또는 개월(1~12). 무료 체험과는 따로, 남은 기간 끝에 이어 붙어요.
+      const n = Math.round(Number(body.amount)), unit = body.unit === 'months' ? 'months' : 'days';
+      if (!(unit === 'months' ? n >= 1 && n <= 12 : n >= 1 && n <= 366)) throw new Fail(400, 'duration must be 1 day - 1 year');
+      const count = Math.round(Number(body.count ?? 1)), uses = Math.round(Number(body.uses ?? 1));
+      if (!(count >= 1 && count <= 50)) throw new Fail(400, 'count must be 1-50');
+      if (!(uses >= 1 && uses <= 1000)) throw new Fail(400, 'uses must be 1-1000');
+      const email = String(body.email ?? '').trim().toLowerCase();
+      if (email && (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || email.length > 254)) throw new Fail(400, 'bad email');
+      if (email && count > 1) throw new Fail(400, 'one code per email');
+      let expires: string | null = null;
+      if (body.expires) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(String(body.expires))) throw new Fail(400, 'bad date');
+        const d = new Date(body.expires + 'T23:59:59Z');
+        if (isNaN(+d) || +d < Date.now()) throw new Fail(400, 'bad date');
+        expires = d.toISOString();
+      }
+      const note = String(body.note ?? '').trim().slice(0, 200);
+      const codes = await rpc(db, 'admin_voucher_create', { p_by: a.id, p_duration: `${n} ${unit}`, p_count: count, p_uses: uses, p_expires: expires, p_note: note || null, p_email: email || null });
+      await audit(db, a, 'voucher_create', {}, { count, duration: `${n} ${unit}`, uses, email: email || undefined, expires: body.expires || undefined, note: note || undefined });
+      return { codes };
+    }
+
+    case 'voucher_revoke': {
+      ownerOnly(a);
+      const code = String(body.code ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (!/^[A-Z2-9]{12}$/.test(code)) throw new Fail(400, 'bad code');
+      const { error } = await db.from('vouchers').update({ revoked_at: new Date().toISOString() }).eq('code', code);
+      if (error) throw new Fail(500, error.message);
+      await audit(db, a, 'voucher_revoke', {}, { code });
+      return { ok: true };
+    }
+
     case 'users': {
       const filter = ['all', 'paying', 'trial', 'ended', 'past_due', 'banned', 'admins', 'inactive'].includes(body.filter) ? body.filter : 'all';
       const rows = await rpc(db, 'admin_users', { q: String(body.q ?? '').trim().slice(0, 200), filter, lim: PAGE, off: page(body.page) * PAGE });

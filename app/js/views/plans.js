@@ -13,7 +13,7 @@ function render(view) {
     const pr = await Billing.localPrices(); const st = S.status || {}; const sub = Billing.sub; const d = Account.trialDays();
     const status = st.subscriber
       ? `<div class="pstat on">${icon('circle-check', 20)}<span><b>${esc(t(st.plan === 'yearly' ? 'plan.yearlyOn' : 'plan.monthlyOn'))}</b><small>${esc(st.cancel_at ? t('plan.endsOn', { date: fmtDate(st.cancel_at, { year: 'numeric', month: 'long', day: 'numeric' }) }) : sub?.current_period_end ? t('plan.renews', { date: fmtDate(sub.current_period_end, { year: 'numeric', month: 'long', day: 'numeric' }) }) : '')}</small></span></div>`
-      : `<div class="pstat${d > 0 ? '' : ' end'}">${icon(d > 0 ? 'hourglass' : 'lock', 20)}<span><b>${esc(d > 0 ? t('trial.left', { n: d }) : t('trial.ended'))}</b><small>${esc(d > 0 ? t('plan.trialSub') : t('plan.endedSub'))}</small></span></div>`;
+      : `<div class="pstat${d > 0 ? '' : ' end'}">${icon(d > 0 ? 'hourglass' : 'lock', 20)}<span><b>${esc(d > 0 ? Account.leftText(d) : t('trial.ended'))}</b><small>${esc(d > 0 ? t('plan.trialSub') : t('plan.endedSub'))}</small></span></div>`;
     const opt = (k, price, per, badge) => `<button class="popt${pick === k ? ' on' : ''}" data-plan="${k}" role="radio" aria-checked="${pick === k}"><span class="rd"></span><span class="pt"><b>${esc(t('plan.' + k))}</b><small>${esc(per)}</small></span><span class="pp">${esc(price)}${badge ? `<em>${esc(badge)}</em>` : ''}</span></button>`;
     body.innerHTML = status + (st.subscriber ? manage(sub) : `
       <h1 class="ptitle">${esc(t('plan.headline'))}</h1>

@@ -2,6 +2,7 @@
 import { S, emit } from './store.js';
 import { Sync } from './sync.js';
 import { esc, ls, todayKey } from '../core/utils.js';
+import { t } from '../core/i18n.js';
 
 const Account = {
   profile: null,
@@ -23,7 +24,11 @@ const Account = {
     if (!S.status || S.status.subscriber) return null;
     return Math.max(0, Math.ceil((new Date(S.status.trial_ends_at) - Date.now()) / 864e5));
   },
-  trialRatio() { const d = this.trialDays(); return d == null ? 1 : Math.max(0, Math.min(1, d / 30)); },
+  /* 지금 무료 이용이 이용권 덕분인지 (이용권 끝 = 무료 이용 끝) */
+  onPass() { const st = S.status; return !!st?.pass_until && !st.subscriber && new Date(st.pass_until) >= new Date(st.trial_ends_at); },
+  /* 남은 날 문구: 무료 체험 n일 / 이용권 n일 (n은 그대로 넣어 HTML로 감쌀 수 있게) */
+  leftText(n) { return this.onPass() ? t('pass.left', { n }) : t('trial.left', { n }); },
+  trialRatio() { const d = this.trialDays(); return d == null || this.onPass() ? 1 : Math.max(0, Math.min(1, d / 30)); },
   name() { return this.profile?.display_name || (S.user?.email || '').split('@')[0]; },
   initial() { return (this.name() || '·').trim().charAt(0).toUpperCase(); },
   /* 프로필 사진: 직접 넣은 사진 → Google 사진 → 없으면 첫 글자 */

@@ -80,7 +80,7 @@ async function startUser(user, { offline = false } = {}) {
 }
 /* 체험 끝나기 7일·3일 전 한 번씩 알려요 (메일은 서버가 따로 보내요) */
 function trialNudge() {
-  const d = Account.trialDays(); if (d == null || d > 7 || d < 1) return;
+  const d = Account.trialDays(); if (d == null || d > 7 || d < 1 || Account.onPass()) return;
   const k = d <= 3 ? 3 : 7; const key = 'daytale.trialNudge.' + S.user.id;
   if ((ls.get(key, 99)) <= k) return; ls.set(key, k);
   toast(t('trial.nudge', { n: d }), { action: t('trial.plans'), onAction: () => go('/plans'), ms: 9000 });
