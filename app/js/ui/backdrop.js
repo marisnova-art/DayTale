@@ -52,6 +52,8 @@ function paint(el, { bg, wide, ink, body, accent, theme, scrim, light = false })
   document.documentElement.classList.toggle('bg-light', light);
   el.style.setProperty('--bg-grad', bg);
   el.style.setProperty('--bg-grad-wide', wide || bg);
+  // 문서 바탕(html)도 같은 배경을 알아야 화면 끝(아이폰 홈 막대 자리)이 다른 색으로 비치지 않아요
+  if (el === document.body) ['--bg-grad', '--scrim'].forEach((k, i) => document.documentElement.style.setProperty(k, i ? scrim : bg));
   el.style.setProperty('--accent', accent);
   el.style.setProperty('--ink', ink); el.style.setProperty('--ink-rgb', rgb(ink)); el.style.setProperty('--ink-body', body);
   el.style.setProperty('--scrim', scrim);

@@ -245,5 +245,5 @@ dialog.dlg .btn { height: 44px; }
   .ed-bar { max-width: 560px; }
   .ed-bar .cap { height: 54px; }
   :root:not(.kb-open) .ed-bar { padding-bottom: calc(8px + var(--safe-b)); }
-  .ed-dock .ed-pan { max-height: min(var(--pan, 300px), 42dvh); padding-top: 18px; max-width: 640px; margin-left: auto !important; margin-right: auto !important; }
+  .ed-dock .ed-pan { height: min(var(--pan, 300px), 42dvh); padding-top: 18px; max-width: 640px; margin-left: auto !important; margin-right: auto !important; }
 }

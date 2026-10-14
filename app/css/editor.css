@@ -163,8 +163,8 @@
   .ed-pan { position: relative; margin: 0 6px; border-radius: 28px 28px 0 0; background: var(--sheet); border: 1px solid rgba(var(--fg),.08); border-bottom: 0;
     box-shadow: 0 -12px 40px rgba(0,0,0,.4); padding-top: 22px; animation: panUp .24s cubic-bezier(.2,.8,.2,1); }
   .ed-pan::before { content: ''; position: absolute; top: 7px; left: 50%; width: 32px; height: 4px; margin-left: -16px; border-radius: 2px; background: #3A3842; }
-  /* 판 안은 막대보다 한 단계 작게 (단추 · 아이콘 2/3). 판 높이는 내용만큼, 키보드 높이를 넘지 않아요 */
-  .ed-dock .ed-pan { height: auto; max-height: var(--pan, 300px); padding: 18px 12px calc(10px + var(--safe-b)); border-radius: 24px 24px 0 0; }
+  /* 판 안은 막대보다 한 단계 작게 (단추 · 아이콘 2/3). 판은 키보드가 있던 자리를 그대로 채워서, 열고 닫아도 막대가 움직이지 않아요 */
+  .ed-dock .ed-pan { height: var(--pan, 300px); padding: 18px 12px calc(10px + var(--safe-b)); border-radius: 24px 24px 0 0; }
   .ed-pan .fonts { gap: 6px; margin-bottom: 8px; }
   .ed-pan .fonts button { height: 36px; border-radius: 12px; font-size: var(--fs-s); }
   .ed-pan .fonts .ff-hand { font-size: calc(var(--fs-s) * 1.25); }
@@ -195,7 +195,10 @@
 /* 휴대폰 편집기: 화면에 보이는 만큼(키보드 위)의 상자 하나. 위는 글(이 안에서만 스크롤), 아래는 막대·판이 차례로 놓여요.
    막대가 글 위에 떠 있지 않으니 길게 써도 쓰는 자리가 가려지지 않고, 스크롤할 때 막대가 따라 움직이며 떨리지 않아요 */
 @media (max-width: 899px), (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
-  :root.ed-mode, :root.ed-mode body { overflow: hidden; overscroll-behavior: none; }
+  /* 문서 자체를 overflow: hidden 으로 막으면 아이폰 홈 화면 앱에서 맨 아래(홈 막대 자리)가 잘려 빈 띠가 보였어요. 스크롤은 편집기 상자 안에서만 일어나요 */
+  :root.ed-mode, :root.ed-mode body { overscroll-behavior: none; }
+  /* 혹시 화면 끝이 비쳐도 어둡게 덮인 배경과 같은 색이 보이게요 */
+  :root.ed-mode, :root.ed-mode body { background: linear-gradient(rgba(var(--srf),.55), rgba(var(--srf),.55)), linear-gradient(rgba(0,0,0,var(--scrim)), rgba(0,0,0,var(--scrim))), var(--bg-grad); }
   /* 어둡게 덮는 층은 편집기 상자가 아니라 화면 배경 자체에 넣어요 (아이폰에서 아래쪽 끝이 잘려 원래 배경이 비치지 않게) */
   .view > .ed-page::before { display: none; }
   :root.ed-mode .backdrop { box-shadow: inset 0 0 0 100vmax rgba(var(--srf),.55); }
@@ -203,6 +206,8 @@
      (아이폰은 키보드가 내려간 뒤 크기 알림이 늦거나 빠져서, 그 값을 그대로 쓰면 아래쪽이 잘려 보였어요) */
   .view > .ed-page { position: fixed; left: 0; right: 0; top: 0; bottom: 0; height: auto; min-height: 0; display: flex; flex-direction: column; }
   :root.kb-open .view > .ed-page { top: var(--vvt, 0px); bottom: auto; height: var(--vvh, 100dvh); }
+  /* 서식 · 옵션 판이 열려 있으면 키보드는 내려가 있어요. 아이폰이 크기를 늦게 알려 줘도 화면 전체를 써요 (막대가 가운데로 떠오르지 않게) */
+  :root.ed-pan-open .view > .ed-page { top: 0; bottom: 0; height: auto; }
   /* 배경은 화면 밖까지 넉넉히 깔아, 키보드가 내려가는 순간에도 아래에 빈 틈이 보이지 않아요 */
   :root.ed-mode .backdrop { top: -20vh; bottom: -20vh; }
   .view > .ed-page > .ed { flex: 1 1 auto; min-height: 0; width: 100%; max-width: none; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
