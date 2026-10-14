@@ -46,11 +46,16 @@ const SOLID = {
   terracotta: ['#8C3F2E', '#FFF2E8', .8, '#FFD58A'], plum: ['#3A2240', '#F7E9F3', .74, '#FFAFCB'],
   olive: ['#3B3D26', '#F3F0DC', .74, '#E8C65A'], navy: ['#131B32', '#E6ECFF', .72, '#9DB8FF'], charcoal: ['#1C1C1E', '#F2F0EC', .7, '#FFB37A'],
   /* 패턴: 그라데이션·단색과 섞지 않는 따로 된 배경. 여섯째 값 = 무늬 이름 (글꼴·글줄 선은 base.css :root[data-pat]) */
-  pad: ['#FBEFA4', '#26303F', .82, '#C2412E', 1, 'pad']
+  pad: ['#FBEFA4', '#26303F', .82, '#C2412E', 1, 'pad'], padw: ['#FBFAF5', '#26303F', .82, '#C2412E', 1, 'padw'],
+  grid: ['#F6F7F4', '#1C2533', .76, '#2C62B4', 1, 'grid'], gridd: ['#1D2228', '#ECEFF2', .76, '#F2C76A', 0, 'gridd']
 };
 /* 노란 줄노트: 스케치북 같은 종이결 (선은 글줄에 맞춰 이야기 글에 그어요) */
-const PAPER = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' seed='3' stitchTiles='stitch'/%3E%3CfeDiffuseLighting lighting-color='%23fff' surfaceScale='1.1'%3E%3CfeDistantLight azimuth='45' elevation='58'/%3E%3C/feDiffuseLighting%3E%3CfeColorMatrix values='0 0 0 0 .38  0 0 0 0 .30  0 0 0 0 .10  -1 0 0 0 .8'/%3E%3C/filter%3E%3Crect width='260' height='260' filter='url(%23n)'/%3E%3C/svg%3E")`;
-const PATTERN = { pad: `${PAPER}, #FBEFA4` };
+const paper = (r, g, b, a) => `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' seed='3' stitchTiles='stitch'/%3E%3CfeDiffuseLighting lighting-color='%23fff' surfaceScale='1.1'%3E%3CfeDistantLight azimuth='45' elevation='58'/%3E%3C/feDiffuseLighting%3E%3CfeColorMatrix values='0 0 0 0 ${r}  0 0 0 0 ${g}  0 0 0 0 ${b}  -1 0 0 0 ${a}'/%3E%3C/filter%3E%3Crect width='260' height='260' filter='url(%23n)'/%3E%3C/svg%3E")`;
+/* 줄노트 = 손글씨 + 글줄에 맞춘 선 (LINED). 모눈 = 글자는 기본 글꼴, 칸은 그냥 무늬예요 */
+const GRID = (c, a, b) => `repeating-linear-gradient(0deg, rgba(${c},${b}) 0 1px, transparent 1px 120px), repeating-linear-gradient(90deg, rgba(${c},${b}) 0 1px, transparent 1px 120px), repeating-linear-gradient(0deg, rgba(${c},${a}) 0 1px, transparent 1px 24px), repeating-linear-gradient(90deg, rgba(${c},${a}) 0 1px, transparent 1px 24px)`;
+const PATTERN = { pad: `${paper(.38, .30, .10, .8)}, #FBEFA4`, padw: `${paper(.35, .33, .28, .45)}, #FBFAF5`,
+  grid: `${GRID('60,110,190', .10, .22)}, #F6F7F4`, gridd: `${GRID('255,255,255', .05, .11)}, #1D2228` };
+const LINED = new Set(['pad', 'padw']);
 const rgb = c => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16)).join(',');
 /* 그라데이션 글자: 배경의 따뜻한 빛 색을 아주 옅게 섞은 흰색 */
 const inkOf = p => lighten(p[3], .86);
@@ -67,7 +72,9 @@ function paint(el, { bg, wide, ink, body, accent, theme, scrim, light = false })
 }
 let current = null;
 function pattern(pat) {
-  if (pat) { document.documentElement.dataset.pat = pat; useFont(pat); } else delete document.documentElement.dataset.pat;
+  const r = document.documentElement;
+  if (pat) r.dataset.pat = pat; else delete r.dataset.pat;
+  if (LINED.has(pat)) { r.dataset.lined = ''; useFont('pad'); } else delete r.dataset.lined;
 }
 /* 하루 한 시간대 동안은 같은 배경을 유지해요 */
 function apply(el = document.body, { weather = null } = {}) {
