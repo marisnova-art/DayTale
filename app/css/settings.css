@@ -132,12 +132,12 @@
 .co-dl dd { margin: 0; color: var(--text-2); word-break: break-all; }
 .co-dl .tbd { color: var(--faint); }
 /* 배경 견본: 그라데이션 + 단색 (글자 'Aa'는 그 배경의 글자색) */
-.bgsw { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 12px 8px; width: 100%; margin-top: 2px; }
+.bgsw { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px 8px; width: 100%; margin-top: 2px; }
 .bgsw button { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; }
 .bgsw i { width: 56px; height: 56px; border-radius: 18px; display: grid; place-items: center; font-style: normal; font-size: var(--fs-s); font-weight: 700; letter-spacing: -.02em;
   box-shadow: inset 0 0 0 1px rgba(var(--fg),.1); transition: box-shadow .15s; }
 .bgsw button.on i { box-shadow: 0 0 0 2px var(--sheet, #1A191F), 0 0 0 4px var(--text); }
-.bgsw small { font-size: var(--fs-s); color: var(--muted-2); text-align: center; line-height: 1.25; overflow-wrap: anywhere; }
+.bgsw small { margin: 0 -4px; font-size: var(--fs-s); color: var(--muted-2); text-align: center; line-height: 1.25; overflow-wrap: anywhere; }
 .bgsw button.on small { color: var(--text); font-weight: 600; }
 /* 패턴 견본: 줄노트는 선과 손글씨까지 보여요 */
 .bgsw i:is(.pat-pad, .pat-padw) { font-family: 'DT Gamja Flower', var(--font); font-weight: 400; font-size: var(--fs-m); color: #26303F; box-shadow: inset 0 0 0 1px rgba(0,0,0,.06);
