@@ -97,7 +97,7 @@ export default {
     night: ['Sleep well. See you tomorrow.', 'That’s enough for today.', 'Have a restful night.', 'Tomorrow can wait until tomorrow.', 'Rest up. The day is done.']
   },
   words: {
-    events: n => n === 1 ? '1 event' : `${n} events`, todos: n => n === 1 ? '1 to-do' : `${n} to-dos`, count: n => n === 1 ? '1 record' : `${n} records`, week: n => n === 1 ? '1 record' : `${n} records`,
+    events: n => n === 1 ? '1 event' : `${n} events`, todos: n => n === 1 ? '1 to-do' : `${n} to-dos`, count: n => n === 1 ? '1 entry' : `${n} entries`, week: n => n === 1 ? '1 entry' : `${n} entries`,
     streak: n => `${n} days`, ago: n => n === 1 ? 'A year ago' : `${n} years ago`,
     // Followed by the temperature: "clear and 64°"
     wx: { sun: 'clear and', suncloud: 'partly cloudy and', cloud: 'cloudy and', rain: 'rainy and', snow: 'snowy and', thunder: 'stormy and', fog: 'foggy and' }

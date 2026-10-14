@@ -29,7 +29,7 @@ const Q = {
       done: ['You have already finished {n} to-dos. What is next?'], event: ['One event left today. Anything to prepare?'], item: ['Did you just put something away? Note where it is.'],
       rain: ['A rainy afternoon. Any thoughts while looking outside?'], sun: ['A sunny afternoon. Did you get a moment to rest?'] },
     evening: { base: ['How was your day?', 'What was the best moment today?', 'Who did you talk with today?', 'Did you learn anything new today?', 'If today were one line, what would it be?'],
-      allDone: ['Every to-do is done. A word for yourself?'], someLeft: ['It is fine to move the rest to tomorrow. What went best today?'], streak: ['Day {n} of keeping records. Keep it going?'],
+      allDone: ['Every to-do is done. A word for yourself?'], someLeft: ['It is fine to move the rest to tomorrow. What went best today?'], streak: ['Day {n} of writing here. Keep it going?'],
       dow1: ['You got through Monday. How was it?'], dow5: ['Friday, the end of the week. How was this week?'], weekend: ['A weekend evening. What did resting give you today?'] },
     night: { base: ['Anything to keep before you sleep?', 'What scene from today stays with you?', 'Anyone you felt grateful for today?', 'Any note for tomorrow’s you?', 'How would you score today?'],
       yearAgo: ['Compared with that day a year ago, how was today?', 'If you read today a year from now, what would you want to find?'], anniversary: ['Today is {label}. How did you spend it?'], monthEnd: ['The month is almost over. What stood out the most?'],
