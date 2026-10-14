@@ -147,20 +147,6 @@ dialog.dlg .btn { height: 44px; }
   /* 휴지통 아래에 설정 */
   .drawer .foot { flex-direction: column; gap: 0; } .drawer .foot .m { flex: none; } }
 
-/* 휴대폰을 가로로 돌려도 앱은 세로 그대로 (보통의 세로 앱처럼): 화면 전체를 기기 방향에 맞춰 반대로 90도 돌려요 (main.js가 :root.rot · --rot · --rw · --rh를 정해요).
-   이때 화면 상자는 body, 스크롤은 #app 안에서 해요. body가 돌아가 있어서 fixed 막대들도 같이 돌고 제자리에 있어요 */
-:root.rot, :root.rot body { overflow: hidden; overscroll-behavior: none; }
-:root.rot body { position: fixed; left: 50%; top: 50%; width: var(--rw); height: var(--rh); margin: 0; transform: translate(-50%, -50%) rotate(var(--rot)); }
-:root.rot #app { height: 100%; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
-:root.rot .layout { min-height: 100%; }
-:root.rot { --safe-t: max(env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px)); --safe-b: 10px; }
-:root.rot .view > .ed-page { top: 0; height: 100%; }
-:root.rot dialog.dlg { transform: rotate(var(--rot)); }
-/* 돌린 화면에서는 화면 높이 = --rh (vh·dvh는 가로 기준이라 쓰지 않아요) */
-:root.rot .drawer { max-height: calc(var(--rh) - var(--safe-t) - var(--safe-b) - 34px); }
-:root.rot .sheet { max-height: calc(var(--rh) * .92); }
-:root.rot .auth, :root.rot .ed-page { min-height: var(--rh); }
-:root.rot .ask textarea { max-height: calc(var(--rh) * .4); }   /* 대화상자는 body 밖(맨 위 층)에 그려져서 따로 돌려요 */
 
 /* 메뉴 색 (설정 > 화면 > 메뉴 색): dark = 다크그레이 · glass = 흰 유리 · white = 흰색 (기본).
    아래 막대 · 모바일 메뉴 · 홈 쓰기 칸에 적용돼요. PC 왼쪽 사이드바는 그대로예요. */
@@ -197,4 +183,35 @@ dialog.dlg .btn { height: 44px; }
   :root.bg-light[data-ui="dark"] .drawer { color-scheme: dark; --fg: 255,255,255; --srf: 22,21,26; --on-text: #141317; --menu: #17161B;
     --text: #F5F3EF; --text-2: #F2F0EC; --text-3: #D9D5DE; --muted: #A9A5AF; --muted-2: #8E8A94; --faint: #6F6B77;
     --line: rgba(255,255,255,.07); --line-2: rgba(255,255,255,.12); --fill: rgba(255,255,255,.05); --fill-2: rgba(255,255,255,.08); }
+}
+
+/* 휴대폰 가로: PC 화면이 아니라 모바일 화면 그대로, 가로에 맞게만 다듬어요.
+   글은 가운데 읽기 좋은 폭으로 모으고, 낮아진 높이에 맞춰 위아래 여백 · 막대 · 판을 줄여요. 노치가 있는 옆쪽은 비워 둬요 */
+@media (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
+  :root { --story: var(--fs-l); }
+  .view { padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); padding-bottom: calc(84px + var(--safe-b)); }
+  .home, .lst, .set, .cal { max-width: 640px; margin-left: auto; margin-right: auto; }
+  .home { padding-top: 16px; }
+  .home .spacer { height: 90px; }
+  .lst { padding-top: 14px; }
+  .mbar { height: 56px; border-radius: 28px; bottom: calc(8px + var(--safe-b)); max-width: 460px; }
+  .mbar .icon-btn { height: 44px; }
+  .mbar .write { height: 44px; border-radius: 22px; }
+  /* 메뉴: 높이가 낮아서 두 칸으로 — 왼쪽 프로필 · 찾기 · 휴지통 · 설정, 오른쪽 메뉴 목록(스크롤), 맨 아래 닫기 줄 */
+  .drawer { bottom: calc(8px + var(--safe-b)); max-width: 760px; height: calc(100dvh - 16px - var(--safe-b)); max-height: none; padding: 10px 10px 8px;
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); grid-template-rows: auto auto minmax(0, 1fr) auto; column-gap: 12px; }
+  .drawer .profile-card { grid-area: 1 / 1; margin: 0 4px; padding: 12px; gap: 8px; }
+  .drawer .search { grid-area: 2 / 1; margin: 8px 4px 0; height: 44px; }
+  .drawer .foot .m { height: 40px; }
+  .drawer .foot { grid-area: 3 / 1; align-self: end; border-top: 0; }
+  .drawer .nav { grid-area: 1 / 2 / 4 / 3; margin-top: 0; }
+  .drawer .head { grid-area: 4 / 1 / 5 / 3; }
+  .toasts { bottom: calc(74px + var(--safe-b)); }
+  .sheet { max-width: 560px; max-height: 94dvh; }
+  /* 글쓰기: 글 칸은 가운데 640px, 막대는 낮게, 서식·옵션 판은 화면의 절반까지만 */
+  .view > .ed-page > .ed { padding: 12px max(24px, calc((100% - 640px) / 2)) 24px; }
+  .ed-bar { max-width: 560px; }
+  .ed-bar .cap { height: 54px; }
+  :root:not(.kb-open) .ed-bar { padding-bottom: calc(8px + var(--safe-b)); }
+  .ed-dock .ed-pan { height: min(var(--pan, 300px), 42dvh); padding-top: 18px; max-width: 640px; margin-left: auto !important; margin-right: auto !important; }
 }
