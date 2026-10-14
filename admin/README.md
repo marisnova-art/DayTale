@@ -9,13 +9,14 @@
 | 회원 | 검색, 거르기(체험 중 · 체험 끝 · 유료 · 결제 실패 · 11개월 미접속 · 정지 · 관리자), 나라·언어 |
 | 회원 상세 | 기록·사진·폴더 **개수만**(내용은 관리자도 못 봐요), 구독, 체험 끝 날짜, 정지/해제, **체험 연장**(owner), 계정 삭제(owner) |
 | 구독·결제 | Paddle 웹훅이 쓴 구독 목록, 해지(Paddle API 키가 있을 때) |
+| 이용 현황 | 기능 사용(개수만) + **회원 구성**: 나라별(회원·유료·체험·전환·7일 접속), 언어별, 기기(운영체제·폰/태블릿/컴퓨터·브라우저·홈 화면 설치), 처음 온 곳(utm_source·참조 사이트·utm_medium·utm_campaign·첫 페이지)별 전환, 주별 가입 × 유입 경로, 나라 × 운영체제. 기간: 최근 30일·90일 가입 / 전체 |
 | 운영 | **무료 한도 게이지**(Supabase DB 500MB · 월간 활성 50,000 · R2 10GB). 70%가 넘으면 대시보드 맨 위에 경고. 1년 미접속 정리 대상 수, 언어별 회원 |
 | 공지 | 앱 알림함에 공지 올리기·내리기(언어별 가능, owner) |
 | 이용권 | 코드 발급(기간 1일~1년, 개수, 몇 명이 쓸지, 메일 지정, 넣을 기한, 메모)·취소, 누가 썼는지. 회원은 앱 설정 › 계정 › 이용권 코드 넣기. 남은 체험 끝에 이어 붙고, 자동 결제 구독 중이면 안 받아요(owner만 발급) |
 | 관리 기록 | 정지·삭제·해지·체험 연장·공지가 누가/언제/왜로 남아요 |
 
 ## 설치 (직접 하실 일)
-1. SQL Editor에서 `supabase/schema.sql` 다음에 `supabase/admin.sql` 실행
+1. SQL Editor에서 `supabase/schema.sql` 다음에 `supabase/admin.sql` 실행 (이미 깔린 데이터베이스면 `supabase/migrations/`의 새 파일만)
 2. `24story@gmail.com`으로 앱에 가입하면 자동으로 owner가 돼요(비밀번호는 가입할 때 직접 정해요)
 3. `supabase functions deploy admin-api` (JWT 검사는 켠 채로) + Secrets: `ADMIN_ORIGIN`(관리자 주소), `CRON_SECRET`, (선택) `PADDLE_API_KEY`, `PADDLE_ENV`
 4. 매일 운영: Supabase → Integrations → Cron에서 하루 한 번 `admin-api`를 `x-cron-secret` 헤더로 POST → 체험 7일·3일 전 앱 알림
@@ -23,7 +24,7 @@
 
 ## 검사
 ```
-node --experimental-strip-types test/api.test.mjs     # 권한·API 41개
+node --experimental-strip-types test/api.test.mjs     # 권한·API
 node --experimental-strip-types test/ui.mjs shots/    # 브라우저 화면
 ```
 

@@ -1,4 +1,5 @@
 // 언어별 소개 페이지를 만들어요: app/{en,ko,ja,es,fr}/index.html
+// 앱으로 가는 링크는 ?lp=<언어>로 처음 연 페이지를 알려 주고, site/src.js가 utm·참조 사이트를 이어 붙여요 (회원 구성 통계, 합계만)
 // 이름·가격을 바꾸면 이 파일 위쪽만 고치고 다시 실행: node tools/build-site.mjs
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -132,12 +133,13 @@ ${SITE ? `<link rel="canonical" href="${abs(`/${l}/`)}">\n` : ''}${alt}
 <link rel="apple-touch-icon" href="../icons/icon-180.png">
 <link rel="stylesheet" href="../fonts/pretendard.css">
 <link rel="stylesheet" href="../site/site.css">
+<script src="../site/src.js" defer></script>
 </head>
 <body>
 <header class="top"><div class="wrap">
   <a class="brand" href="./"><i></i>${esc(name)}</a><span class="sp"></span>
   <details class="langs"><summary>${esc(LANGS[l])} ▾</summary><ul>${Object.entries(LANGS).map(([x, n]) => `<li><a href="../${x}/" lang="${x}"${x === l ? ' aria-current="page"' : ''}>${n}</a></li>`).join('')}</ul></details>
-  <a class="btn ghost" href="../#/home">${esc(c.open)}</a>
+  <a class="btn ghost" href="../?lp=${l}#/home">${esc(c.open)}</a>
 </div></header>
 
 <main>
@@ -146,7 +148,7 @@ ${SITE ? `<link rel="canonical" href="${abs(`/${l}/`)}">\n` : ''}${alt}
     <p class="kicker">${esc(c.kicker)}</p>
     <h1>${c.h1}</h1>
     <p class="lead">${esc(c.lead)}</p>
-    <div class="cta"><a class="btn light big" href="../#/signup">${esc(c.start)}</a><small>${esc(c.startSub)}</small></div>
+    <div class="cta"><a class="btn light big" href="../?lp=${l}#/signup">${esc(c.start)}</a><small>${esc(c.startSub)}</small></div>
   </div>
   <div class="story" aria-label="${esc(name)}">
     <div class="when">${esc(c.demo.when)}<b>${esc(c.demo.time)}</b></div>
@@ -184,7 +186,7 @@ ${SITE ? `<link rel="canonical" href="${abs(`/${l}/`)}">\n` : ''}${alt}
 
 <section class="final"><div class="wrap">
   <h2>${esc(c.final)}</h2>
-  <a class="btn light big" href="../#/signup">${esc(c.start)}</a>
+  <a class="btn light big" href="../?lp=${l}#/signup">${esc(c.start)}</a>
 </div></section>
 </main>
 

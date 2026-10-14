@@ -158,4 +158,30 @@ ok((await call('cat', { action: 'vouchers', status: 'open' })).body.rows.every(r
 const fu = (await call('ann', { action: 'user', id: V.fay })).body;
 ok(fu.pass_until && fu.vouchers.length === 2, '회원 상세: 이용권');
 ok((await call('ann', { action: 'stats' })).body.on_pass === 3, '대시보드: 이용권 쓰는 회원 수');
+// 회원 구성 (나라·언어·기기·처음 온 곳) — 회원은 자기 줄의 정해진 칸만, 처음 온 곳은 한 번만
+await asU(V.fay, `update profiles set platform = 'ios', device_kind = 'phone', browser = 'safari', installed = true, device_at = now(), first_source = 'instagram', first_medium = 'social', first_campaign = 'fall-26', first_landing = '/ja' where id = '${V.fay}'`);
+await asU(V.fay, `update profiles set first_source = 'google', first_landing = 'app', installed = false where id = '${V.fay}'`);
+const fr = (await pg.query(`select first_source, first_landing, installed from profiles where id = $1`, [V.fay])).rows[0];
+ok(fr.first_source === 'instagram' && fr.first_landing === '/ja' && fr.installed === false, '처음 온 곳은 바뀌지 않고, 설치 여부는 갱신됨');
+await asU(V.gus, `update profiles set platform = 'android', device_kind = 'phone', browser = 'chrome', first_source = 'google', first_landing = 'app' where id = '${V.gus}'`);
+await asU(V.hal, `update profiles set platform = 'windows', device_kind = 'desktop', browser = 'edge', first_source = 'direct', first_landing = '/en' where id = '${V.hal}'`);
+for (const [sql, m] of [[`platform = 'commodore'`, '모르는 기기'], [`browser = 'netscape'`, '모르는 브라우저'], [`first_landing = '/../x'`, '이상한 첫 페이지'], [`first_source = '${'a'.repeat(41)}'`, '너무 긴 유입 경로'], [`first_campaign = 'Hello World'`, '대문자·빈칸 캠페인']])
+  await asU(U.bob, `update profiles set ${sql} where id = '${U.bob}'`).then(() => ok(false, m + ' 거절'), e => ok(/check constraint/.test(e.message), m + ' 거절'));
+await denied(asU(V.gus, `update profiles set trial_ends_at = now() + interval '9 years' where id = '${V.gus}'`), '새 칸이 생겨도 체험 기간은 못 바꿈');
+ok((await asU(V.gus, `update profiles set platform = 'mac' where id = '${V.fay}' returning id`)).length === 0, '다른 회원의 기기 칸은 못 바꿈');
+await denied(asRole('authenticated', 'select public.admin_audience()'), '로그인 사용자는 admin_audience 못 부름');
+ok((await call('bob', { action: 'audience' })).status === 403, '회원 구성: 관리자만');
+const ad = (await call('cat', { action: 'audience' })).body, G = ad.groups;
+const gk = (dim, k) => (G[dim] || []).find(r => r.k === k) || {};
+ok(ad.days === null && ad.total.users >= 7 && ad.total.known_source === 3 && ad.total.known_device === 3, '회원 구성: 전체 합계');
+ok(gk('source', 'instagram').users === 1 && gk('landing', '/ja').users === 1 && gk('platform', 'ios').users === 1 && gk('device_kind', 'phone').users === 2 && gk('browser', 'edge').users === 1 && gk('installed', 'no').users === 1, '회원 구성: 기기·유입 경로별');
+ok(gk('country', 'KR').users === 2 && gk('country', 'KR').paying === 1 && gk('country', 'KR').conv === 50 && gk('lang', 'en').users >= 1, '회원 구성: 나라별 유료·전환율, 언어별');
+ok(Array.isArray(ad.weekly) && ad.weekly.some(w => w.source === 'instagram' && w.n === 1) && Array.isArray(ad.cross) && ad.cross.some(c => c.platform === 'ios'), '회원 구성: 주별 가입 × 유입 경로, 나라 × 기기');
+await pg.exec(`update auth.users set created_at = now() - interval '60 days' where id = '${V.hal}'`);
+const a30 = (await call('cat', { action: 'audience', days: 30 })).body, a90 = (await call('cat', { action: 'audience', days: 90 })).body;
+ok(a30.days === 30 && !(a30.groups.source || []).some(r => r.k === 'direct') && (a90.groups.source || []).some(r => r.k === 'direct'), '회원 구성: 기간 거르기 (30일 · 90일)');
+ok((await call('cat', { action: 'audience', days: 'x; drop' })).body.days === null, '회원 구성: 이상한 기간은 전체');
+const fu2 = (await call('ann', { action: 'user', id: V.fay })).body, ul = (await call('ann', { action: 'users', q: 'fay@' })).body.rows[0];
+ok(fu2.platform === 'ios' && fu2.first_source === 'instagram' && fu2.first_landing === '/ja' && ul.platform === 'ios' && ul.first_source === 'instagram', '회원 목록·상세: 기기·처음 온 곳');
+ok(!JSON.stringify(ad).includes('@'), '회원 구성에 메일 주소 없음');
 console.log(fails ? `${fails} FAILED` : 'ALL PASSED'); process.exit(fails ? 1 : 0);

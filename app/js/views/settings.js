@@ -123,7 +123,7 @@ async function onClick(ev, paint) {
     return;
   }
   if (a === 'name') { const v = await promptDlg(t('set.editName'), { value: Account.name(), maxlength: 40 }); if (v && v.trim()) { await Account.update({ display_name: v.trim() }); paint(); } }
-  else if (a === 'code') { const c = S.status?.referral_code; if (!c) return; const text = t('set.inviteText', { name: brand(getLang()), code: c, url: CFG.SITE_URL || location.origin }); if (navigator.share) navigator.share({ text }).catch(() => {}); else { navigator.clipboard?.writeText(text); toast(t('set.copied')); } }
+  else if (a === 'code') { const c = S.status?.referral_code; if (!c) return; const text = t('set.inviteText', { name: brand(getLang()), code: c, url: (CFG.SITE_URL || location.origin).replace(/\/$/, '') + '/?ref=invite' }); if (navigator.share) navigator.share({ text }).catch(() => {}); else { navigator.clipboard?.writeText(text); toast(t('set.copied')); } }
   else if (a === 'redeem' || a === 'voucher') redeemCode(a, paint);
   else if (a === 'password') { const v = await promptDlg(t('set.newPassword'), { type: 'password', maxlength: 72 }); if (!v) return; if (v.length < 8) { toast(t('auth.weak'), { bad: true }); return; } const { error } = await Sync.sb.auth.updateUser({ password: v }); toast(error ? t('err.generic') : t('set.passwordOk'), { bad: !!error }); }
   else if (a === 'signout') { if (await confirmDlg(t('set.signOutQ'), t('set.signOutBody'), t('set.signOut'))) { await Sync.run().catch(() => {}); await Reminders.unsubscribe(); await endSession(); location.hash = ''; location.reload(); } }

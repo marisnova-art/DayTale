@@ -167,6 +167,7 @@ function takeShare() {
   history.replaceState(null, '', location.pathname + '#/new?type=scrap');
 }
 async function boot() {
+  Account.captureFirstTouch();   // 처음 연 순간 어디서 왔는지 (이 기기에 한 번, 통계용)
   takeShare();
   if (!configured()) { showAuth('signin', t('err.noServer')); return; }
   let sb;

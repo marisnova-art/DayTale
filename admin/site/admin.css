@@ -88,6 +88,7 @@ label{ display:block; font-size:12.5px; color:var(--text-2); margin:14px 0 0 } l
 .iconbtn{ width:38px; height:38px; border-radius:50%; border:1px solid var(--line-2); background:transparent; color:var(--text-2); display:grid; place-items:center; cursor:pointer }
 .iconbtn:hover{ color:var(--text); background:var(--raise) } .iconbtn svg{ width:18px; height:18px }
 .panel{ background:var(--panel); border-radius:var(--r-xl); padding:40px 44px 48px; display:flex; flex-direction:column; gap:20px; min-width:0 }
+.stack-v{ display:flex; flex-direction:column; gap:20px; min-width:0 }
 
 /* headings inside the panel */
 .hero{ display:flex; flex-direction:column; align-items:flex-start; gap:12px; margin-bottom:8px }
@@ -174,6 +175,7 @@ tr[data-id]{ cursor:pointer } tr[data-id]:hover td{ background:rgba(255,255,255,
 
 /* detail */
 .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:12px }
+.grid2 > *{ min-width:0 } .grid2 .tablebox{ margin:0 }
 dl{ display:grid; grid-template-columns:auto 1fr; gap:10px 18px; margin:0 } dt{ color:var(--text-2) } dd{ margin:0 }
 
 /* dialog & toast */

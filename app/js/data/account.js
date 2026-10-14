@@ -3,19 +3,87 @@ import { S, emit } from './store.js';
 import { Sync } from './sync.js';
 import { esc, ls, todayKey } from '../core/utils.js';
 import { t } from '../core/i18n.js';
+import { Install } from '../features/install.js';
 
+/* ---------- 회원 구성 통계 (합계만 봐요): 기기 종류 · 처음 어디서 왔는지 ----------
+   기록 내용, IP, 기기 고유값은 쓰지 않아요. 정해진 짧은 값만 계정에 적어요. */
+const SRC_KEY = 'daytale.src';
+const SRC_PARAMS = ['utm_source', 'utm_medium', 'utm_campaign', 'lp', 'rf', 'ref'];
+const slug = (v, n) => String(v || '').toLowerCase().replace(/[^a-z0-9._-]+/g, '-').replace(/^[^a-z0-9]+/, '').slice(0, n).replace(/[-.]+$/, '') || null;
+const SEARCH = { google: 1, bing: 1, duckduckgo: 1, yahoo: 1, naver: 1, daum: 1, baidu: 1, yandex: 1, ecosia: 1, brave: 1 };
+const HOSTS = [[/(^|\.)gemini\.google\./, 'gemini'], [/(^|\.)google\./, 'google'], [/(^|\.)bing\.com$/, 'bing'], [/duckduckgo\.com$/, 'duckduckgo'], [/(^|\.)yahoo\./, 'yahoo'],
+  [/(^|\.)naver\.(com|me)$/, 'naver'], [/(^|\.)daum\.net$/, 'daum'], [/(^|\.)baidu\.com$/, 'baidu'], [/(^|\.)yandex\./, 'yandex'], [/ecosia\.org$/, 'ecosia'], [/search\.brave\.com$/, 'brave'],
+  [/(^|\.)instagram\.com$/, 'instagram'], [/(^|\.)(facebook\.com|fb\.com|fb\.me)$/, 'facebook'], [/(^|\.)(t\.co|twitter\.com|x\.com)$/, 'x'], [/(^|\.)threads\.(net|com)$/, 'threads'],
+  [/(^|\.)reddit\.com$/, 'reddit'], [/(^|\.)(youtube\.com|youtu\.be)$/, 'youtube'], [/(^|\.)tiktok\.com$/, 'tiktok'], [/(^|\.)(linkedin\.com|lnkd\.in)$/, 'linkedin'],
+  [/(^|\.)pinterest\./, 'pinterest'], [/(^|\.)kakao\.com$/, 'kakaotalk'], [/(^|\.)line\.me$/, 'line'], [/(^|\.)band\.us$/, 'band'],
+  [/(^|\.)(chatgpt\.com|openai\.com)$/, 'chatgpt'], [/(^|\.)perplexity\.ai$/, 'perplexity'], [/(^|\.)claude\.ai$/, 'claude']];
+const SOCIAL = new Set(['instagram', 'facebook', 'x', 'threads', 'reddit', 'youtube', 'tiktok', 'linkedin', 'pinterest', 'kakaotalk', 'line', 'band']);
+const INAPP = [[/Instagram/, 'instagram'], [/FBAN|FBAV/, 'facebook'], [/KAKAOTALK/, 'kakaotalk'], [/Line\//, 'line'], [/NAVER/, 'naver'], [/DaumApps/, 'daum'], [/everytimeApp/, 'everytime']];
+/* 참조 주소 → 짧은 이름 (google, instagram …) 또는 도메인 (example.com) */
+function hostSource(host) {
+  host = String(host || '').toLowerCase().replace(/^(www|m|l|lm|mobile)\./, '');
+  if (!host) return null;
+  for (const [re, k] of HOSTS) if (re.test(host)) return k;
+  const p = host.split('.'), n = p.length > 2 && p[p.length - 1].length === 2 && /^(co|com|or|ne|ac|go|net|org)$/.test(p[p.length - 2]) ? 3 : 2;
+  return slug(p.slice(-n).join('.'), 40);
+}
+/* 처음 연 순간의 정보 (원래 값 그대로, 계정에 적을 때 정리해요). 소개 페이지(site/src.js)도 같은 모양으로 적어요 */
+function captureFirstTouch() {
+  let q; try { q = new URLSearchParams(location.search); } catch { return; }
+  if (!ls.get(SRC_KEY, null)) {
+    const legacy = !!(ls.get('daytale.lastUser', null) || ls.get('daytale.seen', null));   // 이 기능 전부터 쓰던 기기: 모르는 채로 둬요
+    let r = q.get('rf') || '';
+    try { const ref = document.referrer && new URL(document.referrer); if (!r && ref && ref.host !== location.host) r = ref.hostname; } catch {}
+    if (!r) r = (INAPP.find(([re]) => re.test(navigator.userAgent)) || [])[1] || '';
+    ls.set(SRC_KEY, legacy ? { legacy: 1 } : { s: q.get('utm_source') || '', m: q.get('utm_medium') || '', c: q.get('utm_campaign') || '', ref: q.get('ref') || '',
+      r: String(r).slice(0, 100), l: /^[a-z]{2}$/.test(q.get('lp') || '') ? '/' + q.get('lp') : 'app', at: Date.now() });
+  }
+  // 주소창에서 유입 표시는 지워요 (공유하기·새로고침해도 다시 세지 않게)
+  if (SRC_PARAMS.some(k => q.has(k))) { SRC_PARAMS.forEach(k => q.delete(k)); const qs = q.toString(); try { history.replaceState(history.state, '', location.pathname + (qs ? '?' + qs : '') + location.hash); } catch {} }
+}
+/* 저장해 둔 처음 정보 → 계정 칸 (정해진 값만) */
+function firstTouch() {
+  const x = ls.get(SRC_KEY, null); if (!x || x.legacy) return null;
+  const host = hostSource(x.r), ref = slug(x.ref, 40);
+  const source = slug(x.s, 40) || ref || host || 'direct';
+  const medium = slug(x.m, 40) || (x.s ? null : ref ? 'referral' : host ? (SEARCH[host] ? 'organic' : SOCIAL.has(host) ? 'social' : 'referral') : null);
+  return { first_source: source, first_medium: medium, first_campaign: slug(x.c, 60), first_landing: /^\/[a-z]{2}$/.test(x.l || '') ? x.l : 'app' };
+}
+/* 지금 기기: 운영체제 · 폰/태블릿/컴퓨터 · 브라우저 계열 · 홈 화면 앱으로 열었는지 */
+function device() {
+  const ua = navigator.userAgent || '', P = Install.Platform;
+  const platform = P.ios() ? 'ios' : P.android() ? 'android' : /CrOS/.test(ua) ? 'chromeos' : /Windows/.test(ua) ? 'windows' : /Macintosh|Mac OS X/.test(ua) ? 'mac' : /Linux|X11/.test(ua) ? 'linux' : 'other';
+  const device_kind = platform === 'ios' ? (/iPhone|iPod/.test(ua) ? 'phone' : 'tablet') : platform === 'android' ? (/Mobile/.test(ua) ? 'phone' : 'tablet') : navigator.userAgentData?.mobile ? 'phone' : 'desktop';
+  const browser = P.inApp() ? 'inapp' : /Edg(e|A|iOS)?\//.test(ua) ? 'edge' : /OPR\/|Opera/.test(ua) ? 'opera' : /SamsungBrowser/.test(ua) ? 'samsung' : /Firefox|FxiOS/.test(ua) ? 'firefox' : /CriOS|Chrome|Chromium/.test(ua) ? 'chrome' : /Safari/.test(ua) ? 'safari' : 'other';
+  return { platform, device_kind, browser, installed: !!P.standalone() };
+}
+
+const AUD = 'platform,device_kind,browser,installed,first_source';
 const Account = {
   profile: null,
   async load() {
     const sb = Sync.sb; if (!sb || !S.user) return;
     const cols = 'display_name,lang,country,timezone,created_at';
-    let [st, pr] = await Promise.all([sb.rpc('my_status'), sb.from('profiles').select(cols + ',avatar').maybeSingle()]);
+    let [st, pr] = await Promise.all([sb.rpc('my_status'), sb.from('profiles').select(cols + ',avatar,' + AUD).maybeSingle()]);
+    if (pr.error) pr = await sb.from('profiles').select(cols + ',avatar').maybeSingle();   // 서버에 회원 구성 칸이 아직 없을 때
     if (pr.error) pr = await sb.from('profiles').select(cols).maybeSingle();   // 서버에 사진 칸이 아직 없을 때
     if (!st.error && st.data) { S.status = st.data; ls.set('daytale.status.' + S.user.id, st.data); }
     if (!pr.error && pr.data) this.profile = pr.data;
     this.apply();
     // 하루 한 번 접속 표시 (1년 미접속 정리 기준) + 기기 시간대·나라 맞추기
-    if (ls.get('daytale.seen') !== todayKey()) { ls.set('daytale.seen', todayKey()); sb.rpc('touch_seen').then(() => {}, () => {}); this.syncLocale(); }
+    if (ls.get('daytale.seen') !== todayKey()) { ls.set('daytale.seen', todayKey()); sb.rpc('touch_seen').then(() => {}, () => {}); this.syncLocale(); this.syncDevice(); }
+    this.syncFirstTouch();
+  },
+  captureFirstTouch, firstTouch, device, hostSource,
+  /* 처음 온 곳: 계정에 비어 있을 때 한 번만 (서버도 한 번 적힌 값은 바꾸지 않아요) */
+  syncFirstTouch() {
+    const p = this.profile; if (!p || !('first_source' in p) || p.first_source) return;
+    const f = firstTouch(); if (f) this.update(f);
+  },
+  /* 기기: 하루 한 번, 바뀌었을 때만 */
+  syncDevice() {
+    const p = this.profile; if (!p || !('platform' in p)) return;
+    const d = device(); if (Object.keys(d).some(k => p[k] !== d[k])) this.update({ ...d, device_at: new Date().toISOString() });
   },
   restore() { if (S.user) { S.status = ls.get('daytale.status.' + S.user.id, null); this.apply(); } },
   apply() { S.canWrite = S.status ? !!S.status.can_write : true; emit('account'); },

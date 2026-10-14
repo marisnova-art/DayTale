@@ -44,6 +44,46 @@ revoke all on public.profiles from anon, authenticated;
 grant select on public.profiles to authenticated;
 -- 사용자가 바꿀 수 있는 칸만 허용 (체험 기간·보너스·초대 정보는 서버만)
 grant update (display_name, lang, country, timezone, avatar) on public.profiles to authenticated;
+-- 회원 구성 통계용 (2026-10-14): 기기 종류와 처음 어디서 왔는지만. 기록 내용·IP·기기 고유값은 저장하지 않아요
+alter table public.profiles add column if not exists platform       text;   -- ios · android · mac · windows · linux · chromeos · other
+alter table public.profiles add column if not exists device_kind    text;   -- phone · tablet · desktop
+alter table public.profiles add column if not exists browser        text;   -- safari · chrome · edge · firefox · samsung · opera · inapp · other
+alter table public.profiles add column if not exists installed      boolean; -- 홈 화면에 설치한 앱으로 열었나 (하루 한 번 갱신)
+alter table public.profiles add column if not exists device_at      timestamptz;
+alter table public.profiles add column if not exists first_source   text;   -- 처음 온 곳: utm_source 또는 참조 사이트 (google, instagram, direct …)
+alter table public.profiles add column if not exists first_medium   text;   -- utm_medium (cpc, social, referral …)
+alter table public.profiles add column if not exists first_campaign text;   -- utm_campaign
+alter table public.profiles add column if not exists first_landing  text;   -- 처음 연 페이지: app 또는 /en /ko /ja /es /fr
+alter table public.profiles drop constraint if exists profiles_platform_check;
+alter table public.profiles add constraint profiles_platform_check check (platform in ('ios', 'android', 'mac', 'windows', 'linux', 'chromeos', 'other'));
+alter table public.profiles drop constraint if exists profiles_device_kind_check;
+alter table public.profiles add constraint profiles_device_kind_check check (device_kind in ('phone', 'tablet', 'desktop'));
+alter table public.profiles drop constraint if exists profiles_browser_check;
+alter table public.profiles add constraint profiles_browser_check check (browser in ('safari', 'chrome', 'edge', 'firefox', 'samsung', 'opera', 'inapp', 'other'));
+alter table public.profiles drop constraint if exists profiles_first_source_check;
+alter table public.profiles add constraint profiles_first_source_check check (first_source ~ '^[a-z0-9][a-z0-9._-]{0,39}$');
+alter table public.profiles drop constraint if exists profiles_first_medium_check;
+alter table public.profiles add constraint profiles_first_medium_check check (first_medium ~ '^[a-z0-9][a-z0-9._-]{0,39}$');
+alter table public.profiles drop constraint if exists profiles_first_campaign_check;
+alter table public.profiles add constraint profiles_first_campaign_check check (first_campaign ~ '^[a-z0-9][a-z0-9._-]{0,59}$');
+alter table public.profiles drop constraint if exists profiles_first_landing_check;
+alter table public.profiles add constraint profiles_first_landing_check check (first_landing ~ '^(app|/[a-z]{2})$');
+-- 사용자는 자기 줄의 이 칸들만 더 바꿀 수 있어요 (체험·구독·관리자 칸은 여전히 서버만)
+grant update (platform, device_kind, browser, installed, device_at, first_source, first_medium, first_campaign, first_landing) on public.profiles to authenticated;
+
+-- 처음 온 곳은 한 번 적히면 바뀌지 않아요 (first-touch)
+create or replace function public.keep_first_touch() returns trigger
+language plpgsql set search_path = public as $$
+begin
+  if old.first_source is not null then
+    new.first_source := old.first_source; new.first_medium := old.first_medium;
+    new.first_campaign := old.first_campaign; new.first_landing := old.first_landing;
+  end if;
+  return new;
+end $$;
+create or replace trigger profiles_keep_first_touch before update of first_source, first_medium, first_campaign, first_landing on public.profiles
+  for each row execute function public.keep_first_touch();
+revoke execute on function public.keep_first_touch() from public, anon, authenticated;
 
 -- 가입하면 회원 정보가 자동으로 생깁니다
 create or replace function public.handle_new_user() returns trigger

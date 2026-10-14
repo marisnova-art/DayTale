@@ -101,6 +101,10 @@ async function act(a: Admin, body: any, { db, env, fetch }: Deps) {
     case 'features':
       return rpc(db, 'admin_features');
 
+    // 회원 구성: 나라·언어·기기·처음 온 곳 (합계만). days = 30 | 90, 그 밖은 전체
+    case 'audience':
+      return rpc(db, 'admin_audience', { p_days: [30, 90].includes(Number(body.days)) ? Number(body.days) : null });
+
     case 'phrases': {
       let q = db.from('phrase_packs').select('id,lang,slot,cond,text,weight,active,updated_at').order('updated_at', { ascending: false }).range(0, 499);
       if (LANGS.includes(body.lang)) q = q.eq('lang', body.lang);
@@ -217,6 +221,12 @@ async function act(a: Admin, body: any, { db, env, fetch }: Deps) {
     case 'users': {
       const filter = ['all', 'paying', 'trial', 'ended', 'past_due', 'banned', 'admins', 'inactive'].includes(body.filter) ? body.filter : 'all';
       const rows = await rpc(db, 'admin_users', { q: String(body.q ?? '').trim().slice(0, 200), filter, lim: PAGE, off: page(body.page) * PAGE });
+      // 기기·처음 온 곳 (회원 구성 칸이 아직 없는 데이터베이스면 그냥 빼요)
+      if (rows.length) {
+        const { data: dev } = await db.from('profiles').select('id,platform,device_kind,installed,first_source').in('id', rows.map((r: any) => r.id));
+        const m = new Map((dev ?? []).map((d: any) => [d.id, d]));
+        for (const r of rows) { const d: any = m.get(r.id); if (d) Object.assign(r, { platform: d.platform, device_kind: d.device_kind, installed: d.installed, first_source: d.first_source }); }
+      }
       return { rows, total: rows[0]?.total ?? 0, pageSize: PAGE };
     }
 

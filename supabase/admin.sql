@@ -127,6 +127,8 @@ language sql stable security definer set search_path = public, auth as $$
     'id', u.id, 'email', u.email, 'created_at', u.created_at, 'last_sign_in_at', u.last_sign_in_at,
     'email_confirmed_at', u.email_confirmed_at, 'banned_until', u.banned_until,
     'display_name', p.display_name, 'country', p.country, 'lang', p.lang, 'timezone', p.timezone, 'last_seen_at', p.last_seen_at,
+    'platform', p.platform, 'device_kind', p.device_kind, 'browser', p.browser, 'installed', p.installed, 'device_at', p.device_at,
+    'first_source', p.first_source, 'first_medium', p.first_medium, 'first_campaign', p.first_campaign, 'first_landing', p.first_landing,
     'trial_ends_at', p.trial_ends_at + make_interval(days => coalesce(p.bonus_days, 0)), 'bonus_days', p.bonus_days,
     'pass_until', p.pass_until,
     'vouchers', coalesce((select jsonb_agg(jsonb_build_object('code', r.code, 'at', r.redeemed_at, 'from', r.granted_from, 'until', r.granted_until) order by r.redeemed_at desc)
@@ -308,3 +310,51 @@ $$;
 
 revoke execute on function public.admin_voucher_create(uuid, interval, int, int, timestamptz, text, text), public.admin_vouchers(text, int, int) from public, anon, authenticated;
 grant execute on function public.admin_voucher_create(uuid, interval, int, int, timestamptz, text, text), public.admin_vouchers(text, int, int) to service_role;
+
+-- =====================================================================
+-- 2026-10-14 추가: 회원 구성 — 나라·언어·기기·처음 온 곳 (합계만, profiles 칸은 schema.sql)
+-- =====================================================================
+-- 회원 구성 (합계만): p_days = 최근 n일 가입자만 (null이면 전체)
+--  groups.<dim> = [{k, users, paying, trial, active_7d, conv}]  dim: country · lang · platform · device_kind · browser · installed · source · medium · campaign · landing
+--  weekly = 주별 가입 × 처음 온 곳,  cross = 나라 × 운영체제
+create or replace function public.admin_audience(p_days int default null) returns jsonb
+language sql stable security definer set search_path = public, auth as $$
+  with b as (
+    select coalesce(p.country, '—') country, coalesce(p.lang, '—') lang, coalesce(p.platform, '—') platform,
+           coalesce(p.device_kind, '—') device_kind, coalesce(p.browser, '—') browser,
+           case when p.installed then 'yes' when p.installed is false then 'no' else '—' end installed,
+           coalesce(p.first_source, '—') source, coalesce(p.first_medium, '—') medium,
+           coalesce(p.first_campaign, '—') campaign, coalesce(p.first_landing, '—') landing,
+           u.created_at, public.is_subscriber(p.id) paying,
+           (not public.is_subscriber(p.id) and public.free_until(p) > now()) trial,
+           p.last_seen_at > now() - interval '7 days' active
+    from public.profiles p join auth.users u on u.id = p.id
+    where p_days is null or u.created_at > now() - make_interval(days => least(greatest(p_days, 1), 3650))
+  ), g as (
+    select x.dim, x.k, count(*) users, count(*) filter (where b.paying) paying, count(*) filter (where b.trial) trial,
+           count(*) filter (where b.active) active_7d,
+           row_number() over (partition by x.dim order by count(*) desc, x.k) rn
+    from b cross join lateral (values ('country', b.country), ('lang', b.lang), ('platform', b.platform), ('device_kind', b.device_kind),
+      ('browser', b.browser), ('installed', b.installed), ('source', b.source), ('medium', b.medium), ('campaign', b.campaign), ('landing', b.landing)) x(dim, k)
+    group by x.dim, x.k
+  )
+  select jsonb_build_object(
+    'days', p_days,
+    'total', (select jsonb_build_object('users', count(*), 'paying', count(*) filter (where paying), 'trial', count(*) filter (where trial),
+                'active_7d', count(*) filter (where active), 'known_source', count(*) filter (where source <> '—'),
+                'known_device', count(*) filter (where platform <> '—')) from b),
+    'groups', coalesce((select jsonb_object_agg(dim, rows) from (
+                select dim, jsonb_agg(jsonb_build_object('k', k, 'users', users, 'paying', paying, 'trial', trial, 'active_7d', active_7d,
+                  'conv', round(paying * 100.0 / users, 1)) order by rn) rows
+                from g where rn <= 40 group by dim) z), '{}'),
+    'weekly', coalesce((select jsonb_agg(jsonb_build_object('week', w, 'source', source, 'n', n) order by w, n desc) from (
+                select date_trunc('week', created_at)::date w, source, count(*) n from b
+                where created_at > now() - interval '26 weeks' group by 1, 2) q), '[]'),
+    'cross', coalesce((select jsonb_agg(jsonb_build_object('country', country, 'platform', platform, 'n', n) order by country, n desc) from (
+                select country, platform, count(*) n from b
+                where country in (select k from g where dim = 'country' and rn <= 12) group by 1, 2) q), '[]')
+  )
+$$;
+
+revoke execute on function public.admin_audience(int) from public, anon, authenticated;
+grant execute on function public.admin_audience(int) to service_role;

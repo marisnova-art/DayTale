@@ -334,11 +334,11 @@ async function viewUsers(q) {
   const pages = Math.max(1, Math.ceil(r.total / r.pageSize));
   shell('#/users', `${head(search ? `“${search}” 검색 결과` : '회원', big(num(r.total)) + '<span class="unit">명</span>')}
     <div class="ranges left">${UFILTER.map(([k, l]) => `<a href="${link('#/users', { filter: k, q: search })}" class="${k === filter ? 'on' : ''}">${l}</a>`).join('')}</div>
-    <div class="box tablebox"><table><thead><tr><th>회원</th><th>나라</th><th>가입</th><th>최근 접속</th><th class="r">기록</th><th>구독</th></tr></thead><tbody>
+    <div class="box tablebox"><table><thead><tr><th>회원</th><th>나라</th><th>기기 · 처음 온 곳</th><th>가입</th><th>최근 접속</th><th class="r">기록</th><th>구독</th></tr></thead><tbody>
       ${r.rows.map(u => `<tr data-id="${esc(u.id)}" tabindex="0">
         <td><div class="who">${avatar(u.email)}<div><b>${esc(u.email)}</b>${u.admin_role ? ' <span class="badge admin">관리자</span>' : ''}${u.banned_until && new Date(u.banned_until) > new Date() ? ' <span class="badge banned">정지</span>' : ''}</div></div></td>
-        <td>${FLAG(u.country)} <span class="muted xs">${esc(u.lang || '')}</span></td><td>${day(u.created_at)}</td><td>${ago(u.last_seen_at)}</td><td class="r num">${num(u.entries)}</td>
-        <td>${u.sub_status ? `${badge(u.sub_status)} <span class="muted">${esc(PLAN[u.sub_plan] || '')}</span>` : `<span class="muted">${esc(trialLeft(u.trial_ends_at))}</span>`}</td></tr>`).join('') || '<tr><td colspan="6" class="muted pad">해당하는 회원이 없습니다.</td></tr>'}
+        <td>${FLAG(u.country)} <span class="muted xs">${esc(u.lang || '')}</span></td><td class="xs nowrap">${u.platform ? `${esc(PLATFORM[u.platform] || u.platform)} <span class="muted">${esc(KIND[u.device_kind] || '')}${u.installed ? ' · 앱' : ''}</span>` : '<span class="muted">—</span>'}<br><span class="muted">${esc(u.first_source ? lbl(SOURCE, u.first_source) : '')}</span></td><td>${day(u.created_at)}</td><td>${ago(u.last_seen_at)}</td><td class="r num">${num(u.entries)}</td>
+        <td>${u.sub_status ? `${badge(u.sub_status)} <span class="muted">${esc(PLAN[u.sub_plan] || '')}</span>` : `<span class="muted">${esc(trialLeft(u.trial_ends_at))}</span>`}</td></tr>`).join('') || '<tr><td colspan="7" class="muted pad">해당하는 회원이 없습니다.</td></tr>'}
     </tbody></table></div>
     ${pager('#/users', { filter, q: search }, pg, pages)}`);
   document.querySelectorAll('tr[data-id]').forEach(tr => {
@@ -379,6 +379,8 @@ async function viewUser(id) {
         <dt>이메일 인증</dt><dd>${u.email_confirmed_at ? when(u.email_confirmed_at) : '<span class="warn-t">미인증</span>'}</dd>
         <dt>최근 접속</dt><dd>${when(u.last_seen_at)}</dd>
         <dt>나라 · 언어</dt><dd>${FLAG(u.country)} ${esc(u.country || '—')} · ${esc(u.lang || '—')} <span class="muted xs">${esc(u.timezone || '')}</span></dd>
+        <dt>기기</dt><dd>${u.platform ? `${esc(PLATFORM[u.platform] || u.platform)} · ${esc(KIND[u.device_kind] || u.device_kind || '')} · ${esc(BROWSER[u.browser] || u.browser || '')} · ${u.installed ? '홈 화면 앱' : '브라우저'} <span class="muted xs">${day(u.device_at)} 확인</span>` : '<span class="muted">아직 모름</span>'}</dd>
+        <dt>처음 온 곳</dt><dd>${u.first_source ? `${esc(lbl(SOURCE, u.first_source))}${u.first_medium ? ` · ${esc(lbl(MEDIUM, u.first_medium))}` : ''}${u.first_campaign ? ` · <span class="mono xs">${esc(u.first_campaign)}</span>` : ''} <span class="muted xs">${esc(lbl(LANDING, u.first_landing || 'app'))}</span>` : '<span class="muted">모름</span>'}</dd>
         <dt>무료 이용 끝</dt><dd>${when(u.trial_ends_at)}${u.pass_until && new Date(u.pass_until) > new Date() ? ' <span class="muted xs">이용권</span>' : ''}</dd>
         ${(u.vouchers || []).length ? `<dt>받은 이용권</dt><dd>${u.vouchers.map(v => `<span class="mono">${esc(fmtCode(v.code))}</span> <span class="muted xs">${day(v.at)} 넣음 · ${day(v.until)}까지</span>`).join('<br>')}</dd>` : ''}
       </dl></div>
@@ -535,9 +537,56 @@ function barList(obj, labels = {}) {
   if (!rows.length) return '<p class="muted">아직 없음</p>';
   return `<ul class="blist">${rows.map(([k, n]) => { const pct = Math.round(n / total * 100); return `<li><div class="row between"><span>${esc(labels[k] || k)}</span><b>${num(n)} <span class="muted xs">${pct}%</span></b></div><div class="meter thin"><i style="--w:${Math.max(2, pct)}%"></i></div></li>`; }).join('')}</ul>`;
 }
-async function viewUsage() {
+/* 회원 구성: 나라 · 언어 · 기기 · 처음 온 곳 (합계만) */
+const LANGN = { ko: '한국어', en: 'English', ja: '日本語', es: 'Español', fr: 'Français' };
+const UNKNOWN = '아직 모름';
+const PLATFORM = { ios: 'iPhone·iPad', android: 'Android', mac: 'Mac', windows: 'Windows', linux: 'Linux', chromeos: 'ChromeOS', other: '기타' };
+const KIND = { phone: '휴대폰', tablet: '태블릿', desktop: '컴퓨터' };
+const BROWSER = { safari: 'Safari', chrome: 'Chrome', edge: 'Edge', firefox: 'Firefox', samsung: '삼성 인터넷', opera: 'Opera', inapp: '앱 안 브라우저 (카톡·인스타 등)', other: '기타' };
+const INSTALLED = { yes: '홈 화면 앱으로', no: '브라우저로' };
+const SOURCE = { direct: '직접 (주소·북마크)', invite: '친구 초대', '—': '모름 (기능 생기기 전 가입)' };
+const MEDIUM = { organic: '검색', social: 'SNS', referral: '다른 사이트 링크', cpc: '검색 광고' };
+const LANDING = { app: '앱으로 바로', '/en': '소개 · English', '/ko': '소개 · 한국어', '/ja': '소개 · 日本語', '/es': '소개 · Español', '/fr': '소개 · Français' };
+const APERIOD = [['30', '최근 30일 가입'], ['90', '최근 90일 가입'], ['all', '전체']];
+const lbl = (map, k) => k === '—' ? (map['—'] || UNKNOWN) : (map[k] || k);
+const pct = (a, b) => b ? Math.round(a / b * 1000) / 10 : 0;
+/* 그룹 표: 회원 · 유료 · 체험 중 · 전환 · 7일 접속 */
+function groupTable(rows, head, name, limit = 15) {
+  rows = (rows || []).slice(0, limit);
+  return `<div class="box tablebox"><table><thead><tr><th>${esc(head)}</th><th class="r">회원</th><th class="r">유료</th><th class="r">체험 중</th><th class="r">전환</th><th class="r">7일 접속</th></tr></thead><tbody>
+    ${rows.map(r => `<tr><td>${name(r.k)}</td><td class="r num">${num(r.users)}</td><td class="r num">${num(r.paying)}</td><td class="r num">${num(r.trial)}</td><td class="r num">${esc(r.conv ?? 0)}%</td><td class="r num">${num(r.active_7d)}</td></tr>`).join('') || '<tr><td colspan="6" class="muted pad">아직 없음</td></tr>'}
+  </tbody></table></div>`;
+}
+const toObj = rows => Object.fromEntries((rows || []).map(r => [r.k, r.users]));
+const relabel = (rows, map) => Object.fromEntries((rows || []).map(r => [lbl(map, r.k), r.users]));
+/* 주별 가입 × 처음 온 곳 (많은 5곳 + 그 밖) */
+function weeklyTable(weekly) {
+  const tot = {}; (weekly || []).forEach(w => { tot[w.source] = (tot[w.source] || 0) + w.n; });
+  const top = Object.entries(tot).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k]) => k), other = Object.keys(tot).length > top.length;
+  const weeks = [...new Set((weekly || []).map(w => String(w.week).slice(0, 10)))].sort().reverse();
+  if (!weeks.length) return '<div class="box pad"><p class="muted">아직 없음</p></div>';
+  const cell = (wk, f) => (weekly || []).filter(w => String(w.week).slice(0, 10) === wk && f(w.source)).reduce((a, w) => a + w.n, 0);
+  const max = Math.max(1, ...weeks.map(wk => cell(wk, () => true)));
+  return `<div class="box tablebox"><table><thead><tr><th>주 (월요일 시작)</th>${top.map(k => `<th class="r">${esc(lbl(SOURCE, k))}</th>`).join('')}${other ? '<th class="r">그 밖</th>' : ''}<th class="r">합계</th><th></th></tr></thead><tbody>
+    ${weeks.map(wk => { const all = cell(wk, () => true), d = new Date(wk + 'T00:00:00'); return `<tr><td class="nowrap">${d.getMonth() + 1}월 ${d.getDate()}일</td>${top.map(k => `<td class="r num">${num(cell(wk, s => s === k))}</td>`).join('')}${other ? `<td class="r num">${num(cell(wk, s => !top.includes(s)))}</td>` : ''}<td class="r num"><b>${num(all)}</b></td><td style="min-width:90px"><div class="meter thin"><i style="--w:${Math.max(2, Math.round(all / max * 100))}%"></i></div></td></tr>`; }).join('')}
+  </tbody></table></div>`;
+}
+/* 나라 × 운영체제 */
+function crossTable(cross) {
+  const plats = [...new Set((cross || []).map(c => c.platform))].sort((a, b) => (a === '—') - (b === '—') || a.localeCompare(b));
+  const ctry = [...new Set((cross || []).map(c => c.country))];
+  const n = (c, p) => (cross || []).find(x => x.country === c && x.platform === p)?.n || 0;
+  ctry.sort((a, b) => plats.reduce((t, p) => t + n(b, p), 0) - plats.reduce((t, p) => t + n(a, p), 0));
+  if (!ctry.length) return '<div class="box pad"><p class="muted">아직 없음</p></div>';
+  return `<div class="box tablebox"><table class="cross"><thead><tr><th>나라</th>${plats.map(p => `<th class="r">${esc(lbl(PLATFORM, p))}</th>`).join('')}<th class="r">합계</th></tr></thead><tbody>
+    ${ctry.map(c => `<tr><td>${FLAG(c)} ${esc(c)}</td>${plats.map(p => `<td class="r num${n(c, p) ? '' : ' muted'}">${num(n(c, p))}</td>`).join('')}<td class="r num"><b>${num(plats.reduce((t, p) => t + n(c, p), 0))}</b></td></tr>`).join('')}
+  </tbody></table></div>`;
+}
+async function viewUsage(q = new URLSearchParams()) {
+  const period = ['30', '90'].includes(q.get('days')) ? q.get('days') : 'all';
   loading('#/usage');
-  let f; try { f = await api('features'); } catch (e) { return failed('#/usage', e); }
+  let f, au; try { [f, au] = await Promise.all([api('features'), api('audience', period === 'all' ? {} : { days: Number(period) })]); } catch (e) { return failed('#/usage', e); }
+  const G = au.groups || {}, T = au.total || {};
   shell('#/usage', `${head('이용 현황', '어떻게 쓰고 있나요', '<p class="muted">개수만 봐요. 기록 내용은 관리자에게도 보이지 않아요.</p>')}
     <section class="cards">
       <div class="card violet"><div class="ctop"><span class="cicon">${I.note}</span><div><b>7일 안에 쓴 사람</b><small>새 기록을 남긴 회원</small></div></div><p class="cnum">${num(f.writers_7d)}</p></div>
@@ -551,7 +600,38 @@ async function viewUsage() {
       <div class="box pad"><h2>기록 종류 · 최근 30일</h2>${barList(f.types_30d, TYPE)}</div>
       <div class="box pad"><h2>글꼴 (기록마다)</h2>${barList(f.fonts, FONT)}</div>
       <div class="box pad"><h2>글자 크기</h2>${barList(f.text_size, SIZE)}</div>
-    </section>`);
+    </section>
+    <div id="aud" class="stack-v">${sectionHead('회원 구성 · 나라 · 언어 · 기기 · 유입 경로')}
+    <div class="ranges left">${APERIOD.map(([k, l]) => `<a href="${link('#/usage', { days: k })}" class="${k === period ? 'on' : ''}">${l}</a>`).join('')}</div>
+    <section class="cards">
+      <div class="card violet"><div class="ctop"><span class="cicon">${I.users}</span><div><b>회원</b><small>${period === 'all' ? '전체' : `최근 ${period}일 가입`}</small></div></div><p class="cnum">${num(T.users)}</p><small>7일 접속 ${num(T.active_7d)}명</small></div>
+      <div class="card mustard"><div class="ctop"><span class="cicon">${I.card}</span><div><b>유료 전환</b><small>유료 ${num(T.paying)} · 체험 중 ${num(T.trial)}</small></div></div><p class="cnum">${esc(pct(T.paying, T.users))}<span class="dim">%</span></p></div>
+      <div class="card coral"><div class="ctop"><span class="cicon">${I.globe}</span><div><b>유입 경로를 아는 회원</b><small>이 기능이 생긴 뒤 가입한 회원부터</small></div></div><p class="cnum">${num(T.known_source)}</p><small>${esc(pct(T.known_source, T.users))}%</small></div>
+      <div class="card black"><div class="ctop"><span class="cicon">${I.gauge}</span><div><b>기기를 아는 회원</b><small>앱을 열면 하루 한 번 갱신</small></div></div><p class="cnum">${num(T.known_device)}</p><small>${esc(pct(T.known_device, T.users))}%</small></div>
+    </section>
+    ${sectionHead('나라별')}
+    ${groupTable(G.country, '나라', k => `${FLAG(k)} ${esc(k)}`, 30)}
+    ${sectionHead('언어별')}
+    ${groupTable(G.lang, '언어', k => `${esc(LANGN[k] || (k === '—' ? UNKNOWN : k))} <span class="muted xs">${esc(k === '—' ? '' : k)}</span>`)}
+    ${sectionHead('기기')}
+    <section class="grid2">
+      <div class="box pad"><h2>운영체제</h2>${barList(relabel(G.platform, PLATFORM))}</div>
+      <div class="box pad"><h2>휴대폰 · 태블릿 · 컴퓨터</h2>${barList(relabel(G.device_kind, KIND))}</div>
+      <div class="box pad"><h2>브라우저</h2>${barList(relabel(G.browser, BROWSER))}</div>
+      <div class="box pad"><h2>홈 화면에 설치</h2>${barList(relabel(G.installed, INSTALLED))}</div>
+    </section>
+    ${sectionHead('처음 온 곳 (유입 경로)')}
+    ${groupTable(G.source, '처음 온 곳', k => esc(lbl(SOURCE, k)), 20)}
+    <section class="grid2">
+      <div>${groupTable(G.medium, '종류 (utm_medium)', k => esc(lbl(MEDIUM, k)), 10)}</div>
+      <div>${groupTable(G.landing, '처음 연 페이지', k => esc(lbl(LANDING, k)), 10)}</div>
+    </section>
+    ${groupTable(G.campaign, '캠페인 (utm_campaign)', k => esc(lbl({}, k)), 15)}
+    ${sectionHead('주별 가입 · 처음 온 곳 (최근 26주)')}
+    ${weeklyTable(au.weekly)}
+    ${sectionHead('나라 × 운영체제')}
+    ${crossTable(au.cross)}
+    <p class="muted xs">처음 온 곳은 첫 방문 때 한 번만 적혀요(utm 표시 또는 거쳐 온 사이트). 소개 페이지 링크에 ?utm_source=instagram&amp;utm_campaign=fall 처럼 붙이면 여기서 나뉘어 보여요. IP나 기기 고유값은 저장하지 않아요.</p></div>`);
 }
 
 /* ---------- 이야기 문장: 앱을 다시 배포하지 않고 계절·명절 문장 더하기 ---------- */
@@ -693,7 +773,7 @@ function route() {
   if (path === '#/audit') return viewAudit(q);
   if (path === '#/ops') return viewOps();
   if (path === '#/notices') return viewNotices();
-  if (path === '#/usage') return viewUsage();
+  if (path === '#/usage') return viewUsage(q);
   if (path === '#/phrases') return viewPhrases(q);
   if (path === '#/vouchers') return viewVouchers(q);
   return viewDash();

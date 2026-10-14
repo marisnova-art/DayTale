@@ -16,6 +16,11 @@ await pg.exec(`insert into auth.users(id, email, created_at) values ('${ANN}', '
   update profiles set country = 'KR', lang = 'ko', display_name = '바다별' where id in ('${ANN}', '${BOB}');
   update profiles set last_seen_at = now() - interval '340 days', trial_ends_at = now() - interval '300 days' where email in ('user61@example.com', 'user62@example.com');
   update auth.users set email_confirmed_at = now() where id in ('${ANN}', '${BOB}');
+  update profiles p set platform = (array['ios','android','windows','mac','ios'])[1 + abs(hashtext(p.email || 'p')) % 5], installed = abs(hashtext(p.email || 'i')) % 3 = 0, device_at = now(),
+    browser = (array['safari','chrome','edge','inapp'])[1 + abs(hashtext(p.email || 'b')) % 4], first_landing = (array['app','/en','/ko','/ja'])[1 + abs(hashtext(p.email || 'l')) % 4],
+    first_source = (array['google','instagram','direct','naver','invite','google'])[1 + abs(hashtext(p.email || 's')) % 6], first_campaign = case when abs(hashtext(p.email)) % 4 = 0 then 'fall-launch' end;
+  update profiles set device_kind = case when platform in ('ios', 'android') then 'phone' else 'desktop' end, first_medium = case first_source when 'google' then 'organic' when 'naver' then 'organic' when 'instagram' then 'social' when 'invite' then 'referral' end;
+  update profiles set platform = null, device_kind = null, browser = null, installed = null, first_source = null, first_medium = null, first_campaign = null, first_landing = null where email in ('user1@example.com', 'user2@example.com');
   insert into subscriptions(subscription_id, user_id, customer_id, status, plan, currency, amount, current_period_end) values
     ('sub_01bob', '${BOB}', 'ctm_01bob', 'active', 'yearly', 'USD', 39.9, now() + interval '300 days');
   insert into subscriptions(subscription_id, user_id, status, plan, currency, amount, current_period_end, cancel_at, created_at)
@@ -85,6 +90,7 @@ ok(await p.locator('tbody tr').count() === 50, 'users page 1 has 50 rows'); ok((
 await p.screenshot({ path: `${out}/admin-users.png`, fullPage: false });
 await p.fill('input[name=q]', 'bob'); await p.press('input[name=q]', 'Enter');
 await p.waitForFunction(() => document.querySelectorAll('tbody tr').length === 1); await p.click('tbody tr');
+await p.waitForSelector('#ban'); ok((await p.textContent('dl')).includes('처음 온 곳'), '회원 상세: 기기 · 처음 온 곳');
 await p.waitForSelector('#ban'); ok((await p.textContent('.card.violet .cnum')).trim() === '37', 'bob detail shows 37 records');
 await p.screenshot({ path: `${out}/admin-user.png`, fullPage: true });
 await p.click('#ban'); await p.fill('dialog input[name=reason]', '테스트 정지');
@@ -102,7 +108,14 @@ await p.screenshot({ path: `${out}/admin-ops.png`, fullPage: true });
 ok((await p.textContent('#main')).includes('알림을 켠 기기') && await p.locator('.bars span').count() === 14, '운영: 알림 상태 + 14일 막대');
 await p.goto('http://admin.test/#/usage'); await p.waitForSelector('.blist');
 ok((await p.textContent('#main')).includes('감성형') && (await p.textContent('#main')).includes('메모'), '이용 현황: 홈 화면 · 기록 종류');
+await p.waitForSelector('#aud');
+const aud = await p.textContent('#aud');
+ok(aud.includes('나라별') && aud.includes('🇰🇷') && aud.includes('Instagram'.toLowerCase()) && aud.includes('iPhone·iPad') && aud.includes('휴대폰') && aud.includes('홈 화면 앱으로') && aud.includes('소개 · 日本語') && aud.includes('fall-launch'), '이용 현황: 나라·언어·기기·유입 경로');
+ok(await p.locator('#aud table.cross tbody tr').count() >= 5 && aud.includes('주 (월요일 시작)'), '이용 현황: 나라 × 운영체제 · 주별 가입');
+ok((await p.textContent('#aud .ranges .on')).includes('전체'), '이용 현황: 기간 기본은 전체');
 await p.screenshot({ path: `${out}/admin-usage.png`, fullPage: true });
+await p.click('#aud .ranges a[href*="days=30"]'); await p.waitForFunction(() => document.querySelector('#aud .ranges .on')?.textContent.includes('30일'));
+ok((await p.textContent('#aud .card.violet small')).includes('최근 30일'), '이용 현황: 30일 거르기');
 await p.goto('http://admin.test/#/phrases'); await p.waitForSelector('#pf');
 await p.fill('#pf textarea[name=text]', '추석 연휴예요. 맛있는 것 많이 먹어요.'); await p.fill('#pf input[name=from]', '2026-09-24'); await p.fill('#pf input[name=to]', '2026-09-27'); await p.selectOption('#pf select[name=tod]', 'morning');
 await p.click('#pf .btn.primary'); await p.waitForFunction(() => document.querySelectorAll('.tablebox tbody tr td').length > 1);
@@ -112,7 +125,7 @@ await p.waitForFunction(() => document.querySelectorAll('.tablebox tbody tr').le
 await p.screenshot({ path: `${out}/admin-phrases.png`, fullPage: true });
 await p.click('[data-act]'); await p.waitForSelector('tr.off'); ok(true, '이야기 문장: 끄기');
 await p.click('tbody tr:first-child a.btn'); await p.waitForFunction(() => document.querySelector('#pf h2')?.textContent === '문장 고치기');
-await p.fill('#pf textarea[name=text]', '메리 크리스마스!'); await p.click('#pf .btn.primary'); await p.waitForFunction(() => document.querySelector('.tablebox').textContent.includes('메리 크리스마스!'));
+await p.fill('#pf textarea[name=text]', '메리 크리스마스!'); await p.click('#pf .btn.primary'); await p.waitForFunction(() => document.querySelector('.tablebox')?.textContent.includes('메리 크리스마스!'));
 ok((await pg.query(`select count(*)::int n from phrase_packs where text = '메리 크리스마스!' and cond->'between'->>0 = '12-24'`)).rows[0].n === 1, '이야기 문장: 고치기 (조건 유지)');
 await p.click('[data-pdel]'); await p.click('dialog button[value=ok]'); await p.waitForFunction(() => document.querySelectorAll('.tablebox tbody tr').length === 1); ok(true, '이야기 문장: 지우기');
 await p.goto('http://admin.test/#/notices'); await p.waitForSelector('#nf');
@@ -141,6 +154,9 @@ const m = await page({ width: 390, height: 844 });
 await m.goto('http://admin.test/'); await m.fill('input[name=email]', '24story@gmail.com'); await m.fill('input[name=pw]', 'pw'); await m.click('button.primary');
 await m.waitForSelector('.cards'); await m.waitForTimeout(400); ok(await m.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'phone: no horizontal page scroll');
 await m.screenshot({ path: `${out}/admin-mobile.png`, fullPage: true });
+await m.goto('http://admin.test/#/usage'); await m.waitForSelector('#aud'); await m.waitForTimeout(300);
+ok(await m.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'phone: 이용 현황도 옆으로 밀리지 않음');
+await m.screenshot({ path: `${out}/admin-mobile-usage.png`, fullPage: true });
 ok(!errors.length, 'no page errors ' + errors.join(' | '));
 await browser.close();
 console.log(fails ? `\n${fails} failed` : '\nall passed'); process.exit(fails ? 1 : 0);
