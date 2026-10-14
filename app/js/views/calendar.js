@@ -6,6 +6,7 @@ import { fmtDate, fmtHM, t } from '../core/i18n.js';
 import { addDays, dayKey, esc, icon, nowISO, parseDay, startOfWeek, todayKey } from '../core/utils.js';
 import { promptDlg, toast } from '../ui/feedback.js';
 import { go } from '../ui/router.js';
+import { fit } from '../ui/fit.js';
 
 const COL = { event: 'var(--event)', todo: 'var(--todo)', record: 'var(--record)' };
 const isPC = () => matchMedia('(min-width: 900px) and (min-height: 501px), (min-width: 900px) and (pointer: fine)').matches;
@@ -39,7 +40,7 @@ function dayBlock(k, d, { full = true } = {}) {
   const list = d ? [...(pass('event') ? d.event.map(e => item(e, 'event')) : []), ...(pass('todo') ? d.todo.map(e => item(e, 'todo')) : []), ...(state.filter === 'all' ? d.record.map(e => item(e, 'record')) : [])] : [];
   const title = k === today ? t('cal.today') : fmtDate(day, full ? { weekday: 'long' } : { month: 'long', day: 'numeric' });
   const sub = k === today || full ? fmtDate(day, { month: 'long', day: 'numeric', weekday: k === today ? 'long' : undefined }) : fmtDate(day, { weekday: 'long' }) + (list.length ? ' · ' + t('cal.count', { n: list.length }) : '');
-  return `<div class="dh"><span><b>${esc(title)}</b><span class="s">${esc(sub)}</span></span><button class="add${k === state.sel || !full ? '' : ' only'}" data-add="${k}" aria-label="${esc(t('cal.add'))}">${icon('plus', 15)}${k === state.sel || !full ? esc(t('cal.add')) : ''}</button></div>` +
+  return `<div class="dh"><span><b>${esc(title)}</b> <span class="s">${esc(sub)}</span></span><button class="add${k === state.sel || !full ? '' : ' only'}" data-add="${k}" aria-label="${esc(t('cal.add'))}">${icon('plus', 15)}${k === state.sel || !full ? esc(t('cal.add')) : ''}</button></div>` +
     (list.length ? list.join('') : `<div class="blank">${esc(t('cal.empty'))}</div>`);
 }
 
@@ -76,7 +77,7 @@ function paint(root) {
   const wdays = [...Array(7)].map((_, i) => addDays(startOfWeek(new Date(2026, 0, 4), ws), i));
   const wkh = `<div class="wkh">${wdays.map(d => `<span class="${d.getDay() === 0 || d.getDay() === 6 ? 'we' : ''}">${esc(fmtDate(d, { weekday: 'narrow' }))}</span>`).join('')}</div>`;
   const head = `<div class="cal-head"><h1>${esc(fmtDate(sel, { month: 'long' }))}<small>${sel.getFullYear()}</small></h1><span class="r">
-    <button class="today-btn" data-today>${esc(t('cal.today'))}</button>
+    <button class="today-btn" data-today aria-label="${esc(t('cal.today'))}">${icon('locate', 18)}<span>${esc(t('cal.today'))}</span></button>
     <span class="seg" role="tablist"><button data-v="week" class="${state.view === 'week' ? 'on' : ''}" role="tab">${esc(t('cal.week'))}</button><button data-v="month" class="${state.view === 'month' ? 'on' : ''}" role="tab">${esc(t('cal.month'))}</button></span></span></div>
     <div class="filters">${['all', 'event', 'todo'].map(f => `<button class="${state.filter === f ? 'on' : ''}" data-f="${f}">${esc(t(f === 'all' ? 'list.all' : f === 'event' ? 'cal.events' : 'cal.todos'))}</button>`).join('')}</div>`;
   let main = '', side = '';
@@ -104,6 +105,7 @@ function paint(root) {
     side = `<div class="agenda">${dayBlock(state.sel, idx.get(state.sel), { full: false })}</div>`;
   }
   root.innerHTML = head + `<div class="cal-body"><div class="cal-main">${main}${state.view === 'month' && !isPC() ? side : ''}</div>${isPC() && state.view === 'month' ? `<aside class="cal-side">${side}</aside>` : ''}</div><div style="height:120px"></div>`;
+  fit(root.querySelector('.cal-head'), 3);
 }
 const refresh = view => view.paintCal?.();
 

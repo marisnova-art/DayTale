@@ -2,6 +2,7 @@
    모바일: 키보드 위 막대(뒤로 | Aa · 체크 · 사진 · ⋯ | 완료). Aa·⋯ 판은 키보드 자리에 열려서 글 위치가 움직이지 않아요
    PC: 글 위 한 줄에 서식 도구가 모두 보여요. ⋯ 는 그 아래로 작은 판 */
 import { CFG } from '../core/config.js';
+import { fit as fitRow } from '../ui/fit.js';
 import { S, isEmpty, newEntry, onChange, patchEntry, saveEntry, trashEntry, TYPES, addFolder, folderList } from '../data/store.js';
 import { htmlToText, sanitizeHTML } from '../core/sanitize.js';
 import { fmtDate, fmtRel, t } from '../core/i18n.js';
@@ -58,6 +59,7 @@ function render(view, r, opts = {}) {   // opts.pane: PC 나란히 보기의 오
   </div>
   <input type="file" accept="image/*" multiple hidden class="ed-file"></div>`;
   const el = { root: view, title: $('.ed-title', view), body: $('.ed-body', view), info: $('.ed-info', view), meta: $('.ed-meta', view), photos: $('.ed-photos', view), foot: $('.ed-foot', view), pan: $('.ed-pan', view) };
+  fitRow($('.ed-bar .cap', view), 3);
   cur = { e, isNew, wasNew: isNew, el, ro, pan: null, saved: carried ? false : undefined, pane: opts.pane ? opts : null };
   if (!opts.pane) { document.documentElement.classList.add('ed-mode'); scrollTo(0, 0); }   // 휴대폰: 편집기 상자 안에서만 스크롤 (editor.css)
   if (!opts.pane && window.visualViewport) { const vv = window.visualViewport, k = () => requestAnimationFrame(keepCaret); vv.addEventListener('resize', k); cur.offVV = () => vv.removeEventListener('resize', k); }
@@ -186,7 +188,7 @@ function openPan(kind) {
   }
   document.documentElement.style.setProperty('--pan', Math.min(Math.max(kbH, 260), 360) + 'px');
   document.documentElement.classList.add('ed-pan-open');
-  cur.el.pan.hidden = false; paintPan(); requestAnimationFrame(keepCaret);
+  cur.el.pan.hidden = false; paintPan(); cur.el.pan.scrollTop = 0; requestAnimationFrame(keepCaret);
 }
 function closePan(toKeyboard = false, to = cur?.panFrom) {
   if (!cur) return;
@@ -219,6 +221,7 @@ function paintPan() {
       ${isPC() ? '' : `<div class="lab">${esc(t('ed.image'))}</div><div class="kinds imgs"><button class="kc" data-act="photo" ${cur.ro ? 'disabled' : ''}>${icon('image-plus', 18)}${esc(t('ed.attach'))}</button><button class="kc" data-act="card">${icon('image', 18)}${esc(t('card.title'))}</button></div>`}
       <div class="acts"><button data-x="fav" class="${fav ? 'on' : ''}">${icon('star', 19)}${esc(t(fav ? 'ed.unfavorite' : 'ed.favorite'))}</button><button data-x="pin" class="${pin ? 'on' : ''}">${icon('pin', 19)}${esc(t(pin ? 'ed.unpin' : 'ed.pin'))}</button><button data-x="trash" class="bad">${icon('trash-2', 19)}${esc(t('ed.trash'))}</button></div>`;
   }
+  if (k === 'more') fitRow($('.acts', el.pan), 2);
   $$('.ed-pan .kinds .on', el.root).forEach(b => { const w = b.parentElement; if (b.offsetLeft + b.offsetWidth > w.clientWidth) w.scrollLeft = b.offsetLeft - 12; });   // 고른 종류 · 폴더가 옆으로 가려져 있으면 보이게
 }
 /* 지금 커서 자리의 서식을 버튼에 표시해요 (켜짐/꺼짐) */

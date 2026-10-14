@@ -243,3 +243,19 @@
 :root[data-pat].ed-mode, :root[data-pat].ed-mode body { background: var(--bg-grad); }
 :root[data-pixel] .ed:not([data-font="serif"]):not([data-font="hand"]) :is(.ed-title, .ed-body) { font-family: var(--f-pixel); letter-spacing: 0; -webkit-font-smoothing: none; }
 :root[data-pixel] .ed:not([data-font="serif"]):not([data-font="hand"]) .ed-title { font-size: calc(var(--fs-l) * .9); }
+/* 아래 막대가 언어에 따라 넘치면 단계별로 조여요 (ui/fit.js): 1 서식·옵션 아이콘 숨김 → 2 여백 줄임 → 3 저장은 체크 아이콘만 */
+.ed-bar .cap.fit-1 .tb.lbl .i { display: none; }
+.ed-bar .cap.fit-2 .tb.lbl { padding: 0 10px; margin: 0 1px; }
+.ed-bar .cap.fit-2 .tb:not(.lbl) { width: 38px; }
+.ed-bar .cap.fit-2 .ed-done { padding: 0 14px 0 11px; }
+.ed-bar .cap.fit-3 .ed-done { width: 46px; padding: 0; justify-content: center; }
+.ed-bar .cap.fit-3 .ed-done span { display: none; }
+.ed-bar .tb.lbl { white-space: nowrap; flex: none; }
+/* 옵션 판 아래 줄(즐겨찾기 · 고정 · 휴지통): 넘치면 1 아이콘 숨김 → 2 두 줄 (ui/fit.js) */
+.ed-pan .acts button { white-space: nowrap; }
+.ed-pan .acts.fit-1 button .i { display: none; }
+.ed-pan .acts.fit-2 { flex-wrap: wrap; }
+.ed-pan .acts.fit-2 button { flex: 1 1 40%; }
+.ed-pan .acts.fit-2 .bad { flex-basis: 100%; }
+/* 옆으로 밀리는 줄은 오른쪽 끝을 흐리게 해서 더 있다는 걸 보여줘요 */
+@media (max-width: 899px) { .ed-pan .kinds { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); padding-right: 28px; } }

@@ -25,7 +25,7 @@
 .mc i { display: flex; gap: 3px; height: 4px; }
 .mc i u { width: 4px; height: 4px; border-radius: 2px; display: block; }
 .agenda .dh { display: flex; justify-content: space-between; align-items: center; margin: 22px 4px 8px; }
-.agenda .dh b { font-size: var(--fs-m); font-weight: 800; color: var(--text-2); letter-spacing: -.03em; margin-right: 8px; }
+.agenda .dh b { font-size: var(--fs-m); font-weight: 800; color: var(--text-2); letter-spacing: -.03em; margin-right: 4px; }
 .agenda .dh .s { font-size: var(--fs-s); font-weight: 600; color: var(--muted-2); }
 .agenda .add { height: 32px; padding: 0 12px; border-radius: 16px; display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-s); font-weight: 700; color: var(--text-3); background: rgba(var(--srf),.7); border: 1px solid rgba(var(--fg),.08); }
 .agenda .add.only { width: 32px; padding: 0; justify-content: center; }
@@ -104,3 +104,21 @@
 .agenda .swp-del svg { width: 18px; height: 18px; }
 .ev .del { display: none; width: 30px; height: 30px; border-radius: 15px; align-items: center; justify-content: center; color: var(--faint); flex: none; margin-right: -8px; }
 @media (hover: hover) and (pointer: fine) { .ev:hover .del { display: flex; } .ev .del:hover { color: var(--danger); background: var(--fill); } }
+/* 머리줄이 언어에 따라 넘치면 단계별로 조여요 (ui/fit.js): 1 연도 숨김 → 2 단추 여백 줄임 → 3 '오늘'은 아이콘만 */
+.cal-head h1 { white-space: nowrap; overflow: hidden; }
+.cal .today-btn { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.cal .today-btn .i { display: none; }
+.cal-head.fit-1 h1 small { display: none; }
+.cal-head.fit-2 .r .seg button { padding: 0 9px; }
+.cal-head.fit-2 .r > button { padding-left: 11px; padding-right: 11px; }
+.cal-head.fit-3 .today-btn { width: 40px; padding: 0; justify-content: center; }
+.cal-head.fit-3 .today-btn .i { display: block; }
+.cal-head.fit-3 .today-btn span { display: none; }
+.cal .seg button { white-space: nowrap; }
+/* 날짜 머리: 날짜 글은 줄바꿈해도 되지만 '이 날에 추가' 단추는 한 줄 */
+.agenda .dh { gap: 10px; }
+.agenda .dh > span { min-width: 0; flex: 1; line-height: 1.35; }
+.agenda .add { white-space: nowrap; flex: none; }
+/* 달력 위 범례: 긴 언어에서는 줄바꿈해서 화살표 사이에 들어가요 */
+.mbox .bar .legend { flex: 1; min-width: 0; flex-wrap: wrap; justify-content: center; row-gap: 2px; column-gap: 10px; }
+.legend span { white-space: nowrap; }

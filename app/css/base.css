@@ -39,7 +39,7 @@ svg.i { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: rou
 .fs.more-r { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); }
 .fs.more-l { -webkit-mask-image: linear-gradient(90deg, transparent, #000 28px); mask-image: linear-gradient(90deg, transparent, #000 28px); }
 .fs.more-l.more-r { -webkit-mask-image: linear-gradient(90deg, transparent, #000 28px, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(90deg, transparent, #000 28px, #000 calc(100% - 28px), transparent); }
-.chip { height: 34px; padding: 0 14px; border-radius: 17px; background: var(--raised-2); font-size: var(--fs-s); font-weight: 700; color: var(--text-3); display: inline-flex; align-items: center; gap: 6px; }
+.chip { white-space: nowrap; height: 34px; padding: 0 14px; border-radius: 17px; background: var(--raised-2); font-size: var(--fs-s); font-weight: 700; color: var(--text-3); display: inline-flex; align-items: center; gap: 6px; }
 .icon-btn { width: 44px; height: 44px; border-radius: 22px; display: inline-flex; align-items: center; justify-content: center; color: var(--text); position: relative; }
 .icon-btn:hover { background: var(--fill); }
 .field { display: flex; align-items: center; gap: 10px; height: 54px; padding: 0 16px; border-radius: var(--r-m); background: rgba(var(--srf),.42); border: 1px solid rgba(var(--fg),.12); color: var(--muted-2); }

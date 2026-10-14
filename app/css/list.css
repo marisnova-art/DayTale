@@ -81,3 +81,5 @@
   .pane-empty .btn { height: 44px; border-radius: 22px; padding: 0 18px; display: inline-flex; align-items: center; gap: 8px; }
 }
 @media (min-width: 1200px) and (min-height: 501px), (min-width: 1200px) and (pointer: fine) { .pane .ed-tools .tb { width: 36px; } .pane .ed-tools .sep { margin: 0 2px; } }
+/* 백업 화면 설명은 잘리지 않게 두 줄까지 (언어마다 길이가 달라요) */
+.bk .r .p, .bk .r .t { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
