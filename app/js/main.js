@@ -29,6 +29,20 @@ document.title = brand(getLang());
 document.documentElement.dataset.size = textSize();
 document.documentElement.dataset.ui = uiStyle();
 Backdrop.apply(document.documentElement);
+/* 화면 확대·축소는 쓰지 않아요. 아이폰은 가로 → 세로로 돌릴 때 가로에서의 배율을 그대로 남겨 화면이 커진 채로 보일 때가 있어서,
+   방향이 바뀌면 화면 배율 설정을 한 번 다시 넣어 1배로 되돌리고 옆으로 밀린 자리도 되돌려요 */
+const vpMeta = document.querySelector('meta[name=viewport]'), VP = vpMeta?.content || '';
+let lastLand = matchMedia('(orientation: landscape)').matches;
+function resetZoom() {
+  const land = matchMedia('(orientation: landscape)').matches; if (land === lastLand || !vpMeta) return; lastLand = land;
+  vpMeta.content = VP.replace('initial-scale=1', 'initial-scale=1.0001');   // 값이 바뀌어야 아이폰이 배율을 다시 계산해요
+  requestAnimationFrame(() => { vpMeta.content = VP; if (scrollX) scrollTo(0, scrollY); });
+}
+addEventListener('orientationchange', () => setTimeout(resetZoom, 50)); addEventListener('resize', resetZoom);
+// 아이폰 사파리는 확대 금지 설정을 무시해서, 두 손가락 동작(확대·축소)을 직접 막아요
+['gesturestart', 'gesturechange', 'gestureend'].forEach(ev => document.addEventListener(ev, e => e.preventDefault(), { passive: false }));
+document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+
 /* ---------- 화면 목록 (모듈은 필요할 때 불러요) ---------- */
 const V = name => () => import(`./views/${name}.js`);
 route('/home', V('home'));

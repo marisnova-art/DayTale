@@ -70,6 +70,8 @@ function trackKeyboard() {
     root.style.setProperty('--vvh', Math.round(vv.height) + 'px'); root.style.setProperty('--vvt', Math.round(vv.offsetTop) + 'px'); };
   const soon = () => { if (!raf) raf = requestAnimationFrame(upd); };
   vv.addEventListener('resize', soon); vv.addEventListener('scroll', soon); upd();
+  // 아이폰은 키보드가 내려간 뒤 마지막 크기 알림을 빠뜨릴 때가 있어서, 입력이 끝나면 조금 뒤 한 번 더 재요
+  addEventListener('focusout', () => [250, 600].forEach(ms => setTimeout(upd, ms)));
 }
 let pt = 0; const paintSoon = () => { clearTimeout(pt); pt = setTimeout(paint, 600); };
 const isPC = () => matchMedia('(min-width: 900px) and (min-height: 501px), (min-width: 900px) and (pointer: fine)').matches;
