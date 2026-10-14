@@ -483,6 +483,19 @@ const DARK_OK = x => x.t === 'night';   // 밤 풍경 줄
 /* 오늘(날짜·시간대) 하나를 골라요. 계절·시간대·날씨가 맞을수록 먼저, 최근 2주에 나온 줄은 건너뛰어요 */
 // 작가: 한국어 줄의 첫 이름 ("릴케는 …" → 릴케)
 const who = x => (x.ko?.match(/^(.+?)(?:은|는)\s/) || [])[1] || x.ko?.slice(0, 6);
+/* 작가의 나라: 한국어 줄 앞부분의 이름으로 알아내요. 그 언어 사용자에게는 그 나라 작가 30% · 세계 고전 60% · 다른 나라(한국·일본) 작가 10% (대표 결정 2026-10-14) */
+const ORIGIN = [
+  ['ko', /^(윤동주|김소월|이효석|김유정|정지용|한용운|이육사|김영랑|이상화|황진이|방정환|윤선도|이조년|성혼|맹사성|송순|월산대군)/],
+  ['ja', /^(바쇼|마쓰오 바쇼|잇사|고바야시 잇사|부손|요사 부손|시키|마사오카 시키|요사노|소세키|나쓰메|미야자와 겐지|아쿠타가와|이시카와 다쿠보쿠|가가노 지요조)/],
+  ['zh', /^(이백|두보|맹호연|왕유|도연명|소식|백거이|두목|왕지환|하지장)/],
+  ['en', /^(소로|헨리 데이비드 소로|버지니아 울프|울프|『등대로』|피츠제럴드|F\. 스콧|맨스필드|캐서린 맨스필드|디킨슨|에밀리 디킨슨|존 키츠|키츠|워즈워스|셸리|크리스티나 로세티|로세티|예이츠|『빨간 머리 앤』|앤은|『비밀의 화원』|『버드나무|피터 팬|앨리스|마크 트웨인|『작은 아씨들』|제인 오스틴|스티븐슨|휘트먼|오스카 와일드|에밀리 브론테|샬럿 브론테|토마스 하디|에머슨|올컷|몽고메리|루이스 캐럴)/],
+  ['es', /^(베케르|안토니오 마차도|마차도|로르카|루벤 다리오)/],
+  ['fr', /^(마르셀 프루스트|프루스트|베를렌|폴 베를렌|아폴리네르|빅토르 위고|보들레르|샤를 보들레르|몽테뉴|미셸 드 몽테뉴)/]
+];
+const originOf = x => (ORIGIN.find(([, re]) => re.test(x.ko || '')) || ['world'])[0];
+const REGIONAL = ['ko', 'ja'];   // 세계적으로 덜 알려진 근대 문학: 그 나라가 아니면 '다른 나라 작가'(10%)
+const bucket = (x, lang) => { const o = originOf(x); return o === lang ? 'local' : REGIONAL.includes(o) ? 'other' : 'world'; };
+const SHARE = [['local', .3], ['world', .6], ['other', .1]];
 function pickLit(ctx, lang, seen = []) {
   const kind = ctx.weather?.kind; const wx = kind === 'sun' ? 'clear' : kind === 'rain' || kind === 'thunder' ? 'rain' : kind === 'snow' ? 'snow' : kind ? 'cloud' : '';
   const light = ctx.light ?? (ctx.slot === 'morning' || ctx.slot === 'day');
@@ -495,13 +508,18 @@ function pickLit(ctx, lang, seen = []) {
   const fresh = fits.filter(({ i, x }) => !seen.includes(i) && !recent.has(who(x)));
   const pool = fresh.length ? fresh : fits.filter(({ i }) => !seen.includes(i)).length ? fits.filter(({ i }) => !seen.includes(i)) : fits;
   if (!pool.length) return null;
-  // 계절·시간대·날씨가 맞을수록 자주 나와요 (언제든 어울리는 줄도 가끔)
-  const weight = x => 1 + score(x), total = pool.reduce((n, { x }) => n + weight(x), 0);
   let h = 0; for (const c of ctx.today + ctx.slot) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-  h ^= h >>> 16; h = Math.imul(h, 0x45d9f3b) >>> 0; h ^= h >>> 16;
-  let r = h % total, pick = pool[0];
-  for (const it of pool) { r -= weight(it.x); if (r < 0) { pick = it; break; } }
+  h ^= h >>> 16; h = Math.imul(h, 0x45d9f3b) >>> 0; h = (h ^ (h >>> 16)) >>> 0;   // >>> 0: 음수가 되지 않게
+  // 먼저 묶음(그 나라 30 · 세계 고전 60 · 다른 나라 10)을 고르고, 그 묶음이 비면 세계 고전 → 아무거나
+  const groups = Object.fromEntries(SHARE.map(([b]) => [b, pool.filter(({ x }) => bucket(x, lang) === b)]));
+  let roll = (h % 1000) / 1000, want = 'world';
+  for (const [b, p] of SHARE) { if (roll < p) { want = b; break; } roll -= p; }
+  const cand = groups[want].length ? groups[want] : groups.world.length ? groups.world : pool;
+  // 계절·시간대·날씨가 맞을수록 자주 나와요 (언제든 어울리는 줄도 가끔)
+  const weight = x => 1 + score(x), total = cand.reduce((n, { x }) => n + weight(x), 0);
+  let r = (h >>> 10) % total, pick = cand[0];
+  for (const it of cand) { r -= weight(it.x); if (r < 0) { pick = it; break; } }
   return { i: pick.i, html: pick.x[lang] };
 }
 
-export { LIT, SEASON, pickLit };
+export { LIT, SEASON, bucket, originOf, pickLit };
