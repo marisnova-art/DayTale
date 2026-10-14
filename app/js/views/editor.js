@@ -186,7 +186,7 @@ function openPan(kind) {
     if (!cur.panFrom) cur.panFrom = document.activeElement === cur.el.title ? 'title' : 'body';
     if (document.activeElement === cur.el.title) cur.el.title.blur();
   }
-  document.documentElement.style.setProperty('--pan', Math.min(Math.max(kbH, 260), 360) + 'px');
+  document.documentElement.style.setProperty('--pan', Math.min(Math.max(kbH, 310), 380) + 'px');
   document.documentElement.classList.add('ed-pan-open');
   cur.el.pan.hidden = false; paintPan(); cur.el.pan.scrollTop = 0; requestAnimationFrame(keepCaret);
 }
