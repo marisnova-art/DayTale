@@ -162,12 +162,28 @@
 @media (max-width: 899px), (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
   .ed-pan { position: relative; margin: 0 6px; border-radius: 28px 28px 0 0; background: var(--sheet); border: 1px solid rgba(var(--fg),.08); border-bottom: 0;
     box-shadow: 0 -12px 40px rgba(0,0,0,.4); padding-top: 22px; animation: panUp .24s cubic-bezier(.2,.8,.2,1); }
-  .ed-pan::before { content: ''; position: absolute; top: 8px; left: 50%; width: 38px; height: 5px; margin-left: -19px; border-radius: 3px; background: #3A3842; }
+  .ed-pan::before { content: ''; position: absolute; top: 7px; left: 50%; width: 32px; height: 4px; margin-left: -16px; border-radius: 2px; background: #3A3842; }
+  /* 판 안은 막대보다 한 단계 작게 (단추 · 아이콘 2/3). 판 높이는 내용만큼, 키보드 높이를 넘지 않아요 */
+  .ed-dock .ed-pan { height: auto; max-height: var(--pan, 300px); padding: 18px 12px calc(10px + var(--safe-b)); border-radius: 24px 24px 0 0; }
+  .ed-pan .fonts { gap: 6px; margin-bottom: 8px; }
+  .ed-pan .fonts button { height: 36px; border-radius: 12px; font-size: var(--fs-s); }
+  .ed-pan .fonts .ff-hand { font-size: calc(var(--fs-s) * 1.25); }
+  .ed-pan .segs { padding: 3px; border-radius: 21px; margin-bottom: 8px; }
+  .ed-pan .segs button { height: 34px; border-radius: 17px; font-size: var(--fs-s); }
+  .ed-pan .row { gap: 6px; margin-bottom: 6px; }
+  .ed-pan .pb { height: 40px; border-radius: 12px; }
+  .ed-pan .pb .i { width: 18px; height: 18px; }
+  .ed-pan .lab { margin: 0 4px 6px; }
+  .ed-pan .kinds { gap: 6px; margin-bottom: 10px; }
+  .ed-pan .kc { height: 32px; padding: 0 11px; border-radius: 16px; gap: 5px; }
+  .ed-pan .kc .i { width: 15px; height: 15px; }
+  .ed-pan .acts { gap: 4px; padding-top: 8px; }
+  .ed-pan .acts button { height: 36px; border-radius: 12px; gap: 5px; white-space: nowrap; }
+  .ed-pan .acts button .i { width: 16px; height: 16px; }
 }
 @keyframes panUp { from { transform: translateY(40px); opacity: .4; } }
-/* 판이 열려 키보드 버튼이 생기면 서식·옵션은 글자만 (작성 완료가 잘리지 않게) */
-:root.ed-pan-open .ed-bar .tb.lbl { padding: 0 12px; }
-:root.ed-pan-open .ed-bar .tb.lbl .i { display: none; }
+/* 판이 열리고 닫혀도 막대 모양은 그대로예요 (아이콘 · 단추 자리 그대로). 키보드로 돌아가려면 켜진 서식 · 옵션을 다시 누르거나 글을 눌러요 */
+.ed-bar .tb.kbd { display: none !important; }
 
 /* 서식 단추 줄: 칸이 좁으면 (PC 나란히 보기) 이 부분만 옆으로 밀리고, 옵션 · 작성 완료는 늘 보여요 */
 .ed-tools .tb-scroll { display: flex; align-items: center; gap: 1px; min-width: 0; flex: 0 1 auto; overflow-x: auto; scrollbar-width: none; }
