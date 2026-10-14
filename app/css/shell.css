@@ -151,7 +151,7 @@ dialog.dlg .btn { height: 44px; }
 .netbar { position: fixed; top: 0; left: 0; right: 0; z-index: 70; text-align: center; font-size: var(--fs-s); font-weight: 700; padding: calc(4px + var(--safe-t)) 0 4px; background: #3A2E20; color: #FFD9A0; }
 .pc-top[hidden], .mbar[hidden] { display: none !important; }
 /* 모바일 메뉴 글씨는 한 단계 크게 */
-@media (max-width: 899px), (orientation: landscape) and (max-height: 500px) and (pointer: coarse) { .m { height: 46px; font-size: var(--fs-m); } .m .c { font-size: var(--fs-s); } .drawer .foot .m { font-size: var(--fs-m); }
+@media (max-width: 899px), (orientation: landscape) and (max-height: 500px) and (pointer: coarse) { .m { height: 50px; font-size: 20px; font-weight: 600; color: var(--text-2); } .drawer .m svg { width: 22px; height: 22px; } .m .c { font-size: var(--fs-s); } .drawer .foot .m { font-size: 20px; }
   /* 휴지통 아래에 설정 */
   .drawer .foot { flex-direction: column; gap: 0; } .drawer .foot .m { flex: none; } }
 
