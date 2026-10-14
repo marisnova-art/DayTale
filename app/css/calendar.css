@@ -99,5 +99,8 @@
 .agenda .swp, .pcw .swp { margin: 6px 0 0; border-radius: 16px; overflow: hidden; }
 .agenda .swp .ev, .pcw .swp .ev { margin-top: 0; transition: transform .22s ease; }
 .agenda .swp.moving .ev { transition: none; }
+/* 일정 줄은 낮아서 삭제 단추를 아이콘 · 글자 한 줄로, 줄 높이에 꽉 맞춰요 */
+.agenda .swp-del { top: 0; bottom: 0; right: 0; width: max(0px, calc(var(--rev) - 6px)); border-radius: 16px; flex-direction: row; gap: 4px; }
+.agenda .swp-del svg { width: 18px; height: 18px; }
 .ev .del { display: none; width: 30px; height: 30px; border-radius: 15px; align-items: center; justify-content: center; color: var(--faint); flex: none; margin-right: -8px; }
 @media (hover: hover) and (pointer: fine) { .ev:hover .del { display: flex; } .ev .del:hover { color: var(--danger); background: var(--fill); } }
