@@ -42,7 +42,7 @@ function pick(slot = slotOf(), weather = null) {
 }
 /* 단색: 이름 → [배경, 글자, 본문 진하기, 포인트, 밝은 배경]. 본문 대비 4.5:1 이상, 포인트 3:1 이상 (큰 글씨) */
 const SOLID = {
-  cream: ['#F3EADB', '#2A2018', .66, '#A8461F', 1], sage: ['#DCE4D4', '#1E2A20', .68, '#2E663C', 1], sky: ['#D4E4F1', '#13243A', .68, '#2C62B4', 1],
+  cream: ['#F3EADB', '#2A2018', .66, '#A8461F', 1], sage: ['#CFE2C4', '#1E2A20', .68, '#2E663C', 1], sky: ['#D4E4F1', '#13243A', .68, '#2C62B4', 1],
   terracotta: ['#8C3F2E', '#FFF2E8', .76, '#FFD58A'], plum: ['#3A2240', '#F7E9F3', .62, '#FFAFCB'],
   olive: ['#3B3D26', '#F3F0DC', .62, '#E8C65A'], navy: ['#131B32', '#E6ECFF', .62, '#9DB8FF'], charcoal: ['#1C1C1E', '#F2F0EC', .62, '#FFB37A'],
   /* 패턴: 그라데이션·단색과 섞지 않는 따로 된 배경. 여섯째 값 = 무늬 이름 (글꼴·글줄 선은 base.css :root[data-pat]) */
