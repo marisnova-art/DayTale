@@ -3,7 +3,6 @@ export default {
   'common.ok': '확인', 'common.cancel': '취소', 'common.close': '닫기', 'common.save': '저장', 'common.delete': '지우기', 'common.open': '열기', 'common.undo': '되돌리기',
   'common.untitled': '제목 없음', 'common.more': '더 보기', 'common.seeAll': '모두 보기', 'common.retry': '다시 시도', 'common.done': '완료', 'common.back': '뒤로',
   'time.now': '방금',
-  'common.rotate': '휴대폰을 세로로 돌려 주세요.',
   'nav.menu': '메뉴', 'nav.closeMenu': '메뉴 닫기', 'nav.profile': '프로필', 'nav.notices': '알림', 'nav.settings': '설정', 'nav.new': '새 기록', 'nav.write': '쓰기',
   'nav.allShort': '모든 기록', 'nav.home': '홈', 'nav.all': '모든 기록', 'nav.byType': '종류별 보기', 'nav.todo': '할 일', 'nav.calendar': '캘린더', 'nav.folders': '폴더', 'nav.noFolder': '폴더 없음',
   'nav.trash': '휴지통', 'nav.search': '기록 찾기', 'nav.newFolder': '새 폴더',

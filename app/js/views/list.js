@@ -13,7 +13,7 @@ import { render as rerender } from '../ui/router.js';
 
 let filter = 'all';
 /* PC 나란히 보기 (넓은 화면): 왼쪽 목록 + 오른쪽에 고른 기록. 처음엔 맨 위 기록이 열려 있어요 */
-const wide = matchMedia('(min-width: 1200px)');
+const wide = matchMedia('(min-width: 1200px) and (min-height: 501px), (min-width: 1200px) and (pointer: fine)');
 const SPLIT = new Set(['all', 'fav', 'type', 'todo', 'folder', 'nofolder', 'search']);
 let sel = null;
 wide.addEventListener('change', () => { if (document.querySelector('#view .lst')) rerender(); });

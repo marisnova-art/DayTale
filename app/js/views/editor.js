@@ -21,7 +21,7 @@ const LISTS = [['bullet', 'list', 'ed.bullet'], ['numbered', 'list-ordered', 'ed
 let cur = null;   // { e, isNew, saved, el, off, pan }
 
 const fbtn = ([k, ic, l], cls = 'tb') => `<button class="${cls}" data-f="${k}" aria-label="${esc(t(l))}" title="${esc(t(l))}" aria-pressed="false">${icon(ic, 20)}</button>`;
-const isPC = () => matchMedia('(min-width: 900px)').matches;
+const isPC = () => matchMedia('(min-width: 900px) and (min-height: 501px), (min-width: 900px) and (pointer: fine)').matches;
 
 function render(view, r, opts = {}) {   // opts.pane: PC 나란히 보기의 오른쪽 칸 (onSaved · onDone · onGone)
   leave();

@@ -8,7 +8,7 @@ import { promptDlg, toast } from '../ui/feedback.js';
 import { go } from '../ui/router.js';
 
 const COL = { event: 'var(--event)', todo: 'var(--todo)', record: 'var(--record)' };
-const isPC = () => matchMedia('(min-width: 900px)').matches;
+const isPC = () => matchMedia('(min-width: 900px) and (min-height: 501px), (min-width: 900px) and (pointer: fine)').matches;
 let state = { view: null, sel: todayKey(), filter: 'all' };
 
 /* 날짜별 묶음: 일정(meta.date), 할 일(마감일), 기록(만든 날) */

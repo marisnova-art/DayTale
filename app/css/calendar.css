@@ -41,7 +41,7 @@
 
 /* PC 월: 칸 안에 제목 칩 */
 .pcm, .pcw { display: none; }
-@media (min-width: 900px) {
+@media (min-width: 900px) and (min-height: 501px), (min-width: 900px) and (pointer: fine) {
   .cal { padding: 40px 32px 0; max-width: none; }
   .cal-body { display: flex; gap: 24px; align-items: flex-start; }
   .cal-main { flex: 1; min-width: 0; }
@@ -89,7 +89,7 @@
 /* 긴 달 이름·버튼 이름(다른 언어)에서도 한 줄에 맞게 */
 .cal-head h1 { min-width: 0; font-size: clamp(22px, 7vw, 30px); }
 .cal-head .r { flex: none; }
-@media (max-width: 420px) { .cal-head .r .seg button { padding: 0 10px; } .cal-head .r > button, .cal-head .r > a { padding-left: 10px; padding-right: 10px; } }
+@media (max-width: 420px), (orientation: landscape) and (max-height: 420px) and (pointer: coarse) { .cal-head .r .seg button { padding: 0 10px; } .cal-head .r > button, .cal-head .r > a { padding-left: 10px; padding-right: 10px; } }
 /* 주·월 넘기기 버튼: 크고 잘 보이게 */
 .cal .navbtn { width: 44px; height: 44px; border-radius: 22px; color: var(--text-2); background: rgba(22,21,26,.7); border: 1px solid rgba(255,255,255,.12); flex: none; }
 .cal .navbtn:active { background: rgba(255,255,255,.14); }

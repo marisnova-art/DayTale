@@ -72,7 +72,7 @@ function trackKeyboard() {
   vv.addEventListener('resize', soon); vv.addEventListener('scroll', soon); upd();
 }
 let pt = 0; const paintSoon = () => { clearTimeout(pt); pt = setTimeout(paint, 600); };
-const isPC = () => matchMedia('(min-width: 900px)').matches;
+const isPC = () => matchMedia('(min-width: 900px) and (min-height: 501px), (min-width: 900px) and (pointer: fine)').matches;
 function openMenu() {
   paint(); document.documentElement.classList.add('menu-open');
   $('.drawer').classList.add('open'); $('.scrim').classList.add('open'); $('.mbar')?.classList.add('away'); $('.menu-btn')?.setAttribute('aria-expanded', 'true');

@@ -15,7 +15,7 @@ import { go } from '../ui/router.js';
 import { pickType, typeLabel } from './pickers.js';
 
 const GROUPS = [['account', 'user'], ['display', 'palette'], ['record', 'notebook-pen'], ['notify', 'bell'], ['data', 'database'], ['info', 'info']];
-const isPC = () => matchMedia('(min-width: 900px)').matches;
+const isPC = () => matchMedia('(min-width: 900px) and (min-height: 501px), (min-width: 900px) and (pointer: fine)').matches;
 const LICENSES = [
   ['Pretendard', 'SIL Open Font License 1.1', 'https://github.com/orioncactus/pretendard'],
   ['Gowun Batang · Noto Serif JP · Caveat · Nanum Pen Script · Klee One', 'SIL Open Font License 1.1', './fonts/OFL.txt'],

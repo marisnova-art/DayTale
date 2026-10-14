@@ -79,10 +79,10 @@
 .ed-pan .acts button { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; height: 44px; border-radius: 14px; font-size: var(--fs-s); font-weight: 600; color: rgba(255,255,255,.82); }
 .ed-pan .acts button.on { color: #FFD36B; }
 .ed-pan .acts .bad { color: var(--danger); background: rgba(255,107,107,.14); }
-@media (max-width: 380px) { .ed-bar .tb { width: 40px; } .ed-done { padding: 0 14px 0 11px; } }
-@media (max-width: 899px) { .ed-tools { display: none; } }
+@media (max-width: 380px), (orientation: landscape) and (max-height: 380px) and (pointer: coarse) { .ed-bar .tb { width: 40px; } .ed-done { padding: 0 14px 0 11px; } }
+@media (max-width: 899px), (orientation: landscape) and (max-height: 500px) and (pointer: coarse) { .ed-tools { display: none; } }
 /* PC: 바닥 막대 없음. ⋯ 판은 도구 줄 바로 아래 작은 판 */
-@media (min-width: 900px) {
+@media (min-width: 900px) and (min-height: 501px), (min-width: 900px) and (pointer: fine) {
   .ed-bar { display: none; }
   .ed-dock { position: fixed; left: 268px; right: 0; top: 0; bottom: auto; }
   .ed-pan { position: absolute; top: 80px; left: 50%; transform: translateX(-50%); width: min(560px, calc(100% - 40px)); height: auto; max-height: 70vh; border-radius: 22px; border: 1px solid rgba(255,255,255,.12); box-shadow: 0 24px 60px rgba(0,0,0,.5); padding: 16px; }
@@ -105,8 +105,8 @@
 .ed-photos.one img { height: auto; max-height: 62vh; }
 .ed-body:has(+ .ed-photos:not([hidden])) { min-height: 3em; }
 /* 휴대폰: 여러 장이면 옆으로 넘겨 보는 한 줄 */
-@media (max-width: 899px) { .ed-photos:not(.one) { flex-wrap: nowrap; overflow-x: auto; scroll-snap-type: x mandatory; margin-left: -20px; margin-right: -20px; padding: 0 20px; scrollbar-width: none; } .ed-photos:not(.one) .ph { scroll-snap-align: start; height: 240px; } .ed-photos:not(.one) img { max-width: none; } }
-@media (min-width: 900px) { .ed-photos .ph { height: 260px; } .ed-photos.one img { max-height: 520px; } }
+@media (max-width: 899px), (orientation: landscape) and (max-height: 500px) and (pointer: coarse) { .ed-photos:not(.one) { flex-wrap: nowrap; overflow-x: auto; scroll-snap-type: x mandatory; margin-left: -20px; margin-right: -20px; padding: 0 20px; scrollbar-width: none; } .ed-photos:not(.one) .ph { scroll-snap-align: start; height: 240px; } .ed-photos:not(.one) img { max-width: none; } }
+@media (min-width: 900px) and (min-height: 501px), (min-width: 900px) and (pointer: fine) { .ed-photos .ph { height: 260px; } .ed-photos.one img { max-height: 520px; } }
 .ed-photos .ph.wait::after { content: ''; position: absolute; right: 10px; bottom: 10px; width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(255,255,255,.35); border-top-color: #fff; animation: spin 1s linear infinite; }
 .ed-photos .ph.missing { background: repeating-linear-gradient(135deg, var(--raised) 0 10px, var(--raised-2) 10px 20px); }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -157,9 +157,9 @@
 /* 쓰기 막대: 서식 · 옵션은 글자 버튼 (아이콘만으로는 알아보기 어려워서) */
 .ed-bar .tb.lbl, .ed-tools .tb.lbl { width: auto; padding: 0 13px 0 11px; gap: 6px; font-size: var(--fs-s); font-weight: 700; color: rgba(255,255,255,.88); background: rgba(255,255,255,.07); margin: 0 2px; }
 .ed-bar .tb.lbl.on, .ed-tools .tb.lbl.on { background: var(--text); color: #141317; }
-@media (max-width: 370px) { .ed-bar .tb.lbl { padding: 0 10px; } .ed-bar .tb.lbl .i { display: none; } }
+@media (max-width: 370px), (orientation: landscape) and (max-height: 370px) and (pointer: coarse) { .ed-bar .tb.lbl { padding: 0 10px; } .ed-bar .tb.lbl .i { display: none; } }
 /* 서식 · 옵션 판: 설정·메뉴 시트처럼 위가 둥근 판이 아래에서 올라와요 */
-@media (max-width: 899px) {
+@media (max-width: 899px), (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
   .ed-pan { position: relative; margin: 0 6px; border-radius: 28px 28px 0 0; background: var(--sheet); border: 1px solid rgba(255,255,255,.08); border-bottom: 0;
     box-shadow: 0 -12px 40px rgba(0,0,0,.4); padding-top: 22px; animation: panUp .24s cubic-bezier(.2,.8,.2,1); }
   .ed-pan::before { content: ''; position: absolute; top: 8px; left: 50%; width: 38px; height: 5px; margin-left: -19px; border-radius: 3px; background: #3A3842; }
@@ -178,7 +178,7 @@
 
 /* 휴대폰 편집기: 화면에 보이는 만큼(키보드 위)의 상자 하나. 위는 글(이 안에서만 스크롤), 아래는 막대·판이 차례로 놓여요.
    막대가 글 위에 떠 있지 않으니 길게 써도 쓰는 자리가 가려지지 않고, 스크롤할 때 막대가 따라 움직이며 떨리지 않아요 */
-@media (max-width: 899px) {
+@media (max-width: 899px), (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
   :root.ed-mode, :root.ed-mode body { overflow: hidden; overscroll-behavior: none; }
   .view > .ed-page { position: fixed; left: 0; right: 0; top: var(--vvt, 0px); height: var(--vvh, 100dvh); min-height: 0; display: flex; flex-direction: column; }
   .view > .ed-page > .ed { flex: 1 1 auto; min-height: 0; width: 100%; max-width: none; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;

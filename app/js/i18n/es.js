@@ -3,7 +3,6 @@ export default {
   'common.ok': 'Aceptar', 'common.cancel': 'Cancelar', 'common.close': 'Cerrar', 'common.save': 'Guardar', 'common.delete': 'Eliminar', 'common.open': 'Abrir', 'common.undo': 'Deshacer',
   'common.untitled': 'Sin título', 'common.more': 'Más', 'common.seeAll': 'Ver todo', 'common.retry': 'Intentar de nuevo', 'common.done': 'Listo', 'common.back': 'Atrás',
   'time.now': 'ahora mismo',
-  'common.rotate': 'Gira el teléfono en vertical, por favor.',
   'nav.menu': 'Menú', 'nav.closeMenu': 'Cerrar menú', 'nav.profile': 'Perfil', 'nav.notices': 'Notificaciones', 'nav.settings': 'Ajustes', 'nav.new': 'Nuevo registro', 'nav.write': 'Escribir',
   'nav.allShort': 'Todos', 'nav.home': 'Inicio', 'nav.all': 'Todos los registros', 'nav.byType': 'Por tipo', 'nav.todo': 'Tareas', 'nav.calendar': 'Calendario', 'nav.folders': 'Carpetas', 'nav.noFolder': 'Sin carpeta',
   'nav.trash': 'Papelera', 'nav.search': 'Buscar registros', 'nav.newFolder': 'Nueva carpeta',

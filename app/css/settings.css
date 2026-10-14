@@ -46,7 +46,7 @@
 /* 휴대폰: 그룹을 고르면 목록을 숨겨요 */
 .set.has-g .snav { display: none; }
 .set:not(.has-g) .sbody { display: none; }
-@media (min-width: 900px) {
+@media (min-width: 900px) and (min-height: 501px), (min-width: 900px) and (pointer: fine) {
   .set { display: grid; grid-template-columns: 280px minmax(0, 640px); gap: 36px; padding: 34px 40px 0; }
   .set .snav, .set.has-g .snav { display: block; }
   .set .sbody { display: block; padding-top: 52px; }

@@ -19,7 +19,7 @@ function story() {
   const geo = Weather.city(), key = todayKey() + slotOf() + sunUp(new Date(), geo?.lat, geo?.lon) + sig() + (Account.name() || '') + Account.avatar().length + (Weather.current()?.at || '');
   if (cache?.key === key) return cache;
   const wx = Weather.current();
-  const { ctx, paragraphs, recall } = compose({ name: Account.name(), weather: wx, city: wx?.city, geo, max: matchMedia('(min-width: 900px)').matches ? 6 : 4 });
+  const { ctx, paragraphs, recall } = compose({ name: Account.name(), weather: wx, city: wx?.city, geo, max: matchMedia('(min-width: 900px) and (min-height: 501px), (min-width: 900px) and (pointer: fine)').matches ? 6 : 4 });
   ctx.weather = wx;
   const recallPh = p => p.recall && p.entry?.photos?.length ? `<a class="recall-ph" href="#/e/${p.entry.id}" aria-label="${esc(displayTitle(p.entry, t('common.untitled')))}">${p.entry.photos.slice(0, 3).map(ph => Photos.imgTag(ph)).join('')}</a>` : '';
   const html = paragraphs.map(p => typeof p === 'string' ? `<p>${p}</p>` : `<p${p.lit ? ' class="lit"' : ''}>${p.html}</p>${recallPh(p)}`).join('');
