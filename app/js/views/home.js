@@ -84,7 +84,7 @@ async function renderTidy(view) {
   view.innerHTML = `<div class="home-wrap"><section class="home tidy">
     <div class="when"><span>${esc(fmtDate(new Date(), { month: 'long', day: 'numeric', weekday: 'long' }))}</span><i></i><b class="clock">${esc(fmtTime(new Date()))}</b></div>
     <div style="margin-top:16px">${askBox(t('nav.new'))}</div>
-    <div class="tidy-today" style="margin-top:18px;background:var(--sheet);border:1px solid rgba(255,255,255,.08);border-radius:24px;padding:4px 18px 8px"></div>
+    <div class="tidy-today" style="margin-top:18px;background:var(--sheet);border:1px solid var(--line);border-radius:24px;padding:4px 18px 8px"></div>
     ${recent.length ? `<div class="grp"><span>${esc(t('nav.all'))}</span><a href="#/all" style="color:var(--muted)">${esc(t('common.seeAll'))}</a></div><div class="card">${recent.map(e => row(e)).join('')}</div>` : ''}
     <div class="spacer"></div></section></div>`;
   view.querySelector('.tidy-today').append(todayPanel());

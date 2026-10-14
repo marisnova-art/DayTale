@@ -39,15 +39,17 @@ function pick(slot = slotOf(), weather = null) {
   if (weather === 'rain' || weather === 'snow') { const calm = pool.filter(p => CALM.has(p[0])); if (calm.length) pool = calm; }
   return pool[Math.floor(Math.random() * pool.length)];
 }
-/* 단색: 이름 → [배경, 글자, 본문 진하기, 포인트]. 본문 대비 4.5:1 이상, 포인트 3:1 이상 (큰 글씨) */
+/* 단색: 이름 → [배경, 글자, 본문 진하기, 포인트, 밝은 배경]. 본문 대비 4.5:1 이상, 포인트 3:1 이상 (큰 글씨) */
 const SOLID = {
+  cream: ['#F3EADB', '#2A2018', .72, '#A8461F', 1], sage: ['#DCE4D4', '#1E2A20', .72, '#2E663C', 1], sky: ['#D4E4F1', '#13243A', .72, '#2C62B4', 1],
   terracotta: ['#8C3F2E', '#FFF2E8', .8, '#FFD58A'], plum: ['#3A2240', '#F7E9F3', .74, '#FFAFCB'],
   olive: ['#3B3D26', '#F3F0DC', .74, '#E8C65A'], navy: ['#131B32', '#E6ECFF', .72, '#9DB8FF'], charcoal: ['#1C1C1E', '#F2F0EC', .7, '#FFB37A']
 };
 const rgb = c => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16)).join(',');
 /* 그라데이션 글자: 배경의 따뜻한 빛 색을 아주 옅게 섞은 흰색 */
 const inkOf = p => lighten(p[3], .86);
-function paint(el, { bg, wide, ink, body, accent, theme, scrim }) {
+function paint(el, { bg, wide, ink, body, accent, theme, scrim, light = false }) {
+  document.documentElement.classList.toggle('bg-light', light);
   el.style.setProperty('--bg-grad', bg);
   el.style.setProperty('--bg-grad-wide', wide || bg);
   el.style.setProperty('--accent', accent);
@@ -60,8 +62,8 @@ let current = null;
 function apply(el = document.body, { weather = null } = {}) {
   const slot = slotOf(), sol = SOLID[S.prefs.bg];
   if (sol) {
-    const [bg, ink, a, acc] = sol; current = { name: S.prefs.bg, slot, accent: acc, solid: bg };
-    paint(el, { bg, ink, body: a, accent: acc, theme: bg, scrim: 0 });
+    const [bg, ink, a, acc, light] = sol; current = { name: S.prefs.bg, slot, accent: acc, solid: bg, light: !!light };
+    paint(el, { bg, ink, body: a, accent: acc, theme: bg, scrim: 0, light: !!light });
     return current;
   }
   const key = new Date().toDateString() + slot;

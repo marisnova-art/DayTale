@@ -4,22 +4,22 @@
 .lst-head h1 { margin: 0; font-size: var(--fs-xl); font-weight: 700; color: var(--text); letter-spacing: -.04em; }
 .lst-head .c { font-size: var(--fs-m); font-weight: 600; color: var(--faint); }
 .lst-head .act { margin-left: auto; align-self: center; display: flex; gap: 6px; }
-.lst-head .act .icon-btn { border: 1px solid rgba(255,255,255,.10); background: rgba(22,21,26,.6); }
+.lst-head .act .icon-btn { border: 1px solid rgba(var(--fg),.10); background: rgba(var(--srf),.6); }
 .filters { margin: 16px 0 0; }
 .filters:empty { display: none; }
 .grp { display: flex; justify-content: space-between; padding: 22px 8px 8px; font-size: var(--fs-s); font-weight: 700; color: var(--muted); letter-spacing: .02em; }
 .grp span:last-child { color: var(--faint); }
-.card { border-radius: 24px; padding: 2px 16px; background: rgba(22,21,26,.62); border: 1px solid rgba(255,255,255,.08); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); }
+.card { border-radius: 24px; padding: 2px 16px; background: rgba(var(--srf),.62); border: 1px solid rgba(var(--fg),.08); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); }
 .r { display: flex; align-items: center; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--line); color: inherit; min-height: 66px; }
 .r:last-child, .swp:last-child .r { border-bottom: 0; }
-.r .kc { width: 38px; height: 38px; border-radius: 12px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08); display: flex; align-items: center; justify-content: center; flex: none; }
+.r .kc { width: 38px; height: 38px; border-radius: 12px; background: rgba(var(--fg),.06); border: 1px solid rgba(var(--fg),.08); display: flex; align-items: center; justify-content: center; flex: none; }
 .r .kc { color: var(--text-3); }
 .r .tx { flex: 1; min-width: 0; }
 .r .t { font-size: var(--fs-m); font-weight: 600; color: var(--text); letter-spacing: -.02em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .r .t.done { color: var(--faint); text-decoration: line-through; }
 .r .p { font-size: var(--fs-s); font-weight: 500; color: var(--muted-2); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .r .p .due { color: var(--accent); }
-.r .p mark, .r .t mark { background: rgba(255,179,122,.28); color: #fff; border-radius: 3px; }
+.r .p mark, .r .t mark { background: rgba(255,179,122,.28); color: var(--text); border-radius: 3px; }
 .r .tm { font-size: var(--fs-s); font-weight: 600; color: var(--faint); flex: none; align-self: flex-start; margin-top: 3px; }
 .r .chk { align-self: center; }
 .r .side { display: flex; gap: 6px; flex: none; }
@@ -67,15 +67,15 @@
   .split { display: grid; grid-template-columns: minmax(380px, 460px) minmax(0, 1fr); gap: 20px; padding: 0 28px 0 4px; align-items: start; }
   .split .lst { max-width: none; margin: 0; padding-right: 0; }
   .split .pane { display: block; position: sticky; top: 84px; height: calc(100dvh - 104px); margin-top: 22px; overflow-y: auto; overscroll-behavior: contain; border-radius: 28px;
-    background: rgba(14,13,18,.62); border: 1px solid rgba(255,255,255,.08); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+    background: rgba(var(--srf),.62); border: 1px solid rgba(var(--fg),.08); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); box-shadow: 0 20px 60px rgba(0,0,0,.3); }
   .pane .ed-page { min-height: 100%; }
   .pane .ed-page::before { display: none; }
   .pane .ed { max-width: 760px; padding: 14px 26px 60px; }
   .pane .ed-tools [data-act=back], .pane .ed-tools [data-act=back] + .sep { display: none; }
   /* 고른 기록: 카드 안쪽에 둥근 판 하나로만 (배경 + 색 막대를 겹치지 않아요). 위아래 줄도 지워서 판이 깔끔하게 떠요 */
-  .split .swp.sel::before { content: ''; position: absolute; inset: 5px 6px; border-radius: 16px; background: rgba(255,255,255,.10); box-shadow: inset 0 0 0 1px rgba(255,255,255,.06); pointer-events: none; }
+  .split .swp.sel::before { content: ''; position: absolute; inset: 5px 6px; border-radius: 16px; background: rgba(var(--fg),.10); box-shadow: inset 0 0 0 1px rgba(var(--fg),.06); pointer-events: none; }
   .split .swp.sel .r, .split .swp:has(+ .swp.sel) .r { border-bottom-color: transparent; }
-  .split .swp.sel .r .t { color: #fff; }
+  .split .swp.sel .r .t { color: var(--text); }
   .pane-empty { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; color: var(--muted-2); font-size: var(--fs-m); }
   .pane-empty p { margin: 0; }
   .pane-empty .btn { height: 44px; border-radius: 22px; padding: 0 18px; display: inline-flex; align-items: center; gap: 8px; }

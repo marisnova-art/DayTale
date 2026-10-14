@@ -14,7 +14,7 @@
 .auth .forgot { display: flex; justify-content: flex-end; margin: 10px 2px 14px; }
 .auth .btn { width: 100%; }
 .auth .or { margin: 16px 0; }
-.auth .msg { margin: 0 0 12px; padding: 12px 14px; border-radius: 14px; background: rgba(16,15,20,.5); font-size: var(--fs-s); font-weight: 600; color: var(--text-3); }
+.auth .msg { margin: 0 0 12px; padding: 12px 14px; border-radius: 14px; background: rgba(var(--srf),.5); font-size: var(--fs-s); font-weight: 600; color: var(--text-3); }
 .auth .msg.bad { color: #FFB0B0; }
 .auth .legal { margin-top: 14px; font-size: var(--fs-s); color: var(--muted); text-align: center; }
 .auth .legal a { color: var(--text-3); text-decoration: underline; text-underline-offset: 2px; }

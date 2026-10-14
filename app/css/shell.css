@@ -6,17 +6,17 @@
 
 /* 모바일 아래 막대 하나: 메뉴 | 홈 · 캘린더 · 모든 기록 | 쓰기 */
 .view { padding-top: var(--safe-t); }
-.avatar { width: 32px; height: 32px; border-radius: 16px; background: radial-gradient(circle at 35% 30%, #FFD3B0, #E07A5F 60%, #8E4A6B); box-shadow: 0 0 0 2px rgba(255,255,255,.16);
+.avatar { width: 32px; height: 32px; border-radius: 16px; background: radial-gradient(circle at 35% 30%, #FFD3B0, #E07A5F 60%, #8E4A6B); box-shadow: 0 0 0 2px rgba(var(--fg),.16);
   display: inline-flex; align-items: center; justify-content: center; font-size: var(--fs-s); font-weight: 700; color: #fff; flex: none; overflow: hidden; }
 .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .avatar.l { width: 42px; height: 42px; border-radius: 21px; box-shadow: none; }
 .badge-dot { position: absolute; top: 10px; right: 10px; width: 8px; height: 8px; border-radius: 4px; background: var(--accent); box-shadow: 0 0 0 2px #1A1820; }
 .mbar { position: fixed; left: 14px; right: 14px; bottom: calc(18px + var(--safe-b)); z-index: 30; height: 66px; border-radius: 33px; background: var(--glass-strong);
   display: flex; align-items: center; justify-content: space-between; gap: 0; padding: 0 8px; box-shadow: 0 10px 30px rgba(0,0,0,.35); max-width: 520px; margin: 0 auto; transition: opacity .18s; }
-.mbar .icon-btn { width: 46px; height: 48px; flex: none; border-radius: 24px; color: rgba(255,255,255,.6); }
-.mbar .tab.on { color: #fff; background: rgba(255,255,255,.1); }
+.mbar .icon-btn { width: 46px; height: 48px; flex: none; border-radius: 24px; color: rgba(var(--fg),.6); }
+.mbar .tab.on { color: var(--text); background: rgba(var(--fg),.1); }
 .mbar .sep { width: 1px; height: 24px; background: var(--line-2); margin: 0; flex: none; }   /* 막대 안 단추들은 고른 간격으로 (왼쪽으로 몰리지 않게) */
-.mbar .write { height: 50px; padding: 0 16px 0 13px; border-radius: 25px; background: var(--text); color: #141317; display: inline-flex; align-items: center; gap: 7px;
+.mbar .write { height: 50px; padding: 0 16px 0 13px; border-radius: 25px; background: var(--text); color: var(--on-text); display: inline-flex; align-items: center; gap: 7px;
   font-size: var(--fs-m); font-weight: 700; flex: none; white-space: nowrap; }
 .mbar.away, :root.kb-open .mbar { opacity: 0; pointer-events: none; }
 @media (max-width: 400px), (orientation: landscape) and (max-height: 400px) and (pointer: coarse) { .mbar .icon-btn { width: 43px; } }
@@ -33,7 +33,7 @@
 .drawer.open { clip-path: inset(0 0 0 0 round 33px); opacity: 1; pointer-events: auto; visibility: visible; transition: clip-path .3s cubic-bezier(.2,.8,.2,1), opacity .12s, visibility 0s; }
 .drawer .head { display: flex; align-items: center; gap: 4px; padding: 6px 0 0 2px; flex: none; order: 20; border-top: 1px solid var(--line); margin-top: 6px; }
 /* 모바일 메뉴 맨 아래 줄: 왼쪽 닫기, 오른쪽 로고·브랜드 */
-.drawer .head .close { color: var(--text); width: 48px; height: 48px; background: rgba(255,255,255,.1); flex: none; }
+.drawer .head .close { color: var(--text); width: 48px; height: 48px; background: rgba(var(--fg),.1); flex: none; }
 .drawer .head .mark { margin-left: auto; display: flex; align-items: center; gap: 8px; padding-right: 12px; }
 .drawer .head .logo { width: 26px; height: 26px; border-radius: 8px; }
 .drawer .head .brand { flex: none; }
@@ -67,8 +67,8 @@
 .m { flex: none; display: flex; align-items: center; gap: 12px; height: 40px; padding: 0 12px; border-radius: 12px; border: 1px solid transparent; color: var(--text-3); font-size: var(--fs-s); font-weight: 500; text-align: left; width: 100%; }
 .m svg { color: var(--muted-2); }
 .m:hover { background: var(--fill); }
-.m.on { background: rgba(255,255,255,.07); border-color: var(--fill-2); font-weight: 600; color: #fff; }
-.m.on svg { color: #fff; }
+.m.on { background: rgba(var(--fg),.07); border-color: var(--fill-2); font-weight: 600; color: var(--text); }
+.m.on svg { color: var(--text); }
 .m .c { margin-left: auto; font-size: var(--fs-s); font-weight: 600; color: var(--faint); font-variant-numeric: tabular-nums; }
 .m.dim { color: var(--muted-2); }
 .nav .h { font-size: var(--fs-s); font-weight: 600; color: var(--faint); letter-spacing: .1em; padding: 14px 12px 4px; display: flex; align-items: center; justify-content: space-between; }
@@ -78,9 +78,9 @@
 
 /* PC: 왼쪽 사이드바, 오른쪽 위 알림만 */
 @media (min-width: 900px) and (min-height: 501px), (min-width: 900px) and (pointer: fine) {
-  .drawer { position: sticky; top: 0; bottom: auto; left: auto; right: auto; margin: 0; max-width: none; max-height: none; height: 100dvh; transform: none; width: 268px; border-radius: 0; border: 0; border-right: 1px solid rgba(255,255,255,.06);
+  .drawer { position: sticky; top: 0; bottom: auto; left: auto; right: auto; margin: 0; max-width: none; max-height: none; height: 100dvh; transform: none; width: 268px; border-radius: 0; border: 0; border-right: 1px solid rgba(var(--fg),.06);
     clip-path: none; opacity: 1; visibility: visible; pointer-events: auto; transition: none;
-    background: rgba(12,12,16,.30); box-shadow: none; -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); padding-top: 26px; flex: none; }
+    background: rgba(var(--srf),.30); box-shadow: none; -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); padding-top: 26px; flex: none; }
   .drawer .close, .scrim, .mbar { display: none !important; }
   .drawer .head .mark { margin-left: 0; padding-right: 0; gap: 10px; }
   .drawer .head { order: 0; border-top: 0; margin-top: 0; padding: 0 4px 0 8px; gap: 10px; }
@@ -100,7 +100,7 @@
 /* 아래에서 올라오는 시트 */
 .sheet-scrim { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,.5); opacity: 0; transition: opacity .2s; }
 .sheet-scrim.open { opacity: 1; }
-.sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 51; max-height: 92dvh; background: var(--sheet); border: 1px solid rgba(255,255,255,.08); border-bottom: 0;
+.sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 51; max-height: 92dvh; background: var(--sheet); border: 1px solid rgba(var(--fg),.08); border-bottom: 0;
   border-radius: 32px 32px 0 0; padding: 10px 20px calc(24px + var(--safe-b)); display: flex; flex-direction: column; box-shadow: 0 -12px 40px rgba(0,0,0,.4);
   transform: translateY(100%); transition: transform .28s cubic-bezier(.2,.8,.2,1); max-width: 640px; margin: 0 auto; }
 .sheet.open { transform: none; }
@@ -110,9 +110,9 @@
 /* 모든 시트 공통 머리: 제목 + 닫기. 글이 길어 스크롤해도 위에 붙어 있어요 */
 .sheet .sh-top { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; background: var(--sheet); }
 .sheet .sh-top h2 { margin: 0 !important; min-width: 0; }
-.sheet .sh-x { width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.08); color: var(--text); flex: none; margin-left: auto; }
+.sheet .sh-x { width: 44px; height: 44px; border-radius: 22px; background: rgba(var(--fg),.08); color: var(--text); flex: none; margin-left: auto; }
 @media (min-width: 900px) and (min-height: 501px), (min-width: 900px) and (pointer: fine) {
-  .sheet { left: 50%; right: auto; bottom: auto; top: 50%; width: 520px; max-height: 84dvh; border-radius: 28px; border-bottom: 1px solid rgba(255,255,255,.08); padding-bottom: 24px;
+  .sheet { left: 50%; right: auto; bottom: auto; top: 50%; width: 520px; max-height: 84dvh; border-radius: 28px; border-bottom: 1px solid rgba(var(--fg),.08); padding-bottom: 24px;
     transform: translate(-50%, -46%); opacity: 0; transition: transform .22s, opacity .22s; }
   .sheet.open { transform: translate(-50%, -50%); opacity: 1; }
   .sheet .grip { display: none; }
@@ -170,11 +170,11 @@ dialog.dlg .btn { height: 44px; }
 :root[data-ui="white"] .mbar .sep { background: #E4E1E8; }
 :root[data-ui="white"] .mbar .write { background: #18171C; color: #FFFFFF; }
 :root[data-ui="white"] .mbar .badge-dot { box-shadow: 0 0 0 2px #FFFFFF; }
-:root[data-ui="glass"] .mbar { background: linear-gradient(rgba(255,255,255,.18), rgba(255,255,255,.18)), rgba(28,26,34,.42); border: 1px solid rgba(255,255,255,.28); box-shadow: 0 10px 30px rgba(0,0,0,.2);
+:root[data-ui="glass"] .mbar { background: linear-gradient(rgba(var(--fg),.18), rgba(var(--fg),.18)), rgba(var(--srf),.42); border: 1px solid rgba(var(--fg),.28); box-shadow: 0 10px 30px rgba(0,0,0,.2);
   -webkit-backdrop-filter: blur(24px) saturate(1.4); backdrop-filter: blur(24px) saturate(1.4); }
-:root[data-ui="glass"] .mbar .icon-btn { color: rgba(255,255,255,.82); }
-:root[data-ui="glass"] .mbar .tab.on { color: #fff; background: rgba(255,255,255,.22); }
-:root[data-ui="glass"] .mbar .sep { background: rgba(255,255,255,.3); }
+:root[data-ui="glass"] .mbar .icon-btn { color: rgba(var(--fg),.82); }
+:root[data-ui="glass"] .mbar .tab.on { color: var(--text); background: rgba(var(--fg),.22); }
+:root[data-ui="glass"] .mbar .sep { background: rgba(var(--fg),.3); }
 :root[data-ui="glass"] .mbar .write { background: #FFFFFF; color: #1A1820; }
 @media (max-width: 899.98px), (max-height: 500px) and (pointer: coarse) {
   :root[data-ui="white"] .drawer { background: #FFFFFF; border-color: transparent; box-shadow: 0 20px 60px rgba(0,0,0,.35);
@@ -184,10 +184,17 @@ dialog.dlg .btn { height: 44px; }
   :root[data-ui="white"] .drawer .m.on svg { color: #18171C; }
   :root[data-ui="white"] .drawer .head .close { background: #F0EEF3; }
   :root[data-ui="white"] .drawer .trialbar .tb-plans { color: #77737F; }
-  :root[data-ui="glass"] .drawer { background: linear-gradient(rgba(255,255,255,.16), rgba(255,255,255,.16)), rgba(28,26,34,.72); border-color: rgba(255,255,255,.28);
+  :root[data-ui="glass"] .drawer { background: linear-gradient(rgba(var(--fg),.16), rgba(var(--fg),.16)), rgba(var(--srf),.72); border-color: rgba(var(--fg),.28);
     -webkit-backdrop-filter: blur(30px) saturate(1.4); backdrop-filter: blur(30px) saturate(1.4);
-    --text-3: #FFFFFF; --muted-2: rgba(255,255,255,.72); --faint: rgba(255,255,255,.6); --fill: rgba(255,255,255,.14); --fill-2: rgba(255,255,255,.2); --line: rgba(255,255,255,.2); --line-2: rgba(255,255,255,.28); }
-  :root[data-ui="glass"] .drawer .m.on { background: rgba(255,255,255,.2); border-color: transparent; }
-  :root[data-ui="glass"] .drawer .head .close { background: rgba(255,255,255,.2); }
+    --text-3: #FFFFFF; --muted-2: rgba(var(--fg),.72); --faint: rgba(var(--fg),.6); --fill: rgba(var(--fg),.14); --fill-2: rgba(var(--fg),.2); --line: rgba(var(--fg),.2); --line-2: rgba(var(--fg),.28); }
+  :root[data-ui="glass"] .drawer .m.on { background: rgba(var(--fg),.2); border-color: transparent; }
+  :root[data-ui="glass"] .drawer .head .close { background: rgba(var(--fg),.2); }
   :root[data-ui="glass"] .scrim { background: rgba(0,0,0,.35); }
+}
+/* 밝은 배경에서 메뉴 색 '다크그레이'를 고르면 아래 막대 · 모바일 메뉴는 어두운 그대로예요 */
+:root.bg-light[data-ui="dark"] .mbar { --fg: 255,255,255; --text: #F5F3EF; --line-2: rgba(255,255,255,.12); --glass-strong: rgba(22,21,26,.9); --on-text: #141317; }
+@media (max-width: 899.98px), (max-height: 500px) and (pointer: coarse) {
+  :root.bg-light[data-ui="dark"] .drawer { color-scheme: dark; --fg: 255,255,255; --srf: 22,21,26; --on-text: #141317; --menu: #17161B;
+    --text: #F5F3EF; --text-2: #F2F0EC; --text-3: #D9D5DE; --muted: #A9A5AF; --muted-2: #8E8A94; --faint: #6F6B77;
+    --line: rgba(255,255,255,.07); --line-2: rgba(255,255,255,.12); --fill: rgba(255,255,255,.05); --fill-2: rgba(255,255,255,.08); }
 }

@@ -1,7 +1,7 @@
 /* 설정 · 구독 · 알림함 · 설치 안내 */
 .set { padding: 22px 16px 0; max-width: 1080px; }
 .snav h1 { margin: 0 8px 14px; font-size: var(--fs-xl); font-weight: 700; color: var(--text); letter-spacing: -.04em; }
-.scard { border-radius: 22px; padding: 2px 16px; background: rgba(22,21,26,.62); border: 1px solid rgba(255,255,255,.08); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); }
+.scard { border-radius: 22px; padding: 2px 16px; background: rgba(var(--srf),.62); border: 1px solid rgba(var(--fg),.08); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); }
 .srow { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 60px; padding: 10px 0; border-bottom: 1px solid var(--line); color: var(--text-2); text-align: left; font: inherit; background: none; cursor: pointer; }
 .scard > .srow:last-child, .scard > :last-child.srow { border-bottom: 0; }
 .srow > svg { color: var(--faint); flex: none; }
@@ -60,22 +60,22 @@
 
 /* 구독 */
 .plans { padding: 22px 16px 0; max-width: 560px; margin: 0 auto; }
-.pstat { display: flex; gap: 12px; align-items: flex-start; margin-top: 14px; padding: 16px; border-radius: 18px; background: rgba(22,21,26,.62); border: 1px solid rgba(255,255,255,.08); color: var(--accent); }
+.pstat { display: flex; gap: 12px; align-items: flex-start; margin-top: 14px; padding: 16px; border-radius: 18px; background: rgba(var(--srf),.62); border: 1px solid rgba(var(--fg),.08); color: var(--accent); }
 .pstat span { display: flex; flex-direction: column; gap: 3px; } .pstat b { color: var(--text); font-size: var(--fs-m); } .pstat small { color: var(--muted); font-size: var(--fs-s); line-height: 1.5; }
 .pstat.on { color: var(--ok); } .pstat.end { color: var(--danger); }
 .ptitle { margin: 28px 4px 16px; font-size: var(--fs-xl); font-weight: 700; letter-spacing: -.04em; color: var(--text); line-height: 1.3; }
 .popts { display: flex; flex-direction: column; gap: 10px; }
-.popt { display: flex; align-items: center; gap: 14px; padding: 18px 16px; border-radius: 20px; background: rgba(22,21,26,.62); border: 1.5px solid rgba(255,255,255,.08); text-align: left; color: var(--text-2); }
-.popt.on { border-color: var(--accent); background: rgba(22,21,26,.8); }
+.popt { display: flex; align-items: center; gap: 14px; padding: 18px 16px; border-radius: 20px; background: rgba(var(--srf),.62); border: 1.5px solid rgba(var(--fg),.08); text-align: left; color: var(--text-2); }
+.popt.on { border-color: var(--accent); background: rgba(var(--srf),.8); }
 .popt .rd { width: 22px; height: 22px; border-radius: 11px; border: 2px solid var(--muted-2); flex: none; }
 .popt.on .rd { border: 7px solid var(--accent); }
 .popt .pt { flex: 1; display: flex; flex-direction: column; gap: 3px; } .popt .pt b { font-size: var(--fs-m); } .popt .pt small { font-size: var(--fs-s); color: var(--muted-2); }
 .popt .pp { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; font-size: var(--fs-m); font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
-.popt .pp em { font-style: normal; font-size: var(--fs-s); font-weight: 800; padding: 3px 8px; border-radius: 8px; background: var(--accent); color: #141317; }
+.popt .pp em { font-style: normal; font-size: var(--fs-s); font-weight: 800; padding: 3px 8px; border-radius: 8px; background: var(--accent); color: var(--on-text); }
 .btn.wide { width: 100%; }
 .pgo { margin-top: 16px; }
 .pfine { margin: 10px 8px 0; font-size: var(--fs-s); line-height: 1.6; color: var(--muted-2); text-align: center; }
-.pfeat { list-style: none; margin: 0; padding: 4px 16px; border-radius: 20px; background: rgba(22,21,26,.62); border: 1px solid rgba(255,255,255,.08); }
+.pfeat { list-style: none; margin: 0; padding: 4px 16px; border-radius: 20px; background: rgba(var(--srf),.62); border: 1px solid rgba(var(--fg),.08); }
 .pfeat li { display: flex; align-items: center; gap: 12px; min-height: 48px; color: var(--text-2); font-size: var(--fs-s); border-bottom: 1px solid var(--line); }
 .pfeat li:last-child { border-bottom: 0; } .pfeat svg { color: var(--ok); flex: none; }
 
@@ -84,7 +84,7 @@
 .ntc .nt { align-items: flex-start; } .ntc .nt.new .t::after { content: ''; display: inline-block; width: 7px; height: 7px; margin-left: 8px; border-radius: 4px; background: var(--accent); vertical-align: middle; }
 .ntc .p.wrap { white-space: normal; line-height: 1.55; }
 .has-unread .bell { position: relative; }
-.has-unread .bell::after, .has-unread .menu-btn::after { content: ''; position: absolute; top: 9px; right: 10px; width: 8px; height: 8px; border-radius: 4px; background: var(--accent); box-shadow: 0 0 0 2px rgba(22,21,26,.9); }
+.has-unread .bell::after, .has-unread .menu-btn::after { content: ''; position: absolute; top: 9px; right: 10px; width: 8px; height: 8px; border-radius: 4px; background: var(--accent); box-shadow: 0 0 0 2px rgba(var(--srf),.9); }
 
 /* 설치 안내 */
 .inst .lead { color: var(--muted); font-size: var(--fs-s); line-height: 1.6; margin: 6px 0 14px; }
@@ -102,7 +102,7 @@
 .seg.wide:has(> button:nth-child(5)) { border-radius: 20px; }
 /* 프로필 사진 바꾸기 */
 .avbtn { position: relative; flex: none; border-radius: 26px; }
-.avbtn i { position: absolute; right: -2px; bottom: -2px; width: 22px; height: 22px; border-radius: 11px; background: var(--text); color: #141317; display: grid; place-items: center; box-shadow: 0 0 0 2px var(--sheet); }
+.avbtn i { position: absolute; right: -2px; bottom: -2px; width: 22px; height: 22px; border-radius: 11px; background: var(--text); color: var(--on-text); display: grid; place-items: center; box-shadow: 0 0 0 2px var(--sheet); }
 
 /* 정보 탭 글 (약관 · 자주 묻는 질문 · 회사 소개): 앱 안 시트에서 읽고 닫아요 */
 .docv-body { padding-bottom: 20px; font-size: var(--fs-s); line-height: 1.7; color: var(--text-3); }
@@ -112,7 +112,7 @@
 .docv-body ul, .docv-body ol { padding-left: 20px; margin: 0 0 10px; }
 .docv-body a { color: var(--text-2); text-decoration: underline; text-underline-offset: 2px; }
 .docv-body .meta { color: var(--muted-2); }
-.docv-body .note { padding: 14px 16px; border-radius: 16px; background: rgba(255,255,255,.05); border: 1px solid var(--line); }
+.docv-body .note { padding: 14px 16px; border-radius: 16px; background: rgba(var(--fg),.05); border: 1px solid var(--line); }
 .docv-body .tablewrap { overflow-x: auto; margin: 0 0 12px; }
 .docv-body table { border-collapse: collapse; width: 100%; min-width: 420px; }
 .docv-body th, .docv-body td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--line); }
@@ -127,7 +127,7 @@
 .co-hero img { border-radius: 14px; }
 .co-hero b { font-size: var(--fs-l); color: var(--text); }
 .co-intro { text-align: center; color: var(--text-3); margin: 8px 0 18px !important; }
-.co-dl { display: grid; grid-template-columns: max-content 1fr; gap: 10px 16px; margin: 0; padding: 16px; border-radius: 18px; background: rgba(255,255,255,.05); border: 1px solid var(--line); }
+.co-dl { display: grid; grid-template-columns: max-content 1fr; gap: 10px 16px; margin: 0; padding: 16px; border-radius: 18px; background: rgba(var(--fg),.05); border: 1px solid var(--line); }
 .co-dl dt { color: var(--muted-2); font-weight: 600; }
 .co-dl dd { margin: 0; color: var(--text-2); word-break: break-all; }
 .co-dl .tbd { color: var(--faint); }
@@ -135,7 +135,7 @@
 .bgsw { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 12px 8px; width: 100%; margin-top: 2px; }
 .bgsw button { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; }
 .bgsw i { width: 56px; height: 56px; border-radius: 18px; display: grid; place-items: center; font-style: normal; font-size: var(--fs-s); font-weight: 700; letter-spacing: -.02em;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.1); transition: box-shadow .15s; }
+  box-shadow: inset 0 0 0 1px rgba(var(--fg),.1); transition: box-shadow .15s; }
 .bgsw button.on i { box-shadow: 0 0 0 2px var(--sheet, #1A191F), 0 0 0 4px var(--text); }
 .bgsw small { font-size: var(--fs-s); color: var(--muted-2); text-align: center; line-height: 1.25; overflow-wrap: anywhere; }
 .bgsw button.on small { color: var(--text); font-weight: 600; }

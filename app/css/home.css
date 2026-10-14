@@ -4,13 +4,14 @@
 .home .when i { width: 4px; height: 4px; border-radius: 2px; background: rgba(var(--ink-rgb),.5); }
 .home .when b { color: var(--accent); font-weight: 600; }
 .story { margin-top: 14px; font-size: var(--story); line-height: var(--story-lh); font-weight: 500; letter-spacing: -.035em; color: rgba(var(--ink-rgb),var(--ink-body)); }
+.story .glue { white-space: nowrap; }
 .story .st { width: 1.3em; height: 1.3em; vertical-align: -.27em; margin: 0 .12em 0 .02em; }   /* 스티커는 뒤 낱말에 붙어 있어요 */
 .story p { margin: 0 0 20px; }
 .story p:last-child { margin-bottom: 0; }
 .story .w { color: var(--ink); font-weight: 600; text-decoration: none; }
 .story a.w:hover { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: .18em; }
 .story .n { color: var(--accent); font-weight: 600; }
-.story .recall-ph { display: inline-block; width: 1.3em; height: 1.3em; border-radius: 50%; object-fit: cover; vertical-align: -.28em; margin-right: .15em; box-shadow: 0 0 0 2px rgba(255,255,255,.2); }
+.story .recall-ph { display: inline-block; width: 1.3em; height: 1.3em; border-radius: 50%; object-fit: cover; vertical-align: -.28em; margin-right: .15em; box-shadow: 0 0 0 2px rgba(var(--fg),.2); }
 .story.fade-in p { animation: fadeUp .5s ease-out both; }
 .story.fade-in p:nth-child(2) { animation-delay: .06s; } .story.fade-in p:nth-child(3) { animation-delay: .12s; } .story.fade-in p:nth-child(4) { animation-delay: .18s; } .story.fade-in p:nth-child(5) { animation-delay: .24s; }
 /* 처음 열 때: 기록·이름·날씨를 다 받아 올 때까지 이야기와 질문은 자리만 잡아 두어요 (옛 글이 보이다 바뀌지 않게) */
@@ -19,22 +20,22 @@
 .askq { margin-top: 26px; }
 .askq .q { margin: 0 0 12px; font-size: var(--story); line-height: var(--story-lh); color: var(--ink); font-weight: 700; letter-spacing: -.035em; }
 .askq .q button { color: inherit; text-align: left; font-weight: inherit; letter-spacing: inherit; }
-.ask { display: flex; flex-direction: column; border-radius: 24px; padding: 4px 14px 4px 20px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14);
+.ask { display: flex; flex-direction: column; border-radius: 24px; padding: 4px 14px 4px 20px; background: rgba(var(--fg),.08); border: 1px solid rgba(var(--fg),.14);
   -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); transition: background .25s, box-shadow .25s, border-color .25s; }
 .ask .ta-row { display: flex; align-items: flex-start; gap: 14px; }   /* 예전보다 약 1.8배 높이 */
-.ask .pen { display: flex; flex: none; margin: 19px 0 0 -2px; color: rgba(255,255,255,.62); }
+.ask .pen { display: flex; flex: none; margin: 19px 0 0 -2px; color: rgba(var(--fg),.62); }
 .ask textarea { flex: 1; min-width: 0; border: 0; background: none; outline: none; resize: none; font-size: var(--fs-l); font-weight: 500; color: var(--text); letter-spacing: -.02em; line-height: 1.45; padding: 16px 0; min-height: 64px; box-sizing: border-box; max-height: 40vh; field-sizing: content; }
-.ask textarea::placeholder { color: rgba(255,255,255,.62); }
+.ask textarea::placeholder { color: rgba(var(--fg),.62); }
 .ask-btns { display: none; justify-content: flex-end; gap: 8px; margin: 8px 0 16px; }   /* 아래 여백 = 위쪽 연필 아이콘 여백 (20px) */
 .ask-btns button { display: inline-flex; align-items: center; gap: 6px; height: 42px; padding: 0 16px 0 12px; border-radius: 21px; font-size: var(--fs-s); font-weight: 700; white-space: nowrap; transition: background .2s, color .2s, box-shadow .2s; }
-.ask-btns .more { background: rgba(255,255,255,.1); color: rgba(255,255,255,.85); }
+.ask-btns .more { background: rgba(var(--fg),.1); color: rgba(var(--fg),.85); }
 .ask-btns .fin { background: linear-gradient(135deg, #FF8A6A, #FFB37A); color: #2A1408; box-shadow: 0 6px 18px rgba(255,138,106,.35); }
-.ask-btns .fin:disabled { background: rgba(255,255,255,.06); color: rgba(255,255,255,.35); box-shadow: none; }
+.ask-btns .fin:disabled { background: rgba(var(--fg),.06); color: rgba(var(--fg),.35); box-shadow: none; }
 /* 집중 모드: 쓰는 칸만 또렷하게, 나머지는 흐리게(딤 + 블러), 아래 막대는 숨김 */
 .home .story, .home .when, .home .wxcredit, .home-wrap .today-side, .layout > nav, .layout > aside { transition: opacity .3s, filter .3s; }
 :root.home-focus .home .story, :root.home-focus .home .when, :root.home-focus .home .wxcredit, :root.home-focus .home-wrap .today-side, :root.home-focus .layout > nav, :root.home-focus .layout > aside { opacity: .18; filter: blur(3px); pointer-events: none; }
 :root.home-focus .mbar, :root.home-focus .pc-top { display: none !important; }
-:root.home-focus .ask { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgba(18,17,22,.92); border-color: rgba(255,255,255,.22); box-shadow: 0 24px 60px rgba(0,0,0,.5); }
+:root.home-focus .ask { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgba(var(--srf),.92); border-color: rgba(var(--fg),.22); box-shadow: 0 24px 60px rgba(0,0,0,.5); }
 :root.home-focus .ask textarea { min-height: 120px; }
 :root.home-focus .ask-btns { display: flex; }
 /* 방금 남긴 한 줄 */
@@ -52,7 +53,7 @@
 .weekstrip .day b { font-size: var(--fs-m); font-weight: 700; color: var(--text-3); }
 .weekstrip .day.we b { color: var(--event); }
 .weekstrip .day.on { background: var(--text-2); color: var(--faint); }
-.weekstrip .day.on b { color: #141317; }
+.weekstrip .day.on b { color: var(--on-text); }
 .weekstrip .dots { display: flex; gap: 3px; height: 4px; }
 .weekstrip .dots i { width: 4px; height: 4px; border-radius: 2px; }
 .today .lbl { font-size: var(--fs-s); font-weight: 700; color: var(--faint); letter-spacing: .04em; margin-top: 18px; }
@@ -64,7 +65,7 @@
 .trow .tm { font-size: var(--fs-s); font-weight: 600; color: var(--muted-2); font-variant-numeric: tabular-nums; }
 .trow .due { font-size: var(--fs-s); font-weight: 700; color: var(--event); background: rgba(255,157,122,.14); padding: 4px 8px; border-radius: 8px; }
 .chk { width: 24px; height: 24px; border-radius: 12px; border: 2px solid #4A4752; flex: none; display: flex; align-items: center; justify-content: center; }
-.chk.on { background: var(--text-2); border-color: var(--text-2); color: #141317; }
+.chk.on { background: var(--text-2); border-color: var(--text-2); color: var(--on-text); }
 .today .empty { padding: 18px 0 8px; color: var(--muted-2); font-size: var(--fs-s); }
 .today .ev { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; color: var(--event); }
 
@@ -74,7 +75,7 @@
   .story p { margin-bottom: 28px; }
   .askq { margin-top: 8px; }
   .today-side { display: block !important; flex: none; width: 340px; margin-top: -18px; }
-  .today-side .today { background: var(--sheet); border: 1px solid rgba(255,255,255,.08); border-radius: 28px; padding: 22px 20px 10px; box-shadow: 0 20px 60px rgba(0,0,0,.35); position: sticky; top: 90px; }
+  .today-side .today { background: var(--sheet); border: 1px solid rgba(var(--fg),.08); border-radius: 28px; padding: 22px 20px 10px; box-shadow: 0 20px 60px rgba(0,0,0,.35); position: sticky; top: 90px; }
   .today-side .today .top { margin-top: 0; }
 }
 .today-side { display: none; }
@@ -83,11 +84,11 @@
 .story .recall-ph { display: flex; gap: 8px; margin: -6px 0 22px; }
 .story .recall-ph img { width: 92px; height: 92px; object-fit: cover; border-radius: 16px; background: var(--raised); display: block; }
 .story .recall-ph img:first-child { width: 148px; }
-.story img.st.av { border-radius: 50%; object-fit: cover; margin-right: .2em; box-shadow: 0 0 0 2px rgba(255,255,255,.25); }
+.story img.st.av { border-radius: 50%; object-fit: cover; margin-right: .2em; box-shadow: 0 0 0 2px rgba(var(--fg),.25); }
 /* 메뉴 색이 흰색·흰 유리일 때 홈 쓰기 칸도 같이 바뀌어요 */
-:root[data-ui="white"] .ask { background: rgba(255,255,255,.94); border-color: transparent; --text: #18171C; }
+:root[data-ui="white"] .ask { background: rgba(var(--fg),.94); border-color: transparent; --text: #18171C; }
 :root[data-ui="white"] .ask .pen, :root[data-ui="white"] .ask textarea::placeholder { color: #6E6A76; }
 :root[data-ui="white"] .ask-btns .more { background: #EFEDF2; color: #3A3741; }
 :root[data-ui="white"] .ask-btns .fin:disabled { background: #F2F0F5; color: #A8A4B0; }
 :root[data-ui="white"].home-focus .ask { background: #FFFFFF; border-color: transparent; }
-:root[data-ui="glass"] .ask { background: rgba(255,255,255,.16); border-color: rgba(255,255,255,.3); }
+:root[data-ui="glass"] .ask { background: rgba(var(--fg),.16); border-color: rgba(var(--fg),.3); }
