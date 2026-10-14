@@ -33,7 +33,7 @@ Backdrop.apply(document.documentElement);
 if (Math.min(screen.width, screen.height) < 500) screen.orientation?.lock?.('portrait').catch(() => {});
 const phoneLand = matchMedia('(orientation: landscape) and (max-height: 500px) and (pointer: coarse)');
 function counterRotate() {
-  const root = document.documentElement, on = phoneLand.matches, was = root.classList.contains('rot');
+  const root = document.documentElement, on = phoneLand.matches && !typing(), was = root.classList.contains('rot');
   root.classList.toggle('rot', on);
   if (!on) { if (was) scrollTo(0, 0); return; }
   const a = screen.orientation ? screen.orientation.angle : (window.orientation ?? 90);   // 90: 왼쪽으로 돌림 · 270(-90): 오른쪽으로 돌림
@@ -41,6 +41,10 @@ function counterRotate() {
   root.style.setProperty('--rw', innerHeight + 'px'); root.style.setProperty('--rh', innerWidth + 'px');
 }
 counterRotate(); addEventListener('resize', counterRotate); screen.orientation?.addEventListener?.('change', counterRotate); addEventListener('orientationchange', () => setTimeout(counterRotate, 60));
+/* 가로로 든 채 글을 쓰기 시작하면 키보드가 가로로 올라와요 (웹에선 막을 수 없어요). 그래서 쓰는 동안만 돌림을 풀어 글과 키보드 방향을 맞추고, 다 쓰면 다시 세로로 돌려요 */
+function typing() { const a = document.activeElement; return !!a && (a.isContentEditable || /^(TEXTAREA|INPUT)$/.test(a.tagName) && !/^(checkbox|radio|button|range|file)$/.test(a.type)); }
+addEventListener('focusin', () => { if (phoneLand.matches) counterRotate(); });
+addEventListener('focusout', () => setTimeout(() => { if (phoneLand.matches) counterRotate(); }, 120));
 addEventListener('hashchange', () => { if (document.documentElement.classList.contains('rot')) $('#app')?.scrollTo(0, 0); });   // 돌린 화면에서는 #app이 스크롤 상자예요
 
 /* ---------- 화면 목록 (모듈은 필요할 때 불러요) ---------- */
