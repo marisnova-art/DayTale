@@ -223,3 +223,21 @@
   :root:not(.kb-open):not(.ed-pan-open) .view > .ed-page > .ed-dock { position: absolute; left: 0; right: 0; bottom: 0; }
   :root:not(.kb-open):not(.ed-pan-open) .view > .ed-page > .ed { padding-bottom: calc(120px + var(--safe-b)); }
 }
+
+/* 노란 줄노트 배경: 쓰기·보기에도 손글씨 + 글줄마다 선.
+   --pad-lh = 본문 한 줄 높이(px로 굳혀 아래로 물려줘요). 제목·인용·목록도 이 높이에 맞추고 문단 사이 여백을 없애서,
+   글자 크기를 바꿔도 선이 늘 글줄 아래에 와요 */
+@property --pad-lh { syntax: '<length>'; inherits: true; initial-value: 0px; }
+:root[data-pat="pad"] .ed:not([data-font="serif"]):not([data-font="hand"]) :is(.ed-title, .ed-body) { font-family: var(--f-pad); letter-spacing: 0; font-weight: 400; }
+:root[data-pat="pad"] .ed:not([data-font="serif"]):not([data-font="hand"]) .ed-body { font-size: calc(var(--body) * 1.1); }
+:root[data-pat="pad"] .ed-body { --pad-lh: 1lh; color: rgba(var(--ink-rgb),.86);
+  background: linear-gradient(transparent calc(var(--pad-lh) - 1.5px), rgba(70,125,200,.5) calc(var(--pad-lh) - 1.5px)) 0 .14em / 100% var(--pad-lh) repeat-y;
+  margin-left: -24px; margin-right: -24px; padding: 0 28px; min-height: calc(var(--pad-lh) * 12); }
+:root[data-pat="pad"] .ed-body :is(p, div, h2, h3, blockquote, ul, ol, li) { margin-top: 0; margin-bottom: 0; line-height: var(--pad-lh); }
+:root[data-pat="pad"] .ed-body :is(h2, h3) { font-size: 1.15em; font-weight: 700; }
+:root[data-pat="pad"] .ed-body blockquote { padding-top: 0; padding-bottom: 0; }
+:root[data-pat="pad"] .ed-body hr { margin: 0; height: var(--pad-lh); background: linear-gradient(transparent calc(50% - 1px), rgba(var(--ink-rgb),.25) calc(50% - 1px) 50%, transparent 50%); }
+:root[data-pat="pad"] .ed-body :is(b, strong) { font-weight: 700; }
+:root[data-pat="pad"] .ed-title { color: rgba(var(--ink-rgb),.95); }   /* 본문 첫 선이 제목 밑줄이 돼요 */
+:root[data-pat="pad"] .ed-page::before { display: none; }   /* 종이를 흐리게 덮지 않아요 */
+:root[data-pat="pad"].ed-mode, :root[data-pat="pad"].ed-mode body { background: var(--bg-grad); }
