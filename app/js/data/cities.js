@@ -1,5 +1,6 @@
 /* 날씨 도시 목록 (나라별 주요 도시). 위치 권한 없이 시간대에서 고르고, 이야기에서 바꿀 수 있어요. */
 import { getLang } from '../core/i18n.js';
+import { defaultCity } from '../core/countries.js';
 
 /* Major cities for weather. [id, English, 한국어, lat, lon] — grouped by country (ISO code). */
 const CITIES = {
@@ -85,14 +86,14 @@ const CITIES = {
 };
 const cityLookup = id => { if (!id) return null; const [cc, ci] = id.split(':'); const ctry = CITIES[cc]; const r = ctry && ctry.c.find(x => x[0] === ci); return r ? { id, cc, name: getLang() === 'ko' ? r[2] : r[1], country: getLang() === 'ko' ? ctry.ko : ctry.en, lat: r[3], lon: r[4] } : null; };
 
-/* 기기 시간대로 도시 고르기: "Asia/Seoul" → KR:seoul. 못 찾으면 언어 지역의 첫 도시. */
+/* 기기 시간대로 도시 고르기: "Asia/Seoul" → KR:seoul. 못 찾으면 언어 지역의 기본 도시(core/countries.js), 없으면 그 나라 첫 도시. */
 const norm = s => String(s).toLowerCase().replace(/[^a-z]/g, '');
 const TZ_FIX = { 'Asia/Kolkata': 'IN', 'Asia/Calcutta': 'IN', 'Asia/Ho_Chi_Minh': 'VN', 'Asia/Saigon': 'VN', 'America/Sao_Paulo': 'BR', 'Asia/Shanghai': 'CN', 'Europe/Kiev': 'RU' };
 function guessCity(tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '', region = (navigator.language || '').split('-')[1]) {
   const last = norm(tz.split('/').pop());
   for (const [cc, ctry] of Object.entries(CITIES)) { const hit = ctry.c.find(x => norm(x[0]) === last || norm(x[1]) === last); if (hit) return cc + ':' + hit[0]; }
   const cc = TZ_FIX[tz] || (region && CITIES[region.toUpperCase()] ? region.toUpperCase() : null);
-  return cc && CITIES[cc] ? cc + ':' + CITIES[cc].c[0][0] : null;
+  return cc && CITIES[cc] ? cc + ':' + (defaultCity(cc) || CITIES[cc].c[0][0]) : null;
 }
 
 export { CITIES, cityLookup, guessCity };

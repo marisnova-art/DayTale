@@ -1,6 +1,7 @@
 /* 앱 상태: 기록, 폴더, 설정. 화면 코드와 분리돼 있어요. */
 import { LIMITS } from '../core/config.js';
 import { ls, nowISO, uid } from '../core/utils.js';
+import { firstWeekday } from '../core/countries.js';
 
 /* 기록 종류: 스티커(Fluent Emoji, MIT) 이름과 같아요 */
 const TYPES = ['note', 'todo', 'event', 'idea', 'item', 'personal', 'scrap'];
@@ -11,7 +12,7 @@ const DEFAULT_PREFS = {
   textSize: 'm',         // s · m(기본) · l
   ui: 'white',           // 메뉴 색: white(기본) · glass · dark
   bg: 'grad',            // 배경: grad = 시간대 그라데이션, 아니면 단색 이름 (backdrop.js SOLID)
-  weekStart: 0,          // 일요일
+  weekStart: firstWeekday(),   // 0 일요일 · 1 월요일. 처음에는 기기 지역의 관례 (core/countries.js)
   defaultType: 'note',
   sort: 'updated',
   city: null,            // 'KR:seoul' 같은 도시 id. 비어 있으면 시간대로 추정

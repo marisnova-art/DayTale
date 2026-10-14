@@ -13,11 +13,15 @@ for (const [l, locale, timezoneId, city] of L) {
     const raw = txt.match(RAW); ok(!raw, `${l} ${where}: 번역 빠짐 없음${raw ? ' → ' + raw[0] : ''}`);
     ok(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${l} ${where}: 가로 넘침 없음`);
   };
+  const reqs = []; p.on('request', r => reqs.push(r.url()));
   await p.goto('http://app.test/#/home'); await p.waitForSelector('.story p'); await p.waitForTimeout(800);
   ok(await p.evaluate(() => document.documentElement.lang) === l, `${l}: 기기 언어를 따라감`);
   const story = await p.$eval('.story', el => el.innerText);
   ok(new RegExp(city).test(story), `${l}: 이야기에 도시 날씨`);
   ok(!/[가-힣]/.test(story.replace('바다별', '')), `${l}: 이야기에 한국어 섞임 없음`);
+  ok(await p.$('.story p.lit'), `${l}: 문학 한 구절`);
+  const packs = [...new Set(reqs.filter(n => /\/js\/story\/lit\/(?!catalogue)/.test(n)).map(n => n.split('/').pop()))];
+  ok(packs.join() === `${l}.js`, `${l}: 문학 묶음은 그 언어 하나만 불러옴 (${packs.join()})`);
   await check('홈'); await p.evaluate(() => document.fonts.ready); await shot(p, `v1_50_${l}_home`);
   await p.goto('http://app.test/#/settings/display'); await p.waitForSelector('[data-s=textSize]'); await p.waitForTimeout(300); await check('설정'); await shot(p, `v1_51_${l}_settings`);
   await p.goto('http://app.test/#/plans'); await p.waitForSelector('.popt'); await p.waitForTimeout(300); await check('구독'); await shot(p, `v1_52_${l}_plans`);

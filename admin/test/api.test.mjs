@@ -111,6 +111,13 @@ ok((await call('ann', { action: 'phrase_active', id: ph[0].id, active: false }))
 ok((await call('ann', { action: 'phrase_save', id: ph[0].id, lang: 'ko', slot: 'close', text: '연휴 잘 보내요.' })).status === 200 && (await call('cat', { action: 'phrases' })).body.rows[0].slot === 'close', '문장 고치기');
 ok((await call('ann', { action: 'phrase_delete', id: ph[0].id })).status === 200 && (await call('cat', { action: 'phrases' })).body.rows.length === 0, '문장 지우기');
 await denied(asRole('authenticated', `insert into phrase_packs(lang, slot, text) values ('ko', 'air', 'x')`), '앱 사용자는 문장을 못 넣음');
+// 문학 한 구절 (slot 'lit'): 작가·원문 언어·앱 안 줄 번호·햇빛 조건을 받고, 날짜 조건이나 다른 자리의 작가 조건은 거절
+ok((await call('ann', { action: 'phrase_save', lang: 'ko', slot: 'lit', text: '바쇼는 **오래된 연못**이라고 썼어요.', cond: { a: 'basho', o: 'ja', season: 'spring', light: true } })).status === 200, '문학 줄 추가');
+ok((await call('ann', { action: 'phrase_save', lang: 'en', slot: 'lit', text: 'Rilke **x**', cond: { id: 3 } })).status === 200, '문학 줄 고치기 (앱 안 줄 번호)');
+ok((await call('ann', { action: 'phrase_save', lang: 'ko', slot: 'lit', text: 'x', cond: { between: ['12-24', '12-25'] } })).body.error === 'bad condition', '문학 줄에 날짜 조건 거절');
+ok((await call('ann', { action: 'phrase_save', lang: 'ko', slot: 'air', text: 'x', cond: { a: 'basho' } })).body.error === 'bad condition', '다른 자리에 작가 조건 거절');
+ok((await call('ann', { action: 'phrase_save', lang: 'ko', slot: 'lit', text: 'x', cond: { o: 'Korean!' } })).body.error === 'bad condition', '이상한 원문 언어 거절');
+for (const r of (await call('cat', { action: 'phrases' })).body.rows) await call('ann', { action: 'phrase_delete', id: r.id });
 
 // 체험 안내: 일본어
 await pg.exec(`insert into auth.users(id, email) values ('eeeeeeee-0000-4000-8000-000000000005', 'eve@x.com'); update profiles set lang = 'ja', trial_ends_at = now() + interval '2 days' where id = 'eeeeeeee-0000-4000-8000-000000000005'`);

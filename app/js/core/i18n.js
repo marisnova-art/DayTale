@@ -1,6 +1,7 @@
 /* 번역과 지역 형식. 언어는 기기 설정에서 정해요(IP 아님). */
 import { LANGS } from './config.js';
 import { $$ } from './utils.js';
+import { defaultLang } from './countries.js';
 
 const PACKS = {};
 let LANG = 'en';
@@ -10,7 +11,8 @@ const detectLang = () => {
     const l = String(tag).toLowerCase().split('-')[0];
     if (LANGS.includes(l)) return l;
   }
-  return 'en';
+  const c = defaultLang();   // 기기 언어가 앱에 없으면 그 나라 기본 언어 (core/countries.js), 그것도 없으면 영어
+  return LANGS.includes(c) ? c : 'en';
 };
 function setLang(l) { LANG = LANGS.includes(l) ? l : 'en'; document.documentElement.lang = LANG; }
 function t(key, vars) {

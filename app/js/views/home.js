@@ -4,6 +4,7 @@ import { S, addEntry, displayTitle, live } from '../data/store.js';
 import { Photos } from '../features/photos.js';
 import { Weather } from '../features/weather.js';
 import { compose } from '../story/engine.js';
+import { litStamp } from '../story/lit.js';
 import { sticker } from '../core/stickers.js';
 import { go } from '../ui/router.js';
 import { nextQuestion, pickQuestion } from '../story/questions.js';
@@ -16,7 +17,7 @@ let cache = null;   // 같은 시간대·같은 기록이면 이야기를 다시
 const sig = () => { const a = live(); return a.length + ':' + a.reduce((m, e) => e.updated_at > m ? e.updated_at : m, ''); };
 
 function story() {
-  const geo = Weather.city(), key = todayKey() + slotOf() + sunUp(new Date(), geo?.lat, geo?.lon) + sig() + (Account.name() || '') + Account.avatar().length + (Weather.current()?.at || '');
+  const geo = Weather.city(), key = todayKey() + slotOf() + sunUp(new Date(), geo?.lat, geo?.lon) + sig() + (Account.name() || '') + Account.avatar().length + (Weather.current()?.at || '') + '|' + litStamp();
   if (cache?.key === key) return cache;
   const wx = Weather.current();
   const { ctx, paragraphs, recall } = compose({ name: Account.name(), weather: wx, city: wx?.city, geo, max: matchMedia('(min-width: 900px) and (min-height: 501px), (min-width: 900px) and (pointer: fine)').matches ? 6 : 4 });

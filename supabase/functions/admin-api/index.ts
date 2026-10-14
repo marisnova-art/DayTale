@@ -53,7 +53,7 @@ async function targetUser(db: any, id: string) {
 }
 
 // 이야기 문장 조건: 앱(js/story/engine.js match)이 아는 것만 받아요
-const LANGS = ['ko', 'en', 'ja', 'es', 'fr'], SLOTS = ['greet', 'air', 'close'];
+const LANGS = ['ko', 'en', 'ja', 'es', 'fr'], SLOTS = ['greet', 'air', 'close', 'lit'];
 const COND: Record<string, (v: any) => boolean> = {
   tod: v => ['morning', 'day', 'evening', 'night'].includes(v),
   season: v => ['spring', 'summer', 'autumn', 'winter'].includes(v),
@@ -61,6 +61,13 @@ const COND: Record<string, (v: any) => boolean> = {
   dow: v => Number.isInteger(v) && v >= 0 && v <= 6,
   cold: v => v === true, hot: v => v === true,
   between: v => Array.isArray(v) && v.length === 2 && v.every(x => typeof x === 'string' && /^(\d{4}-)?\d{2}-\d{2}$/.test(x)) && v[0].length === v[1].length
+};
+// 문학 한 구절(slot 'lit')만: light 햇빛 줄 · id 앱 안 줄 번호(그 줄의 글을 고침) · a 작가 · o 원문 언어 (js/story/lit.js setLitRemote)
+const LIT_COND: Record<string, (v: any) => boolean> = {
+  light: v => v === true,
+  id: v => Number.isInteger(v) && v >= 0 && v < 100000,
+  a: v => typeof v === 'string' && /^[a-z0-9_]{1,40}$/.test(v),
+  o: v => typeof v === 'string' && /^([a-z]{2,3}|world)$/.test(v)
 };
 function phraseRow(b: any) {
   const lang = LANGS.includes(b.lang) ? b.lang : null, slot = SLOTS.includes(b.slot) ? b.slot : null;
@@ -71,7 +78,8 @@ function phraseRow(b: any) {
   const cond: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(b.cond && typeof b.cond === 'object' ? b.cond : {})) {
     if (v === '' || v == null) continue;
-    if (!COND[k] || !COND[k](v)) throw new Fail(400, 'bad condition');
+    const ok = slot === 'lit' ? (k !== 'between' && k !== 'dow' && k !== 'cold' && k !== 'hot' && (COND[k] || LIT_COND[k])) : COND[k];
+    if (!ok || !ok(v)) throw new Fail(400, 'bad condition');
     cond[k] = v;
   }
   return { lang, slot, text, weight, cond, active: b.active !== false, updated_at: new Date().toISOString() };

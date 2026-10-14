@@ -13,6 +13,7 @@ import { S, emit, live, onChange, purgeOldTrash, setPrefsHook, setSyncHook, text
 import { configured, getSupabase } from './data/supabase.js';
 import { Sync } from './data/sync.js';
 import { setRemote } from './story/engine.js';
+import { loadLit } from './story/lit.js';
 import { Weather } from './features/weather.js';
 import { Photos } from './features/photos.js';
 import { Reminders } from './features/reminders.js';
@@ -25,6 +26,7 @@ import { hideAuth, showAuth } from './views/auth.js';
 
 register('ko', ko); register('en', en); register('ja', ja); register('es', es); register('fr', fr);
 setLang(S.prefs.lang || detectLang());
+const litLoad = loadLit(getLang());   // 문학 한 구절: 쓰는 언어 묶음 하나만 미리 불러요
 document.title = brand(getLang());
 document.documentElement.dataset.size = textSize();
 document.documentElement.dataset.ui = uiStyle();
@@ -95,7 +97,7 @@ async function startUser(user, { offline = false } = {}) {
   if (offline) { settle(); return; }
   Sync.sb = await getSupabase();
   Sync.suffix = t('sync.suffix');
-  const first = [Sync.run(),
+  const first = [Sync.run(), litLoad,
     Account.load().catch(() => {}).finally(() => { Photos.flush(); trialNudge(); checkNotices(); }),
     Weather.refresh().then(w => { if (w) Backdrop.apply(document.documentElement, { weather: w.kind }); }).catch(() => {})];
   // 처음 몇 초 동안 받아 오는 것(기록 · 이름 · 날씨)이 다 오면 그때 이야기를 한 번만 보여 줘요 (옛 이야기가 보이다 바뀌지 않게). 늦어도 2초 뒤엔 보여요
@@ -131,7 +133,7 @@ async function loadPhrases() {
   const key = 'daytale.phrases.' + getLang(); const c = ls.get(key, null);
   if (c) setRemote(c.rows);
   if (c && Date.now() - c.at < 864e5) return;
-  const { data, error } = await Sync.sb.from('phrase_packs').select('lang,slot,cond,text,weight').eq('lang', getLang()).eq('active', true).limit(2000);
+  const { data, error } = await Sync.sb.from('phrase_packs').select('id,lang,slot,cond,text,weight').eq('lang', getLang()).eq('active', true).limit(2000);
   if (!error) { ls.set(key, { at: Date.now(), rows: data }); setRemote(data); }
 }
 
@@ -146,7 +148,7 @@ onChange(w => {
   if (w === 'entries' || w === 'quiet' || w === 'prefs') reschedule();
   if (w === 'entries' && live().length && !ls.get('daytale.installAsked')) Install.maybeOffer();
   if (w === 'notices') checkNotices();
-  if ((w === 'entries' || w === 'folders' || w === 'account' || w === 'settled') && mounted?.refresh && now()) mounted.refresh($('#view'), now());
+  if ((w === 'entries' || w === 'folders' || w === 'account' || w === 'settled' || w === 'lit') && mounted?.refresh && now()) mounted.refresh($('#view'), now());
 });
 /* 약관 링크(가입 화면 등)는 새 창이나 소개 사이트가 아니라 앱 안 시트로 열어요 */
 document.addEventListener('click', ev => {

@@ -636,14 +636,14 @@ async function viewUsage(q = new URLSearchParams()) {
 
 /* ---------- 이야기 문장: 앱을 다시 배포하지 않고 계절·명절 문장 더하기 ---------- */
 const PLANG = [['ko', '한국어'], ['en', 'English'], ['ja', '日本語'], ['es', 'Español'], ['fr', 'Français']];
-const PSLOT = { greet: '인사 (첫 문장)', air: '오늘의 공기 (인사 뒤)', close: '맺음 (마지막 문장)' };
+const PSLOT = { greet: '인사 (첫 문장)', air: '오늘의 공기 (인사 뒤)', close: '맺음 (마지막 문장)', lit: '문학 한 구절 (저작권 끝난 글)' };
 const PCOND = {
   tod: ['시간대', { morning: '아침 5–11시', day: '낮 11–17시', evening: '저녁 17–21시', night: '밤 21–5시' }],
   season: ['계절', { spring: '봄', summer: '여름', autumn: '가을', winter: '겨울' }],
   wx: ['날씨', { sun: '맑음', suncloud: '구름 조금', cloud: '흐림', fog: '안개', rain: '비', snow: '눈', thunder: '천둥' }],
   dow: ['요일', { 0: '일', 1: '월', 2: '화', 3: '수', 4: '목', 5: '금', 6: '토' }]
 };
-const condText = c => Object.entries(c || {}).map(([k, v]) => k === 'between' ? `${v[0]} ~ ${v[1]}` : k === 'cold' ? '추운 날 (5° 이하)' : k === 'hot' ? '더운 날 (28° 이상)' : PCOND[k] ? `${PCOND[k][0]} ${PCOND[k][1][v] ?? v}` : `${k} ${v}`).join(' · ') || '언제나';
+const condText = c => Object.entries(c || {}).map(([k, v]) => k === 'between' ? `${v[0]} ~ ${v[1]}` : k === 'light' ? '해가 떠 있을 때' : k === 'a' ? `작가 ${v}` : k === 'o' ? `원문 ${v}` : k === 'id' ? `앱 안 줄 #${v} 고침` : k === 'cold' ? '추운 날 (5° 이하)' : k === 'hot' ? '더운 날 (28° 이상)' : PCOND[k] ? `${PCOND[k][0]} ${PCOND[k][1][v] ?? v}` : `${k} ${v}`).join(' · ') || '언제나';
 async function viewPhrases(q) {
   const lang = q.get('lang') || 'all', editId = Number(q.get('edit') || 0);
   loading('#/phrases');
@@ -668,9 +668,17 @@ async function viewPhrases(q) {
         <label>기온${sel('temp', { cold: '추운 날 (5° 이하)', hot: '더운 날 (28° 이상)' }, c.cold ? 'cold' : c.hot ? 'hot' : '')}</label>
       </div>
       <p class="muted xs">명절처럼 해마다 날짜가 바뀌면 연도까지 적어요 (2026-09-24). 크리스마스처럼 같은 날이면 월-일만 적어요 (12-24).</p>
+      <h3 class="label">문학 한 구절일 때만 (날짜·요일·기온 조건은 쓰지 않아요)</h3>
+      <div class="grid3">
+        <label>작가 (영문 소문자, 예: basho)<input name="a" pattern="[a-z0-9_]{1,40}" value="${esc(c.a || '')}"></label>
+        <label>원문 언어 (ko·ja·en·es·fr… 또는 world)<input name="o" pattern="[a-z]{2,3}|world" value="${esc(c.o || '')}"></label>
+        <label>앱 안 줄 번호 (그 줄을 고칠 때만)<input name="lid" type="number" min="0" value="${esc(c.id ?? '')}"></label>
+        <label>햇빛이 나오는 줄${sel('light', { 1: '해가 떠 있을 때만' }, c.light ? 1 : '')}</label>
+      </div>
+      <p class="muted xs">**굵게** 할 부분을 별표 두 개로 감싸요. 작가 이름은 같은 작가가 며칠 내리 나오지 않게 하는 데 써요. docs/content-packs.md 참고.</p>
       <div class="row end gap">${ed ? `<a class="btn ghost" href="${link('#/phrases', { lang })}">취소</a>` : ''}<button class="btn primary">${ed ? '저장' : '더하기'}</button></div></form>` : ''}
     <section class="box tablebox"><table><thead><tr><th>문장</th><th>언어 · 자리</th><th>언제</th><th class="r">빈도</th><th></th></tr></thead><tbody>
-      ${r.rows.map(x => `<tr class="${x.active ? '' : 'off'}"><td>${esc(x.text)}</td><td>${esc(x.lang)} · ${esc({ greet: '인사', air: '오늘의 공기', close: '맺음' }[x.slot] || x.slot)}</td><td class="muted">${esc(condText(x.cond))}</td><td class="r num">${num(x.weight)}</td>
+      ${r.rows.map(x => `<tr class="${x.active ? '' : 'off'}"><td>${esc(x.text)}</td><td>${esc(x.lang)} · ${esc({ greet: '인사', air: '오늘의 공기', close: '맺음', lit: '문학' }[x.slot] || x.slot)}</td><td class="muted">${esc(condText(x.cond))}</td><td class="r num">${num(x.weight)}</td>
         <td class="r nowrap">${me.role === 'owner' ? `<button class="btn ghost sm" data-act="${x.id}" data-on="${x.active ? 0 : 1}">${x.active ? '끄기' : '켜기'}</button>
           <a class="btn ghost sm" href="${link('#/phrases', { lang, edit: x.id })}">고치기</a><button class="btn ghost sm" data-pdel="${x.id}">지우기</button>` : (x.active ? '' : '<span class="muted xs">꺼짐</span>')}</td></tr>`).join('') || '<tr><td colspan="5" class="muted pad">아직 더한 문장이 없어요. 앱 안의 기본 문장은 그대로 나와요.</td></tr>'}
     </tbody></table></section>`);
@@ -681,6 +689,7 @@ async function viewPhrases(q) {
     for (const k of Object.keys(PCOND)) if (v[k] !== '') cond[k] = k === 'dow' ? Number(v[k]) : v[k];
     if (v.temp) cond[v.temp] = true;
     if (v.from || v.to) cond.between = [v.from.trim(), (v.to || v.from).trim()];
+    if (v.slot === 'lit') { if (v.a) cond.a = v.a.trim(); if (v.o) cond.o = v.o.trim(); if (v.lid !== '' && v.lid != null) cond.id = Number(v.lid); if (v.light) cond.light = true; }
     try { await api('phrase_save', { id: ed?.id, lang: v.lang, slot: v.slot, text: v.text, weight: Number(v.weight), cond, active: ed ? ed.active : true }); toast(ed ? '고쳤어요.' : '더했어요.'); location.hash = link('#/phrases', { lang }); if (!ed) viewPhrases(q); }
     catch (er) { toast(er.message, true); }
   };

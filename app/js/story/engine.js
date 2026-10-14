@@ -5,15 +5,16 @@ import en from './en.js';
 import ja from './ja.js';
 import es from './es.js';
 import fr from './fr.js';
-import { S, displayTitle, live, setPref } from '../data/store.js';
+import { S, displayTitle, emit, live, setPref } from '../data/store.js';
 import { fmtHM, getLang, t } from '../core/i18n.js';
-import { LIT, pickLit } from './lit.js';
-import { addDays, dayKey, esc, ls, parseDay, seasonOf, slotOf, sunUp, todayKey } from '../core/utils.js';
+import { litById, litReady, loadLit, pickLit, setLitRemote } from './lit.js';
+import { addDays, dayKey, esc, ls, parseDay, slotOf, sunUp, todayKey } from '../core/utils.js';
+import { localeRegion, seasonFor, tempUnit } from '../core/countries.js';
 import { sticker } from '../core/stickers.js';
 
 const BASE = { ko, en, ja, es, fr };
 let remote = {};   // { lang: { part: [{ cond, text, weight }] } }
-const setRemote = rows => { remote = {}; rows.forEach(r => { ((remote[r.lang] ||= {})[r.slot] ||= []).push(r); }); };
+const setRemote = rows => { remote = {}; rows.forEach(r => { ((remote[r.lang] ||= {})[r.slot] ||= []).push(r); }); setLitRemote(rows); };
 
 /* ---------- 한국어 조사 ---------- */
 const JOSA = { '은': ['은', '는'], '이': ['이', '가'], '을': ['을', '를'], '과': ['과', '와'], '으로': ['으로', '로'], '이에요': ['이에요', '예요'] };
@@ -60,9 +61,8 @@ const TYPE_ST = { note: 'note', todo: 'todo', event: 'event', idea: 'idea', item
 // 스티커와 바로 뒤 글자 몇 자만 한 줄에 묶어요 (띄어쓰기 없는 긴 글이 통째로 묶이면 화면 밖으로 나가요). {latest}{을} 같은 자리표시는 쪼개지 않아요
 const glue = (n, html = '') => { const st = sticker(n); if (!st) return html; const m = /^((?:\{\w+\}(?:\{[^}]+\})?|&[a-z0-9#]+;|[^\s<&{]){1,4})([\s\S]*)$/i.exec(html); return m ? `<span class="glue">${st}${m[1]}</span>${m[2]}` : st + html; };
 const link = (href, html) => `<a class="w" href="${href}">${html}</a>`;
-/* 기온: 미국 등 화씨를 쓰는 지역(휴대폰 언어 설정의 지역)은 °F로 보여요. 덥다·춥다 판단은 그대로 섭씨 */
-const F_REGIONS = new Set(['US', 'PR', 'GU', 'VI', 'AS', 'MP', 'UM', 'LR', 'BS', 'KY', 'PW', 'FM', 'MH']);
-const useF = (() => { try { return F_REGIONS.has(new Intl.Locale(navigator.language || 'en').maximize().region); } catch { return false; } })();
+/* 기온: 미국 등 화씨를 쓰는 지역(휴대폰 언어 설정의 지역, core/countries.js temp)은 °F로 보여요. 덥다·춥다 판단은 그대로 섭씨 */
+const useF = tempUnit() === 'F';
 const deg = c => Math.round(useF ? c * 9 / 5 + 32 : c);
 const num = (s) => String(s).replace(/(\d[\d,.]*°?)/g, '<span class="n">$1</span>');
 function fill(text, vars) {
@@ -77,7 +77,8 @@ function fill(text, vars) {
 }
 
 /* ---------- 오늘 상황 모으기 ---------- */
-function gather(now = new Date()) {
+/* 계절은 나라 표(core/countries.js)를 따라요: 남반구는 반대, 열대는 null(계절 문장 없음). place: 날씨 도시 { cc, lat } */
+function gather(now = new Date(), place = {}) {
   const today = todayKey(), all = live();
   const created = e => dayKey(new Date(e.created_at));
   const events = all.filter(e => e.type === 'event' && e.meta.date === today).sort((a, b) => (a.meta.time || '99').localeCompare(b.meta.time || '99'));
@@ -91,7 +92,7 @@ function gather(now = new Date()) {
   for (let d = days.has(today) ? now : addDays(now, -1); days.has(dayKey(d)); d = addDays(d, -1)) streak++;
   const weekStart = addDays(now, -((now.getDay() + 6) % 7));
   const week = all.filter(e => created(e) >= dayKey(weekStart)).length;
-  return { now, slot: slotOf(now), season: seasonOf(now), today, all, events, upcoming, todos, doneToday, writtenToday, streak, week, first: all.length === 0 };
+  return { now, slot: slotOf(now), season: seasonFor(now, { cc: place.cc || localeRegion(), lat: place.lat ?? null }), today, all, events, upcoming, todos, doneToday, writtenToday, streak, week, first: all.length === 0 };
 }
 
 /* ---------- 회상: 기념일 > N년 전 > 한 달 전 > 지난주 > 작년 이맘때 > 무작위. 2주 안 반복 금지 ---------- */
@@ -118,7 +119,7 @@ function pickRecall(ctx) {
 /* 하루 한 시간대 동안은 같은 이야기를 보여 줘요 (새 기록이 생기면 다시 씀) */
 function compose({ name, weather = null, city = null, geo = null, holiday = null, max = 4 } = {}) {
   const lang = BASE[getLang()] ? getLang() : 'en', P = BASE[lang], R = remote[lang] || {};
-  const ctx = gather(); ctx.weather = weather; ctx.holiday = holiday;
+  const ctx = gather(new Date(), { cc: geo?.cc, lat: geo?.lat }); ctx.weather = weather; ctx.holiday = holiday;
   ctx.light = sunUp(ctx.now, geo?.lat, geo?.lon);   // 해가 졌으면 햇살·푸른 하늘 문장은 나오지 않아요
   const W = P.words, out = [];
   const entryLink = e => ({ html: link('#/e/' + e.id, esc(displayTitle(e, t('common.untitled')))), plain: displayTitle(e, t('common.untitled')) });
@@ -194,9 +195,11 @@ function compose({ name, weather = null, city = null, geo = null, holiday = null
 function litLine(ctx, lang) {
   const key = ctx.today + '|' + ctx.slot, cut = dayKey(addDays(ctx.now, -14));
   const log = Object.fromEntries(Object.entries(ls.get('daytale.lit') || {}).filter(([k]) => k.slice(0, 10) >= cut));
-  let i = log[key];
-  if (!(i >= 0) || !LIT[i]?.[lang]) { const p = pickLit(ctx, lang, Object.values(log)); if (!p) return ''; i = p.i; log[key] = i; ls.set('daytale.lit', log); }
-  return esc(LIT[i][lang]).replace(/\*\*(.+?)\*\*/g, '<b class="w">$1</b>');
+  // 그 언어 묶음을 아직 안 불렀으면 불러 두고 이번에는 건너뛰어요 (다 불러오면 화면이 이야기를 다시 써요)
+  if (!litReady(lang)) { loadLit(lang).then(ok => ok && emit('lit')); return ''; }
+  let i = log[key], x = i != null ? litById(lang, i) : null;
+  if (!x) { const p = pickLit(ctx, lang, Object.values(log)); if (!p) return ''; i = p.i; log[key] = i; ls.set('daytale.lit', log); x = litById(lang, i); }
+  return x ? esc(x.text).replace(/\*\*(.+?)\*\*/g, '<b class="w">$1</b>') : '';
 }
 
 export { batchim, compose, gather, josa, setRemote };
