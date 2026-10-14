@@ -56,6 +56,10 @@ const SEASON_ST = { spring: 'blossom', summer: 'sunflower', autumn: 'leaf', wint
 // 스티커와 바로 뒤 글자 몇 자만 한 줄에 묶어요 (띄어쓰기 없는 긴 글이 통째로 묶이면 화면 밖으로 나가요). {latest}{을} 같은 자리표시는 쪼개지 않아요
 const glue = (n, html = '') => { const st = sticker(n); if (!st) return html; const m = /^((?:\{\w+\}(?:\{[^}]+\})?|&[a-z0-9#]+;|[^\s<&{]){1,4})([\s\S]*)$/i.exec(html); return m ? `<span class="glue">${st}${m[1]}</span>${m[2]}` : st + html; };
 const link = (href, html) => `<a class="w" href="${href}">${html}</a>`;
+/* 기온: 미국 등 화씨를 쓰는 지역(휴대폰 언어 설정의 지역)은 °F로 보여요. 덥다·춥다 판단은 그대로 섭씨 */
+const F_REGIONS = new Set(['US', 'PR', 'GU', 'VI', 'AS', 'MP', 'UM', 'LR', 'BS', 'KY', 'PW', 'FM', 'MH']);
+const useF = (() => { try { return F_REGIONS.has(new Intl.Locale(navigator.language || 'en').maximize().region); } catch { return false; } })();
+const deg = c => Math.round(useF ? c * 9 / 5 + 32 : c);
 const num = (s) => String(s).replace(/(\d[\d,.]*°?)/g, '<span class="n">$1</span>');
 function fill(text, vars) {
   return text
@@ -126,7 +130,7 @@ function compose({ name, weather = null, city = null, geo = null, holiday = null
   if (airSt) air = glue(airSt, air);
   else if (!weather) p1 = glue(SLOT_ST[ctx.slot], p1);
   if (weather) {
-    const wxw = `${W.wx[weather.kind] || ''} ${Math.round(weather.temp)}°`;
+    const wxw = `${W.wx[weather.kind] || ''} ${deg(weather.temp)}°`;
     // 날씨는 몇 시간 전에 받아 둔 것일 수 있어서, 해가 졌으면 해 그림 대신 달·구름으로
     const ic = !ctx.light && weather.kind === 'sun' ? 'moon' : !ctx.light && weather.kind === 'suncloud' ? 'cloud' : ctx.light && weather.icon === 'moon' ? 'sun' : weather.icon || weather.kind;
     const where = fill(P.where, { city: city || '', wx: { html: link('#/settings/record', glue(ic, num(esc(wxw)))), plain: wxw } });
