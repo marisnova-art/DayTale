@@ -40,6 +40,7 @@
 :root.home-focus .ask { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgba(var(--srf),.92); border-color: rgba(var(--fg),.22); box-shadow: 0 24px 60px rgba(0,0,0,.5); }
 :root.home-focus .ask textarea { min-height: 120px; }
 :root.home-focus .ask-btns { display: flex; }
+@media (min-width: 900px) and (min-height: 501px), (min-width: 900px) and (pointer: fine) { .ask textarea { min-height: 134px; } :root.home-focus .ask textarea { min-height: 200px; } }   /* PC: 화면이 넓어서 쓰기 칸을 두 배쯤 높게 */
 /* 방금 남긴 한 줄 */
 .story .just { border-radius: 12px; }
 .story .just.hl { animation: justHl 4s ease-out both; }
