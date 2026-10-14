@@ -28,6 +28,10 @@ setLang(S.prefs.lang || detectLang());
 document.title = brand(getLang());
 document.documentElement.dataset.size = textSize();
 Backdrop.apply(document.documentElement);
+/* 휴대폰은 세로로만 (설치한 안드로이드 앱은 화면을 고정, 그 밖에는 가로로 돌리면 안내가 덮어요) */
+const rotateText = () => { const r = $('#rotate p'); if (r) r.textContent = t('common.rotate'); };
+rotateText();
+if (Math.min(screen.width, screen.height) < 500) screen.orientation?.lock?.('portrait').catch(() => {});
 
 /* ---------- 화면 목록 (모듈은 필요할 때 불러요) ---------- */
 const V = name => () => import(`./views/${name}.js`);
@@ -63,20 +67,28 @@ async function startUser(user, { offline = false } = {}) {
   S.lastSyncAt = await S.db.get('lastSyncAt', null);
   ls.set('daytale.lastUser', S.user);
   Account.restore();
+  S.settled = false; if (!offline) document.documentElement.classList.add('story-wait');
   hideAuth(); frame(); applyI18n();
   startRouter(show);
   $('#boot').classList.add('gone');
   if (S.db.volatile) toast(t('err.noStorage'), { bad: true, ms: 7000 });
   purgeOldTrash();
-  if (offline) return;
+  if (offline) { settle(); return; }
   Sync.sb = await getSupabase();
   Sync.suffix = t('sync.suffix');
-  Sync.run();
-  Account.load().catch(() => {}).finally(() => { Photos.flush(); trialNudge(); checkNotices(); });
+  const first = [Sync.run(),
+    Account.load().catch(() => {}).finally(() => { Photos.flush(); trialNudge(); checkNotices(); }),
+    Weather.refresh().then(w => { if (w) Backdrop.apply(document.documentElement, { weather: w.kind }); }).catch(() => {})];
+  // 처음 몇 초 동안 받아 오는 것(기록 · 이름 · 날씨)이 다 오면 그때 이야기를 한 번만 보여 줘요 (옛 이야기가 보이다 바뀌지 않게). 늦어도 2초 뒤엔 보여요
+  Promise.race([Promise.allSettled(first), new Promise(r => setTimeout(r, 2000))]).then(settle);
   Reminders.schedule(); Reminders.subscribe();   // 푸시 주소·시간대를 새로 맞춰요
   Sync.pullPrefs().then(ch => { if (ch) applyPrefs(); }).catch(() => {});
   loadPhrases();
-  Weather.refresh().then(w => { if (w) { Backdrop.apply(document.documentElement, { weather: w.kind }); if (now()?.path === '/home') rerender(); } });
+}
+function settle() {
+  if (S.settled) return; S.settled = true;
+  emit('settled');
+  document.documentElement.classList.remove('story-wait');
 }
 /* 체험 끝나기 7일·3일 전 한 번씩 알려요 (메일은 서버가 따로 보내요) */
 function trialNudge() {
@@ -88,7 +100,7 @@ function trialNudge() {
 async function checkNotices() { try { const { unread } = await import('./views/notices.js'); document.documentElement.classList.toggle('has-unread', (await unread()) > 0); } catch {} }
 const reschedule = debounce(() => Reminders.schedule(), 800);
 function applyPrefs() {
-  const l = S.prefs.lang || detectLang(); if (l !== getLang()) { setLang(l); frame(); rerender(); }
+  const l = S.prefs.lang || detectLang(); if (l !== getLang()) { setLang(l); frame(); rerender(); rotateText(); }
   document.documentElement.dataset.size = textSize();
 }
 /* 서버 문장 묶음: 하루 한 번 받아 두기 */
@@ -111,7 +123,7 @@ onChange(w => {
   if (w === 'entries' || w === 'quiet' || w === 'prefs') reschedule();
   if (w === 'entries' && live().length && !ls.get('daytale.installAsked')) Install.maybeOffer();
   if (w === 'notices') checkNotices();
-  if ((w === 'entries' || w === 'folders' || w === 'account') && mounted?.refresh && now()) mounted.refresh($('#view'), now());
+  if ((w === 'entries' || w === 'folders' || w === 'account' || w === 'settled') && mounted?.refresh && now()) mounted.refresh($('#view'), now());
 });
 /* 약관 링크(가입 화면 등)는 새 창이나 소개 사이트가 아니라 앱 안 시트로 열어요 */
 document.addEventListener('click', ev => {

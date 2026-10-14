@@ -3,6 +3,7 @@ export default {
   'common.ok': 'OK', 'common.cancel': 'キャンセル', 'common.close': '閉じる', 'common.save': '保存', 'common.delete': '削除', 'common.open': '開く', 'common.undo': '元に戻す',
   'common.untitled': '無題', 'common.more': 'その他', 'common.seeAll': 'すべて見る', 'common.retry': 'もう一度試す', 'common.done': '完了', 'common.back': '戻る',
   'time.now': 'たった今',
+  'common.rotate': 'スマートフォンを縦向きにしてください。',
   'nav.menu': 'メニュー', 'nav.closeMenu': 'メニューを閉じる', 'nav.profile': 'プロフィール', 'nav.notices': 'お知らせ', 'nav.settings': '設定', 'nav.new': '新しい記録', 'nav.write': '書く',
   'nav.allShort': 'すべて', 'nav.home': 'ホーム', 'nav.all': 'すべての記録', 'nav.byType': '種類別', 'nav.todo': 'やること', 'nav.calendar': 'カレンダー', 'nav.folders': 'フォルダ', 'nav.noFolder': 'フォルダなし',
   'nav.trash': 'ゴミ箱', 'nav.search': '記録を探す', 'nav.newFolder': '新しいフォルダ',

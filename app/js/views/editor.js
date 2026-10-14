@@ -59,11 +59,14 @@ function render(view, r, opts = {}) {   // opts.pane: PC 나란히 보기의 오
   <input type="file" accept="image/*" multiple hidden class="ed-file"></div>`;
   const el = { root: view, title: $('.ed-title', view), body: $('.ed-body', view), info: $('.ed-info', view), meta: $('.ed-meta', view), photos: $('.ed-photos', view), foot: $('.ed-foot', view), pan: $('.ed-pan', view) };
   cur = { e, isNew, wasNew: isNew, el, ro, pan: null, saved: carried ? false : undefined, pane: opts.pane ? opts : null };
+  if (!opts.pane) { document.documentElement.classList.add('ed-mode'); scrollTo(0, 0); }   // 휴대폰: 편집기 상자 안에서만 스크롤 (editor.css)
+  if (!opts.pane && window.visualViewport) { const vv = window.visualViewport, k = () => requestAnimationFrame(keepCaret); vv.addEventListener('resize', k); cur.offVV = () => vv.removeEventListener('resize', k); }
   el.title.value = e.title; el.body.innerHTML = e.content || (e.text ? e.text.split('\n').map(l => `<p>${esc(l) || '<br>'}</p>`).join('') : '');
   if (!ro && !el.body.firstElementChild) el.body.innerHTML = '<p><br></p>';   // 첫 줄부터 문단으로 (줄 모양 바꾸기가 고르게 돼요)
   paintChips(); paintPhotos(); paintFoot(); paintFont();
   const save = debounce(() => commit(), 600); cur.save = save;
-  const fit = () => { el.title.style.height = 'auto'; el.title.style.height = el.title.scrollHeight + 'px'; };   // 제목 칸은 글 길이만큼 (스크롤 없이)
+  // 제목 칸은 글 길이만큼 (스크롤 없이). 높이를 잠깐 줄였다 늘리는 사이 스크롤 자리가 튀지 않게 되돌려 둬요
+  const fit = () => { const sc = el.title.closest('.ed'), y = sc?.scrollTop ?? 0; el.title.style.height = 'auto'; el.title.style.height = el.title.scrollHeight + 'px'; if (sc && sc.scrollTop !== y) sc.scrollTop = y; };
   el.title.addEventListener('input', () => { fit(); save(); }); requestAnimationFrame(fit);
   el.title.addEventListener('keydown', ev => { if (ev.key === 'Enter' && !ev.isComposing) { ev.preventDefault(); placeCaret(el.body, true); } });
   el.title.addEventListener('focus', () => closePan());
@@ -72,7 +75,7 @@ function render(view, r, opts = {}) {   // opts.pane: PC 나란히 보기의 오
   if (sc) { const upd = () => sc.classList.toggle('more-r', sc.scrollLeft < sc.scrollWidth - sc.clientWidth - 2);
     sc.addEventListener('scroll', upd, { passive: true }); new ResizeObserver(upd).observe(sc);
     sc.addEventListener('wheel', ev => { if (sc.scrollWidth > sc.clientWidth && Math.abs(ev.deltaY) > Math.abs(ev.deltaX)) { ev.preventDefault(); sc.scrollLeft += ev.deltaY; } }, { passive: false }); }
-  el.body.addEventListener('input', ev => { shortcuts(ev); cur.hist.soon(); save(); paintState(); });
+  el.body.addEventListener('input', ev => { shortcuts(ev); cur.hist.soon(); save(); paintState(); keepCaret(); });
   el.body.addEventListener('keydown', onKey);
   el.body.addEventListener('focus', () => document.execCommand('defaultParagraphSeparator', false, 'p'));
   // 판이 열려 있을 때: 글을 길게 눌러 고르는 동안은 판이 그대로 있고 (키보드도 안 올라와요), 그냥 톡 누르면 판을 닫고 키보드로 돌아가요
@@ -110,6 +113,8 @@ function leave() {
   cur.save?.flush(); closePan();
   document.removeEventListener('selectionchange', paintState);
   document.documentElement.classList.remove('ed-pan-open');
+  if (!cur.pane) document.documentElement.classList.remove('ed-mode');
+  cur.offVV?.();
   cur.off?.(); cur = null;
 }
 
@@ -179,7 +184,7 @@ function openPan(kind) {
   }
   document.documentElement.style.setProperty('--pan', Math.min(Math.max(kbH, 260), 360) + 'px');
   document.documentElement.classList.add('ed-pan-open');
-  cur.el.pan.hidden = false; paintPan();
+  cur.el.pan.hidden = false; paintPan(); requestAnimationFrame(keepCaret);
 }
 function closePan(toKeyboard = false) {
   if (!cur) return;
@@ -298,6 +303,18 @@ async function more(v) {
 }
 
 /* ---------- 본문 편집 도우미 ---------- */
+/* 쓰는 자리(커서)가 막대·판·키보드에 가리면 글 상자만 살짝 올려요 (휴대폰). 화면 전체는 움직이지 않아요 */
+function keepCaret() {
+  if (!cur || isPC() || cur.pane) return;
+  const s = getSelection(); if (!s.rangeCount || !cur.el.body.contains(s.anchorNode)) return;
+  const sc = cur.el.body.closest('.ed'); if (!sc || sc.scrollHeight <= sc.clientHeight) return;
+  const r = s.getRangeAt(0); let rect = r.getClientRects()[0] || r.getBoundingClientRect();
+  if (!rect || (!rect.height && !rect.top)) { const n = s.anchorNode.nodeType === 1 ? s.anchorNode : s.anchorNode.parentElement; rect = n?.getBoundingClientRect(); }
+  if (!rect) return;
+  const box = sc.getBoundingClientRect(), gap = 28;
+  if (rect.bottom > box.bottom - gap) sc.scrollTop += rect.bottom - (box.bottom - gap);
+  else if (rect.top < box.top + 8) sc.scrollTop -= (box.top + 8) - rect.top;
+}
 function placeCaret(node, atEnd = true) {
   node.focus?.(); const r = document.createRange(); const s = getSelection();
   if (node === cur?.el.body && !node.childNodes.length) node.innerHTML = '<p><br></p>';

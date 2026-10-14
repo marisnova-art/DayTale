@@ -24,7 +24,7 @@
 .r .chk { align-self: center; }
 .r .side { display: flex; gap: 6px; flex: none; }
 .r .side button { height: 34px; padding: 0 12px; border-radius: 17px; background: var(--raised-2); font-size: var(--fs-s); font-weight: 700; color: var(--text-3); }
-.r .side button.bad { color: var(--danger); }
+.r .side button.bad { color: var(--danger); background: rgba(255,107,107,.14); }   /* 지우는 단추는 어디서나 같은 모양: 옅은 빨강 바탕 + 빨간 글씨 */
 .lst .empty { padding: 60px 8px; text-align: center; color: var(--muted); font-size: var(--fs-m); }
 .lst .hint { padding: 12px 8px 0; font-size: var(--fs-s); color: var(--muted-2); }
 .searchbar { margin: 16px 4px 0; }
@@ -49,12 +49,14 @@
 .swp { position: relative; margin: 0 -16px; --rev: 0px; }
 .swp .r { position: relative; padding-left: 16px; padding-right: 16px; transition: transform .22s ease; }
 .swp.moving .r { transition: none; }
-.swp-del { position: absolute; top: 0; right: 0; bottom: 0; width: var(--rev); overflow: hidden; background: #E5484D; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+/* 지우기 단추: 카드 모서리에 붙은 네모가 아니라, 앱의 다른 단추처럼 카드 안쪽에 둥글게 떠 있어요 */
+.swp-del { position: absolute; top: 6px; right: 8px; bottom: 6px; width: max(0px, calc(var(--rev) - 14px)); overflow: hidden; border-radius: 18px; background: #E5484D; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
   font-size: var(--fs-s); font-weight: 700; white-space: nowrap; transition: width .22s ease; }
+.swp:not(.open):not(.moving):not(.gone) .swp-del { visibility: hidden; }
 .swp.moving .swp-del { transition: none; }
-.swp.gone .swp-del { width: 100%; }
+.swp.gone .swp-del { width: calc(100% - 16px); }
 .r .del { display: none; width: 34px; height: 34px; border-radius: 17px; align-items: center; justify-content: center; color: var(--faint); flex: none; }
-@media (hover: hover) and (pointer: fine) { .r:hover .del { display: flex; } .r .del:hover { color: var(--danger); background: var(--fill); } }
+@media (hover: hover) and (pointer: fine) { .r:hover .del { display: flex; } .r .del:hover { color: var(--danger); background: rgba(255,107,107,.14); } }
 /* 방금 쓴 기록 반짝 */
 .r.hl { animation: hlFlash 1.8s ease-out; border-radius: 14px; }
 @keyframes hlFlash { 0%, 30% { background: rgba(255,138,106,.22); box-shadow: 0 0 0 6px rgba(255,138,106,.22); } 100% { background: transparent; box-shadow: 0 0 0 6px transparent; } }
@@ -70,8 +72,10 @@
   .pane .ed-page::before { display: none; }
   .pane .ed { max-width: 760px; padding: 14px 26px 60px; }
   .pane .ed-tools [data-act=back], .pane .ed-tools [data-act=back] + .sep { display: none; }
-  .split .swp.sel .r { background: rgba(255,255,255,.10); }
-  .split .swp.sel .r::before { content: ''; position: absolute; left: 4px; top: 12px; bottom: 12px; width: 3px; border-radius: 2px; background: var(--accent); }
+  /* 고른 기록: 카드 안쪽에 둥근 판 하나로만 (배경 + 색 막대를 겹치지 않아요). 위아래 줄도 지워서 판이 깔끔하게 떠요 */
+  .split .swp.sel::before { content: ''; position: absolute; inset: 5px 6px; border-radius: 16px; background: rgba(255,255,255,.10); box-shadow: inset 0 0 0 1px rgba(255,255,255,.06); pointer-events: none; }
+  .split .swp.sel .r, .split .swp:has(+ .swp.sel) .r { border-bottom-color: transparent; }
+  .split .swp.sel .r .t { color: #fff; }
   .pane-empty { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; color: var(--muted-2); font-size: var(--fs-m); }
   .pane-empty p { margin: 0; }
   .pane-empty .btn { height: 44px; border-radius: 22px; padding: 0 18px; display: inline-flex; align-items: center; gap: 8px; }

@@ -209,7 +209,7 @@ function swipe(view) {
   view.addEventListener('touchstart', ev => {
     const w = ev.target.closest('.swp'); if (!w || ev.target.closest('.swp-del')) return;
     close(w); const r = w.querySelector('.r, .ev');
-    s = { w, r, x: ev.touches[0].clientX, y: ev.touches[0].clientY, base: w.classList.contains('open') ? -88 : 0, cur: 0, dir: null };
+    s = { w, r, x: ev.touches[0].clientX, y: ev.touches[0].clientY, base: w.classList.contains('open') ? -96 : 0, cur: 0, dir: null };
   }, { passive: true });
   view.addEventListener('touchmove', ev => {
     if (!s) return;
@@ -223,7 +223,7 @@ function swipe(view) {
     if (!dir) return;
     w.classList.remove('moving'); w.dataset.swiped = '1'; setTimeout(() => delete w.dataset.swiped, 350);
     if (cur < -r.offsetWidth * .5) { w.classList.add('gone'); r.style.transform = 'translateX(-110%)'; const id = w.dataset.id; setTimeout(async () => { await trashEntry(id); toast(t('ed.trashed'), { action: t('common.undo'), onAction: () => restoreEntry(id) }); }, 180); }
-    else if (cur < -44) { w.classList.add('open'); r.style.transform = 'translateX(-88px)'; w.style.setProperty('--rev', '88px'); }
+    else if (cur < -44) { w.classList.add('open'); r.style.transform = 'translateX(-96px)'; w.style.setProperty('--rev', '96px'); }
     else { w.classList.remove('open'); r.style.transform = ''; w.style.setProperty('--rev', '0px'); }
   });
   // 밀던 중이거나 열려 있으면 눌러도 글로 들어가지 않고 닫혀요

@@ -64,8 +64,12 @@ function newPath() {
 function trackKeyboard() {
   const vv = window.visualViewport; if (!vv) return;
   const root = document.documentElement;
-  const upd = () => { const h = Math.max(0, Math.round(innerHeight - vv.height - vv.offsetTop)); root.style.setProperty('--kb', h + 'px'); root.classList.toggle('kb-open', h > 80); };
-  vv.addEventListener('resize', upd); vv.addEventListener('scroll', upd); upd();
+  // --vvh · --vvt: 지금 눈에 보이는 화면(키보드 위)의 높이와 위치. 편집기는 이 상자 안에서만 스크롤해서, 서식 막대가 글 위를 덮거나 흔들리지 않아요
+  let raf = 0;
+  const upd = () => { raf = 0; const h = Math.max(0, Math.round(innerHeight - vv.height - vv.offsetTop)); root.style.setProperty('--kb', h + 'px'); root.classList.toggle('kb-open', h > 80);
+    root.style.setProperty('--vvh', Math.round(vv.height) + 'px'); root.style.setProperty('--vvt', Math.round(vv.offsetTop) + 'px'); };
+  const soon = () => { if (!raf) raf = requestAnimationFrame(upd); };
+  vv.addEventListener('resize', soon); vv.addEventListener('scroll', soon); upd();
 }
 let pt = 0; const paintSoon = () => { clearTimeout(pt); pt = setTimeout(paint, 600); };
 const isPC = () => matchMedia('(min-width: 900px)').matches;
@@ -108,7 +112,7 @@ function mark() {
   $$('.drawer .m[data-path]').forEach(a => a.classList.toggle('on', a.dataset.path === p));
   $$('.mbar .tab').forEach(a => a.classList.toggle('on', a.dataset.tab === p));
   // 글을 쓸 때는 같은 자리에 편집기의 서식 막대가 와요
-  const ed = /^\/(e|new)(\/|$)/.test(p); $('.mbar')?.toggleAttribute('hidden', ed); $('.pc-top')?.toggleAttribute('hidden', ed);
+  const ed = /^\/(e|new)(\/|$)/.test(p); $('.mbar')?.toggleAttribute('hidden', ed); if (!ed) document.documentElement.classList.remove('ed-mode'); $('.pc-top')?.toggleAttribute('hidden', ed);
 }
 
 export { TYPE_ICON, closeMenu, frame, mark, openMenu, paint, setUnread };

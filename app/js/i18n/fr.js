@@ -3,6 +3,7 @@ export default {
   'common.ok': 'OK', 'common.cancel': 'Annuler', 'common.close': 'Fermer', 'common.save': 'Enregistrer', 'common.delete': 'Supprimer', 'common.open': 'Ouvrir', 'common.undo': 'Annuler',
   'common.untitled': 'Sans titre', 'common.more': 'Plus', 'common.seeAll': 'Tout voir', 'common.retry': 'Réessayer', 'common.done': 'Terminé', 'common.back': 'Retour',
   'time.now': 'à l’instant',
+  'common.rotate': 'Veuillez tenir votre téléphone à la verticale.',
   'nav.menu': 'Menu', 'nav.closeMenu': 'Fermer le menu', 'nav.profile': 'Profil', 'nav.notices': 'Notifications', 'nav.settings': 'Réglages', 'nav.new': 'Nouvelle entrée', 'nav.write': 'Écrire',
   'nav.allShort': 'Tout', 'nav.home': 'Accueil', 'nav.all': 'Toutes les entrées', 'nav.byType': 'Par type', 'nav.todo': 'Tâches', 'nav.calendar': 'Calendrier', 'nav.folders': 'Dossiers', 'nav.noFolder': 'Sans dossier',
   'nav.trash': 'Corbeille', 'nav.search': 'Rechercher une entrée', 'nav.newFolder': 'Nouveau dossier',

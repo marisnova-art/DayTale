@@ -111,7 +111,8 @@ function render(view, r, keepPh) {
         ${askBox(q)}</div>
       <div class="spacer"></div>
     </section><aside class="today-side"></aside></div>`;
-  s.fresh = false; Photos.hydrate(view);
+  if (!document.documentElement.classList.contains('story-wait')) s.fresh = false;   // 첫 이야기는 다 받아 온 뒤 보여 줄 때 스르륵 나타나요
+  Photos.hydrate(view);
   view.querySelector('.today-side').append(todayPanel());
   const ta = view.querySelector('.ask textarea');
   let cq = q;

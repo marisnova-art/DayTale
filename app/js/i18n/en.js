@@ -3,6 +3,7 @@ export default {
   'common.ok': 'OK', 'common.cancel': 'Cancel', 'common.close': 'Close', 'common.save': 'Save', 'common.delete': 'Delete', 'common.open': 'Open', 'common.undo': 'Undo',
   'common.untitled': 'Untitled', 'common.more': 'More', 'common.seeAll': 'See all', 'common.retry': 'Try again', 'common.done': 'Done', 'common.back': 'Back',
   'time.now': 'just now',
+  'common.rotate': 'Please turn your phone upright.',
   'nav.menu': 'Menu', 'nav.closeMenu': 'Close menu', 'nav.profile': 'Profile', 'nav.notices': 'Notifications', 'nav.settings': 'Settings', 'nav.new': 'New record', 'nav.write': 'Write',
   'nav.allShort': 'All', 'nav.home': 'Home', 'nav.all': 'All records', 'nav.byType': 'By kind', 'nav.todo': 'To-dos', 'nav.calendar': 'Calendar', 'nav.folders': 'Folders', 'nav.noFolder': 'No folder',
   'nav.trash': 'Trash', 'nav.search': 'Search records', 'nav.newFolder': 'New folder',
