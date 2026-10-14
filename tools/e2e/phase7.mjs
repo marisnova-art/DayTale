@@ -23,7 +23,7 @@ for (const [l, locale, timezoneId, city] of L) {
   const packs = [...new Set(reqs.filter(n => /\/js\/story\/lit\/(?!catalogue)/.test(n)).map(n => n.split('/').pop()))];
   ok(packs.join() === `${l}.js`, `${l}: 문학 묶음은 그 언어 하나만 불러옴 (${packs.join()})`);
   await check('홈'); await p.evaluate(() => document.fonts.ready); await shot(p, `v1_50_${l}_home`);
-  await p.goto('http://app.test/#/settings/display'); await p.waitForSelector('[data-s=textSize]'); await p.waitForTimeout(300); await check('설정'); await shot(p, `v1_51_${l}_settings`);
+  await p.goto('http://app.test/#/settings/display'); await p.waitForSelector('[data-s=lang]'); await p.waitForTimeout(300); await check('설정'); await shot(p, `v1_51_${l}_settings`);
   await p.goto('http://app.test/#/plans'); await p.waitForSelector('.popt'); await p.waitForTimeout(300); await check('구독'); await shot(p, `v1_52_${l}_plans`);
   await p.goto('http://app.test/#/calendar'); await p.waitForTimeout(600); await check('캘린더');
   await p.goto('http://app.test/#/all'); await p.waitForTimeout(400); await check('목록');

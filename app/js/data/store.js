@@ -9,7 +9,6 @@ const FOLDER_COLORS = ['#FF9D7A', '#FFC86B', '#9BD68A', '#6FD3C1', '#7FB2FF', '#
 const DEFAULT_PREFS = {
   lang: null,            // 비어 있으면 기기 언어
   mode: 'story',         // story = 감성형, tidy = 정리형
-  textSize: 'm',         // s · m(기본) · l
   ui: 'white',           // 메뉴 색: white(기본) · glass · dark
   bg: 'grad',            // 배경: grad = 시간대 그라데이션, 아니면 단색 이름 (backdrop.js SOLID)
   weekStart: firstWeekday(),   // 0 일요일 · 1 월요일. 처음에는 기기 지역의 관례 (core/countries.js)
@@ -112,11 +111,10 @@ let prefsHook = () => {};
 const setPrefsHook = f => { prefsHook = f; };
 /* 설정마다 바꾼 시각을 따로 적어 둬요. 여러 기기에서 합칠 때 항목별로 더 최근 것을 고르려고요 (한 기기가 옛 설정 전체로 덮어쓰지 않게) */
 const prefsAt = () => ls.get('daytale.prefsAt', {});
-const LOCAL_PREFS = ['textSize'];   // 글자 크기는 기기마다 따로 (PC와 휴대폰 화면이 달라서)
+const LOCAL_PREFS = [];   // 기기마다 따로 두는 설정 (지금은 없어요. 예전 글자 크기 설정은 없앴어요)
 function setPref(k, v) { S.prefs[k] = v; ls.set('daytale.prefs', S.prefs); ls.set('daytale.prefsAt', { ...prefsAt(), [k]: new Date().toISOString() }); S.db?.set('prefs', S.prefs); emit('prefs'); prefsHook(); }
 
 /* 글자 크기: 예전 값 xl 은 이제 l(크게) */
 const uiStyle = () => ['white', 'glass', 'dark'].includes(S.prefs.ui) ? S.prefs.ui : 'white';
-const textSize = () => S.prefs.textSize === 'xl' ? 'l' : ['s', 'm', 'l'].includes(S.prefs.textSize) ? S.prefs.textSize : 'm';
-export { textSize, uiStyle, DEFAULT_PREFS, FOLDER_COLORS, S, TYPES, addEntry, addFolder, deleteFolder, displayTitle, emit, folderList, isEmpty, live, newEntry, onChange,
+export { uiStyle, DEFAULT_PREFS, FOLDER_COLORS, S, TYPES, addEntry, addFolder, deleteFolder, displayTitle, emit, folderList, isEmpty, live, newEntry, onChange,
   LOCAL_PREFS, patchEntry, prefsAt, purgeEntries, purgeOldTrash, restoreEntry, saveEntry, saveFolder, setPref, setPrefsHook, setSyncHook, trash, trashEntry };

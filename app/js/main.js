@@ -9,7 +9,7 @@ import es from './i18n/es.js';
 import fr from './i18n/fr.js';
 import { Account } from './data/account.js';
 import { LocalDB } from './data/local-db.js';
-import { S, emit, live, onChange, purgeOldTrash, setPrefsHook, setSyncHook, textSize, uiStyle } from './data/store.js';
+import { S, emit, live, onChange, purgeOldTrash, setPrefsHook, setSyncHook, uiStyle } from './data/store.js';
 import { configured, getSupabase } from './data/supabase.js';
 import { Sync } from './data/sync.js';
 import { setRemote } from './story/engine.js';
@@ -28,7 +28,6 @@ register('ko', ko); register('en', en); register('ja', ja); register('es', es); 
 setLang(S.prefs.lang || detectLang());
 const litLoad = loadLit(getLang());   // 문학 한 구절: 쓰는 언어 묶음 하나만 미리 불러요
 document.title = brand(getLang());
-document.documentElement.dataset.size = textSize();
 document.documentElement.dataset.ui = uiStyle();
 Backdrop.apply(document.documentElement);
 /* 화면 확대·축소는 쓰지 않아요. 아이폰은 가로 → 세로로 돌릴 때 가로에서의 배율을 그대로 남겨 화면이 커진 채로 보일 때가 있어서,
@@ -123,7 +122,6 @@ async function checkNotices() { try { const { unread } = await import('./views/n
 const reschedule = debounce(() => Reminders.schedule(), 800);
 function applyPrefs() {
   const l = S.prefs.lang || detectLang(); if (l !== getLang()) { setLang(l); frame(); rerender(); }
-  document.documentElement.dataset.size = textSize();
   document.documentElement.dataset.ui = uiStyle();
   const bg = S.prefs.bg in Backdrop.SOLID ? S.prefs.bg : 'grad', cur = Backdrop.now();   // 배경을 바꾸면 바로 칠해요
   if (bg !== (cur?.solid ? cur.name : 'grad')) Backdrop.apply(document.documentElement);

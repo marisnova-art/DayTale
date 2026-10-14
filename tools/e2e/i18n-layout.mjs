@@ -39,7 +39,7 @@ for (const lang of LANGS) {
   const p = await page({ width: W, height: 844 }, { locale, timezoneId });
   const check = async name => { await p.waitForTimeout(700); await p.evaluate(() => document.fonts.ready); const r = await p.evaluate(detect); report[`${lang} ${name}`] = r; if (SHOTS) await shot(p, `${lang}_${name}`); };
   const go = async (h, wait) => { await p.goto('http://app.test/#' + h); if (wait) await p.waitForSelector(wait, { timeout: 8000 }).catch(() => {}); };
-  if (process.argv[6]) { await go('/settings/display', '[data-s=textSize]'); await p.click('[data-s=textSize][data-v=l]'); await p.waitForTimeout(300); await p.click(`[data-s=bg][data-v=${process.argv[6]}]`); await p.waitForTimeout(500); }
+  if (process.argv[6]) { await go('/settings/display', '[data-s=bg]'); await p.click(`[data-s=bg][data-v=${process.argv[6]}]`); await p.waitForTimeout(500); }
   await go('/home', '.story p'); await p.waitForTimeout(1500); await check('home');
   await go('/calendar', '.seg'); await check('cal_week');
   await p.click('.filters [data-f=todo]').catch(() => {}); await check('cal_week_todo');
