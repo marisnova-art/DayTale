@@ -79,7 +79,7 @@ function render(view, r, opts = {}) {   // opts.pane: PC 나란히 보기의 오
   el.body.addEventListener('keydown', onKey);
   el.body.addEventListener('focus', () => document.execCommand('defaultParagraphSeparator', false, 'p'));
   // 판이 열려 있을 때: 글을 길게 눌러 고르는 동안은 판이 그대로 있고 (키보드도 안 올라와요), 그냥 톡 누르면 판을 닫고 키보드로 돌아가요
-  el.body.addEventListener('click', ev => { if (cur?.pan && !isPC() && getSelection().isCollapsed && !ev.target.closest('a')) { closePan(true); return; } onBodyClick(ev); });
+  el.body.addEventListener('click', ev => { if (cur?.pan && !isPC() && getSelection().isCollapsed && !ev.target.closest('a')) { closePan(true, 'body'); return; } onBodyClick(ev); });
   el.body.addEventListener('paste', onPaste);
   document.addEventListener('selectionchange', paintState);
   view.addEventListener('click', onAct);
@@ -180,21 +180,26 @@ function openPan(kind) {
   const b = cur.el.body;
   if (!isPC()) {   // 커서는 두고 키보드만 내려요. 판에서 무엇을 눌러도 키보드가 다시 올라오지 않아요
     b.inputMode = 'none';
-    if (document.activeElement === cur.el.title) { cur.el.title.blur(); placeCaret(b, true); }
+    // 제목을 쓰던 중이면 키보드만 내리고 커서는 옮기지 않아요. 판을 닫으면 제목으로 돌아가요 (서식 단추를 누를 때만 본문으로 가요)
+    if (!cur.panFrom) cur.panFrom = document.activeElement === cur.el.title ? 'title' : 'body';
+    if (document.activeElement === cur.el.title) cur.el.title.blur();
   }
   document.documentElement.style.setProperty('--pan', Math.min(Math.max(kbH, 260), 360) + 'px');
   document.documentElement.classList.add('ed-pan-open');
   cur.el.pan.hidden = false; paintPan(); requestAnimationFrame(keepCaret);
 }
-function closePan(toKeyboard = false) {
+function closePan(toKeyboard = false, to = cur?.panFrom) {
   if (!cur) return;
-  const had = cur.pan; cur.pan = null;
+  const had = cur.pan; cur.pan = null; cur.panFrom = null;
   cur.el.pan.hidden = true; cur.el.pan.innerHTML = '';
   document.documentElement.classList.remove('ed-pan-open');
   $$('[data-act=aa],[data-act=more]', cur.el.root).forEach(x => { x.classList.remove('on'); x.setAttribute('aria-expanded', 'false'); });
   $('.ed-bar .kbd', cur.el.root)?.toggleAttribute('hidden', true);
   const b = cur.el.body;
-  if (b.inputMode === 'none') { b.inputMode = ''; if (toKeyboard && had) { const r = saveRange(); b.blur(); b.focus({ preventScroll: true }); restoreRange(r); } }
+  if (b.inputMode === 'none') b.inputMode = '';
+  if (!toKeyboard || !had) return;
+  if (to === 'title') { const t = cur.el.title; t.focus({ preventScroll: true }); t.setSelectionRange(t.value.length, t.value.length); return; }
+  const r = saveRange(); b.blur(); b.focus({ preventScroll: true }); restoreRange(r);
 }
 function paintPan() {
   const { e, el } = cur, k = cur.pan;
@@ -235,6 +240,7 @@ const restoreRange = r => { if (!r) return; const s = getSelection(); s.removeAl
 async function fmt(f) {
   const body = cur.el.body;
   if (!body.contains(getSelection().anchorNode)) { if (document.activeElement !== body) placeCaret(body, true); }
+  if (cur.pan) cur.panFrom = 'body';   // 서식을 쓰면 본문을 고친 것이니, 판을 닫을 때 본문으로 돌아가요
   else if (document.activeElement !== body) { const r = saveRange(); body.focus({ preventScroll: true }); restoreRange(r); }
   if (['bold', 'italic', 'underline'].includes(f)) { cur.hist.snap(); document.execCommand(f); }
   else if (f === 'undo') { if (!cur.hist.back()) return; }
