@@ -219,6 +219,7 @@ function paintPan() {
       ${isPC() ? '' : `<div class="lab">${esc(t('ed.image'))}</div><div class="kinds imgs"><button class="kc" data-act="photo" ${cur.ro ? 'disabled' : ''}>${icon('image-plus', 18)}${esc(t('ed.attach'))}</button><button class="kc" data-act="card">${icon('image', 18)}${esc(t('card.title'))}</button></div>`}
       <div class="acts"><button data-x="fav" class="${fav ? 'on' : ''}">${icon('star', 19)}${esc(t(fav ? 'ed.unfavorite' : 'ed.favorite'))}</button><button data-x="pin" class="${pin ? 'on' : ''}">${icon('pin', 19)}${esc(t(pin ? 'ed.unpin' : 'ed.pin'))}</button><button data-x="trash" class="bad">${icon('trash-2', 19)}${esc(t('ed.trash'))}</button></div>`;
   }
+  $$('.ed-pan .kinds .on', el.root).forEach(b => { const w = b.parentElement; if (b.offsetLeft + b.offsetWidth > w.clientWidth) w.scrollLeft = b.offsetLeft - 12; });   // 고른 종류 · 폴더가 옆으로 가려져 있으면 보이게
 }
 /* 지금 커서 자리의 서식을 버튼에 표시해요 (켜짐/꺼짐) */
 function paintState() {
