@@ -40,8 +40,16 @@ let just = null;   // 방금 남긴 한 줄 { id, text, day, fresh }
 const unfocus = () => document.documentElement.classList.remove('home-focus');
 function wireAsk(view, { prompt, onSaved }) {
   const box = view.querySelector('.ask'), ta = box.querySelector('textarea'), fin = box.querySelector('.fin'), more = box.querySelector('.more');
-  const sync = () => { fin.disabled = !ta.value.trim(); };
+  // 칸 높이는 쓴 글, 비어 있으면 안내 글(언어마다 길이가 달라요)이 다 보이게 맞춰요. 아이폰 Safari 는 field-sizing 을 몰라서 직접 재요
+  const grow = () => {
+    ta.style.height = 'auto'; let h = ta.scrollHeight;
+    if (!ta.value && ta.placeholder) { ta.value = ta.placeholder; h = Math.max(h, ta.scrollHeight); ta.value = ''; }
+    ta.style.height = h + 'px';
+  };
+  const sync = () => { fin.disabled = !ta.value.trim(); grow(); };
   ta.addEventListener('input', sync);
+  requestAnimationFrame(grow); document.fonts?.ready.then(grow);
+  if ('ResizeObserver' in window) { let w = 0; new ResizeObserver(() => { if (ta.clientWidth !== w) { w = ta.clientWidth; grow(); } }).observe(ta); }
   // 아이폰은 칸 모양이 바뀌고 키보드가 올라오는 동안 커서를 예전 자리에 그려 둘 때가 있어서, 자리를 잡은 뒤 커서를 한 번 다시 놓아요
   const recaret = () => { if (document.activeElement !== ta) return; const a = ta.selectionStart, b = ta.selectionEnd; ta.setSelectionRange(a, b); };
   // 바탕을 눌러 나올 때는 들어가기 전 스크롤 자리로 돌려놔요 (아이폰이 키보드 때문에 밀어 둔 화면이 남아, 다시 들어가면 칸이 아래로 내려가 보였어요)
