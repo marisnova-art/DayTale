@@ -18,6 +18,7 @@ svg.i { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: rou
 @media (min-width: 900px) and (orientation: landscape) and (min-height: 501px) { .backdrop { background: var(--bg-grad-wide, var(--bg-grad)); } }
 .backdrop::before { content: ""; position: absolute; inset: 0; background: rgba(0,0,0,var(--scrim)); pointer-events: none; }   /* 밝은 그라데이션에서도 글자가 읽히게 25% 눌러요 (단색은 0) */
 .backdrop::after { content: ""; position: absolute; inset: 0; background-image: var(--grain); opacity: .38; mix-blend-mode: overlay; pointer-events: none; }
+:root[data-pat] .backdrop::after { display: none; }   /* 패턴은 자기 종이결이 있어요 */
 .st { display: inline-block; width: 1.1em; height: 1.1em; vertical-align: -.2em; margin: 0 .03em; object-fit: contain; }
 .glass { background: var(--glass); border: 1px solid rgba(var(--fg),.10); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); }
 .btn { height: 52px; border-radius: var(--r-m); font-size: var(--fs-m); font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 0 20px; }

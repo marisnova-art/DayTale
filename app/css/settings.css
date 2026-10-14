@@ -139,3 +139,6 @@
 .bgsw button.on i { box-shadow: 0 0 0 2px var(--sheet, #1A191F), 0 0 0 4px var(--text); }
 .bgsw small { font-size: var(--fs-s); color: var(--muted-2); text-align: center; line-height: 1.25; overflow-wrap: anywhere; }
 .bgsw button.on small { color: var(--text); font-weight: 600; }
+/* 패턴 견본: 줄노트는 선과 손글씨까지 보여요 */
+.bgsw i.pat-pad { font-family: 'DT Gamja Flower', var(--font); font-weight: 400; font-size: var(--fs-m); color: #26303F; box-shadow: inset 0 0 0 1px rgba(0,0,0,.06);
+  background-image: repeating-linear-gradient(transparent 0 13px, rgba(70,125,200,.5) 13px 14px) !important; }

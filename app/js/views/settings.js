@@ -5,7 +5,7 @@ import { esc, h, icon, slotOf, uid } from '../core/utils.js';
 import { Account } from '../data/account.js';
 import { CITIES, cityLookup, guessCity } from '../data/cities.js';
 import { S, emit, live, onChange, setPref, textSize, uiStyle } from '../data/store.js';
-import { PAL, SOLID, css } from '../ui/backdrop.js';
+import { PAL, SOLID, PATTERN, css } from '../ui/backdrop.js';
 import { endSession } from '../data/supabase.js';
 import { Sync } from '../data/sync.js';
 import { Install } from '../features/install.js';
@@ -19,7 +19,7 @@ const GROUPS = [['account', 'user'], ['display', 'palette'], ['record', 'noteboo
 const isPC = () => matchMedia('(min-width: 900px) and (min-height: 501px), (min-width: 900px) and (pointer: fine)').matches;
 const LICENSES = [
   ['Pretendard', 'SIL Open Font License 1.1', 'https://github.com/orioncactus/pretendard'],
-  ['Gowun Batang · Noto Serif JP · Caveat · Nanum Pen Script · Klee One', 'SIL Open Font License 1.1', './fonts/OFL.txt'],
+  ['Gowun Batang · Noto Serif JP · Caveat · Nanum Pen Script · Klee One · Gamja Flower', 'SIL Open Font License 1.1', './fonts/OFL.txt'],
   ['Lucide Icons', 'ISC License', 'https://lucide.dev/license'],
   ['Fluent Emoji (Microsoft)', 'MIT License', 'https://github.com/microsoft/fluentui-emoji'],
   ['Pixelarticons', 'MIT License', 'https://github.com/halfmage/pixelarticons'],
@@ -32,8 +32,11 @@ const row = ({ ic, label, sub = '', value = '', act = '', href = '', danger = fa
   `<${href ? `a href="${href}"` : `button data-a="${act}"`} class="srow${danger ? ' danger' : ''}">${ic ? `<span class="si">${icon(ic, 19)}</span>` : ''}<span class="stx"><b>${esc(label)}</b>${sub ? `<small>${sub}</small>` : ''}</span>${value ? `<span class="sv">${esc(value)}</span>` : ''}${chev ? icon('chevron-right', 18) : ''}</${href ? 'a' : 'button'}>`;
 const toggle = (key, label, sub, on) => `<label class="srow"><span class="stx"><b>${esc(label)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</span><input type="checkbox" class="sw" data-t="${key}" ${on ? 'checked' : ''}></label>`;
 /* 배경 고르기: 그라데이션 + 단색 견본 (글자 'Aa'는 그 배경의 글자색) */
-const bgRow = cur => `<div class="srow col"><span class="stx"><b>${esc(t('set.bg'))}</b></span><span class="bgsw">${[['grad', css(PAL[slotOf()][0]), '#F5F3EF', t('set.bgGrad')], ...Object.entries(SOLID).map(([k, [bg, ink]]) => [k, bg, ink, t('bg.' + k)])]
-  .map(([v, bg, ink, name]) => `<button data-s="bg" data-v="${v}" class="${v === cur ? 'on' : ''}" aria-label="${esc(name)}" aria-pressed="${v === cur}"><i style="background:${bg};color:${ink}">Aa</i><small>${esc(name)}</small></button>`).join('')}</span></div>`;
+/* 패턴은 그라데이션·단색과 섞지 않고 따로 골라요 */
+const bgSw = (cur, list) => `<span class="bgsw">${list.map(([v, bg, ink, name, pat]) => `<button data-s="bg" data-v="${v}" class="${v === cur ? 'on' : ''}" aria-label="${esc(name)}" aria-pressed="${v === cur}"><i style="background:${esc(bg)};color:${ink}"${pat ? ` class="pat-${pat}"` : ''}>Aa</i><small>${esc(name)}</small></button>`).join('')}</span>`;
+const bgRow = cur => { const sw = Object.entries(SOLID).map(([k, [bg, ink, , , , pat]]) => [k, pat ? PATTERN[pat] : bg, ink, t('bg.' + k), pat]);
+  return `<div class="srow col"><span class="stx"><b>${esc(t('set.bg'))}</b></span>${bgSw(cur, [['grad', css(PAL[slotOf()][0]), '#F5F3EF', t('set.bgGrad')], ...sw.filter(x => !x[4])])}</div>`
+    + `<div class="srow col"><span class="stx"><b>${esc(t('set.bgPat'))}</b></span>${bgSw(cur, sw.filter(x => x[4]))}</div>`; };
 const seg = (key, label, opts, cur) => `<div class="srow col"><span class="stx"><b>${esc(label)}</b></span><span class="seg wide">${opts.map(([v, l]) => `<button data-s="${key}" data-v="${v}" class="${String(cur) === String(v) ? 'on' : ''}">${esc(l)}</button>`).join('')}</span></div>`;
 const card = (title, inner) => `${title ? `<h3 class="sgh">${esc(title)}</h3>` : ''}<div class="scard">${inner}</div>`;
 

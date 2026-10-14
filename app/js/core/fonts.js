@@ -2,8 +2,9 @@
 const FONTS = ['base', 'serif', 'hand'];
 const loaded = new Set();
 const fontOf = e => FONTS.includes(e?.meta?.font) ? e.meta.font : 'base';
+/* pad = 줄노트 배경의 손글씨 (기록 글꼴이 아니라 배경을 따라가요) */
 function useFont(k) {
-  if (k === 'base' || !FONTS.includes(k) || loaded.has(k)) return;
+  if (k === 'base' || !(FONTS.includes(k) || k === 'pad') || loaded.has(k)) return;
   loaded.add(k);
   const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = `./fonts/${k}.css`; document.head.append(l);
 }

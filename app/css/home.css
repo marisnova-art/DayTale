@@ -94,3 +94,14 @@
 :root[data-ui="white"] .ask-btns .fin:disabled { background: #F2F0F5; color: #A8A4B0; }
 :root[data-ui="white"].home-focus .ask { background: #FFFFFF; border-color: transparent; }
 :root[data-ui="glass"] .ask { background: rgba(var(--fg),.16); border-color: rgba(var(--fg),.3); }
+
+/* 노란 줄노트 배경: 손글씨(감자꽃) + 글줄마다 파란 선. 선 간격 = 글줄 높이(1lh)라 글자 크기를 바꿔도 맞아요.
+   문단 사이도 딱 한 줄 비워서 선이 어긋나지 않아요 */
+:root[data-pat="pad"] { --f-pad: 'DT Gamja Flower', var(--font); }
+:root[data-pat="pad"] .home .story { font-family: var(--f-pad); font-size: calc(var(--story) * 1.02); font-weight: 400; letter-spacing: 0;
+  background: linear-gradient(transparent calc(1lh - 1.5px), rgba(70,125,200,.5) calc(1lh - 1.5px)) 0 .14em / 100% 1lh repeat-y;
+  margin-left: -24px; margin-right: -24px; padding: 0 24px; }
+:root[data-pat="pad"] .home .story p, :root[data-pat="pad"] .home .story p:last-child { margin: 0 0 1lh; }
+:root[data-pat="pad"] .home .story .w, :root[data-pat="pad"] .home .story .n { font-weight: 700; }
+:root[data-pat="pad"] .home .when { font-family: var(--f-pad); font-weight: 400; }
+:root[data-pat="pad"] .wxcredit { color: rgba(var(--ink-rgb),.45); }

@@ -2,6 +2,7 @@
    설정 > 화면 > 배경에서 단색도 고를 수 있어요. 글자색은 배경마다 짝을 맞춰요. */
 import { ls, slotOf } from '../core/utils.js';
 import { S } from '../data/store.js';
+import { useFont } from '../core/fonts.js';
 
 // 이름, 어두운 모서리, 뜨거운 빛, 따뜻한 빛, 중간, 깊은 색
 const PAL = {
@@ -43,8 +44,13 @@ function pick(slot = slotOf(), weather = null) {
 const SOLID = {
   cream: ['#F3EADB', '#2A2018', .72, '#A8461F', 1], sage: ['#DCE4D4', '#1E2A20', .72, '#2E663C', 1], sky: ['#D4E4F1', '#13243A', .72, '#2C62B4', 1],
   terracotta: ['#8C3F2E', '#FFF2E8', .8, '#FFD58A'], plum: ['#3A2240', '#F7E9F3', .74, '#FFAFCB'],
-  olive: ['#3B3D26', '#F3F0DC', .74, '#E8C65A'], navy: ['#131B32', '#E6ECFF', .72, '#9DB8FF'], charcoal: ['#1C1C1E', '#F2F0EC', .7, '#FFB37A']
+  olive: ['#3B3D26', '#F3F0DC', .74, '#E8C65A'], navy: ['#131B32', '#E6ECFF', .72, '#9DB8FF'], charcoal: ['#1C1C1E', '#F2F0EC', .7, '#FFB37A'],
+  /* 패턴: 그라데이션·단색과 섞지 않는 따로 된 배경. 여섯째 값 = 무늬 이름 (글꼴·글줄 선은 base.css :root[data-pat]) */
+  pad: ['#FBEFA4', '#26303F', .82, '#C2412E', 1, 'pad']
 };
+/* 노란 줄노트: 스케치북 같은 종이결 (선은 글줄에 맞춰 이야기 글에 그어요) */
+const PAPER = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' seed='3' stitchTiles='stitch'/%3E%3CfeDiffuseLighting lighting-color='%23fff' surfaceScale='1.1'%3E%3CfeDistantLight azimuth='45' elevation='58'/%3E%3C/feDiffuseLighting%3E%3CfeColorMatrix values='0 0 0 0 .38  0 0 0 0 .30  0 0 0 0 .10  -1 0 0 0 .8'/%3E%3C/filter%3E%3Crect width='260' height='260' filter='url(%23n)'/%3E%3C/svg%3E")`;
+const PATTERN = { pad: `${PAPER}, #FBEFA4` };
 const rgb = c => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16)).join(',');
 /* 그라데이션 글자: 배경의 따뜻한 빛 색을 아주 옅게 섞은 흰색 */
 const inkOf = p => lighten(p[3], .86);
@@ -60,14 +66,19 @@ function paint(el, { bg, wide, ink, body, accent, theme, scrim, light = false })
   document.querySelector('meta[name=theme-color]')?.setAttribute('content', theme);
 }
 let current = null;
+function pattern(pat) {
+  if (pat) { document.documentElement.dataset.pat = pat; useFont(pat); } else delete document.documentElement.dataset.pat;
+}
 /* 하루 한 시간대 동안은 같은 배경을 유지해요 */
 function apply(el = document.body, { weather = null } = {}) {
   const slot = slotOf(), sol = SOLID[S.prefs.bg];
   if (sol) {
-    const [bg, ink, a, acc, light] = sol; current = { name: S.prefs.bg, slot, accent: acc, solid: bg, light: !!light };
-    paint(el, { bg, ink, body: a, accent: acc, theme: bg, scrim: 0, light: !!light });
+    const [bg, ink, a, acc, light, pat] = sol; current = { name: S.prefs.bg, slot, accent: acc, solid: bg, light: !!light };
+    pattern(pat);
+    paint(el, { bg: pat ? PATTERN[pat] : bg, ink, body: a, accent: acc, theme: bg, scrim: 0, light: !!light });
     return current;
   }
+  pattern(null);
   const key = new Date().toDateString() + slot;
   const saved = ls.get('daytale.bgNow', null);
   let p = saved?.key === key ? Object.values(PAL).flat().find(x => x[0] === saved.name) : null;
@@ -84,4 +95,4 @@ function stops() {
   const [, d, hot, warm, mid, deep] = p; return [d, dk(hot, .62), dk(warm, .55), dk(mid, .85), deep];
 }
 
-export { PAL, SOLID, apply, css, cssWide, now, stops };
+export { PAL, SOLID, PATTERN, apply, css, cssWide, now, stops };
