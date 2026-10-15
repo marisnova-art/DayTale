@@ -40,7 +40,8 @@ function render(view, r, opts = {}) {   // opts.pane: PC 나란히 보기의 오
   const fontBtn = `<button class="tb lbl ffb" data-act="font" aria-label="${esc(t('ed.font'))}" title="${esc(t('ed.font'))}">${icon('a-large-small', 18)}<span></span></button>`;
   const cancel = `<button class="ed-cancel" data-act="cancel">${icon('x', 18)}<span>${esc(t('common.cancel'))}</span></button>`;
   const done = `<button class="ed-done" data-act="done">${icon('check', 18)}<span>${esc(t('ed.finish'))}</span></button>`;
-  view.innerHTML = `<div class="ed-page"><div class="ed-top">${cancel}<span class="sp"></span>${done}</div><div class="ed">
+  const big = opts.pane ? `<button class="ed-big" data-act="big">${icon('maximize-2', 17)}<span>${esc(t('ed.expand'))}</span></button>` : '';   // 목록 옆 칸 → 단독 쓰기로 크게
+  view.innerHTML = `<div class="ed-page"><div class="ed-top">${cancel}<span class="sp"></span>${big}${done}</div><div class="ed">
     <div class="ed-tools" role="toolbar"${ro ? ' hidden' : ''}>${ro ? '' : `<span class="grp">${fontBtn}</span><span class="grp">${INLINE.slice(0, 3).map(f => fbtn(f)).join('')}</span><span class="grp">${STYLE.slice(1).map(f => fbtn(f)).join('')}${fbtn(INLINE[4])}</span><span class="grp">${HL.map(hlBtn).join('')}</span><span class="grp">${[LISTS[2], LISTS[0], LISTS[1], LISTS[3]].map(f => fbtn(f)).join('')}</span><span class="grp">${photoBtn}${fbtn(LISTS[4])}${fbtn(LISTS[5])}</span>`}</div>
     ${ro ? `<div class="ed-locked"><span>${esc(t('ed.locked'))}</span><button data-act="plans">${esc(t('trial.plans'))}</button></div>` : ''}
     <button class="ed-info" data-act="more" aria-expanded="false"></button><div class="ed-pan" hidden></div>
@@ -290,6 +291,7 @@ async function onAct(ev) {
   const a = b.dataset.act;
   if (a === 'back') { await commit(); const back = history.length > 1; leave(); back ? history.back() : go('/home'); }
   else if (a === 'cancel') cancel();
+  else if (a === 'big') expand();
   else if (a === 'done') finish(b);
   else if (a === 'plans') go('/plans');
   else if (a === 'aa') toggleFmt();
@@ -313,6 +315,13 @@ async function finish(b) {
   if (cur?.pane) { const p = cur.pane; leave(); p.onDone?.(wrote ? e : null); return; }
   leave();
   if (wrote && wasNew) go('/all', { replace: true }); else history.length > 1 ? history.back() : go('/home');
+}
+/* 크게 열기: 쓰던 내용을 저장하고 같은 기록을 단독 쓰기로 열어요 (취소 · 저장하면 목록으로 돌아와요) */
+async function expand() {
+  await commit(); if (!cur) return;
+  const e = cur.e, empty = cur.isNew && isEmpty(e);
+  const q = new URLSearchParams(); if (empty) { q.set('type', e.type); if (e.folder_id) q.set('folder', e.folder_id); if (e.meta?.date) q.set('date', e.meta.date); }
+  leave(); go(empty ? '/new?' + q : '/e/' + e.id);
 }
 /* 취소: 고친 게 없으면 그냥 나가요. 고쳤으면 물어보고, 새 글은 지우고 · 고친 글은 열었을 때 모습으로 되돌려요 */
 async function cancel() {
