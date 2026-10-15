@@ -393,7 +393,7 @@
   .ed-tools .tb { width: 38px; height: 40px; border-radius: 12px; }
   .ed-tools .tb.on { background: rgba(var(--fg),.13); color: var(--text); }
   .ed-tools .tb.hl.on { background: none; }
-  .ed-tools .tb.lbl { width: auto; background: none; box-shadow: inset 0 0 0 1.5px rgba(var(--fg),.18); }
+  .ed-tools .tb.lbl { width: auto; border-radius: 999px; background: none; box-shadow: inset 0 0 0 1.5px rgba(var(--fg),.18); }
 }
 @media (min-width: 900px) and (min-height: 501px), (min-width: 900px) and (pointer: fine) {
   /* 서식 줄이 한 줄에 다 들어가게: 단추 34px, 글꼴은 이름만, 줄은 글 칸보다 조금 넓게 */
@@ -406,7 +406,7 @@
 /* 칩: 고른 것이 많으면 잘라 내지 않고 두 줄로 (종류 · 날짜 · 장소 · 폴더가 다 보여요) */
 .ed .ed-info { flex-wrap: wrap; height: auto; min-height: 40px; padding-top: 7px; padding-bottom: 7px; row-gap: 2px; line-height: 1.35; }
 .ed .ed-info span { overflow: visible; white-space: nowrap; }
-.ed .ed-info:has(> span:nth-of-type(3)) { border-radius: 16px; }
+.ed .ed-info:has(> span:nth-of-type(3)) { border-radius: 20px; }   /* 한 줄이면 알약, 두 줄이 돼도 같은 둥글기 */
 /* 되돌리기 · 다시 하기는 할 것이 없으면 흐리게 */
 .tb.off { opacity: .3; }
 /* 손가락으로 누른 뒤 단추가 '켜진 것처럼' 회색으로 남지 않게 (아이폰은 누른 자리를 마우스 올림으로 기억해요) */

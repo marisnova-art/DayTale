@@ -33,7 +33,7 @@
 .drawer.open { clip-path: inset(0 0 0 0 round 33px); opacity: 1; pointer-events: auto; visibility: visible; transition: clip-path .3s cubic-bezier(.2,.8,.2,1), opacity .12s, visibility 0s; }
 .drawer .head { display: flex; align-items: center; gap: 4px; padding: 6px 0 0 2px; flex: none; order: 20; border-top: 1px solid var(--line); margin-top: 6px; }
 /* 모바일 메뉴 맨 아래 줄: 왼쪽 닫기, 오른쪽 로고·브랜드 */
-.drawer .head .close { color: var(--text); width: 48px; height: 48px; background: rgba(var(--fg),.1); flex: none; }
+.drawer .head .close { color: var(--text); width: 48px; height: 48px; border-radius: 50%; background: rgba(var(--fg),.1); flex: none; }
 .drawer .head .mark { margin-left: auto; display: flex; align-items: center; gap: 8px; padding-right: 12px; }
 .drawer .head .logo { width: 26px; height: 26px; border-radius: 8px; }
 .drawer .head .brand { flex: none; }
