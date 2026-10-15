@@ -14,15 +14,17 @@ function render(view) {
     const status = st.subscriber
       ? `<div class="pstat on">${icon('circle-check', 20)}<span><b>${esc(t(st.plan === 'yearly' ? 'plan.yearlyOn' : 'plan.monthlyOn'))}</b><small>${esc(st.cancel_at ? t('plan.endsOn', { date: fmtDate(st.cancel_at, { year: 'numeric', month: 'long', day: 'numeric' }) }) : sub?.current_period_end ? t('plan.renews', { date: fmtDate(sub.current_period_end, { year: 'numeric', month: 'long', day: 'numeric' }) }) : '')}</small></span></div>`
       : `<div class="pstat${d > 0 ? '' : ' end'}">${icon(d > 0 ? 'hourglass' : 'lock', 20)}<span><b>${esc(d > 0 ? Account.leftText(d) : t('trial.ended'))}</b><small>${esc(d > 0 ? t('plan.trialSub') : t('plan.endedSub'))}</small></span></div>`;
-    const opt = (k, price, per, badge) => `<button class="popt${pick === k ? ' on' : ''}" data-plan="${k}" role="radio" aria-checked="${pick === k}"><span class="rd"></span><span class="pt"><b>${esc(t('plan.' + k))}</b><small>${esc(per)}</small></span><span class="pp">${esc(price)}${badge ? `<em>${esc(badge)}</em>` : ''}</span></button>`;
-    body.innerHTML = status + (st.subscriber ? manage(sub) : `
+    // 구독 전 (데이원처럼 단순하게): 제목 한 줄 → 체험 상태 한 줄 → 체크 목록 → 연간/월간 타일 → 버튼 하나 → 작은 안내
+    const tile = (k, price, per, badge) => `<button class="ptile${pick === k ? ' on' : ''}" data-plan="${k}" role="radio" aria-checked="${pick === k}">${badge ? `<em>${esc(badge)}</em>` : ''}<span class="tl">${esc(t('plan.' + k))}</span><b>${esc(price)}</b><small>${esc(per)}</small></button>`;
+    const feats = `<ul class="pchk">${['f1', 'f2', 'f3', 'f4', 'f5'].map(f => `<li>${icon('check', 20)}${esc(t('plan.' + f))}</li>`).join('')}</ul>`;
+    body.innerHTML = st.subscriber ? status + manage(sub) + `<h3 class="sgh">${esc(t('plan.includes'))}</h3>${feats}` : `<div class="pv2">
       <h1 class="ptitle">${esc(t('plan.headline'))}</h1>
-      <div class="popts" role="radiogroup">${opt('yearly', pr.yearly, t('plan.perMonth', { price: pr.yearlyPerMonth }), pr.save > 0 ? t('plan.save', { n: pr.save }) : '')}${opt('monthly', pr.monthly, t('plan.monthlySub'), '')}</div>
+      <p class="ptrial${d > 0 ? '' : ' end'}">${icon(d > 0 ? 'hourglass' : 'lock', 17)}<span><b>${esc(d > 0 ? Account.leftText(d) : t('trial.ended'))}</b> · ${esc(d > 0 ? t('plan.trialSub') : t('plan.endedSub'))}</span></p>
+      ${feats}
+      <div class="ptiles" role="radiogroup">${tile('yearly', pr.yearly, t('plan.perMonth', { price: pr.yearlyPerMonth }), pr.save > 0 ? t('plan.save', { n: pr.save }) : '')}${tile('monthly', pr.monthly, t('plan.monthlySub'), '')}</div>
       <button class="btn primary wide pgo" data-buy ${Billing.waiting ? 'disabled' : ''}>${esc(Billing.waiting ? t('plan.waiting') : t('plan.start', { plan: t('plan.' + pick) }))}</button>
-      <p class="pfine">${esc(pr.local ? t('plan.taxIncl') : t('plan.taxNote'))} ${esc(t('plan.cancelAny'))}</p>`)
-      + `<h3 class="sgh">${esc(t('plan.includes'))}</h3><ul class="pfeat">${['f1', 'f2', 'f3', 'f4', 'f5'].map(f => `<li>${icon('check', 18)}${esc(t('plan.' + f))}</li>`).join('')}</ul>
-      <h3 class="sgh">${esc(t('plan.afterTrial'))}</h3><p class="snote">${esc(t('plan.afterTrialBody'))}</p>
-      <p class="snote">${t('plan.paddle')}</p>`;
+      <p class="pfine">${esc(pr.local ? t('plan.taxIncl') : t('plan.taxNote'))} ${esc(t('plan.cancelAny'))}</p>
+      <div class="pmore"><b>${esc(t('plan.afterTrial'))}</b><p>${esc(t('plan.afterTrialBody'))}</p><p>${t('plan.paddle')}</p></div></div>`;
   };
   view.paintPlans = paint;
   body.addEventListener('click', ev => {

@@ -200,7 +200,7 @@ dialog.dlg .btn { height: 44px; }
 }
 
 /* 판 · 시트 · 카드도 모두 메뉴 색을 따라요: 쓰기 막대, 서식 · 옵션 판, 시트, 확인 창, 설정 · 모든 기록 · 캘린더 카드, 거르개, 검색 칸 */
-:root[data-ui="white"] :is(.ed-bar .cap, .sheet, .ed-pan, dialog.dlg, .scard, .pstat, .popt, .pfeat, .card, .ev, .mbox, .wkrow .weekstrip, .pcm, .pcw .col, .today-side .today, .split .pane, .seg, .filters, .field, .cal .navbtn, .cal .today-btn, .lst-head .act .icon-btn, .agenda .add, .ed-tools) { color-scheme: light; --sheet: #FFFFFF; --fg: 24,23,28; --on-text: #FFFFFF;
+:root[data-ui="white"] :is(.ed-bar .cap, .sheet, .ed-pan, dialog.dlg, .scard, .pstat, .popt, .ptile, .pfeat, .card, .ev, .mbox, .wkrow .weekstrip, .pcm, .pcw .col, .today-side .today, .split .pane, .seg, .filters, .field, .cal .navbtn, .cal .today-btn, .lst-head .act .icon-btn, .agenda .add, .ed-tools) { color-scheme: light; --sheet: #FFFFFF; --fg: 24,23,28; --on-text: #FFFFFF;
   --text: #18171C; --text-2: #211F26; --text-3: #3A3741; --muted: #77737F; --muted-2: #77737F; --faint: #8F8B97;
   --fill: #F2F0F5; --fill-2: #ECEAF0; --line: #ECEAF0; --line-2: #E2DFE6; --danger: #E5484D; --raised: #F3F1F5; --raised-2: #ECE9F0; }
 :root[data-ui="white"] :is(.sheet, .ed-pan, dialog.dlg) { background: #FFFFFF; box-shadow: 0 -12px 40px rgba(0,0,0,.28); }
@@ -208,20 +208,20 @@ dialog.dlg .btn { height: 44px; }
 :root[data-ui="white"] .ed-bar .tb.lbl:not(.on) { background: #F0EEF3; }
 :root[data-ui="white"] .sheet .grip, :root[data-ui="white"] .ed-pan::before { background: #DAD7DF; }
 :root[data-ui="white"] .ed-pan .acts button.on { color: #C98A00; }
-:root[data-ui="white"] :is(.scard, .pstat, .popt, .pfeat, .card, .ev, .mbox, .wkrow .weekstrip, .pcm, .pcw .col, .today-side .today, .split .pane, .seg, .filters, .field, .cal .navbtn, .cal .today-btn, .lst-head .act .icon-btn, .agenda .add, .ed-tools) { background: #FFFFFF; border-color: transparent; box-shadow: 0 8px 24px rgba(0,0,0,.12); -webkit-backdrop-filter: none; backdrop-filter: none; }
-:root[data-ui="white"] .popt.on { border-color: var(--accent); }
+:root[data-ui="white"] :is(.scard, .pstat, .popt, .ptile, .pfeat, .card, .ev, .mbox, .wkrow .weekstrip, .pcm, .pcw .col, .today-side .today, .split .pane, .seg, .filters, .field, .cal .navbtn, .cal .today-btn, .lst-head .act .icon-btn, .agenda .add, .ed-tools) { background: #FFFFFF; border-color: transparent; box-shadow: 0 8px 24px rgba(0,0,0,.12); -webkit-backdrop-filter: none; backdrop-filter: none; }
+:root[data-ui="white"] :is(.popt, .ptile).on { border-color: var(--accent); }
 :root[data-ui="white"] .scard input[type=time] { color-scheme: light; }
 :root[data-ui="white"] :is(.seg, .filters) button.on { box-shadow: none; }
 :root[data-ui="white"] .field input::placeholder { color: #8F8B97; }
-:root[data-ui="glass"] :is(.ed-bar .cap, .sheet, .ed-pan, dialog.dlg, .scard, .pstat, .popt, .pfeat, .card, .ev, .mbox, .wkrow .weekstrip, .pcm, .pcw .col, .today-side .today, .split .pane, .seg, .filters, .field, .cal .navbtn, .cal .today-btn, .lst-head .act .icon-btn, .agenda .add, .ed-tools) { background: linear-gradient(rgba(var(--fg),.16), rgba(var(--fg),.16)), rgba(var(--srf),.72); border-color: rgba(var(--fg),.28);
+:root[data-ui="glass"] :is(.ed-bar .cap, .sheet, .ed-pan, dialog.dlg, .scard, .pstat, .popt, .ptile, .pfeat, .card, .ev, .mbox, .wkrow .weekstrip, .pcm, .pcw .col, .today-side .today, .split .pane, .seg, .filters, .field, .cal .navbtn, .cal .today-btn, .lst-head .act .icon-btn, .agenda .add, .ed-tools) { background: linear-gradient(rgba(var(--fg),.16), rgba(var(--fg),.16)), rgba(var(--srf),.72); border-color: rgba(var(--fg),.28);
   -webkit-backdrop-filter: blur(30px) saturate(1.4); backdrop-filter: blur(30px) saturate(1.4);
   --text-3: #FFFFFF; --muted-2: rgba(var(--fg),.72); --faint: rgba(var(--fg),.6); --fill: rgba(var(--fg),.14); --fill-2: rgba(var(--fg),.2); --line: rgba(var(--fg),.2); --line-2: rgba(var(--fg),.28); }
 :root[data-ui="glass"] .sheet .sh-top { background: transparent; }
 /* 밝은 배경에서 '다크그레이'를 고르면 판 · 시트 · 카드도 어두운 그대로예요 */
-:root.bg-light[data-ui="dark"] :is(.ed-bar .cap, .sheet, .ed-pan, dialog.dlg, .scard, .pstat, .popt, .pfeat, .card, .ev, .mbox, .wkrow .weekstrip, .pcm, .pcw .col, .today-side .today, .split .pane, .seg, .filters, .field, .cal .navbtn, .cal .today-btn, .lst-head .act .icon-btn, .agenda .add, .ed-tools) { color-scheme: dark; --fg: 255,255,255; --srf: 22,21,26; --on-text: #141317; --sheet: #1A191F; --pan-bg: #1B1A20; --glass-strong: rgba(22,21,26,.9);
+:root.bg-light[data-ui="dark"] :is(.ed-bar .cap, .sheet, .ed-pan, dialog.dlg, .scard, .pstat, .popt, .ptile, .pfeat, .card, .ev, .mbox, .wkrow .weekstrip, .pcm, .pcw .col, .today-side .today, .split .pane, .seg, .filters, .field, .cal .navbtn, .cal .today-btn, .lst-head .act .icon-btn, .agenda .add, .ed-tools) { color-scheme: dark; --fg: 255,255,255; --srf: 22,21,26; --on-text: #141317; --sheet: #1A191F; --pan-bg: #1B1A20; --glass-strong: rgba(22,21,26,.9);
   --text: #F5F3EF; --text-2: #F2F0EC; --text-3: #D9D5DE; --muted: #A9A5AF; --muted-2: #8E8A94; --faint: #6F6B77; --danger: #FF6B6B;
   --line: rgba(255,255,255,.07); --line-2: rgba(255,255,255,.12); --fill: rgba(255,255,255,.05); --fill-2: rgba(255,255,255,.08); --raised: #222127; --raised-2: #26252C; }
-:root.bg-light[data-ui="dark"] :is(.scard, .pstat, .popt, .pfeat, .card, .ev, .mbox, .wkrow .weekstrip, .pcm, .pcw .col, .today-side .today, .split .pane, .seg, .filters, .field, .cal .navbtn, .cal .today-btn, .lst-head .act .icon-btn, .agenda .add, .ed-tools) { background: rgba(22,21,26,.86); }
+:root.bg-light[data-ui="dark"] :is(.scard, .pstat, .popt, .ptile, .pfeat, .card, .ev, .mbox, .wkrow .weekstrip, .pcm, .pcw .col, .today-side .today, .split .pane, .seg, .filters, .field, .cal .navbtn, .cal .today-btn, .lst-head .act .icon-btn, .agenda .add, .ed-tools) { background: rgba(22,21,26,.86); }
 
 /* 휴대폰 가로: PC 화면이 아니라 모바일 화면 그대로, 가로에 맞게만 다듬어요.
    글은 가운데 읽기 좋은 폭으로 모으고, 낮아진 높이에 맞춰 위아래 여백 · 막대 · 판을 줄여요. 노치가 있는 옆쪽은 비워 둬요 */
