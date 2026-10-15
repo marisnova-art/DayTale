@@ -130,3 +130,12 @@
 :root[data-pixel] .home .askq .q, :root[data-pixel] .home .ask textarea { font-family: var(--f-pixel); letter-spacing: 0; -webkit-font-smoothing: none; }
 :root[data-pixel] .home .askq .q { font-size: calc(var(--story) * .82); }
 :root[data-pixel] .home .ask textarea { font-weight: 400; font-size: calc(var(--fs-l) * .9); }
+
+/* 간직한 문장 목록: 문장은 굵게 두세 줄, 아래 작가 · 출처 · 간직한 날 */
+.kept .kw { display: flex; flex-direction: column; gap: 6px; width: 100%; text-align: left; padding: 14px 4px; border-bottom: 1px solid var(--line); }
+.kept .kw:last-child { border-bottom: 0; }
+.kept .kq { font-size: var(--fs-m); font-weight: 600; line-height: 1.5; color: var(--text); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.kept .kq::before { content: '“'; } .kept .kq::after { content: '”'; }
+.kept .kb { display: flex; gap: 8px; font-size: var(--fs-s); color: var(--muted); }
+.kept .kb i { margin-left: auto; font-style: normal; color: var(--faint); flex: none; }
+.kept .body > .card { margin-top: 14px; }

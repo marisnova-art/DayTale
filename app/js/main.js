@@ -50,6 +50,7 @@ route('/home', V('home'));
 ['/all', '/favorites', '/past', '/type/:type', '/todo', '/folder/:id', '/nofolder', '/trash', '/search'].forEach(p => route(p, V('list')));
 route('/new', V('editor')); route('/e/:id', V('editor'));
 route('/backup', V('backup'));
+route('/kept', V('kept'));
 route('/calendar', V('calendar'));
 route('/settings', V('settings')); route('/settings/:group', V('settings'));
 route('/plans', V('plans')); route('/notices', V('notices'));

@@ -116,7 +116,7 @@ function paint() {
     return `<div class="h g${shut ? ' shut' : ''}"><button data-act="grp" data-g="${k}" aria-expanded="${!shut}">${esc(label)}${icon('chevron-down', 15)}</button>${extra}</div><div class="gb${shut ? ' shut' : ''}">${body}</div>`; };
   $('.drawer .nav').innerHTML =
     item('/home', 'home', t('nav.home')) + item('/all', 'layers', t('nav.all'), all.length) + item('/calendar', 'calendar-days', t('nav.calendar')) +
-    grp('look', t('nav.lookBack'), item('/past', 'history', t('nav.past'), pastN) + item('/favorites', 'star', t('nav.fav'), all.filter(e => e.favorite).length)) +
+    grp('look', t('nav.lookBack'), item('/past', 'history', t('nav.past'), pastN) + item('/kept', 'bookmark', t('nav.kept'), (S.prefs.keptWords || []).length) + item('/favorites', 'star', t('nav.fav'), all.filter(e => e.favorite).length)) +
     grp('type', t('nav.byType'), item('/todo', 'check-square', t('nav.todo'), openTodos) + item('/type/event', 'calendar', t('type.event'), upEvents) +
       types.map(x => item('/type/' + x, TYPE_ICON[x], t('type.' + x), cnt[x])).join('')) +
     grp('folder', t('nav.folders'),

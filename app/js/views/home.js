@@ -1,6 +1,6 @@
 /* 감성형 홈: 날짜 · 이야기(오늘 할 일·일정도 문장 속에) · 질문 입력창. PC는 오른쪽에 오늘 패널 */
 import { Account } from '../data/account.js';
-import { S, addEntry, displayTitle, live, setPref } from '../data/store.js';
+import { S, addEntry, displayTitle, live } from '../data/store.js';
 import { Photos } from '../features/photos.js';
 import { Weather } from '../features/weather.js';
 import { compose } from '../story/engine.js';
@@ -11,7 +11,8 @@ import { nextQuestion, pickQuestion } from '../story/questions.js';
 import { fmtDate, fmtTime, getLang, t } from '../core/i18n.js';
 import { wordById } from '../story/words.js';
 import { esc, h, icon, slotOf, sunUp, todayKey } from '../core/utils.js';
-import { openSheet, toast } from '../ui/feedback.js';
+import { toast } from '../ui/feedback.js';
+import { wordSheet, writeWith } from '../features/words-ui.js';
 import { todayPanel } from './today.js';
 import { TYPE_ICON } from '../ui/shell.js';
 
@@ -52,27 +53,12 @@ function story() {
 const pickOf = (a, seed) => { if (!Array.isArray(a)) return a; let n = 0; for (const c of seed) n = (n * 31 + c.charCodeAt(0)) >>> 0; return a[n % a.length]; };
 const wordHTML = w => { const seed = todayKey() + w.id;
   return `<p class="word">${esc(w.say)} <a class="wq w" href="#" role="button" data-word="${esc(w.id)}"><span class="qt">${esc(w.q)}</span></a> <a class="wgo w" href="#" role="button" data-word="${esc(w.id)}">${esc(pickOf(t('word.go'), seed + 'g'))}</a></p>`; };
-const writeWith = w => { try { sessionStorage.setItem('daytale.carry', JSON.stringify({ quote: { id: w.id, lang: getLang(), q: w.q, by: w.by, src: w.src || '' } })); } catch {} go('/new'); };
 /* 문학 줄 → 시트에 넣을 한 마디: 굵은 구절 · 작가(그 언어 글 첫머리의 이름, 없으면 목록 이름) · 작품(글 속 「」, 영어는 목록 이름) */
 function litWord(id) {
   const lang = getLang(), x = litById(lang, id); if (!x) return null;
   const q = [...x.text.matchAll(/\*\*(.+?)\*\*/g)].map(m => m[1]).join(' … ');
   const lead = x.text.match(/^(\S{1,12}?)(?:은|는|は|が)[\s、]/u);
   return { id: 'lit:' + x.id, q, by: lead ? lead[1] : AUTHORS[x.a]?.name || '', src: x.text.match(/[「『].+?[」』]/u)?.[0] || (lang === 'en' ? x.work || '' : '') };
-}
-const kept = () => S.prefs.keptWords || [];
-function wordSheet(w) {
-  const lang = getLang();
-  const el = h(`<div class="wsheet"><h2>${esc(t('word.title'))}</h2><figure><blockquote>${esc(w.q)}</blockquote><figcaption>${esc(w.by)}${w.src ? ` · ${esc(w.src)}` : ''}</figcaption></figure>
-    <div class="acts"><button class="btn" data-k></button><button class="btn primary" data-w>${icon('pencil', 18)}${esc(t('word.write'))}</button></div></div>`);
-  const kb = el.querySelector('[data-k]');
-  const paint = () => { const on = kept().some(x => x.id === w.id && x.lang === lang); kb.classList.toggle('on', on); kb.innerHTML = icon(on ? 'bookmark-check' : 'bookmark', 18) + esc(t(on ? 'word.kept' : 'word.keep')); };
-  paint();
-  kb.onclick = () => { const on = kept().some(x => x.id === w.id && x.lang === lang);
-    setPref('keptWords', on ? kept().filter(x => !(x.id === w.id && x.lang === lang)) : [{ id: w.id, lang, day: todayKey() }, ...kept()].slice(0, 500));
-    paint(); if (!on) toast(t('word.keptToast')); };
-  const sh = openSheet(el, { label: t('word.title') });
-  el.querySelector('[data-w]').onclick = () => { sh.close(); writeWith(w); };
 }
 
 /* 한 줄 쓰기 칸: 누르면 나머지는 흐려지고 이 칸에만 집중해요. 안내 문구는 30개 중 무작위 */
