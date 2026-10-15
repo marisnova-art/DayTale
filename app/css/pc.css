@@ -17,7 +17,6 @@
   .main .today-side .today { position: static; }
   .main .today-side .tcard { display: block; background: var(--sheet); border: 1px solid rgba(var(--fg),.08); border-radius: 28px; padding: 20px 20px 10px; color: inherit; }
   .main .today-side .tcard .top { margin: 0 0 6px; }
-  .main .today-side .tcard .ev.rc { color: var(--text-3); }
   .main .today-side .past p { margin: 4px 0 12px; font-size: var(--fs-s); line-height: 1.6; color: var(--text-3); }
 
   /* 가운데 칸 하나만 (900~1199): 목록 · 캘린더 · 설정은 메뉴 옆에 붙여요 */
