@@ -29,6 +29,30 @@ const PACKS = {
     { id: 'c19', k: 'c', a: 'montgomery', o: 'world', q: '내일은 아직 아무 실수도 없는 새날이에요.', by: '루시 모드 몽고메리', src: '『빨강 머리 앤』', say: '앤은 실수투성이 하루를 보낸 저녁, 마릴라에게 이렇게 말했어요.' },
     { id: 'c20', k: 'c', a: 'montgomery', o: 'world', q: '정다운 세상아, 너는 참 아름답구나. 네 안에 살아 있어서 기뻐.', by: '루시 모드 몽고메리', src: '『빨강 머리 앤』', say: '앤은 세상을 바라보며 이렇게 속삭였어요.' },
     { id: 'c21', k: 'c', a: 'ahn', o: 'ko', q: '하루라도 책을 읽지 않으면 입안에 가시가 돋는다.', by: '안중근', src: '유묵', say: '안중근 의사는 감옥에서 남긴 글씨에 이렇게 적었어요.' },
+  ],
+  // 영어: 영어로 쓴 글은 원문 그대로, 옛 번역은 저작권이 끝난 번역(Long, Gummere 등)이나 직접 옮긴 말
+  en: [
+    { id: "c1", k: 'c', a: "vangogh", o: "world", q: "What would life be if we had no courage to attempt anything?", by: "Vincent van Gogh", src: "letter to Theo", say: "In a letter to his brother Theo, Van Gogh once asked:" },
+    { id: "c2", k: 'c', a: "montgomery", o: "world", q: "Isn’t it splendid to think of all the things there are to find out about?", by: "L. M. Montgomery", src: "Anne of Green Gables", say: "On her first ride to Green Gables, Anne could hardly sit still:" },
+    { id: "c3", k: 'c', a: "xunzi", o: "world", q: "Without piling up half-steps, no one ever reaches a thousand miles.", by: "Xunzi", src: "Encouraging Learning", say: "Writing about learning, the Chinese thinker Xunzi noticed how small steps add up:" },
+    { id: "c4", k: 'c', a: "thoreau", o: "world", q: "Things do not change; we change.", by: "Henry David Thoreau", src: "Walden", say: "Near the end of Walden, Thoreau wrote:" },
+    { id: "c5", k: 'c', a: "zhuangzi", o: "world", q: "If the water is not deep enough, it has no strength to carry a great boat.", by: "Zhuangzi", src: "Free and Easy Wandering", say: "Telling the story of a giant bird, Zhuangzi said that anything that goes far needs depth first:" },
+    { id: "c6", k: 'c', a: "seneca", o: "world", q: "Lay hold of today’s task, and you will not need to depend so much upon tomorrow’s.", by: "Seneca", src: "Letters to Lucilius", say: "Seneca urged a friend not to waste his time, writing:" },
+    { id: "c7", k: 'c', a: "seneca", o: "world", q: "Wherever there is a human being, there is an opportunity for a kindness.", by: "Seneca", src: "On the Happy Life", say: "Thinking about what makes a good life, Seneca added:" },
+    { id: "c8", k: 'c', a: "aurelius", o: "world", q: "Very little indeed is necessary for living a happy life.", by: "Marcus Aurelius", src: "Meditations", say: "In the private notebook he kept on campaign, the emperor Marcus Aurelius wrote:" },
+    { id: "c9", k: 'c', a: "aurelius", o: "world", q: "The soul is dyed by the thoughts.", by: "Marcus Aurelius", src: "Meditations", say: "Marcus Aurelius, writing about how to care for the mind, put it simply:" },
+    { id: "c10", k: 'c', a: "epictetus", o: "world", q: "People are disturbed not by things, but by the views they take of them.", by: "Epictetus", src: "Enchiridion", say: "Epictetus, born a slave and later a teacher of philosophy, said:" },
+    { id: "c11", k: 'c', a: "montaigne", o: "world", q: "The greatest thing in the world is to know how to belong to oneself.", by: "Michel de Montaigne", src: "Essays", say: "From his library in a castle tower, Montaigne wrote:" },
+    { id: "c12", k: 'c', a: "emerson", o: "world", q: "Write it on your heart that every day is the best day in the year.", by: "Ralph Waldo Emerson", src: "Works and Days", say: "Emerson, who believed each ordinary day was worth noticing, wrote:" },
+    { id: "c13", k: 'c', a: "emerson", o: "world", q: "Finish each day and be done with it. You have done what you could.", by: "Ralph Waldo Emerson", src: "letter to his daughter", say: "When his daughter felt weighed down at the end of a day, Emerson wrote to her:" },
+    { id: "c14", k: 'c', a: "thoreau", o: "world", q: "If one advances confidently in the direction of his dreams, he will meet with a success unexpected in common hours.", by: "Henry David Thoreau", src: "Walden", say: "After two years in a cabin by Walden Pond, Thoreau wrote:" },
+    { id: "c15", k: 'c', a: "thoreau", o: "world", q: "Every morning was a cheerful invitation to make my life of equal simplicity with Nature herself.", by: "Henry David Thoreau", src: "Walden", say: "Remembering his mornings by the pond, Thoreau wrote:" },
+    { id: "c16", k: 'c', a: "franklin", o: "world", q: "Well done is better than well said.", by: "Benjamin Franklin", src: "Poor Richard’s Almanack", say: "Benjamin Franklin tucked this line into one of his yearly almanacs:" },
+    { id: "c17", k: 'c', a: "vangogh", o: "world", q: "Great things are done by a series of small things brought together.", by: "Vincent van Gogh", src: "letter to Theo", say: "In a stretch when painting wasn’t going well, Van Gogh wrote to Theo:" },
+    { id: "c18", k: 'c', a: "alcott", o: "world", q: "I’m not afraid of storms, for I’m learning how to sail my ship.", by: "Louisa May Alcott", src: "Little Women", say: "In Little Women, the youngest sister, Amy, said:" },
+    { id: "c19", k: 'c', a: "montgomery", o: "world", q: "Isn’t it nice to think that tomorrow is a new day with no mistakes in it yet?", by: "L. M. Montgomery", src: "Anne of Green Gables", say: "After a day full of mistakes, Anne said to Marilla:" },
+    { id: "c20", k: 'c', a: "montgomery", o: "world", q: "Dear old world, you are very lovely, and I am glad to be alive in you.", by: "L. M. Montgomery", src: "Anne of Green Gables", say: "Looking out at the world, Anne whispered:" },
+    { id: "c21", k: 'c', a: "ahn", o: "ko", q: "If I do not read for a single day, thorns grow in my mouth.", by: "Ahn Jung-geun", src: "calligraphy", say: "The Korean independence activist Ahn Jung-geun wrote this in calligraphy from his prison cell:" },
   ]
 };
 
