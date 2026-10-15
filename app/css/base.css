@@ -1,6 +1,11 @@
 *, *::before, *::after { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; touch-action: pan-x pan-y; }   /* 두 손가락 확대·두 번 눌러 확대 없음 (밀어서 움직이기만) */
 html, body { margin: 0; height: 100%; }
+/* 스크롤바: 윈도우 크롬의 회색 칸이 배경을 끊지 않게, 투명한 길 위에 얇은 손잡이만 */
+html { scrollbar-color: rgba(var(--fg, 255,255,255),.22) transparent; }
+::-webkit-scrollbar { width: 10px; height: 10px; background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(var(--fg, 255,255,255),.22); border-radius: 5px; border: 2px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-corner { background: transparent; }
 body { overflow-x: clip; }   /* 옆으로 넘치는 것이 있으면 아이폰이 화면을 줄였다 키웠다 해요. 넘치는 건 잘라요 */
 body { background: #16181C; color: var(--muted-2); font-family: var(--font); font-size: var(--body); line-height: 1.5;
   word-break: keep-all; overflow-wrap: break-word; -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; overscroll-behavior: none; }
