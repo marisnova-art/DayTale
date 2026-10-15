@@ -94,5 +94,5 @@ export default {
   'plan.notReady': 'Payments are being set up. Coming soon.', 'plan.loadFail': 'Couldn’t open checkout. Please try again shortly.', 'plan.thanks': 'Thank you! Your subscription has started.',
   "list.upcoming": "Upcoming", "list.past": "Past", "ed.urlPh": "Paste a link (https://…)", "ed.open": "Open", "ed.paste": "Paste", "ed.openLink": "Open link", "set.faq": "FAQ", "set.about": "About us", "set.co.name": "Company", "set.co.ceo": "Representative", "set.co.addr": "Address", "set.co.reg": "Business info", "set.co.mail": "Contact", "set.co.soon": "Our company introduction will be added before launch.",
   'set.notifyPush': "Notifications arrive even when the app is closed. Turn them on once on each device.",
-  'ed.options': "Options"
+  'ed.discardQ': 'Discard your changes?', 'ed.discardNew': 'This entry won’t be saved.', 'ed.discardEdit': 'The entry goes back to how it was.', 'ed.discard': 'Discard', 'ed.keepWriting': 'Keep writing', 'ed.noDue': 'No due date', 'ed.noDate': 'No date', 'ed.options': "Options"
 };

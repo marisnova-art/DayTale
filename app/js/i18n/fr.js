@@ -94,5 +94,5 @@ export default {
   'plan.notReady': 'Les paiements sont en cours de mise en place. Bientôt disponible.', 'plan.loadFail': 'Impossible d’ouvrir la page de paiement. Veuillez réessayer dans un instant.', 'plan.thanks': 'Merci ! Votre abonnement a commencé.',
   "list.upcoming": "À venir", "list.past": "Passés", "ed.urlPh": "Collez un lien (https://…)", "ed.open": "Ouvrir", "ed.paste": "Coller", "ed.openLink": "Ouvrir le lien", "set.faq": "Questions fréquentes", "set.about": "À propos de nous", "set.co.name": "Société", "set.co.ceo": "Représentant", "set.co.addr": "Adresse", "set.co.reg": "Informations légales", "set.co.mail": "Contact", "set.co.soon": "La présentation de la société sera ajoutée avant le lancement.",
   'set.notifyPush': "Les notifications arrivent même lorsque l’app est fermée. Activez-les une fois sur chaque appareil.",
-  'ed.options': "Options"
+  'ed.discardQ': 'Abandonner les modifications ?', 'ed.discardNew': 'Cette note ne sera pas enregistrée.', 'ed.discardEdit': 'La note reviendra à son état précédent.', 'ed.discard': 'Abandonner', 'ed.keepWriting': 'Continuer à écrire', 'ed.noDue': 'Sans échéance', 'ed.noDate': 'Sans date', 'ed.options': "Options"
 };

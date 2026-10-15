@@ -1,6 +1,6 @@
 /* 편집기: 배경은 홈과 같은 그라데이션 위에 어둡게 한 겹. 정보 한 줄, 제목, 본문, 사진. 도구는 PC 위 한 줄 / 모바일 키보드 위 막대 하나 */
 .ed-page { min-height: 100dvh; }
-.ed-page::before { content: ""; position: fixed; inset: -30vh 0; background: rgba(var(--srf),.55); z-index: -1; pointer-events: none; }   /* 화면 전체를 덮어요 (위아래 끊김 없이) */
+.ed-page::before { content: ""; position: fixed; inset: -30vh 0; background: rgba(var(--srf),.12); z-index: -1; pointer-events: none; }   /* 화면 전체를 덮어요 (위아래 끊김 없이) */
 .ed { max-width: 760px; margin: 0 auto; padding: calc(18px + var(--safe-t)) 20px calc(140px + var(--safe-b)); }
 :root.kb-open .ed, :root.ed-pan-open .ed { padding-bottom: calc(var(--kb, 0px) + var(--pan, 0px) + 120px); }
 .ed-info { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; padding: 6px 4px; margin-top: 4px; font-size: var(--fs-s); font-weight: 600; color: rgba(var(--fg),.62); text-align: left; border-radius: 10px; }
@@ -14,7 +14,7 @@
 .ed-title { display: block; width: 100%; margin: 10px 0 0; padding: 0 4px; border: 0; background: none; outline: none; resize: none; font-size: var(--fs-xl); line-height: 1.3; font-weight: 700; color: var(--text); letter-spacing: -.04em; field-sizing: content; min-height: 1.3em; overflow: hidden; }
 .ed-title { font-size: var(--fs-l); letter-spacing: -.03em; }   /* 제목은 한 단계 작게 (28 → 22px): 본문(18px)보다 조금만 크게 */
 .ed-title::placeholder { color: rgba(var(--fg),.35); }
-.ed-body { margin-top: 14px; padding: 0 4px; min-height: 30vh; outline: none; font-size: var(--body); line-height: 1.75; letter-spacing: -.02em; color: rgba(var(--fg),.86); caret-color: var(--record); }
+.ed-body { margin-top: 14px; padding: 0 4px; min-height: 30vh; outline: none; font-size: var(--ed-fs); line-height: 1.75; letter-spacing: -.02em; color: rgba(var(--fg),.86); caret-color: var(--record); }
 .ed-body:empty::before { content: attr(data-ph); color: rgba(var(--fg),.4); pointer-events: none; }
 .ed-body p, .ed-body div { margin: 0 0 6px; }
 .ed-body h2 { margin: 22px 0 6px; font-size: 1.2em; font-weight: 700; color: var(--text); letter-spacing: -.03em; }
@@ -119,7 +119,7 @@
 .ed[data-font="serif"] :is(.ed-title, .ed-body) { font-family: var(--f-serif); letter-spacing: -.01em; }
 .ed[data-font="hand"] :is(.ed-title, .ed-body) { font-family: var(--f-hand); letter-spacing: 0; font-weight: 400; }
 .ed[data-font="hand"] .ed-title { font-size: calc(var(--fs-l) * 1.2); line-height: 1.2; }
-.ed[data-font="hand"] .ed-body { font-size: calc(var(--body) * 1.3); line-height: 1.55; }
+.ed[data-font="hand"] .ed-body { font-size: calc(var(--ed-fs) * 1.3); line-height: 1.55; }
 .ed[data-font="hand"] .ed-body :is(b, strong, h2) { font-weight: 400; text-shadow: .5px 0 currentColor; }
 /* 글꼴 줄은 본문·제목·인용 줄과 같은 모양 (한 알약 안의 칸) */
 .ed-pan .fonts { display: flex; padding: 4px; border-radius: 27px; background: rgba(var(--fg),.06); margin-bottom: 12px; }
@@ -202,10 +202,10 @@
   /* 문서 자체를 overflow: hidden 으로 막으면 아이폰 홈 화면 앱에서 맨 아래(홈 막대 자리)가 잘려 빈 띠가 보였어요. 스크롤은 편집기 상자 안에서만 일어나요 */
   :root.ed-mode, :root.ed-mode body { overscroll-behavior: none; }
   /* 혹시 화면 끝이 비쳐도 어둡게 덮인 배경과 같은 색이 보이게요 */
-  :root.ed-mode, :root.ed-mode body { background: linear-gradient(rgba(var(--srf),.55), rgba(var(--srf),.55)), linear-gradient(rgba(0,0,0,var(--scrim)), rgba(0,0,0,var(--scrim))), var(--bg-grad); }
+  :root.ed-mode, :root.ed-mode body { background: linear-gradient(rgba(var(--srf),.12), rgba(var(--srf),.12)), linear-gradient(rgba(0,0,0,var(--scrim)), rgba(0,0,0,var(--scrim))), var(--bg-grad); }
   /* 어둡게 덮는 층은 편집기 상자가 아니라 화면 배경 자체에 넣어요 (아이폰에서 아래쪽 끝이 잘려 원래 배경이 비치지 않게) */
   .view > .ed-page::before { display: none; }
-  :root.ed-mode .backdrop { box-shadow: inset 0 0 0 100vmax rgba(var(--srf),.55); }
+  :root.ed-mode .backdrop { box-shadow: inset 0 0 0 100vmax rgba(var(--srf),.12); }
   /* 키보드가 없을 땐 화면 맨 위부터 맨 아래까지 꽉 채워요. 키보드가 올라온 동안만 보이는 화면(--vvt · --vvh)에 맞춰요
      (아이폰은 키보드가 내려간 뒤 크기 알림이 늦거나 빠져서, 그 값을 그대로 쓰면 아래쪽이 잘려 보였어요) */
   .view > .ed-page { position: fixed; left: 0; right: 0; top: 0; bottom: 0; height: auto; min-height: 0; display: flex; flex-direction: column; }
@@ -230,7 +230,7 @@
    글자 크기를 바꿔도 선이 늘 글줄 아래에 와요 */
 @property --pad-lh { syntax: '<length>'; inherits: true; initial-value: 0px; }
 :root[data-lined] .ed:not([data-font="serif"]):not([data-font="hand"]) :is(.ed-title, .ed-body) { font-family: var(--f-pad); letter-spacing: 0; font-weight: 400; }
-:root[data-lined] .ed:not([data-font="serif"]):not([data-font="hand"]) .ed-body { font-size: calc(var(--body) * 1.1); }
+:root[data-lined] .ed:not([data-font="serif"]):not([data-font="hand"]) .ed-body { font-size: calc(var(--ed-fs) * 1.1); }
 :root[data-lined] .ed-body { --pad-lh: 1lh; color: rgba(var(--ink-rgb),.86);
   background: linear-gradient(transparent calc(var(--pad-lh) - 1.5px), rgba(70,125,200,.5) calc(var(--pad-lh) - 1.5px)) 0 .14em / 100% var(--pad-lh) repeat-y;
   margin-left: -24px; margin-right: -24px; padding: 0 28px; min-height: calc(var(--pad-lh) * 12); }
@@ -260,3 +260,59 @@
 .ed-pan .acts.fit-2 .bad { flex-basis: 100%; }
 /* 옆으로 밀리는 줄은 오른쪽 끝을 흐리게 해서 더 있다는 걸 보여줘요 */
 @media (max-width: 899px) { .ed-pan .kinds { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); padding-right: 28px; } }
+
+/* ===== 2026-10-15 글쓰기: 제목 칸 없음 (첫 줄이 제목) · 위 왼쪽 취소 / 오른쪽 저장 · 정보 칩(18px) · 옵션은 칩 바로 아래로 · 키보드 위 얇은 아이콘 줄 ===== */
+.ed { position: relative; --ed-fs: 20px; }   /* 본문 20px */
+.ed-top { display: none; }
+.ed-cancel { flex: none; height: 40px; padding: 0 12px; border-radius: 20px; font-size: var(--fs-m); font-weight: 600; color: rgba(var(--fg),.82); white-space: nowrap; }
+.ed-cancel:hover { background: var(--fill); color: var(--text); }
+/* 첫 줄 = 목록 제목이라 저절로 굵게 보여요 */
+.ed-body > :is(p, div):first-child { font-weight: 700; color: var(--text); }
+:root:not([data-lined]) .ed-body > :is(p, div):first-child { font-size: 1.1em; }
+.ed .ed-body { margin-top: 16px; }
+/* 정보 칩: 종류 · 날짜(또는 폴더) ▾ — 누르면 옵션 */
+.ed .ed-info { display: inline-flex; flex-wrap: nowrap; align-items: center; gap: 7px; max-width: 100%; height: 40px; margin-top: 4px; padding: 0 12px 0 11px; border-radius: 20px;
+  background: rgba(var(--fg),.1); border: 1px solid rgba(var(--fg),.12); font-size: var(--fs-m); font-weight: 600; color: rgba(var(--fg),.88); white-space: nowrap; overflow: hidden; }
+.ed .ed-info span { overflow: hidden; text-overflow: ellipsis; }
+.ed .ed-info i { opacity: .45; }
+.ed .ed-info .i { flex: none; }
+.ed .ed-info .dn { opacity: .7; transition: transform .2s; }
+.ed .ed-info.on { background: rgba(var(--fg),.16); }
+.ed .ed-info.on .dn { transform: rotate(180deg); }
+/* 옵션 판: 칩 바로 아래에 펼쳐져요 (글 위에 떠요) */
+.ed > .ed-pan { position: absolute; z-index: 25; left: 12px; right: 12px; top: auto; bottom: auto; transform: none; width: auto; max-width: 560px; height: auto; max-height: none; overflow: visible;
+  margin: 8px 0 0; padding: 14px 14px 4px; border-radius: 20px; border: 1px solid rgba(var(--fg),.12); background: var(--sheet); box-shadow: 0 20px 50px rgba(0,0,0,.45); animation: dropIn .2s ease-out; }
+.ed > .ed-pan::before { display: none; }
+.ed > .ed-pan .lab { margin: 0 4px 6px; }
+.ed > .ed-pan .ed-meta { display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 0 0 12px; }
+.ed > .ed-pan .ed-meta label { flex: 1 1 40%; min-width: 0; height: 44px; }
+.ed > .ed-pan .ed-meta label.wide { flex-basis: 100%; }
+.ed > .ed-pan .ed-meta input { flex: 1; width: 100%; min-width: 0; }
+.ed > .ed-pan .up { display: flex; align-items: center; justify-content: center; width: 100%; height: 32px; margin-top: 4px; color: rgba(var(--fg),.55); }
+@keyframes dropIn { from { opacity: 0; transform: translateY(-8px); } }
+/* 글꼴 단추: 이름을 그 글꼴로 보여 줘요 (서식 줄 맨 앞) */
+.ffb[data-ff="serif"] span { font-family: var(--f-serif); }
+.ffb[data-ff="hand"] span { font-family: var(--f-hand); font-size: 1.2em; font-weight: 400; }
+.ed-tools .ed-cancel { height: 42px; }
+@media (max-width: 899px), (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
+  .view > .ed-page > .ed-top { display: flex; align-items: center; flex: none; padding: calc(6px + var(--safe-t)) 14px 6px 8px; }
+  .ed-top .sp { flex: 1; }
+  .ed-top .ed-done { height: 40px; padding: 0 16px 0 12px; }
+  .view > .ed-page > .ed { padding-top: 6px; }
+  .ed > .ed-pan { left: 10px; right: 10px; }
+  /* 키보드 위 얇은 줄 하나 (아이콘만). 서식을 누르면 같은 줄이 서식 아이콘으로 바뀌고 키보드는 그대로예요 */
+  .ed-dock .ed-bar { padding: 0 !important; max-width: none; }
+  .ed-dock .ed-bar .cap { display: flex; height: 48px; padding: 0 6px; gap: 0; border-radius: 0; border-width: 1px 0 0; box-shadow: none; }
+  :root:not(.kb-open) .ed-dock .ed-bar .cap { height: calc(52px + var(--safe-b)); padding-bottom: var(--safe-b); }
+  .ed-bar .cap > .base, .ed-bar .cap > .fmt { display: flex; align-items: center; gap: 2px; flex: 1; min-width: 0; height: 100%; }
+  .ed-bar .cap > .fmt { display: none; overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent); padding-right: 20px; }
+  .ed-bar .cap > .fmt::-webkit-scrollbar { display: none; }
+  .ed-bar .cap.on-fmt > .base { display: none; }
+  .ed-bar .cap.on-fmt > .fmt { display: flex; }
+  .ed-bar .cap .sp { flex: 1; }
+  .ed-dock .ed-bar .tb { width: 42px; height: 40px; border-radius: 12px; flex: none; }
+  .ed-dock .ed-bar .fmt .tb { width: 36px; }
+  .ed-dock .ed-bar .fmt .tb.x { width: 40px; background: var(--text); color: var(--on-text); }
+  .ed-dock .ed-bar .fmt .tb.lbl { width: auto; height: 36px; padding: 0 11px 0 9px; margin: 0 2px; }
+  .ed-dock .ed-bar .sep { height: 20px; margin: 0 3px; flex: none; }
+}

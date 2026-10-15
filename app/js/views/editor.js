@@ -3,11 +3,11 @@
    PC: 글 위 한 줄에 서식 도구가 모두 보여요. ⋯ 는 그 아래로 작은 판 */
 import { CFG } from '../core/config.js';
 import { fit as fitRow } from '../ui/fit.js';
-import { S, isEmpty, newEntry, onChange, patchEntry, saveEntry, trashEntry, TYPES, addFolder, folderList } from '../data/store.js';
+import { S, isEmpty, newEntry, onChange, patchEntry, purgeEntries, saveEntry, trashEntry, TYPES, addFolder, folderList } from '../data/store.js';
 import { htmlToText, sanitizeHTML } from '../core/sanitize.js';
-import { fmtDate, fmtRel, t } from '../core/i18n.js';
+import { fmtDate, fmtHM, fmtRel, t } from '../core/i18n.js';
 import { $, $$, debounce, esc, icon, todayKey } from '../core/utils.js';
-import { promptDlg, toast } from '../ui/feedback.js';
+import { confirmDlg, promptDlg, toast } from '../ui/feedback.js';
 import { go } from '../ui/router.js';
 import { TYPE_ICON } from '../ui/shell.js';
 import { typeLabel } from './pickers.js';
@@ -35,62 +35,65 @@ function render(view, r, opts = {}) {   // opts.pane: PC 나란히 보기의 오
   if (!e) { view.innerHTML = `<div class="ed-page"><div class="ed"><button class="icon-btn" data-act="back" aria-label="${esc(t('ed.back'))}">${icon('chevron-left', 22)}</button><p class="note" style="padding:40px 4px">${esc(t('list.noResults'))}</p></div></div>`; view.querySelector('[data-act=back]').onclick = () => history.length > 1 ? history.back() : go('/home'); return; }
   const ro = !S.canWrite;
   const photoBtn = `<button class="tb" data-act="photo" aria-label="${esc(t('ed.photo'))}" title="${esc(t('ed.photo'))}">${icon('camera', 20)}</button>`;
-  view.innerHTML = `<div class="ed-page"><div class="ed">
+  const fontBtn = `<button class="tb lbl ffb" data-act="font" aria-label="${esc(t('ed.font'))}" title="${esc(t('ed.font'))}">${icon('a-large-small', 18)}<span></span></button>`;
+  const cancel = `<button class="ed-cancel" data-act="cancel">${esc(t('common.cancel'))}</button>`;
+  const done = `<button class="ed-done" data-act="done">${icon('check', 18)}<span>${esc(t('ed.finish'))}</span></button>`;
+  view.innerHTML = `<div class="ed-page"><div class="ed-top">${cancel}<span class="sp"></span>${done}</div><div class="ed">
     <div class="ed-tools" role="toolbar">
-      <button class="tb" data-act="back" aria-label="${esc(t('ed.back'))}">${icon('chevron-left', 22)}</button>
-      ${ro ? '<span class="sp"></span>' : `<span class="sep"></span><span class="tb-scroll">${STYLE.slice(1).map(f => fbtn(f)).join('')}<span class="sep"></span>${INLINE.map(f => fbtn(f)).join('')}<span class="sep"></span>${LISTS.slice(0, 4).map(f => fbtn(f)).join('')}<span class="sep"></span>${fbtn(LISTS[4])}${photoBtn}</span><span class="sp"></span>`}
-      <button class="tb lbl" data-act="more" aria-expanded="false" title="${esc(t('ed.options'))}">${icon('sliders-horizontal', 18)}<span>${esc(t('ed.options'))}</span></button>
-      <button class="ed-done" data-act="done">${icon('check', 18)}<span>${esc(t('ed.finish'))}</span></button></div>
+      ${cancel}
+      ${ro ? '<span class="sp"></span>' : `<span class="sep"></span>${fontBtn}<span class="sep"></span><span class="tb-scroll">${STYLE.slice(1).map(f => fbtn(f)).join('')}<span class="sep"></span>${INLINE.map(f => fbtn(f)).join('')}<span class="sep"></span>${LISTS.slice(0, 4).map(f => fbtn(f)).join('')}<span class="sep"></span>${fbtn(LISTS[4])}${photoBtn}</span><span class="sp"></span>`}
+      ${done}</div>
     ${ro ? `<div class="ed-locked"><span>${esc(t('ed.locked'))}</span><button data-act="plans">${esc(t('trial.plans'))}</button></div>` : ''}
-    <button class="ed-info" data-act="more"></button><div class="ed-meta"></div>
-    <textarea class="ed-title" rows="1" maxlength="300" placeholder="${esc(t('ed.title'))}" ${ro ? 'readonly' : ''}></textarea>
+    <button class="ed-info" data-act="more" aria-expanded="false"></button><div class="ed-pan" hidden></div><div class="ed-meta"></div>
     <div class="ed-body" ${ro ? '' : 'contenteditable="true"'} spellcheck="true" data-ph="${esc(t('ed.body'))}" role="textbox" aria-multiline="true" aria-label="${esc(t('ed.body'))}"></div>
     <div class="ed-photos"></div>
     <div class="ed-foot"></div>
   </div>
   <div class="ed-dock">
-    <div class="ed-bar"><div class="cap" role="toolbar">
-      <button class="tb" data-act="back" aria-label="${esc(t('ed.back'))}">${icon('chevron-left', 22)}</button><span class="sep"></span>
-      ${ro ? '' : `<button class="tb lbl" data-act="aa" aria-expanded="false">${icon('type', 18)}<span>${esc(t('ed.format'))}</span></button>`}
-      <button class="tb lbl" data-act="more" aria-expanded="false">${icon('sliders-horizontal', 18)}<span>${esc(t('ed.options'))}</span></button>
-      <span class="sp"></span><button class="tb kbd big" data-act="kbd" aria-label="${esc(t('ed.keyboard'))}" hidden>${icon('keyboard', 26)}</button>
-      <button class="ed-done" data-act="done">${icon('check', 18)}<span>${esc(t('ed.finish'))}</span></button></div></div>
-    <div class="ed-pan" hidden></div>
+    <div class="ed-bar"${ro ? " hidden" : ""}><div class="cap" role="toolbar">${ro ? "" : `
+      <span class="base"><button class="tb" data-act="aa" aria-label="${esc(t('ed.format'))}" title="${esc(t('ed.format'))}" aria-expanded="false">${icon('a-large-small', 22)}</button>${fbtn(LISTS[2])}${photoBtn}<span class="sp"></span>${fbtn(LISTS[4])}</span>
+      <span class="fmt"><button class="tb x" data-act="aa" aria-label="${esc(t('common.close'))}">${icon('x', 19)}</button><span class="sep"></span>${fontBtn}<span class="sep"></span>${STYLE.slice(1).map(f => fbtn(f)).join('')}<span class="sep"></span>${INLINE.map(f => fbtn(f)).join('')}<span class="sep"></span>${[LISTS[0], LISTS[1], LISTS[3]].map(f => fbtn(f)).join('')}</span>`}</div></div>
   </div>
   <input type="file" accept="image/*" multiple hidden class="ed-file"></div>`;
-  const el = { root: view, title: $('.ed-title', view), body: $('.ed-body', view), info: $('.ed-info', view), meta: $('.ed-meta', view), photos: $('.ed-photos', view), foot: $('.ed-foot', view), pan: $('.ed-pan', view) };
-  fitRow($('.ed-bar .cap', view), 3);
+  const el = { root: view, body: $('.ed-body', view), info: $('.ed-info', view), meta: $('.ed-meta', view), photos: $('.ed-photos', view), foot: $('.ed-foot', view), pan: $('.ed-pan', view), cap: $('.ed-bar .cap', view) };
   cur = { e, isNew, wasNew: isNew, el, ro, pan: null, saved: carried ? false : undefined, pane: opts.pane ? opts : null };
   if (!opts.pane) { document.documentElement.classList.add('ed-mode'); scrollTo(0, 0); }   // 휴대폰: 편집기 상자 안에서만 스크롤 (editor.css)
   if (!opts.pane && window.visualViewport) { const vv = window.visualViewport, k = () => requestAnimationFrame(keepCaret); vv.addEventListener('resize', k); cur.offVV = () => vv.removeEventListener('resize', k); }
-  el.title.value = e.title; el.body.innerHTML = e.content || (e.text ? e.text.split('\n').map(l => `<p>${esc(l) || '<br>'}</p>`).join('') : '');
+  el.body.innerHTML = bodyOf(e);
   if (!ro && !el.body.firstElementChild) el.body.innerHTML = '<p><br></p>';   // 첫 줄부터 문단으로 (줄 모양 바꾸기가 고르게 돼요)
+  // 열었을 때 모습: 아무것도 고치지 않았으면 저장하지 않고, 취소하면 이 모습으로 돌아가요
+  cur.base = el.body.innerHTML; cur.orig = { title: e.title, content: e.content, text: e.text, type: e.type, folder_id: e.folder_id, meta: { ...(e.meta || {}) } };
   paintChips(); paintPhotos(); paintFoot(); paintFont();
   const save = debounce(() => commit(), 600); cur.save = save;
-  // 제목 칸은 글 길이만큼 (스크롤 없이). 높이를 잠깐 줄였다 늘리는 사이 스크롤 자리가 튀지 않게 되돌려 둬요
-  const fit = () => { const sc = el.title.closest('.ed'), y = sc?.scrollTop ?? 0; el.title.style.height = 'auto'; el.title.style.height = el.title.scrollHeight + 'px'; if (sc && sc.scrollTop !== y) sc.scrollTop = y; };
-  el.title.addEventListener('input', () => { fit(); save(); }); requestAnimationFrame(fit);
-  el.title.addEventListener('keydown', ev => { if (ev.key === 'Enter' && !ev.isComposing) { ev.preventDefault(); placeCaret(el.body, true); } });
-  el.title.addEventListener('focus', () => closePan());
   cur.hist = new History(el.body);
   const sc = $('.tb-scroll', view);   // 서식 단추 줄이 넘치면 오른쪽 끝을 흐리게, 마우스 휠로도 옆으로
   if (sc) { const upd = () => sc.classList.toggle('more-r', sc.scrollLeft < sc.scrollWidth - sc.clientWidth - 2);
     sc.addEventListener('scroll', upd, { passive: true }); new ResizeObserver(upd).observe(sc);
     sc.addEventListener('wheel', ev => { if (sc.scrollWidth > sc.clientWidth && Math.abs(ev.deltaY) > Math.abs(ev.deltaX)) { ev.preventDefault(); sc.scrollLeft += ev.deltaY; } }, { passive: false }); }
-  el.body.addEventListener('input', ev => { shortcuts(ev); cur.hist.soon(); save(); paintState(); keepCaret(); });
+  el.body.addEventListener('input', ev => { cur.touched = true; shortcuts(ev); cur.hist.soon(); save(); paintState(); keepCaret(); });
   el.body.addEventListener('keydown', onKey);
-  el.body.addEventListener('focus', () => document.execCommand('defaultParagraphSeparator', false, 'p'));
-  // 판이 열려 있을 때: 글을 길게 눌러 고르는 동안은 판이 그대로 있고 (키보드도 안 올라와요), 그냥 톡 누르면 판을 닫고 키보드로 돌아가요
-  el.body.addEventListener('click', ev => { if (cur?.pan && !isPC() && getSelection().isCollapsed && !ev.target.closest('a')) { closePan(true, 'body'); return; } onBodyClick(ev); });
+  el.body.addEventListener('focus', () => { document.execCommand('defaultParagraphSeparator', false, 'p'); closePan(); });
+  el.body.addEventListener('click', onBodyClick);
   el.body.addEventListener('paste', onPaste);
   document.addEventListener('selectionchange', paintState);
   view.addEventListener('click', onAct);
-  // 도구를 눌러도 글 쓰던 자리(커서)가 그대로 있게
-  $$('.ed-tools, .ed-dock', view).forEach(n => n.addEventListener('mousedown', ev => { if (ev.target.closest('button') && !ev.target.closest('.ed-pan .kinds, .ed-pan .acts, .ed-pan .imgs')) ev.preventDefault(); }));
+  // 옵션 판은 바깥을 누르면 접혀요
+  const outside = ev => { if (cur?.pan && !ev.target.closest('.ed-pan, .ed-info, dialog, .sheet')) closePan(); };
+  document.addEventListener('pointerdown', outside, true); cur.offOut = () => document.removeEventListener('pointerdown', outside, true);
+  // 도구를 눌러도 글 쓰던 자리(커서)가 그대로 있게 (키보드도 내려가지 않아요)
+  $$('.ed-tools, .ed-dock', view).forEach(n => n.addEventListener('mousedown', ev => { if (ev.target.closest('button')) ev.preventDefault(); }));
   $('.ed-file', view)?.addEventListener('change', async ev => { const files = [...ev.target.files]; ev.target.value = ''; if (await Photos.addFiles(cur.e, files)) { cur.saved = false; paintPhotos(); await commit(); Photos.flush().then(() => cur && paintPhotos()); } });
-  cur.off = onChange(w => { if (w?.type === 'external' && w.id === e.id && document.activeElement !== el.body && document.activeElement !== el.title) { const ne = S.entries.get(e.id); if (ne) { cur.e = ne; el.title.value = ne.title; el.body.innerHTML = ne.content; cur.hist = new History(el.body); paintChips(); paintPhotos(); } } });
-  if (isNew && !ro) setTimeout(() => { const n = r.query.type === 'todo' || r.query.type === 'event' ? el.title : el.body; n.focus(); if (n === el.body && e.text) placeCaret(el.body, true); }, 60);
+  cur.off = onChange(w => { if (w?.type === 'external' && w.id === e.id && document.activeElement !== el.body) { const ne = S.entries.get(e.id); if (ne) { cur.e = ne; el.body.innerHTML = bodyOf(ne); cur.base = el.body.innerHTML; cur.hist = new History(el.body); paintChips(); paintPhotos(); } } });
+  if (isNew && !ro) setTimeout(() => { el.body.focus(); placeCaret(el.body, true); }, 60);
 }
+/* 제목 칸이 없어요: 본문 첫 줄이 제목이에요. 예전 기록의 제목은 본문 첫 줄로 보여 줘요 (이미 첫 줄과 같으면 그대로) */
+function bodyOf(e) {
+  const html = e.content || (e.text ? e.text.split('\n').map(l => `<p>${esc(l) || '<br>'}</p>`).join('') : '');
+  const tt = (e.title || '').trim(); if (!tt) return html;
+  const first = (e.text || htmlToText(html)).split('\n').map(l => l.trim()).find(Boolean);
+  return first === tt ? html : `<p>${esc(tt)}</p>${html}`;
+}
+const firstLine = text => (text.split('\n').map(l => l.trim()).find(Boolean) || '').slice(0, 300);
 
 /* ---------- 저장: 조용히 저장하고, 실패했을 때만 알려요 ---------- */
 async function commit() {
@@ -98,7 +101,11 @@ async function commit() {
   const { e, el } = cur;
   let html = sanitizeHTML(el.body.innerHTML.replace(/\u200B/g, '').replace(/<mark><\/mark>/g, ''));
   if (!htmlToText(html).trim() && !/<(hr|li)\b/.test(html)) html = '';   // 빈 줄만 있으면 빈 글
-  const next = { title: el.title.value.trim(), content: html, text: htmlToText(html) };
+  if (!cur.touched && cur.saved !== false) return;   // 열어 보기만 했으면 저장하지 않아요
+  const text = htmlToText(html);
+  let title = firstLine(text);
+  if (!title && e.type === 'scrap' && e.meta?.url) { try { title = new URL(e.meta.url).hostname.replace(/^www\./, ''); } catch {} }   // 스크랩은 글이 없으면 사이트 이름으로
+  const next = { title, content: html, text };
   if (next.title === e.title && next.content === e.content && cur.saved !== false) return;
   Object.assign(e, next);
   if (cur.isNew && isEmpty(e)) return;           // 빈 새 기록은 저장하지 않아요
@@ -112,9 +119,8 @@ async function commit() {
 }
 function leave() {
   if (!cur) return;
-  cur.save?.flush(); closePan();
+  cur.save?.flush(); closePan(); cur.offOut?.();
   document.removeEventListener('selectionchange', paintState);
-  document.documentElement.classList.remove('ed-pan-open');
   if (!cur.pane) document.documentElement.classList.remove('ed-mode');
   cur.offVV?.();
   cur.off?.(); cur = null;
@@ -122,30 +128,42 @@ function leave() {
 
 /* ---------- 정보 한 줄: 종류 · 폴더 · 날짜 (누르면 ⋯ 판) / 일정·할 일 날짜 칸 ---------- */
 function paintChips() {
-  const { e, el } = cur;
+  const { e, el } = cur, m = e.meta || {};
   const f = e.folder_id && S.folders.get(e.folder_id);
-  const when = cur.isNew ? '' : fmtDate(e.created_at, { month: 'long', day: 'numeric' });
-  el.info.innerHTML = `${icon(TYPE_ICON[e.type] || 'file-text', 17)}<span>${esc(typeLabel(e.type))}</span><i>·</i>${icon('folder', 16)}<span>${esc(f ? f.name : t('folder.none'))}</span>${when ? `<i>·</i><span>${esc(when)}</span>` : ''}${e.favorite ? `<i>·</i>${icon('star', 15)}` : ''}${e.pinned ? `<i>·</i>${icon('pin', 15)}` : ''}`;
-  const m = e.meta || {}, ro = cur.ro ? 'disabled' : '';
-  el.meta.innerHTML = e.type === 'event' ? `<label>${icon('calendar', 16)}<input type="date" data-m="date" value="${esc(m.date || todayKey())}" ${ro}></label><label>${icon('clock', 16)}<input type="time" data-m="time" value="${esc(m.time || '')}" ${ro}></label><label>${icon('map-pin', 16)}<input type="text" data-m="place" maxlength="120" placeholder="${esc(t('ed.place'))}" value="${esc(m.place || '')}" ${ro}></label>`
-    : e.type === 'todo' ? `<label>${icon('calendar', 16)}${esc(t('ed.due'))}<input type="date" data-m="date" value="${esc(m.date || '')}" ${ro}></label><label>${icon('clock', 16)}<input type="time" data-m="time" value="${esc(m.time || '')}" ${ro}></label>`
-    : e.type === 'scrap' ? `<label class="url" style="flex:1">${icon('link', 16)}<input type="url" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" data-m="url" maxlength="2000" style="width:100%" placeholder="${esc(t('ed.urlPh'))}" value="${esc(m.url || '')}" ${ro}></label>${m.url ? `<button class="urlbtn open" data-act="open-url">${icon('external-link', 16)}${esc(t('ed.open'))}</button>` : ro ? '' : `<button class="urlbtn" data-act="paste-url">${icon('copy', 16)}${esc(t('ed.paste'))}</button>`}`
-    : e.type === 'item' ? `<label style="flex:1">${icon('map-pin', 16)}<input type="text" data-m="place" maxlength="120" style="width:100%" placeholder="${esc(t('ed.where'))}" value="${esc(m.place || '')}" ${ro}></label>` : '';
+  const when = d => [fmtDate(d + 'T00:00', { month: 'long', day: 'numeric' }), m.time && fmtHM(m.time)].filter(Boolean).join(' ');
+  const parts = e.type === 'todo' ? [m.date ? when(m.date) : t('ed.noDue')] : e.type === 'event' ? [m.date ? when(m.date) : t('ed.noDate')]
+    : [f ? f.name : t('folder.none'), cur.isNew ? '' : fmtDate(e.created_at, { month: 'long', day: 'numeric' })];
+  if ((e.type === 'todo' || e.type === 'event') && f) parts.push(f.name);
+  el.info.innerHTML = `${icon(TYPE_ICON[e.type] || 'file-text', 17)}<span>${esc(typeLabel(e.type))}</span>${parts.filter(Boolean).map(p => `<i>·</i><span>${esc(p)}</span>`).join('')}${e.favorite ? `<i>·</i>${icon('star', 15)}` : ''}${e.pinned ? `<i>·</i>${icon('pin', 15)}` : ''}${icon('chevron-down', 16, 'dn')}`;
+  el.meta.innerHTML = metaHTML(e, false);
   el.meta.hidden = !el.meta.innerHTML;
   if (e.type === 'event' && !m.date) m.date = todayKey();
-  $$('[data-m]', el.meta).forEach(i => i.addEventListener('change', () => { setMeta(i.dataset.m, i.value); }));
-  if (cur.pan === 'more') paintPan();
+  wireMeta(el.meta);
+  if (cur.pan) paintPan();
 }
+/* 날짜 · 시간 · 장소 칸. 일정 · 할 일은 옵션 판 안에, 스크랩 링크 · 물건 둔 곳은 글 위에 그대로 */
+function metaHTML(e, inPan) {
+  const m = e.meta || {}, ro = cur.ro ? 'disabled' : '';
+  const timed = e.type === 'event' || e.type === 'todo';
+  if (timed !== inPan) return '';
+  if (e.type === 'event') return `<div class="lab">${esc(t('ed.date'))}</div><div class="ed-meta"><label>${icon('calendar', 16)}<input type="date" data-m="date" value="${esc(m.date || todayKey())}" ${ro}></label><label>${icon('clock', 16)}<input type="time" data-m="time" value="${esc(m.time || '')}" ${ro}></label><label class="wide">${icon('map-pin', 16)}<input type="text" data-m="place" maxlength="120" placeholder="${esc(t('ed.place'))}" value="${esc(m.place || '')}" ${ro}></label></div>`;
+  if (e.type === 'todo') return `<div class="lab">${esc(t('ed.due'))}</div><div class="ed-meta"><label>${icon('calendar', 16)}<input type="date" data-m="date" value="${esc(m.date || '')}" ${ro}></label><label>${icon('clock', 16)}<input type="time" data-m="time" value="${esc(m.time || '')}" ${ro}></label></div>`;
+  if (e.type === 'scrap') return `<label class="url" style="flex:1">${icon('link', 16)}<input type="url" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" data-m="url" maxlength="2000" style="width:100%" placeholder="${esc(t('ed.urlPh'))}" value="${esc(m.url || '')}" ${ro}></label>${m.url ? `<button class="urlbtn open" data-act="open-url">${icon('external-link', 16)}${esc(t('ed.open'))}</button>` : ro ? '' : `<button class="urlbtn" data-act="paste-url">${icon('copy', 16)}${esc(t('ed.paste'))}</button>`}`;
+  if (e.type === 'item') return `<label style="flex:1">${icon('map-pin', 16)}<input type="text" data-m="place" maxlength="120" style="width:100%" placeholder="${esc(t('ed.where'))}" value="${esc(m.place || '')}" ${ro}></label>`;
+  return '';
+}
+const wireMeta = box => $$('[data-m]', box).forEach(i => i.addEventListener('change', () => setMeta(i.dataset.m, i.value)));
 function setMeta(k, v) {
-  if (k === 'url') { v = safeUrl(v); if (v && !cur.el.title.value.trim()) { try { cur.el.title.value = new URL(v).hostname.replace(/^www\./, ''); } catch {} } }   // 제목이 비어 있으면 사이트 이름을 넣어 둬요
+  if (k === 'url') v = safeUrl(v);
   cur.e.meta = { ...cur.e.meta, [k]: v || undefined }; cur.saved = false;
   // 할 일에 시간만 넣으면 날짜는 오늘로 (시간 알림은 날짜가 있어야 울려요)
-  if (k === 'time' && v && cur.e.type === 'todo' && !cur.e.meta.date) { cur.e.meta.date = todayKey(); const d = cur.el.meta.querySelector('[data-m=date]'); if (d) d.value = cur.e.meta.date; }
+  if (k === 'time' && v && cur.e.type === 'todo' && !cur.e.meta.date) cur.e.meta.date = todayKey();
   commit();
-  if (k === 'url') paintChips();
+  if (k !== 'place') paintChips();   // 칩에 날짜 · 시간이 보여요
 }
 /* 글꼴: 기록 하나 전체(제목+본문)에 적용 */
-function paintFont() { const f = fontOf(cur.e); useFont(f); cur.el.root.querySelector('.ed').dataset.font = f; }
+function paintFont() { const f = fontOf(cur.e); useFont(f); cur.el.root.querySelector('.ed').dataset.font = f;
+  $$('.ffb', cur.el.root).forEach(b => { b.dataset.ff = f; b.querySelector('span').textContent = t('ed.font.' + f); }); }
 /* ---------- 사진: 글 아래, 원래 비율 그대로 (잘리지 않게) ---------- */
 function paintPhotos() {
   const { e, el } = cur; const ps = e.photos || [];
@@ -174,58 +192,45 @@ function paintFoot() {
   cur.el.foot.textContent = t('ed.created', { date: fmtDate(e.created_at, { year: 'numeric', month: 'long', day: 'numeric' }) }) + ' · ' + t('ed.edited', { date: fmtRel(e.updated_at) });
 }
 
-/* ---------- 판(Aa 서식 · ⋯ 정보): 모바일은 키보드 자리, PC는 도구 줄 아래 ---------- */
-let kbH = 300;   // 마지막으로 본 키보드 높이
-function openPan(kind) {
-  if (!cur) return;
-  if (cur.pan === kind) { closePan(true); return; }    // 같은 버튼을 다시 누르면 닫혀요
-  const kb = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--kb')) || 0;
-  if (kb > 120) kbH = kb;
-  cur.pan = kind;
-  const b = cur.el.body;
-  if (!isPC()) {   // 커서는 두고 키보드만 내려요. 판에서 무엇을 눌러도 키보드가 다시 올라오지 않아요
-    b.inputMode = 'none';
-    // 제목을 쓰던 중이면 키보드만 내리고 커서는 옮기지 않아요. 판을 닫으면 제목으로 돌아가요 (서식 단추를 누를 때만 본문으로 가요)
-    if (!cur.panFrom) cur.panFrom = document.activeElement === cur.el.title ? 'title' : 'body';
-    if (document.activeElement === cur.el.title) cur.el.title.blur();
-  }
-  document.documentElement.style.setProperty('--pan', Math.min(Math.max(kbH, 310), 380) + 'px');
-  document.documentElement.classList.add('ed-pan-open');
-  cur.el.pan.hidden = false; paintPan(); cur.el.pan.scrollTop = 0; requestAnimationFrame(keepCaret);
+/* ---------- 서식 줄 (모바일: 키보드 위 막대가 서식 아이콘 줄로 바뀌어요. 키보드는 그대로) ---------- */
+function toggleFmt(on = !cur.el.cap?.classList.contains('on-fmt')) {
+  const c = cur.el.cap; if (!c) return;
+  c.classList.toggle('on-fmt', on);
+  $$('.base [data-act=aa]', c).forEach(x => x.setAttribute('aria-expanded', String(on)));
+  if (on) { const f = $('.fmt', c); if (f) f.scrollLeft = 0; paintState(); }
 }
-function closePan(toKeyboard = false, to = cur?.panFrom) {
+/* 글꼴: 누를 때마다 기본 → 명조 → 손글씨 */
+function nextFont() {
+  const f = FONTS[(FONTS.indexOf(fontOf(cur.e)) + 1) % FONTS.length];
+  cur.e.meta = { ...cur.e.meta, font: f === 'base' ? undefined : f }; cur.saved = false; paintFont(); commit();
+}
+
+/* ---------- 옵션 판: 정보 칩 바로 아래로 펼쳐져요 (모바일 · PC 같아요). 바깥 · ⌃ · 칩을 다시 누르면 접혀요 ---------- */
+function openPan() {
   if (!cur) return;
-  const had = cur.pan; cur.pan = null; cur.panFrom = null;
-  cur.el.pan.hidden = true; cur.el.pan.innerHTML = '';
-  document.documentElement.classList.remove('ed-pan-open');
-  $$('[data-act=aa],[data-act=more]', cur.el.root).forEach(x => { x.classList.remove('on'); x.setAttribute('aria-expanded', 'false'); });
-  $('.ed-bar .kbd', cur.el.root)?.toggleAttribute('hidden', true);
-  const b = cur.el.body;
-  if (b.inputMode === 'none') b.inputMode = '';
-  if (!toKeyboard || !had) return;
-  if (to === 'title') { const t = cur.el.title; t.focus({ preventScroll: true }); t.setSelectionRange(t.value.length, t.value.length); return; }
-  const r = saveRange(); b.blur(); b.focus({ preventScroll: true }); restoreRange(r);
+  if (cur.pan) { closePan(); return; }
+  cur.pan = 'more';
+  if (!isPC() && document.activeElement === cur.el.body) cur.el.body.blur();   // 옵션은 글이 아니라 설정이라 키보드는 내려요
+  cur.el.pan.hidden = false; paintPan();
+}
+function closePan() {
+  if (!cur?.pan) return;
+  cur.pan = null; cur.el.pan.hidden = true; cur.el.pan.innerHTML = '';
+  cur.el.info.setAttribute('aria-expanded', 'false'); cur.el.info.classList.remove('on');
 }
 function paintPan() {
-  const { e, el } = cur, k = cur.pan;
-  $$('[data-act=aa]', el.root).forEach(x => { x.classList.toggle('on', k === 'aa'); x.setAttribute('aria-expanded', String(k === 'aa')); });
-  $$('[data-act=more]', el.root).forEach(x => { x.classList.toggle('on', k === 'more'); x.setAttribute('aria-expanded', String(k === 'more')); });
-  $('.ed-bar .kbd', el.root)?.toggleAttribute('hidden', !k || isPC());
-  const fonts = cur.ro ? '' : `<div class="fonts" role="group" aria-label="${esc(t('ed.font'))}">${FONTS.map(f => `<button class="ff-${f}${fontOf(e) === f ? ' on' : ''}" data-ff="${f}" aria-pressed="${fontOf(e) === f}">${esc(t('ed.font.' + f))}</button>`).join('')}</div>`;
-  if (fonts && (k === 'aa' || isPC())) { useFont('serif'); useFont('hand'); }
-  if (k === 'aa') {
-    el.pan.innerHTML = `${fonts}<div class="segs" role="group">${STYLE.map(([f, , l]) => `<button data-f="${f}" aria-pressed="false">${esc(t(l))}</button>`).join('')}</div>
-      <div class="row">${INLINE.map(f => fbtn(f, 'pb')).join('')}</div><div class="row">${LISTS.map(f => fbtn(f, 'pb')).join('')}</div>`;
-    paintState();
-  } else if (k === 'more') {
-    const fav = e.favorite, pin = e.pinned;
-    el.pan.innerHTML = `${isPC() ? `<div class="lab">${esc(t('ed.font'))}</div>${fonts}` : ''}<div class="lab">${esc(t('ed.kind'))}</div><div class="kinds">${TYPES.map(ty => `<button class="kc${ty === e.type ? ' on' : ''}" data-type="${ty}" aria-pressed="${ty === e.type}" ${cur.ro ? 'disabled' : ''}>${icon(TYPE_ICON[ty], 18)}${esc(typeLabel(ty))}</button>`).join('')}</div>
-      <div class="lab">${esc(t('ed.folder'))}</div><div class="kinds"><button class="kc${!e.folder_id ? ' on' : ''}" data-folder="" ${cur.ro ? 'disabled' : ''}>${icon('folder-x', 18)}${esc(t('folder.none'))}</button>${folderList().map(f => `<button class="kc${f.id === e.folder_id ? ' on' : ''}" data-folder="${f.id}" ${cur.ro ? 'disabled' : ''}><svg class="i" width="18" height="18" viewBox="0 0 24 24" style="color:${esc(f.color || '#A9A5AF')}"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>${esc(f.name)}</button>`).join('')}${cur.ro ? '' : `<button class="kc" data-folder="+">${icon('plus', 18)}${esc(t('folder.new'))}</button>`}</div>
-      ${isPC() ? '' : `<div class="lab">${esc(t('ed.image'))}</div><div class="kinds imgs"><button class="kc" data-act="photo" ${cur.ro ? 'disabled' : ''}>${icon('image-plus', 18)}${esc(t('ed.attach'))}</button><button class="kc" data-act="card">${icon('image', 18)}${esc(t('card.title'))}</button></div>`}
-      <div class="acts"><button data-x="fav" class="${fav ? 'on' : ''}">${icon('star', 19)}${esc(t(fav ? 'ed.unfavorite' : 'ed.favorite'))}</button><button data-x="pin" class="${pin ? 'on' : ''}">${icon('pin', 19)}${esc(t(pin ? 'ed.unpin' : 'ed.pin'))}</button><button data-x="trash" class="bad">${icon('trash-2', 19)}${esc(t('ed.trash'))}</button></div>`;
-  }
-  if (k === 'more') fitRow($('.acts', el.pan), 2);
-  $$('.ed-pan .kinds .on', el.root).forEach(b => { const w = b.parentElement; if (b.offsetLeft + b.offsetWidth > w.clientWidth) w.scrollLeft = b.offsetLeft - 12; });   // 고른 종류 · 폴더가 옆으로 가려져 있으면 보이게
+  const { e, el } = cur;
+  el.info.setAttribute('aria-expanded', 'true'); el.info.classList.add('on');
+  const dis = cur.ro ? 'disabled' : '';
+  el.pan.innerHTML = `<div class="lab">${esc(t('ed.kind'))}</div><div class="kinds">${TYPES.map(ty => `<button class="kc${ty === e.type ? ' on' : ''}" data-type="${ty}" aria-pressed="${ty === e.type}" ${dis}>${icon(TYPE_ICON[ty], 18)}${esc(typeLabel(ty))}</button>`).join('')}</div>
+    ${metaHTML(e, true)}
+    <div class="lab">${esc(t('ed.folder'))}</div><div class="kinds"><button class="kc${!e.folder_id ? ' on' : ''}" data-folder="" ${dis}>${icon('folder-x', 18)}${esc(t('folder.none'))}</button>${folderList().map(f => `<button class="kc${f.id === e.folder_id ? ' on' : ''}" data-folder="${f.id}" ${dis}><svg class="i" width="18" height="18" viewBox="0 0 24 24" style="color:${esc(f.color || '#A9A5AF')}"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>${esc(f.name)}</button>`).join('')}${cur.ro ? '' : `<button class="kc" data-folder="+">${icon('plus', 18)}${esc(t('folder.new'))}</button>`}</div>
+    ${isPC() ? '' : `<div class="lab">${esc(t('ed.image'))}</div><div class="kinds imgs"><button class="kc" data-act="card">${icon('image', 18)}${esc(t('card.title'))}</button></div>`}
+    <div class="acts"><button data-x="fav" class="${e.favorite ? 'on' : ''}">${icon('star', 19)}${esc(t(e.favorite ? 'ed.unfavorite' : 'ed.favorite'))}</button><button data-x="pin" class="${e.pinned ? 'on' : ''}">${icon('pin', 19)}${esc(t(e.pinned ? 'ed.unpin' : 'ed.pin'))}</button><button data-x="trash" class="bad">${icon('trash-2', 19)}${esc(t('ed.trash'))}</button></div>
+    <button class="up" data-act="more" aria-label="${esc(t('common.close'))}">${icon('chevron-up', 20)}</button>`;
+  wireMeta(el.pan);
+  fitRow($('.acts', el.pan), 2);
+  $$('.kinds .on', el.pan).forEach(b => { const w = b.parentElement; if (b.offsetLeft + b.offsetWidth > w.clientWidth) w.scrollLeft = b.offsetLeft - 12; });   // 고른 종류 · 폴더가 옆으로 가려져 있으면 보이게
 }
 /* 지금 커서 자리의 서식을 버튼에 표시해요 (켜짐/꺼짐) */
 function paintState() {
@@ -247,8 +252,7 @@ const restoreRange = r => { if (!r) return; const s = getSelection(); s.removeAl
 async function fmt(f) {
   const body = cur.el.body;
   if (!body.contains(getSelection().anchorNode)) { if (document.activeElement !== body) placeCaret(body, true); }
-  if (cur.pan) cur.panFrom = 'body';   // 서식을 쓰면 본문을 고친 것이니, 판을 닫을 때 본문으로 돌아가요
-  else if (document.activeElement !== body) { const r = saveRange(); body.focus({ preventScroll: true }); restoreRange(r); }
+  if (document.activeElement !== body) { const r = saveRange(); body.focus({ preventScroll: true }); restoreRange(r); }
   if (['bold', 'italic', 'underline'].includes(f)) { cur.hist.snap(); document.execCommand(f); }
   else if (f === 'undo') { if (!cur.hist.back()) return; }
   else if (f === 'mark' || f === 'link') { cur.hist.snap(); await fmtAction(f); cur.hist?.snap(); return; }
@@ -261,8 +265,6 @@ async function onAct(ev) {
   if (!cur) return;
   const fb = ev.target.closest('[data-f]');
   if (fb && !cur.ro) { fmt(fb.dataset.f); return; }
-  const fn = ev.target.closest("[data-ff]");
-  if (fn && !cur.ro) { if (fn.dataset.ff !== fontOf(cur.e)) { cur.e.meta = { ...cur.e.meta, font: fn.dataset.ff === 'base' ? undefined : fn.dataset.ff }; cur.saved = false; paintFont(); paintPan(); commit(); } return; }
   const ty = ev.target.closest('[data-type]'), fo = ev.target.closest('[data-folder]'), x = ev.target.closest('[data-x]');
   const e = cur.e;
   if (ty && !cur.ro) { if (ty.dataset.type !== e.type) { e.type = ty.dataset.type; cur.saved = false; paintChips(); commit(); } return; }
@@ -276,11 +278,12 @@ async function onAct(ev) {
   const b = ev.target.closest('[data-act]'); if (!b) return;
   const a = b.dataset.act;
   if (a === 'back') { await commit(); const back = history.length > 1; leave(); back ? history.back() : go('/home'); }
+  else if (a === 'cancel') cancel();
   else if (a === 'done') finish(b);
   else if (a === 'plans') go('/plans');
-  else if (a === 'aa') openPan('aa');
-  else if (a === 'more') openPan('more');
-  else if (a === 'kbd') closePan(true);
+  else if (a === 'aa') toggleFmt();
+  else if (a === 'font') { if (!cur.ro) nextFont(); }
+  else if (a === 'more') openPan();
   else if (a === 'photo') { if (!CFG.PHOTOS_URL) toast(t('photo.soon')); else if ((e.photos || []).length >= 4) toast(t('photo.perEntry')); else cur.el.root.querySelector('.ed-file').click(); }
   else if (a === 'ph') photoMenu(b.dataset.id);
   else if (a === 'open-url') openUrl(e.meta.url);
@@ -299,6 +302,21 @@ async function finish(b) {
   if (cur?.pane) { const p = cur.pane; leave(); p.onDone?.(wrote ? e : null); return; }
   leave();
   if (wrote && wasNew) go('/all', { replace: true }); else history.length > 1 ? history.back() : go('/home');
+}
+/* 취소: 고친 게 없으면 그냥 나가요. 고쳤으면 물어보고, 새 글은 지우고 · 고친 글은 열었을 때 모습으로 되돌려요 */
+async function cancel() {
+  const c = cur, e = c.e, o = c.orig;
+  const changed = c.touched || e.type !== o.type || e.folder_id !== o.folder_id || JSON.stringify(e.meta || {}) !== JSON.stringify(o.meta);
+  const out = () => { const p = c.pane; leave(); if (p) (c.wasNew ? p.onGone?.() : p.onDone?.(null)); else history.length > 1 ? history.back() : go('/home'); };
+  if (!changed || c.ro) { if (!c.ro) await commit(); out(); return; }
+  c.save.cancel();
+  if (!await confirmDlg(t('ed.discardQ'), t(c.wasNew ? 'ed.discardNew' : 'ed.discardEdit'), t('ed.discard'), { danger: true, cancel: t('ed.keepWriting') })) return;
+  if (cur !== c) return;
+  if (c.wasNew) { if (S.entries.has(e.id)) await purgeEntries([e.id]); }
+  else { Object.assign(e, { title: o.title, content: o.content, text: o.text, type: o.type, folder_id: o.folder_id, meta: o.meta }); await saveEntry(e, { quiet: true }); }
+  c.touched = false; c.saved = undefined; c.isNew = false;   // 나가면서 다시 저장하지 않게
+  c.el.body.innerHTML = c.base;
+  out();
 }
 async function more(v) {
   const e = cur.e;

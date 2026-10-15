@@ -99,5 +99,5 @@ export default {
   'plan.notReady': '결제 준비 중이에요. 곧 열려요.', 'plan.loadFail': '결제 창을 열지 못했어요. 잠시 뒤 다시 해 주세요.', 'plan.thanks': '고마워요! 구독이 시작됐어요.',
   "list.upcoming": "다가오는 일정", "list.past": "지난 일정", "ed.urlPh": "링크를 붙여 넣으세요 (https://…)", "ed.open": "열기", "ed.paste": "붙여넣기", "ed.openLink": "링크 열기", "set.faq": "자주 묻는 질문", "set.about": "회사 소개", "set.co.name": "회사", "set.co.ceo": "대표", "set.co.addr": "주소", "set.co.reg": "사업자 정보", "set.co.mail": "문의", "set.co.soon": "회사 소개는 정식 오픈 전에 채워질 예정이에요.",
   'set.notifyPush': "앱을 닫아도 알림이 와요. 알림을 받을 기기마다 한 번씩 켜 주세요.",
-  'ed.options': "옵션"
+  'ed.discardQ': '쓰던 내용을 버릴까요?', 'ed.discardNew': '이 글은 저장되지 않아요.', 'ed.discardEdit': '고치기 전 내용으로 돌아가요.', 'ed.discard': '버리기', 'ed.keepWriting': '계속 쓰기', 'ed.noDue': '마감 없음', 'ed.noDate': '날짜 없음', 'ed.options': "옵션"
 };

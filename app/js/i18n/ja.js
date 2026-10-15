@@ -95,5 +95,5 @@ export default {
   'lang.ja': '日本語', 'lang.es': 'Español', 'lang.fr': 'Français',
   "list.upcoming": "これからの予定", "list.past": "過去の予定", "ed.urlPh": "リンクを貼り付け (https://…)", "ed.open": "開く", "ed.paste": "貼り付け", "ed.openLink": "リンクを開く", "set.faq": "よくある質問", "set.about": "会社概要", "set.co.name": "会社名", "set.co.ceo": "代表者", "set.co.addr": "所在地", "set.co.reg": "事業者情報", "set.co.mail": "お問い合わせ", "set.co.soon": "会社概要は正式リリース前に掲載予定です。",
   'set.notifyPush': "アプリを閉じていても通知が届きます。通知を受け取る端末ごとに一度オンにしてください。",
-  'ed.options': "オプション"
+  'ed.discardQ': '変更を破棄しますか？', 'ed.discardNew': 'この記録は保存されません。', 'ed.discardEdit': '編集前の内容に戻ります。', 'ed.discard': '破棄', 'ed.keepWriting': '書き続ける', 'ed.noDue': '期限なし', 'ed.noDate': '日付なし', 'ed.options': "オプション"
 };
