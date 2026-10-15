@@ -295,7 +295,7 @@
 .ffb[data-ff="hand"] span { font-family: var(--f-hand); font-size: 1.2em; font-weight: 400; }
 .ed-tools .ed-cancel { height: 42px; }
 @media (max-width: 899px), (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
-  .view > .ed-page > .ed-top { display: flex; align-items: center; flex: none; padding: calc(6px + var(--safe-t)) 14px 6px 8px; }
+  .view > .ed-page > .ed-top { display: flex; align-items: center; flex: none; padding: calc(6px + var(--safe-t)) 20px 6px 20px;   /* 좌우 끝 = 글 칸 끝선 (20px), 높이 40 = 정보 캡슐 */ }
   .ed-top .sp { flex: 1; }
   .ed-top .ed-done { height: 40px; padding: 0 16px 0 12px; }
   .view > .ed-page > .ed { padding-top: 6px; }
