@@ -142,3 +142,6 @@
 /* 패턴 견본: 줄노트는 선과 손글씨까지 보여요 */
 .bgsw i:is(.pat-pad, .pat-padw) { font-family: 'DT Gamja Flower', var(--font); font-weight: 400; font-size: var(--fs-m); color: #26303F; box-shadow: inset 0 0 0 1px rgba(0,0,0,.06);
   background-image: repeating-linear-gradient(transparent 0 13px, rgba(70,125,200,.5) 13px 14px) !important; }
+/* dev.99 선택지가 2~3개인 칸(한 주의 시작 · 메뉴 색 …)은 개수만큼만 짧게. 많은 칸(언어)은 넓게 그대로 */
+.seg.wide:not(:has(> button:nth-child(4))) { width: max-content; max-width: 100%; align-self: flex-start; grid-auto-columns: 1fr; }
+.seg.wide:not(:has(> button:nth-child(4))) > button { min-width: 112px; padding: 6px 16px; }
