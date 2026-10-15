@@ -252,9 +252,7 @@ dialog.dlg .btn { height: 44px; }
    4) 판(카드)의 높이는 내용만큼. 빈 판을 길게 늘이지 않아요 */
 @media (min-width: 900px) and (min-height: 501px), (min-width: 900px) and (pointer: fine) {
   :root { --pc-max: 1440px; --pc-read: 720px; --story: 26px; }
-  .main > .pc-top, .main > .view { width: 100%; max-width: var(--pc-max); margin-left: auto; margin-right: auto; }
-  /* 홈: 이야기 칸 + 오른쪽 '오늘' 판을 한 덩어리로 가운데에 */
-  .home-wrap { max-width: 1160px; margin: 0 auto; justify-content: center; }
+  .main > .pc-top, .main > .view { width: 100%; max-width: var(--pc-max); }   /* 큰 화면: 메뉴 옆에 붙이고 남는 자리는 오른쪽 여백 (pc.css) */
   .main .home { max-width: 680px; }
   .today-side .trow .t { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; white-space: normal; }
   /* 캘린더 주: 칸은 내용만큼 (빈 날은 낮게), 기록 글은 세 줄까지 */
@@ -264,7 +262,6 @@ dialog.dlg .btn { height: 44px; }
 }
 @media (min-width: 1200px) and (min-height: 501px), (min-width: 1200px) and (pointer: fine) {
   /* 목록 + 오른쪽 기록: 오른쪽 판은 글 칸(720) + 여백까지만 넓어져요 */
-  .main .split { grid-template-columns: minmax(360px, 420px) minmax(0, 860px); justify-content: center; }
   .main .split .pane { height: auto; min-height: min(480px, calc(100dvh - 104px)); max-height: calc(100dvh - 104px); }   /* 하얀 판은 글 길이만큼 (짧으면 낮게) */
   .main .split .pane .ed-page { min-height: 0; }
   .main .pane .ed { max-width: var(--pc-read); }

@@ -7,10 +7,14 @@ import { addDays, dayKey, esc, icon, nowISO, parseDay, startOfWeek, todayKey } f
 import { promptDlg, toast } from '../ui/feedback.js';
 import { go } from '../ui/router.js';
 import { fit } from '../ui/fit.js';
+import * as Editor from './editor.js';
 
 const COL = { event: 'var(--event)', todo: 'var(--todo)', record: 'var(--record)' };
 const isPC = () => matchMedia('(min-width: 900px) and (min-height: 501px), (min-width: 900px) and (pointer: fine)').matches;
 let state = { view: null, sel: todayKey(), filter: 'all' };
+/* PC: 가운데는 작은 달력 + 고른 날 목록, 넓으면 오른쪽에 고른 기록 (목록 화면과 같은 3칸) */
+const wide = () => matchMedia('(min-width: 1200px) and (min-height: 501px), (min-width: 1200px) and (pointer: fine)').matches;
+let pick = null;
 
 /* 날짜별 묶음: 일정(meta.date), 할 일(마감일), 기록(만든 날) */
 function index() {
@@ -49,15 +53,23 @@ function render(view, r) {
   if (!state.view) state.view = isPC() ? 'month' : 'week';
   view.innerHTML = `<section class="cal"></section>`;
   const root = view.querySelector('.cal');
+  if (isPC()) {
+    root.innerHTML = `<div class="cal-pc split"><div class="cmid"></div>${wide() ? '<aside class="pane"></aside>' : ''}</div>`;
+    root.addEventListener('click', ev => {   // 넓은 PC: 기록을 누르면 오른쪽 칸에 열려요
+      if (!wide()) return; const a = ev.target.closest('.cmid a.ev'); if (!a || ev.target.closest('button') || ev.metaKey || ev.ctrlKey) return;
+      ev.preventDefault(); openPick(root, a.closest('.swp')?.dataset.id || null);
+    });
+  }
   root.addEventListener('click', async ev => {
     const b = ev.target.closest('button,[data-day]'); if (!b) return;
     if (b.dataset.del) { ev.preventDefault(); const id = b.dataset.del; await trashEntry(id); toast(t('ed.trashed'), { action: t('common.undo'), onAction: () => restoreEntry(id) }); return; }
     if (b.dataset.done) { ev.preventDefault(); const e = S.entries.get(b.dataset.done); const d = !e.meta.done; await patchEntry(e.id, { meta: { ...e.meta, done: d, doneAt: d ? nowISO() : null } }); return; }
     if (b.dataset.v) { state.view = b.dataset.v; }
-    else if (b.dataset.nav) { const n = +b.dataset.nav; const d = parseDay(state.sel); state.sel = dayKey(state.view === 'week' ? addDays(d, 7 * n) : new Date(d.getFullYear(), d.getMonth() + n, 1)); }
-    else if ('today' in b.dataset) state.sel = todayKey();
+    else if (b.dataset.nav) { const n = +b.dataset.nav; const d = parseDay(state.sel); state.sel = dayKey(state.view === 'week' && !root.querySelector('.cmid') ? addDays(d, 7 * n) : new Date(d.getFullYear(), d.getMonth() + n, 1)); pick = null; }
+    else if ('today' in b.dataset) { state.sel = todayKey(); pick = null; }
     else if (b.dataset.f) state.filter = b.dataset.f;
     else if (b.dataset.add) { quickAdd(b.dataset.add); return; }
+    else if (b.dataset.day && root.querySelector('.cmid')) { state.sel = b.dataset.day; pick = null; }
     else if (b.dataset.day) { if (isPC() && state.view === 'month' && state.sel === b.dataset.day && !ev.target.closest('a')) { quickAdd(b.dataset.day); return; } state.sel = b.dataset.day; }
     else return;
     paint(root);
@@ -71,7 +83,36 @@ async function quickAdd(k) {
   const title = await promptDlg(t('cal.quick', { date: fmtDate(parseDay(k), { month: 'long', day: 'numeric' }) }), { placeholder: t('ed.title'), ok: t('cal.asEvent') });
   if (title) await addEntry({ type: 'event', title, meta: { date: k } });
 }
+function openPick(root, id) {
+  const old = root.querySelector('.pane'); if (!old) return;
+  const pane = old.cloneNode(false); old.replaceWith(pane); pane.dataset.id = id || ''; pick = id;
+  root.querySelectorAll('.cmid .swp').forEach(w => w.classList.toggle('sel', w.dataset.id === id));
+  if (!id) { Editor.leave(); pane.innerHTML = `<div class="pane-empty">${icon('feather', 28)}<p>${esc(t('empty.pane'))}</p></div>`; return; }
+  Editor.render(pane, { path: '/e/' + id, params: { id }, query: {} }, { pane: true,
+    onSaved: () => paint(root), onDone: () => { pane.dataset.id = ''; paint(root); }, onGone: () => { pick = null; pane.dataset.id = ''; paint(root); } });
+}
+function paintPC(root, idx) {
+  const sel = parseDay(state.sel), today = todayKey(), ws = S.prefs.weekStart || 0;
+  root.className = 'cal mini';
+  const wdays = [...Array(7)].map((_, i) => addDays(startOfWeek(new Date(2026, 0, 4), ws), i));
+  const first = new Date(sel.getFullYear(), sel.getMonth(), 1), g0 = startOfWeek(first, ws);
+  const weeks = Math.ceil(((first - g0) / 864e5 + new Date(sel.getFullYear(), sel.getMonth() + 1, 0).getDate()) / 7);
+  const cells = [...Array(weeks * 7)].map((_, i) => addDays(g0, i));
+  const next = dayKey(addDays(sel, 1));
+  root.querySelector('.cmid').innerHTML = `<div class="cal-head"><h1>${esc(fmtDate(sel, { month: 'long' }))}<small>${sel.getFullYear()}</small></h1><span class="r">
+      <button class="navbtn" data-nav="-1" aria-label="${esc(t('cal.prevMonth'))}">${icon('chevron-left', 22)}</button><button class="today-btn" data-today>${esc(t('cal.today'))}</button><button class="navbtn" data-nav="1" aria-label="${esc(t('cal.nextMonth'))}">${icon('chevron-right', 22)}</button></span></div>
+    <div class="mbox"><div class="wkh">${wdays.map(d => `<span class="${d.getDay() === 0 || d.getDay() === 6 ? 'we' : ''}">${esc(fmtDate(d, { weekday: 'narrow' }))}</span>`).join('')}</div>
+      <div class="mgrid">${cells.map(d => { const k = dayKey(d); const cls = [d.getMonth() !== sel.getMonth() && 'o', (d.getDay() === 0 || d.getDay() === 6) && 'we', k === state.sel && 'on', k === today && 'today'].filter(Boolean).join(' '); return `<button class="mc ${cls}" data-day="${k}">${d.getDate()}<i>${d.getMonth() === sel.getMonth() ? dots(idx.get(k)) : ''}</i></button>`; }).join('')}</div></div>
+    <div class="filters cf">${['all', 'event', 'todo', 'record'].map(f => `<button class="${state.filter === f ? 'on' : ''}" data-f="${f}">${f === 'all' ? '' : `<u style="background:var(--${f})"></u>`}${esc(t(f === 'all' ? 'list.all' : f === 'event' ? 'cal.events' : f === 'todo' ? 'cal.todos' : 'cal.recs'))}</button>`).join('')}</div>
+    <div class="agenda">${dayBlock(state.sel, idx.get(state.sel), { full: false })}${dayBlock(next, idx.get(next), { full: false })}</div><div style="height:80px"></div>`;
+  const pane = root.querySelector('.pane'); if (!pane) return;
+  const ids = [...root.querySelectorAll('.cmid .agenda .swp[data-id]')].map(w => w.dataset.id);
+  if (!pick || !S.entries.get(pick) || S.entries.get(pick).deleted_at) pick = ids[0] || null;
+  if ((pane.dataset.id || null) !== pick || (!pick && !pane.firstChild)) openPick(root, pick);
+  else root.querySelectorAll('.cmid .swp').forEach(w => w.classList.toggle('sel', w.dataset.id === pick));
+}
 function paint(root) {
+  if (isPC() && root.querySelector('.cmid')) { if (state.view === 'week') state.view = 'month'; return paintPC(root, index()); }
   const idx = index(), sel = parseDay(state.sel), today = todayKey(), ws = S.prefs.weekStart || 0;
   root.className = 'cal ' + state.view;
   const wdays = [...Array(7)].map((_, i) => addDays(startOfWeek(new Date(2026, 0, 4), ws), i));
@@ -108,5 +149,6 @@ function paint(root) {
   fit(root.querySelector('.cal-head'), 3);
 }
 const refresh = view => view.paintCal?.();
+const leave = () => Editor.leave();
 
-export { refresh, render };
+export { leave, refresh, render };

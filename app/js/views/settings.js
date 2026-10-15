@@ -53,7 +53,7 @@ function group(g) {
     + card(t('set.plan'), row({ ic: 'gem', label: t('set.planNow'), sub: esc(planLine()), href: '#/plans' }) + row({ ic: 'ticket', label: t('set.voucher'), sub: esc(t('set.voucherSub')), act: 'voucher' }))
     + card(t('set.invite'), row({ ic: 'gift', label: t('set.myCode'), sub: esc(t('set.inviteSub')), value: S.status?.referral_code || '', act: 'code' }) + row({ ic: 'user-plus', label: t('set.enterCode'), act: 'redeem' }))
     + card(t('set.security'), row({ ic: 'key-round', label: t('set.password'), act: 'password' }) + row({ ic: 'log-out', label: t('set.signOut'), act: 'signout', chev: false }));
-  if (g === 'display') return card('', seg('mode', t('set.mode'), [['story', t('set.story')], ['tidy', t('set.tidy')]], p.mode) + `<p class="snote">${esc(t('set.modeSub'))}</p>`)
+  if (g === 'display') return (isPC() ? '' : card('', seg('mode', t('set.mode'), [['story', t('set.story')], ['tidy', t('set.tidy')]], p.mode) + `<p class="snote">${esc(t('set.modeSub'))}</p>`))   // PC 홈은 이야기 + 오늘 정리를 함께 보여 줘요
     + card('', seg('lang', t('set.lang'), [['', t('set.langAuto')], ...LANGS.map(l => [l, t('lang.' + l)])], p.lang || '')
       + seg('weekStart', t('set.weekStart'), [[0, t('set.sun')], [1, t('set.mon')]], p.weekStart || 0))
     + card('', seg('ui', t('set.ui'), [['white', t('set.uiWhite')], ['glass', t('set.uiGlass')], ['dark', t('set.uiDark')]], uiStyle()) + bgRow(p.bg in SOLID ? p.bg : 'grad'))

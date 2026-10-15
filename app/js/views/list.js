@@ -9,12 +9,13 @@ import { removeFolder, renameFolder } from './folders.js';
 import { pickAction, typeLabel } from './pickers.js';
 import { Photos } from '../features/photos.js';
 import * as Editor from './editor.js';
+import { sanitizeHTML } from '../core/sanitize.js';
 import { render as rerender } from '../ui/router.js';
 
 let filter = 'all';
 /* PC 나란히 보기 (넓은 화면): 왼쪽 목록 + 오른쪽에 고른 기록. 처음엔 맨 위 기록이 열려 있어요 */
 const wide = matchMedia('(min-width: 1200px) and (min-height: 501px), (min-width: 1200px) and (pointer: fine)');
-const SPLIT = new Set(['all', 'fav', 'type', 'todo', 'folder', 'nofolder', 'search']);
+const SPLIT = new Set(['all', 'fav', 'type', 'todo', 'folder', 'nofolder', 'search', 'trash']);
 let sel = null;
 wide.addEventListener('change', () => { if (document.querySelector('#view .lst')) rerender(); });
 // 미리보기: 제목으로 보이는 줄(제목이 없으면 첫 줄)은 빼고 그다음 줄부터
@@ -31,7 +32,7 @@ function hl(text, terms) {
   terms.forEach(w => { const re = new RegExp(esc(w).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'); out = out.replace(re, m => `<mark>${m}</mark>`); });
   return out;
 }
-function row(e, { terms = [], mode = '' } = {}) {
+function row(e, { terms = [], mode = '', split = false } = {}) {
   const today = todayKey(), m = e.meta || {};
   let sub = preview(e);
   if (e.type === 'event' && m.date) sub = [m.date === today ? t('list.today') : fmtDate(m.date + 'T00:00', { month: 'short', day: 'numeric' }), m.time && fmtHM(m.time), m.place].filter(Boolean).join(' · ');
@@ -43,12 +44,14 @@ function row(e, { terms = [], mode = '' } = {}) {
   const time = mode === 'trash' ? '' : dayKey(new Date(e.created_at)) === today ? fmtTime(new Date(e.created_at)) : fmtDate(e.created_at, { month: 'numeric', day: 'numeric' });
   const lead = e.type === 'todo' && mode !== 'trash' ? `<button class="kc tk${m.done ? ' on' : ''}" data-done="${e.id}" aria-label="${esc(t('common.done'))}" aria-pressed="${!!m.done}"><i class="ck">${m.done ? icon('check', 13) : ''}</i></button>`
     : `<span class="kc">${icon(TYPE_ICON[e.type] || 'file-text', 20)}</span>`;
-  const side = mode === 'trash' ? `<span class="side"><button data-restore="${e.id}">${esc(t('list.restore'))}</button><button class="bad" data-purge="${e.id}" aria-label="${esc(t('list.purge'))}">${icon('trash-2', 15)}</button></span>` : `<span class="tm">${e.favorite ? icon('star', 13) + ' ' : ''}${e.pinned ? icon('pin', 13) + ' ' : ''}${esc(time)}</span>`;
+  const left = mode === 'trash' ? Math.max(0, 30 - Math.floor((Date.now() - new Date(e.deleted_at)) / 864e5)) : 0;
+  const side = mode === 'trash' && split ? `<span class="tm">${esc(t('list.daysLeft', { n: left }))}</span>` : mode === 'trash' ? `<span class="side"><button data-restore="${e.id}">${esc(t('list.restore'))}</button><button class="bad" data-purge="${e.id}" aria-label="${esc(t('list.purge'))}">${icon('trash-2', 15)}</button></span>` : `<span class="tm">${e.favorite ? icon('star', 13) + ' ' : ''}${e.pinned ? icon('pin', 13) + ' ' : ''}${esc(time)}</span>`;
   const ps = e.photos || [];
   const th = ps.length && mode !== 'trash' ? `<span class="th">${Photos.imgTag(ps[0])}${ps.length > 1 ? `<b>${esc(t('photo.more', { n: ps.length - 1 }))}</b>` : ''}</span>` : '';
   const a = `<a class="r" href="#/e/${e.id}">${lead}<span class="tx"><div class="t${m.done ? ' done' : ''}">${hl(displayTitle(e, t('common.untitled')), terms)}</div>${subHtml || f ? `<div class="p">${subHtml}${f && mode !== 'folder' ? (subHtml ? ' · ' : '') + esc(f.name) : ''}</div>` : ''}</span>${th}${mode === 'trash' ? '' : `<button class="del" data-del="${e.id}" aria-label="${esc(t('list.del'))}">${icon('trash-2', 17)}</button>`}${side}</a>`;
   // 왼쪽으로 밀면 삭제 버튼이 나와요 (끝까지 밀면 바로 휴지통). PC는 줄에 마우스를 올리면 휴지통 버튼
-  return mode === 'trash' ? a : `<div class="swp" data-id="${e.id}"><button class="swp-del" data-del="${e.id}" tabindex="-1">${icon('trash-2', 20)}<span>${esc(t('list.del'))}</span></button>${a}</div>`;
+  if (mode === 'trash') return split ? `<div class="swp tr" data-id="${e.id}">${a}</div>` : a;
+  return `<div class="swp" data-id="${e.id}"><button class="swp-del" data-del="${e.id}" tabindex="-1">${icon('trash-2', 20)}<span>${esc(t('list.del'))}</span></button>${a}</div>`;
 }
 function groups(list, opts, key = e => dayKey(new Date(e.created_at))) {
   const out = []; let g = null;
@@ -65,7 +68,7 @@ function render(view, r) {
   if (mode === 'folder' && !folder) { go('/all', { replace: true }); return; }
   const title = mode === 'todo' ? t('nav.todo') : mode === 'trash' ? t('nav.trash') : mode === 'search' ? t('nav.search') : mode === 'folder' ? folder.name : mode === 'nofolder' ? t('nav.noFolder') : mode === 'type' ? typeLabel(r.params.type) : mode === 'fav' ? t('nav.fav') : t('nav.all');
   const split = wide.matches && SPLIT.has(mode);
-  view.innerHTML = (split ? '<div class="split">' : '') + `<section class="lst"><div class="lst-head"><h1>${esc(title)}</h1><span class="c"></span><span class="act"></span></div><div class="filters"></div>
+  view.innerHTML = (split ? '<div class="split">' : '') + `<section class="lst" data-mode="${mode}"><div class="lst-head"><h1>${esc(title)}</h1><span class="c"></span><span class="act"></span></div><div class="filters"></div>
     ${mode === 'search' ? `<label class="field searchbar">${icon('search', 18)}<input type="search" enterkeyhint="search" placeholder="${esc(t('list.search'))}" aria-label="${esc(t('nav.search'))}"></label>` : ''}
     <div class="body"></div><div style="height:120px"></div></section>` + (split ? '<aside class="pane"></aside></div>' : '');
   const act = view.querySelector('.act');
@@ -141,7 +144,7 @@ function paintBody(view, { mode, r, folder, q }) {
   }
   if (mode === 'trash') {
     count.textContent = list.length ? fmtNum(list.length) : '';
-    body.innerHTML = list.length ? `<p class="hint">${esc(t('list.trashNote'))}</p>` + groups(list, { mode }, e => dayKey(new Date(e.deleted_at))) : emptyHTML('trash-2', 'trash');
+    body.innerHTML = list.length ? `<p class="hint">${esc(t('list.trashNote'))}</p>` + groups(list, { mode, split: !!view.querySelector('.pane') }, e => dayKey(new Date(e.deleted_at))) : emptyHTML('trash-2', 'trash');
     return;
   }
   if (mode === 'search') {
@@ -197,6 +200,7 @@ function openPane(view, id, query) {
     pane.innerHTML = `<div class="pane-empty">${icon('feather', 28)}<p>${esc(t('empty.pane'))}</p></div>`;
     return;
   }
+  if (view.querySelector('.lst')?.dataset.mode === 'trash') { Editor.leave(); paintTrashPane(pane, id); return; }
   if (query) { pane.dataset.new = '1'; sel = null; markSel(view); }
   Editor.render(pane, query ? { path: '/new', params: {}, query } : { path: '/e/' + id, params: { id }, query: {} }, {
     pane: true,
@@ -212,12 +216,19 @@ function openPane(view, id, query) {
   });
 }
 
+/* 휴지통 오른쪽 칸: 읽기만 하는 미리 보기 + 되살리기 · 완전히 지우기 */
+function paintTrashPane(pane, id) {
+  const e = S.entries.get(id); if (!e) return;
+  pane.innerHTML = `<div class="tpv"><div class="ed-top"><button class="ed-cancel" data-purge="${e.id}">${icon('trash-2', 18)}<span>${esc(t('list.purge'))}</span></button><span class="sp"></span><button class="ed-done" data-restore="${e.id}">${icon('undo-2', 18)}<span>${esc(t('list.restore'))}</span></button></div>
+    <div class="ed"><div class="ed-info">${icon(TYPE_ICON[e.type] || 'file-text', 17)}<span>${esc(typeLabel(e.type))}</span><i>·</i><span>${esc(t('list.deletedOn', { date: fmtDate(e.deleted_at, { month: 'long', day: 'numeric' }) }))}</span><i>·</i><span>${esc(t('list.readOnly'))}</span></div>
+    <div class="ed-body">${sanitizeHTML(e.content || '') || `<p>${esc(displayTitle(e, t('common.untitled')))}</p>`}</div></div></div>`;
+}
 /* 밀어서 삭제 (손가락). 조금 밀면 삭제 버튼이 열리고, 반 넘게 밀면 바로 휴지통으로 */
 function swipe(view) {
   let s = null;
   const close = except => view.querySelectorAll('.swp.open').forEach(w => { if (w !== except) { w.classList.remove('open'); w.querySelector('.r, .ev').style.transform = ''; w.style.setProperty('--rev', '0px'); } });
   view.addEventListener('touchstart', ev => {
-    const w = ev.target.closest('.swp'); if (!w || ev.target.closest('.swp-del')) return;
+    const w = ev.target.closest('.swp'); if (!w || w.classList.contains('tr') || ev.target.closest('.swp-del')) return;
     close(w); const r = w.querySelector('.r, .ev');
     s = { w, r, x: ev.touches[0].clientX, y: ev.touches[0].clientY, base: w.classList.contains('open') ? -96 : 0, cur: 0, dir: null };
   }, { passive: true });

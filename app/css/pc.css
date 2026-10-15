@@ -1,0 +1,54 @@
+/* ===== PC 3칸 기준 (2026-10-15, 앤드류 확정) =====
+   메뉴 268 | 가운데 420 | 오른쪽은 끝까지. 오른쪽 끝 = 위 쓰기 · 알림 버튼 끝 (--pc-r)
+   내용은 최대 1440, 더 큰 화면에서는 메뉴 옆에 붙이고 남는 자리는 오른쪽 여백
+   예외: 홈 = 가운데 이야기 + 오른쪽 오늘 정리 360 */
+@media (min-width: 900px) and (min-height: 501px), (min-width: 900px) and (pointer: fine) {
+  :root { --pc-l: 40px; --pc-r: 32px; --pc-mid: 420px; --pc-gap: 28px; --pc-side: 360px; }
+  .main > .pc-top, .main > .view { margin-left: 0; margin-right: auto; }
+  .main > .pc-top { padding-right: var(--pc-r); }
+
+  /* 홈: 이야기는 남은 자리 가운데, 오늘 정리는 오른쪽 끝 */
+  .main .home-wrap { display: flex; gap: var(--pc-gap); padding: 0 var(--pc-r) 0 var(--pc-l); max-width: none; margin: 0; justify-content: flex-start; }
+  .main .home-wrap .home { flex: 1; min-width: 0; max-width: 680px; margin: 0 auto; }
+  .main .today-side { width: var(--pc-side); position: sticky; top: 90px; align-self: flex-start; display: flex !important; flex-direction: column; gap: 14px; max-height: calc(100dvh - 104px); overflow-y: auto; scrollbar-width: none; }
+  .main .today-side .today { position: static; }
+  .main .today-side .tcard { display: block; background: var(--sheet); border: 1px solid rgba(var(--fg),.08); border-radius: 28px; padding: 20px 20px 10px; color: inherit; }
+  .main .today-side .tcard .top { margin: 0 0 6px; }
+  .main .today-side .tcard .ev.rc { color: var(--text-3); }
+  .main .today-side .past p { margin: 4px 0 12px; font-size: var(--fs-s); line-height: 1.6; color: var(--text-3); }
+
+  /* 가운데 칸 하나만 (900~1199): 목록 · 캘린더 · 설정은 메뉴 옆에 붙여요 */
+  .main .lst { margin: 0; padding: 40px var(--pc-r) 0 var(--pc-l); max-width: calc(var(--pc-l) + 760px); }
+  .main .cal.mini { padding: 40px var(--pc-r) 0 var(--pc-l); }
+  .cal-pc .cmid { max-width: var(--pc-mid); }
+  .cal.mini .cal-head .r { gap: 6px; }
+  .cal.mini .navbtn { width: 40px; height: 40px; border-radius: 20px; background: rgba(var(--srf),.55); border: 1px solid rgba(var(--fg),.12); color: var(--text); }
+  .cal.mini .mbox { margin-top: 16px; }
+  .cal.mini .filters.cf { margin-top: 14px; }
+  .cal.mini .agenda .dh:first-child { margin-top: 20px; }
+  .main .set { grid-template-columns: var(--pc-mid) minmax(0, 1fr); gap: var(--pc-gap); padding: 34px var(--pc-r) 0 var(--pc-l); max-width: none; }
+}
+@media (min-width: 1200px) and (min-height: 501px), (min-width: 1200px) and (pointer: fine) {
+  /* 목록 · 휴지통 · 캘린더: 가운데 420 + 오른쪽 기록 칸은 끝까지 */
+  .main .split, .cal-pc { display: grid; grid-template-columns: var(--pc-mid) minmax(0, 1fr); gap: var(--pc-gap); padding: 0 var(--pc-r) 0 var(--pc-l); align-items: start; justify-content: stretch; }
+  .main .split .lst { padding: 40px 0 0; max-width: none; }
+  .main .split .pane, .cal-pc .pane { margin-top: 40px; }
+  .main .cal.mini { padding: 0; }
+  .cal-pc .cmid { padding-top: 40px; max-width: none; }
+  .cal-pc .pane { display: block; position: sticky; top: 84px; height: auto; min-height: min(480px, calc(100dvh - 104px)); max-height: calc(100dvh - 104px); overflow-y: auto; overscroll-behavior: contain; border-radius: 28px;
+    background: rgba(var(--srf),.62); border: 1px solid rgba(var(--fg),.08); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+  .cal-pc .pane .ed-page { min-height: 0; } .cal-pc .pane .ed-page::before { display: none; }
+  .main .pane .ed { max-width: none; }
+  .main .pane .ed-page > .ed-top { max-width: none; }
+  /* 고른 기록 표시 (캘린더 목록) */
+  .cal-pc .swp.sel .ev { box-shadow: inset 0 0 0 2px rgba(var(--fg),.35); }
+  /* 휴지통 미리 보기 */
+  .tpv .ed-top { display: flex; align-items: center; padding: 18px 26px 0; }
+  .tpv .ed-top .sp { flex: 1; }
+  .tpv .ed-cancel { display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 16px 0 12px; border-radius: 20px; font-size: var(--fs-s); font-weight: 800; color: var(--text); background: rgba(var(--fg),.08); }
+  .tpv .ed-done { height: 40px; padding: 0 16px 0 12px; }
+  .tpv .ed { padding: 14px 26px 40px; }
+  .tpv .ed-info { pointer-events: none; }
+  .tpv .ed-body { margin-top: 14px; color: var(--text-2); }
+}
+@media (min-width: 900px) and (min-height: 501px) and (max-width: 1199px), (min-width: 900px) and (pointer: fine) and (max-width: 1199px) { .cal-pc .pane { display: none; } }

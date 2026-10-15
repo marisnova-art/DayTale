@@ -12,6 +12,21 @@ import { fmtDate, fmtTime, t } from '../core/i18n.js';
 import { esc, h, icon, slotOf, sunUp, todayKey } from '../core/utils.js';
 import { toast } from '../ui/feedback.js';
 import { todayPanel } from './today.js';
+import { TYPE_ICON } from '../ui/shell.js';
+
+/* PC 홈은 감성형 + 정리형을 합쳐요: 가운데 이야기, 오른쪽 오늘 정리 (보기 방식 고르기는 휴대폰만) */
+const isPC = () => matchMedia('(min-width: 900px) and (min-height: 501px), (min-width: 900px) and (pointer: fine)').matches;
+const tidy = () => S.prefs.mode === 'tidy' && !isPC();
+/* 오른쪽 칸 아래: 최근 기록 3개 · 1년 전(몇 해 전) 오늘 */
+function sideCards() {
+  const all = live(), now = new Date(), md = todayKey().slice(5);
+  const recent = all.filter(e => e.type !== 'todo' && e.type !== 'event').sort((a, b) => b.updated_at.localeCompare(a.updated_at)).slice(0, 3);
+  const past = all.filter(e => { const k = new Date(e.created_at); return k.getFullYear() < now.getFullYear() && todayKeyOf(k).slice(5) === md; }).sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
+  const row = e => `<a class="trow" href="#/e/${e.id}"><span class="ev rc">${icon(TYPE_ICON[e.type] || 'file-text', 18)}</span><span class="t">${esc(displayTitle(e, t('common.untitled')))}</span><span class="tm">${esc(fmtTime(new Date(e.updated_at)))}</span></a>`;
+  return (recent.length ? `<div class="today tcard"><div class="top"><h2>${esc(t('home.recent'))}</h2><a class="chip" href="#/all">${esc(t('common.seeAll'))}</a></div>${recent.map(row).join('')}</div>` : '')
+    + (past ? `<a class="today tcard past" href="#/e/${past.id}"><div class="top"><h2>${esc(t('home.yearsAgo', { n: now.getFullYear() - new Date(past.created_at).getFullYear() }))}</h2></div><p>“${esc((past.text || displayTitle(past, '')).slice(0, 120))}”</p></a>` : '');
+}
+const todayKeyOf = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 let cache = null;   // 같은 시간대·같은 기록이면 이야기를 다시 쓰지 않아요
 const sig = () => { const a = live(); return a.length + ':' + a.reduce((m, e) => e.updated_at > m ? e.updated_at : m, ''); };
@@ -110,7 +125,7 @@ function justLine() {
 
 function render(view, r, keepPh) {
   if (!keepPh || !ph) ph = phrase();
-  if (S.prefs.mode === 'tidy') return renderTidy(view);
+  if (tidy()) return renderTidy(view);
   const s = story(); const now = new Date();
   const q = pickQuestion(s.ctx, { recall: s.recall });
   view.innerHTML = `<div class="home-wrap"><section class="home">
@@ -123,6 +138,7 @@ function render(view, r, keepPh) {
   if (!document.documentElement.classList.contains('story-wait')) s.fresh = false;   // 첫 이야기는 다 받아 온 뒤 보여 줄 때 스르륵 나타나요
   Photos.hydrate(view);
   view.querySelector('.today-side').append(todayPanel());
+  if (isPC()) view.querySelector('.today-side').insertAdjacentHTML('beforeend', sideCards());
   const ta = view.querySelector('.ask textarea');
   let cq = q;
   wireAsk(view, { prompt: () => cq, onSaved: (e, text) => { just = { id: e.id, text, day: todayKey(), fresh: true }; render(view); view.querySelector('.story .just')?.scrollIntoView({ block: 'center', behavior: 'smooth' }); } });
@@ -132,7 +148,7 @@ function render(view, r, keepPh) {
 }
 /* 다시 그릴 때 입력 중인 글은 지키기 */
 function refresh(view) {
-  if (S.prefs.mode === 'tidy') { if (document.activeElement?.tagName !== 'TEXTAREA') renderTidy(view); return; }
+  if (tidy()) { if (document.activeElement?.tagName !== 'TEXTAREA') renderTidy(view); return; }
   if (document.documentElement.classList.contains('home-focus')) return;   // 쓰는 중에는 화면을 다시 그리지 않아요
   const ta = view.querySelector('.ask textarea'); const keep = ta?.value || ''; const focused = document.activeElement === ta;
   render(view, null, true);
