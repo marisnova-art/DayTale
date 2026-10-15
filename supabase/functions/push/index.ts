@@ -24,18 +24,19 @@ async function config(): Promise<Cfg> {
 
 // 알림 글 (5개 언어). 제목은 기록 제목, 본문은 짧게
 const T: Record<string, Record<string, string>> = {
-  ko: { untitled: '제목 없음', event: '{time}에 시작해요', todo: '오늘까지 할 일이에요', morning: '좋은 아침이에요', morningBody: '오늘 일정 {n}개가 있어요', morningNone: '오늘 하루를 가볍게 시작해 볼까요?', evening: '오늘 하루는 어땠나요?', eveningBody: '한 줄만 적어 두어도 충분해요' },
-  en: { untitled: 'Untitled', event: 'Starts at {time}', todo: 'Due today', morning: 'Good morning', morningBody: 'You have {n} events today', morningNone: 'Ready for a gentle start to your day?', evening: 'How was your day?', eveningBody: 'A single line is enough' },
-  ja: { untitled: '無題', event: '{time}に始まります', todo: '今日が期限です', morning: 'おはようございます', morningBody: '今日の予定は{n}件です', morningNone: '今日も軽やかに始めましょう', evening: '今日はどんな一日でしたか？', eveningBody: '一行だけでも十分です' },
-  es: { untitled: 'Sin título', event: 'Empieza a las {time}', todo: 'Vence hoy', morning: 'Buenos días', morningBody: 'Hoy tiene {n} eventos', morningNone: '¿Empezamos el día con calma?', evening: '¿Qué tal su día?', eveningBody: 'Con una sola línea basta' },
-  fr: { untitled: 'Sans titre', event: 'Commence à {time}', todo: 'À faire aujourd’hui', morning: 'Bonjour', morningBody: 'Vous avez {n} événements aujourd’hui', morningNone: 'Prêt pour une journée en douceur ?', evening: 'Comment s’est passée votre journée ?', eveningBody: 'Une seule ligne suffit' }
+  ko: { eventTomorrow: '내일 {time}에 시작해요', todoTomorrow: '내일까지 할 일이에요', untitled: '제목 없음', event: '{time}에 시작해요', todo: '오늘까지 할 일이에요', morning: '좋은 아침이에요', morningBody: '오늘 일정 {n}개가 있어요', morningNone: '오늘 하루를 가볍게 시작해 볼까요?', evening: '오늘 하루는 어땠나요?', eveningBody: '한 줄만 적어 두어도 충분해요' },
+  en: { eventTomorrow: 'Tomorrow at {time}', todoTomorrow: 'Due tomorrow', untitled: 'Untitled', event: 'Starts at {time}', todo: 'Due today', morning: 'Good morning', morningBody: 'You have {n} events today', morningNone: 'Ready for a gentle start to your day?', evening: 'How was your day?', eveningBody: 'A single line is enough' },
+  ja: { eventTomorrow: '明日 {time}に始まります', todoTomorrow: '明日が期限です', untitled: '無題', event: '{time}に始まります', todo: '今日が期限です', morning: 'おはようございます', morningBody: '今日の予定は{n}件です', morningNone: '今日も軽やかに始めましょう', evening: '今日はどんな一日でしたか？', eveningBody: '一行だけでも十分です' },
+  es: { eventTomorrow: 'Mañana a las {time}', todoTomorrow: 'Vence mañana', untitled: 'Sin título', event: 'Empieza a las {time}', todo: 'Vence hoy', morning: 'Buenos días', morningBody: 'Hoy tiene {n} eventos', morningNone: '¿Empezamos el día con calma?', evening: '¿Qué tal su día?', eveningBody: 'Con una sola línea basta' },
+  fr: { eventTomorrow: 'Demain à {time}', todoTomorrow: 'À faire pour demain', untitled: 'Sans titre', event: 'Commence à {time}', todo: 'À faire aujourd’hui', morning: 'Bonjour', morningBody: 'Vous avez {n} événements aujourd’hui', morningNone: 'Prêt pour une journée en douceur ?', evening: 'Comment s’est passée votre journée ?', eveningBody: 'Une seule ligne suffit' }
 };
 type Due = { sub_id: number; endpoint: string; p256dh: string; auth: string; lang: string; key: string; kind: string; title: string | null; entry_id: string | null; extra: string | null };
 export function message(d: Due) {
   const t = T[d.lang] || T.en, f = (s: string, v: Record<string, string>) => s.replace(/\{(\w+)\}/g, (_, k) => v[k] ?? '');
   const title = (d.title || '').trim() || t.untitled;
-  if (d.kind === 'event') return { title, body: f(t.event, { time: d.extra || '' }), id: d.entry_id, tag: d.key };
-  if (d.kind === 'todo') return { title, body: t.todo, id: d.entry_id, tag: d.key };
+  const [time, early] = (d.extra || '').split('|');   // '|d' = 하루 전 알림
+  if (d.kind === 'event') return { title, body: f(early ? t.eventTomorrow : t.event, { time }), id: d.entry_id, tag: d.key };
+  if (d.kind === 'todo') return { title, body: early ? t.todoTomorrow : t.todo, id: d.entry_id, tag: d.key };
   if (d.kind === 'morning') return { title: t.morning, body: Number(d.extra) > 0 ? f(t.morningBody, { n: d.extra! }) : t.morningNone, id: null, tag: d.key };
   return { title: t.evening, body: t.eveningBody, id: null, tag: d.key };
 }
