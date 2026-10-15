@@ -8,7 +8,7 @@ export default {
   'nav.trash': 'ゴミ箱', 'nav.search': '記録を探す', 'nav.newFolder': '新しいフォルダ',
   'type.note': 'メモ', 'type.todo': 'やること', 'type.event': '予定', 'type.idea': 'アイデア', 'type.item': '物の置き場所', 'type.personal': '個人の記録', 'type.scrap': 'スクラップ',
   'trial.chip': '体験 あと{n}日', 'pass.chip': '利用券 あと{n}日', 'trial.chipEnd': '体験終了', 'trial.left': '無料体験はあと{n}日です', 'trial.lastDay': '無料体験は今日までです', 'trial.ended': '無料体験が終了しました', 'trial.plans': 'プランを見る', 'sub.active': '購読中',
-  'safe.title': '記録を守る', 'safe.offBar': 'オフラインです · この端末に保存しています', 'safe.privacyShort': '記録は暗号化され、開けるのはあなただけ。広告やAIの学習には使いません。', 'safe.nudgeOld': '最後のバックアップから1か月たちました。ファイルに保存しますか?', 'safe.nudgeNew': '記録がたまってきました。バックアップを保存しますか?', 'banner.go': '見る', 'safe.nudgeGo': '保存', 'safe.saved': 'すべて保存済み', 'safe.saving': '保存中…', 'safe.local': 'この端末に保存済み', 'safe.localN': 'この端末に保存済み · {n}件送信待ち', 'safe.late': '保存に時間がかかっています', 'safe.backup': '最後のバックアップ', 'safe.never': 'まだバックアップがありません', 'safe.privacy': '記録は送受信中も保存時も暗号化されます。開けるのはご自身のアカウントだけで、広告やAIの学習には使いません。',
+  'safe.title': '記録を守る', 'safe.offBar': 'オフラインです · この端末に保存しています', 'safe.privacyShort': '記録は暗号化され、開けるのはあなただけ。広告やAIの学習には使いません。', 'safe.nudgeOld': '最後のバックアップから1か月たちました。ファイルに保存しますか?', 'safe.nudgeNew': '記録がたまってきました。バックアップを保存しますか?', 'banner.go': '見る', 'banner.more': '詳しく見る', 'inbox.gone': 'このお知らせは表示できません', 'safe.nudgeGo': '保存', 'safe.saved': 'すべて保存済み', 'safe.saving': '保存中…', 'safe.local': 'この端末に保存済み', 'safe.localN': 'この端末に保存済み · {n}件送信待ち', 'safe.late': '保存に時間がかかっています', 'safe.backup': '最後のバックアップ', 'safe.never': 'まだバックアップがありません', 'safe.privacy': '記録は送受信中も保存時も暗号化されます。開けるのはご自身のアカウントだけで、広告やAIの学習には使いません。',
   'remind.def': '標準({v})',
   'remind.off': '通知なし',
   'remind.0': '開始時',

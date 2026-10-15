@@ -4,7 +4,7 @@
    - 지난 알림: 지난 7일 동안 울린 일정·할 일 알림 + 서버 notices 표(체험 안내·공지)
    안 읽은 것 = 마지막으로 알림함을 연 뒤에 생긴 것. 종 아이콘·메뉴·설정 › 알림·앱 아이콘에 점/숫자로 보여요.
    홈 배너: 관리자가 '홈에도 띄우기'로 올린 공지는 기간 동안 홈 위에 한 줄로 떠요. 닫거나 보면 사라지고, 다음 배너는 다음 날부터. */
-import { fmtHM, fmtRel, fmtTime, getLang, t } from '../core/i18n.js';
+import { fmtDate, fmtHM, fmtRel, fmtTime, getLang, t } from '../core/i18n.js';
 import { esc, icon, ls } from '../core/utils.js';
 import { S, emit } from '../data/store.js';
 import { Sync } from '../data/sync.js';
@@ -21,7 +21,7 @@ function forMe(n) {
 let cache = null;
 async function load() {
   if (!Sync.sb) return [];
-  const { data, error } = await Sync.sb.from('notices').select('id,user_id,kind,lang,title,body,created_at,read_at,banner,audience,starts_at,ends_at,image_url,cta_label,cta_url').order('created_at', { ascending: false }).limit(50);
+  const { data, error } = await Sync.sb.from('notices').select('id,user_id,kind,lang,title,body,created_at,read_at,banner,audience,starts_at,ends_at,image_url,cta_label,cta_url,detail').order('created_at', { ascending: false }).limit(50);
   return cache = error ? (cache || []) : data.filter(forMe);
 }
 const seenAt = () => Number(ls.get(SEEN, 0)) || 0;
@@ -41,7 +41,7 @@ const when = ms => { const d = new Date(ms), k = x => new Date(x).toDateString()
 async function past() {
   const now = Date.now();
   const rem = Reminders.timeline(now - 7 * DAY, now).map(r => ({ ic: r.type === 'event' ? 'calendar' : 'check-square', title: r.title, body: r.type === 'todo' ? t('inbox.todoPast') : remText(r), href: '#/e/' + r.id, at: r.at, fresh: r.at > seenAt() }));
-  const srv = (await load()).map(n => ({ ic: n.kind.startsWith('trial') ? 'hourglass' : 'megaphone', title: n.title, body: n.body, at: Date.parse(n.starts_at || n.created_at), fresh: noticeNew(n), n }));
+  const srv = (await load()).map(n => ({ ic: n.kind.startsWith('trial') ? 'hourglass' : 'megaphone', title: n.title, body: n.body, href: '#/notices/' + n.id, at: Date.parse(n.starts_at || n.created_at), fresh: noticeNew(n), n }));
   return [...rem, ...srv].sort((a, b) => b.at - a.at);
 }
 /* 안 읽은 개수 (종 모양 점, 앱 아이콘 숫자) */
@@ -57,8 +57,10 @@ function pickBanner(list, kind) {
   return (list || []).find(n => n.banner === kind && !n.user_id && !st.closed.includes(n.id) && (!n.starts_at || Date.parse(n.starts_at) <= now) && (!n.ends_at || Date.parse(n.ends_at) > now)) || null;
 }
 function closeBanner(ids, kind) { const st = bstate(); ids = [].concat(ids); ls.set(BN, { closed: [...st.closed.filter(x => !ids.includes(x)), ...ids].slice(-50), day: kind ? { ...st.day, [kind]: todayKey() } : st.day }); }
-/* 버튼이 갈 곳: 앱 안(#/…) 또는 https 주소만. 없으면 알림함 */
-const ctaHref = n => /^#\/[\w\/-]*$/.test(n.cta_url || '') || /^https:\/\/[^\s"'<>]+$/.test(n.cta_url || '') ? n.cta_url : '#/notices';
+/* 버튼이 갈 곳: 관리자가 정한 앱 안(#/…) 또는 https 주소. 없으면 공지 상세 화면 */
+const custom = n => /^#\/[\w\/-]*$/.test(n.cta_url || '') || /^https:\/\/[^\s"'<>]+$/.test(n.cta_url || '');
+const ctaHref = n => custom(n) ? n.cta_url : '#/notices/' + n.id;
+const ctaLabel = n => n.cta_label || t('banner.more');
 const ext = u => u.startsWith('https:') ? ' target="_blank" rel="noopener"' : '';
 const stripHTML = n => n ? `<div class="hbn" data-id="${n.id}">${icon('megaphone', 18)}<a class="tx" href="${esc(ctaHref(n))}"${ext(ctaHref(n))} data-hbn><b>${esc(n.title)}</b>${n.body ? `<span>${esc(n.body)}</span>` : ''}</a><a class="go" href="${esc(ctaHref(n))}"${ext(ctaHref(n))} data-hbn>${esc(n.cta_label || t('banner.go'))}</a><button class="x" data-hbn aria-label="${esc(t('common.close'))}">${icon('x', 16)}</button></div>` : '';
 let popOpen = false;
@@ -67,7 +69,7 @@ async function popup(n) {
   const { openSheet } = await import('../ui/feedback.js');
   const href = ctaHref(n);
   const el = document.createElement('div'); el.className = 'npop';
-  el.innerHTML = `${n.image_url && /^https:\/\//.test(n.image_url) ? `<img class="pim" src="${esc(n.image_url)}" alt="">` : ''}<h3>${esc(n.title)}</h3>${n.body ? `<p>${esc(n.body)}</p>` : ''}<div class="acts"><button class="btn line" data-x>${esc(t('common.close'))}</button><a class="btn primary" href="${esc(href)}"${ext(href)}>${esc(n.cta_label || t('banner.go'))}</a></div>`;
+  el.innerHTML = `${n.image_url && /^https:\/\//.test(n.image_url) ? `<img class="pim" src="${esc(n.image_url)}" alt="">` : ''}<h3>${esc(n.title)}</h3>${n.body ? `<p>${esc(n.body)}</p>` : ''}<div class="acts"><button class="btn line" data-x>${esc(t('common.close'))}</button><a class="btn primary" href="${esc(href)}"${ext(href)}>${esc(ctaLabel(n))}</a></div>`;
   closeBanner(n.id, 'popup');   // 한 번 뜬 팝업은 다시 띄우지 않아요
   const sh = openSheet(el, { label: n.title, onClose: () => { popOpen = false; } });
   sh.el.classList.add('pop-sheet');
@@ -92,7 +94,23 @@ function banner(slot) {
 const row = x => `<${x.href ? `a href="${x.href}"` : 'div'} class="r nt${x.fresh || x.bad ? ' new' : ''}${x.bad ? ' bad' : ''}"><span class="kc">${icon(x.ic, 18)}</span><span class="tx"><div class="t">${esc(x.title)}</div>${x.body ? `<div class="p wrap">${esc(x.body)}</div>` : ''}</span>${x.tm ? `<span class="tm">${esc(x.tm)}</span>` : ''}</${x.href ? 'a' : 'div'}>`;
 const grp = (label, list) => list.length ? `<div class="grp"><span>${esc(label)}</span></div><div class="card">${list.map(row).join('')}</div>` : '';
 
-function render(view) {
+/* 공지 상세: 이미지 · 제목 · 날짜 · 자세한 내용 (+ 관리자가 정한 버튼) */
+async function renderDetail(view, id) {
+  view.innerHTML = `<section class="lst ntc ndet"><div class="lst-head"><a class="icon-btn" href="#/notices" aria-label="${esc(t('ed.back'))}">${icon('chevron-left', 22)}</a><h1>${esc(t('nav.notices'))}</h1></div><div class="body"></div><div style="height:120px"></div></section>`;
+  const n = (cache || []).find(x => x.id === id) || (await load()).find(x => x.id === id);
+  const body = view.querySelector('.body'); if (!body) return;
+  if (!n) { body.innerHTML = `<div class="empty">${icon('bell', 28)}<b>${esc(t('inbox.gone'))}</b><a class="btn line" href="#/notices">${esc(t('nav.notices'))}</a></div>`; return; }
+  const href = custom(n) ? n.cta_url : '';
+  body.innerHTML = `<article class="nart">${n.image_url && /^https:\/\//.test(n.image_url) ? `<img class="pim" src="${esc(n.image_url)}" alt="">` : ''}
+    <h2>${esc(n.title)}</h2><time>${esc(fmtDate(new Date(n.starts_at || n.created_at), { year: 'numeric', month: 'long', day: 'numeric' }))}</time>
+    <div class="ntext">${esc(n.detail || n.body)}</div>
+    ${href ? `<a class="btn primary" href="${esc(href)}"${ext(href)}>${esc(ctaLabel(n))}</a>` : ''}</article>`;
+  closeBanner(n.id);   // 읽었으니 배너로 다시 띄우지 않아요
+  if (n.user_id && !n.read_at) await Sync.sb?.from('notices').update({ read_at: new Date().toISOString() }).eq('id', n.id);
+}
+
+function render(view, r) {
+  if (r?.params?.id) return renderDetail(view, Number(r.params.id));
   view.innerHTML = `<section class="lst ntc"><div class="lst-head"><a class="icon-btn" href="#/home" aria-label="${esc(t('ed.back'))}">${icon('chevron-left', 22)}</a><h1>${esc(t('nav.notices'))}</h1></div><div class="body"></div><div style="height:120px"></div></section>`;
   (async () => {
     const now = Date.now();

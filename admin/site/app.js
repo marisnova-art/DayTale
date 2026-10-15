@@ -773,7 +773,8 @@ async function viewNotices() {
   shell('#/notices', `${head('공지', big(num(r.rows.length)) + '<span class="unit">개</span>', '<p class="muted">앱의 알림함에 보여요. 언어·대상을 고르면 그 사용자에게만 보여요. 홈 배너를 켜면 기간 동안 홈 위에도 떠요.</p>')}
     ${me.role === 'owner' ? `<form id="nf" class="box pad nform"><h2>새 공지</h2>
       <label>제목<input name="title" maxlength="120" required placeholder="예: 사진을 넣을 수 있어요"></label>
-      <label>내용<textarea name="body" maxlength="2000" rows="3" placeholder="두세 문장으로"></textarea></label>
+      <label>짧은 소개 <span class="muted xs">팝업·띠배너·알림함에 보여요. 한두 문장</span><textarea name="body" maxlength="300" rows="2" placeholder="예: 이제 기록마다 사진을 4장까지 넣을 수 있어요."></textarea></label>
+      <label>자세한 내용 <span class="muted xs">'자세히 보기'를 누르면 나오는 상세 화면 글. 비우면 짧은 소개만 보여요</span><textarea name="detail" maxlength="5000" rows="7" placeholder="줄바꿈 그대로 보여요"></textarea></label>
       <label>언어<select name="lang"><option value="">모든 언어</option><option value="ko">한국어</option><option value="en">English</option><option value="ja">日本語</option><option value="es">Español</option><option value="fr">Français</option></select></label>
       <label>대상<select name="audience">${Object.entries(AUD).map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select></label>
       <label>홈에 띄우기<select name="banner">${Object.entries(SHOW).map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select></label>
@@ -781,11 +782,11 @@ async function viewNotices() {
         <label>이미지 <span class="muted xs">가로로 긴 사진 (16:10). 1200px로 줄여 올려요</span><input type="file" name="img" accept="image/*"></label>
         <img class="nprev" alt="" hidden>
       </div>
-      <div class="row gap nper"><label>버튼 글자<input name="cta_label" maxlength="20" placeholder="보기"></label><label>버튼 누르면<input name="cta_url" maxlength="300" placeholder="#/plans 또는 https://…"></label></div>
+      <div class="row gap nper"><label>버튼 글자<input name="cta_label" maxlength="20" placeholder="비우면: 자세히 보기"></label><label>버튼 누르면<input name="cta_url" maxlength="300" placeholder="비우면: 공지 상세 화면 · #/plans · https://…"></label></div>
       <div class="row gap nper"><label>시작일<input type="date" name="starts"></label><label>종료일<input type="date" name="ends"></label></div>
-      <p class="muted xs">기간을 비우면 바로 시작해서 내릴 때까지 보여요. 시작일 전에는 앱에 보이지 않아요. 띠배너·팝업은 종류마다 하루에 하나만 뜨고, 닫거나 보면 다시 뜨지 않아요. 버튼을 비우면 알림함으로 가요.</p>
+      <p class="muted xs">기간을 비우면 바로 시작해서 내릴 때까지 보여요. 시작일 전에는 앱에 보이지 않아요. 띠배너·팝업은 종류마다 하루에 하나만 뜨고, 닫거나 보면 다시 뜨지 않아요. 버튼을 비우면 '자세히 보기'로 공지 상세 화면이 열려요.</p>
       <div class="row end"><button class="btn primary">올리기</button></div></form>` : ''}
-    <section class="box pad">${r.rows.length ? `<ul class="audit">${r.rows.map(n => `<li>${n.image_url ? `<img class="nthumb" src="${esc(n.image_url)}" alt="">` : `<span class="ava violet">${I.bell}</span>`}<div><b>${esc(n.title)}</b> <span class="muted xs">${esc(n.lang || '모든 언어')} · ${AUD[n.audience] || AUD.all}${n.banner ? ' · ' + SHOW[n.banner] : ''}${n.starts_at || n.ends_at ? ' · ' + period(n) : ''}</span><small>${esc(n.body)}</small><small>${when(n.created_at)}</small></div>
+    <section class="box pad">${r.rows.length ? `<ul class="audit">${r.rows.map(n => `<li>${n.image_url ? `<img class="nthumb" src="${esc(n.image_url)}" alt="">` : `<span class="ava violet">${I.bell}</span>`}<div><b>${esc(n.title)}</b> <span class="muted xs">${esc(n.lang || '모든 언어')} · ${AUD[n.audience] || AUD.all}${n.banner ? ' · ' + SHOW[n.banner] : ''}${n.starts_at || n.ends_at ? ' · ' + period(n) : ''}</span><small>${esc(n.body)}</small>${n.detail ? `<small class="muted">+ 자세한 내용 ${num(n.detail.length)}자</small>` : ''}<small>${when(n.created_at)}</small></div>
       ${me.role === 'owner' ? `<button class="btn ghost sm" data-del="${n.id}">내리기</button>` : ''}</li>`).join('')}</ul>` : '<p class="muted">올린 공지가 없습니다.</p>'}</section>`);
   const f = document.getElementById('nf');
   const local = (v, add = 0) => { if (!v) return null; const d = new Date(v + 'T00:00:00'); d.setDate(d.getDate() + add); return d.toISOString(); };   // 내 시간대 0시 (종료일은 그다음 날 0시까지)

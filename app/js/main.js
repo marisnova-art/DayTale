@@ -53,7 +53,7 @@ route('/backup', V('backup'));
 route('/kept', V('kept'));
 route('/calendar', V('calendar'));
 route('/settings', V('settings')); route('/settings/:group', V('settings'));
-route('/plans', V('plans')); route('/notices', V('notices'));
+route('/plans', V('plans')); route('/notices', V('notices')); route('/notices/:id', V('notices'));
 
 let mounted = null;
 async function show(r) {

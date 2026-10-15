@@ -192,3 +192,10 @@
 /* 안 읽음 점은 배경과 상관없이 늘 같은 주황 (흰 카드 위에서도 잘 보이게) */
 .ntc .nt.new .t::after, .ntc .nlegend i, .has-unread .bell::after, .has-unread .snav a[href$="/notify"] .stx b::after { background: #FF7A59; }
 .has-unread .mbar .bell::after { box-shadow: 0 0 0 2px var(--sheet, #FFFFFF); }
+/* 공지 상세 */
+.ndet .nart { max-width: 680px; padding: 8px 6px 0; }
+.ndet .nart .pim { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; border-radius: 22px; background: rgba(var(--fg),.06); margin-bottom: 22px; }
+.ndet .nart h2 { margin: 0; font-size: 26px; line-height: 1.35; font-weight: 800; letter-spacing: -.03em; color: var(--text); }
+.ndet .nart time { display: block; margin: 8px 0 20px; font-size: var(--fs-s); color: var(--muted); }
+.ndet .nart .ntext { font-size: 17px; line-height: 1.75; color: var(--text-2); white-space: pre-line; overflow-wrap: anywhere; }
+.ndet .nart .btn { margin-top: 28px; }

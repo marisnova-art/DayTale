@@ -7,7 +7,8 @@ alter table public.notices add column if not exists banner text check (banner in
   add column if not exists ends_at timestamptz,
   add column if not exists image_url text,
   add column if not exists cta_label text,
-  add column if not exists cta_url text;
+  add column if not exists cta_url text,
+  add column if not exists detail text;   -- 공지 상세 화면의 긴 글 (body 는 팝업·띠·알림함에 보이는 짧은 소개)
 -- 예약한 공지는 시작 전엔 안 보여요
 drop policy if exists "notices: read own" on public.notices;
 create policy "notices: read own" on public.notices for select using (user_id = auth.uid() or (user_id is null and (starts_at is null or starts_at <= now())));
