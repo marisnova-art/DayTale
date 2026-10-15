@@ -132,7 +132,7 @@ function paint() {
   paintBadges(); mark(); requestAnimationFrame(() => fades($('.drawer .nav')));
 }
 /* 저장 상태 한 줄: 누르면 설정 › 데이터 */
-const saveLine = () => { const st = saveState(); return `<span class="psave${st.bad ? ' bad' : ''}" data-go="/settings/data">${icon(st.ic, 14)}${esc(st.text)}</span>`; };
+const saveLine = () => { const st = saveState(); return `<span class="psave${st.bad ? ' bad' : st.off ? ' off' : ''}" data-go="/settings/data">${icon(st.ic, 14)}${esc(st.text)}</span>`; };
 function paintSave() { const el = $('.profile-card .psave'); if (el) el.outerHTML = saveLine(); }
 /* 메뉴 묶음 접기: 접힌 묶음 이름만 기억해요 */
 const navShut = () => { try { return JSON.parse(localStorage.getItem('dt.navShut') || '[]'); } catch { return []; } };
