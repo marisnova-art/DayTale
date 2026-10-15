@@ -37,7 +37,7 @@ export default {
   'ed.image': "사진", 'ed.attach': "사진 넣기", 'card.title': "카드로 저장", 'card.bg': "배경", 'card.myPhoto': "내 사진", 'card.gradient': "오늘의 그라데이션", 'card.dim': "어둡게 (글이 잘 보이도록)", 'card.ratio': "비율", 'card.share': "공유", 'card.save': "사진첩에 저장", 'card.saved': "이미지를 저장했어요.", 'card.empty': "먼저 글을 써 주세요.", 'card.photoFail': "사진을 불러오지 못했어요.",
   'list.del': '지우기', 'ed.finish': '저장', 'ed.format': '서식', 'ed.keyboard': '키보드', 'ed.text': '본문', 'ed.saveFail': '저장하지 못했어요. 연결을 확인해 주세요.', 'photo.soon': '사진 넣기는 곧 열려요', 'ed.back': '뒤로', 'ed.undo': '되돌리기', 'ed.done': '완료', 'ed.saved': '저장됨', 'ed.saving': '저장 중', 'ed.more': '더 보기', 'ed.title': '제목', 'ed.body': '떠오른 대로 적어 보세요.',
   'ed.kind': '종류', 'ed.folder': '폴더', 'ed.date': '날짜', 'ed.time': '시간', 'ed.place': '장소', 'ed.where': '어디에 두었나요?', 'ed.due': '언제까지',
-  'ed.bold': '굵게', 'ed.italic': '기울임', 'ed.underline': '밑줄', 'ed.mark': '형광펜', 'ed.heading': '제목', 'ed.quote': '인용', 'ed.link': '링크', 'ed.linkAsk': '링크 주소 (https://…)',
+  'ed.bold': '굵게', 'ed.italic': '기울임', 'ed.underline': '밑줄', 'ed.mark': '형광펜', 'ed.hl.y': '형광펜 노랑', 'ed.hl.b': '형광펜 파랑', 'ed.hl.r': '형광펜 빨강', 'ed.heading': '제목', 'ed.quote': '인용', 'ed.link': '링크', 'ed.linkAsk': '링크 주소 (https://…)',
   'ed.blocks': '블록 넣기', 'ed.check': '체크리스트', 'ed.bullet': '점 목록', 'ed.numbered': '번호 목록', 'ed.divider': '구분선', 'ed.template': '템플릿', 'ed.addBlock': '블록 추가',
   'ed.favorite': '즐겨찾기', 'ed.unfavorite': '즐겨찾기 해제', 'ed.pin': '고정', 'ed.unpin': '고정 해제', 'ed.move': '폴더 옮기기', 'ed.trash': '지우기',
   'ed.trashed': '휴지통으로 옮겼어요.', 'ed.created': '{date}에 만듦', 'ed.edited': '{date}에 고침', 'ed.locked': '체험이 끝나서 읽기만 할 수 있어요.',

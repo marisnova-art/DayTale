@@ -18,6 +18,8 @@ import { History, setBlock } from '../features/blocks.js';
 /* 서식 버튼: [키, 아이콘, 이름]. 한 번 누르면 켜지고, 다시 누르면 꺼져요 */
 const STYLE = [['p', 'pilcrow', 'ed.text'], ['heading', 'type', 'ed.heading'], ['quote', 'text-quote', 'ed.quote']];
 const INLINE = [['bold', 'bold', 'ed.bold'], ['italic', 'italic', 'ed.italic'], ['underline', 'underline', 'ed.underline'], ['mark', 'highlighter', 'ed.mark'], ['link', 'link', 'ed.link']];
+const HL = [['hl-y', 'ed.hl.y'], ['hl-b', 'ed.hl.b'], ['hl-r', 'ed.hl.r']];
+const hlBtn = ([k, l]) => `<button class="tb hl ${k}" data-f="${k}" aria-label="${esc(t(l))}" title="${esc(t(l))}" aria-pressed="false"><span class="hsw">${icon('highlighter', 16)}</span></button>`;
 const LISTS = [['bullet', 'list', 'ed.bullet'], ['numbered', 'list-ordered', 'ed.numbered'], ['check', 'list-todo', 'ed.check'], ['divider', 'minus', 'ed.divider'], ['undo', 'undo-2', 'ed.undo']];
 let cur = null;   // { e, isNew, saved, el, off, pan }
 
@@ -41,7 +43,7 @@ function render(view, r, opts = {}) {   // opts.pane: PC 나란히 보기의 오
   view.innerHTML = `<div class="ed-page"><div class="ed-top">${cancel}<span class="sp"></span>${done}</div><div class="ed">
     <div class="ed-tools" role="toolbar">
       ${cancel}
-      ${ro ? '<span class="sp"></span>' : `<span class="sep"></span>${fontBtn}<span class="sep"></span><span class="tb-scroll">${STYLE.slice(1).map(f => fbtn(f)).join('')}<span class="sep"></span>${INLINE.map(f => fbtn(f)).join('')}<span class="sep"></span>${LISTS.slice(0, 4).map(f => fbtn(f)).join('')}<span class="sep"></span>${fbtn(LISTS[4])}${photoBtn}</span><span class="sp"></span>`}
+      ${ro ? '<span class="sp"></span>' : `<span class="sep"></span>${fontBtn}<span class="sep"></span><span class="tb-scroll">${STYLE.slice(1).map(f => fbtn(f)).join('')}<span class="sep"></span>${INLINE.filter(f => f[0] !== 'mark').map(f => fbtn(f)).join('')}<span class="sep"></span>${HL.map(hlBtn).join('')}<span class="sep"></span>${LISTS.slice(0, 4).map(f => fbtn(f)).join('')}<span class="sep"></span>${fbtn(LISTS[4])}${photoBtn}</span><span class="sp"></span>`}
       ${done}</div>
     ${ro ? `<div class="ed-locked"><span>${esc(t('ed.locked'))}</span><button data-act="plans">${esc(t('trial.plans'))}</button></div>` : ''}
     <button class="ed-info" data-act="more" aria-expanded="false"></button><div class="ed-pan" hidden></div><div class="ed-meta"></div>
@@ -51,8 +53,8 @@ function render(view, r, opts = {}) {   // opts.pane: PC 나란히 보기의 오
   </div>
   <div class="ed-dock">
     <div class="ed-bar"${ro ? " hidden" : ""}><div class="cap" role="toolbar">${ro ? "" : `
-      <span class="base"><button class="tb" data-act="aa" aria-label="${esc(t('ed.format'))}" title="${esc(t('ed.format'))}" aria-expanded="false">${icon('a-large-small', 22)}</button>${fbtn(LISTS[2])}${photoBtn}<span class="sp"></span>${fbtn(LISTS[4])}</span>
-      <span class="fmt"><button class="tb x" data-act="aa" aria-label="${esc(t('common.close'))}">${icon('x', 19)}</button><span class="sep"></span>${fontBtn}<span class="sep"></span>${STYLE.slice(1).map(f => fbtn(f)).join('')}<span class="sep"></span>${INLINE.map(f => fbtn(f)).join('')}<span class="sep"></span>${[LISTS[0], LISTS[1], LISTS[3]].map(f => fbtn(f)).join('')}</span>`}</div></div>
+      <span class="base"><button class="tb" data-act="aa" aria-label="${esc(t('ed.format'))}" title="${esc(t('ed.format'))}" aria-expanded="false">${icon('a-large-small', 24)}</button><span class="sep"></span>${INLINE.slice(0, 3).map(f => fbtn(f)).join('')}<span class="sep"></span>${fbtn(LISTS[2])}${photoBtn}<span class="sp"></span>${fbtn(LISTS[4])}</span>
+      <span class="fmt"><button class="tb x" data-act="aa" aria-label="${esc(t('common.close'))}">${icon('x', 19)}</button><span class="sep"></span>${fontBtn}${STYLE.slice(1).map(f => fbtn(f)).join('')}${fbtn(INLINE[4])}<span class="sep"></span>${HL.map(hlBtn).join('')}<span class="sep"></span>${[LISTS[2], LISTS[0], LISTS[1], LISTS[3]].map(f => fbtn(f)).join('')}</span>`}</div></div>
   </div>
   <input type="file" accept="image/*" multiple hidden class="ed-file"></div>`;
   const el = { root: view, body: $('.ed-body', view), info: $('.ed-info', view), meta: $('.ed-meta', view), photos: $('.ed-photos', view), foot: $('.ed-foot', view), pan: $('.ed-pan', view), cap: $('.ed-bar .cap', view) };
@@ -249,7 +251,7 @@ function paintState() {
   const blk = inBody ? blockOf(s.anchorNode) : null, list = blk?.closest?.('ul,ol');
   const on = {
     bold: inBody && document.queryCommandState('bold'), italic: inBody && document.queryCommandState('italic'), underline: inBody && document.queryCommandState('underline'),
-    mark: !!(inBody && (s.anchorNode.nodeType === 1 ? s.anchorNode : s.anchorNode.parentElement)?.closest('mark')),
+    ...(m => m ? { ['hl-' + hlOf(m)]: true } : {})(inBody && (s.anchorNode.nodeType === 1 ? s.anchorNode : s.anchorNode.parentElement)?.closest('mark')),
     link: !!(inBody && (s.anchorNode.nodeType === 1 ? s.anchorNode : s.anchorNode.parentElement)?.closest('a')),
     heading: blk?.tagName === 'H2', quote: !!blk?.closest?.('blockquote'),
     bullet: list?.tagName === 'UL' && !list.classList.contains('todo'), numbered: list?.tagName === 'OL', check: !!list?.classList.contains('todo')
@@ -265,7 +267,7 @@ async function fmt(f) {
   if (document.activeElement !== body) { const r = saveRange(); body.focus({ preventScroll: true }); restoreRange(r); }
   if (['bold', 'italic', 'underline'].includes(f)) { cur.hist.snap(); document.execCommand(f); }
   else if (f === 'undo') { if (!cur.hist.back()) return; }
-  else if (f === 'mark' || f === 'link') { cur.hist.snap(); await fmtAction(f); cur.hist?.snap(); return; }
+  else if (f.startsWith('hl-') || f === 'link') { cur.hist.snap(); await fmtAction(f); cur.hist?.snap(); return; }
   else applyBlock(f);
   cur.saved = false; cur.save(); paintState();
 }
@@ -436,17 +438,22 @@ function linkPop(a) {
 /* ---------- 형광펜 · 링크 ---------- */
 // 형광펜은 굵게처럼 켜고 꺼요: 글을 고르면 그 부분에, 고르지 않으면 이어서 쓰는 글자부터 칠하거나 멈춰요
 const ZW = '\u200B';
-function mark(s, range) {
+// 형광펜 색: 노랑(기본, 이름표 없음) · 파랑 · 빨강
+const hlOf = m => m.classList.contains('hl-blue') ? 'b' : m.classList.contains('hl-red') ? 'r' : 'y';
+const HLC = { b: 'hl-blue', r: 'hl-red' };
+function newMark(c) { const m = document.createElement('mark'); if (HLC[c]) m.className = HLC[c]; return m; }
+function paintMark(m, c) { m.classList.remove('hl-yellow', 'hl-blue', 'hl-red'); if (HLC[c]) m.classList.add(HLC[c]); if (!m.classList.length) m.removeAttribute('class'); }
+function mark(s, range, c = 'y') {
   if (!range) return;
   const body = cur.el.body, markOf = n => (n?.nodeType === 1 ? n : n?.parentElement)?.closest('mark');
   const place = (node, off) => { const r = document.createRange(); r.setStart(node, off); r.collapse(true); s.removeAllRanges(); s.addRange(r); };
   if (!range.collapsed) {
     const hit = [...body.querySelectorAll('mark')].filter(m => range.intersectsNode(m));
     const m0 = markOf(range.startContainer);
-    if (m0 && m0 === markOf(range.endContainer)) {          // 칠한 곳 안에서 고르면: 고른 부분만 지워요
+    if (m0 && m0 === markOf(range.endContainer) && hlOf(m0) === c) {          // 같은 색으로 칠한 곳 안에서 고르면: 고른 부분만 지워요
       const before = document.createRange(); before.setStart(m0, 0); before.setEnd(range.startContainer, range.startOffset);
       const after = document.createRange(); after.setStart(range.endContainer, range.endOffset); after.setEnd(m0, m0.childNodes.length);
-      const wrap = r => { if (!r.toString()) return []; const x = document.createElement('mark'); x.append(r.cloneContents()); return [x]; };
+      const wrap = r => { if (!r.toString()) return []; const x = newMark(c); x.append(r.cloneContents()); return [x]; };
       const a = document.createTextNode(''), z = document.createTextNode('');
       m0.replaceWith(...wrap(before), a, range.cloneContents(), z, ...wrap(after));
       const r = document.createRange(); r.setStartAfter(a); r.setEndBefore(z); s.removeAllRanges(); s.addRange(r);
@@ -455,7 +462,7 @@ function mark(s, range) {
     // 고른 글자가 모두 칠해져 있으면 지우고, 아니면 고른 곳 전체를 칠해요
     const texts = [], w = document.createTreeWalker(range.commonAncestorContainer.nodeType === 1 ? range.commonAncestorContainer : range.commonAncestorContainer.parentElement, NodeFilter.SHOW_TEXT);
     while (w.nextNode()) if (range.intersectsNode(w.currentNode) && w.currentNode.textContent.replace(/[\s\u200B]/g, '')) texts.push(w.currentNode);
-    if (texts.length && texts.every(n => markOf(n))) { hit.forEach(x => x.replaceWith(...x.childNodes)); return; }
+    if (texts.length && texts.every(n => markOf(n) && hlOf(markOf(n)) === c)) { hit.forEach(x => x.replaceWith(...x.childNodes)); return; }
     // 글자 조각마다 칠해요 (여러 줄에 걸쳐도 줄 모양이 그대로예요)
     const { startContainer: sc, startOffset: so, endContainer: ec, endOffset: eo } = range;
     let first = null, last = null;
@@ -463,10 +470,11 @@ function mark(s, range) {
       let t0 = n;
       if (n === ec && eo < n.length) n.splitText(eo);
       if (n === sc && so > 0) t0 = n.splitText(so);
-      if (!markOf(t0)) { const m = document.createElement('mark'); t0.replaceWith(m); m.append(t0); }
+      const had = markOf(t0);
+      if (!had) { const m = newMark(c); t0.replaceWith(m); m.append(t0); } else if (hlOf(had) !== c) paintMark(had, c);
       first = first || t0; last = t0;
     });
-    body.querySelectorAll('mark + mark').forEach(m => { const p = m.previousSibling; if (p?.nodeName === 'MARK') { p.append(...m.childNodes); m.remove(); } });
+    body.querySelectorAll('mark + mark').forEach(m => { const p = m.previousSibling; if (p?.nodeName === 'MARK' && hlOf(p) === hlOf(m)) { p.append(...m.childNodes); m.remove(); } });
     if (first) { const r = document.createRange(); r.setStart(first, 0); r.setEnd(last, last.length); s.removeAllRanges(); s.addRange(r); }
     return;
   }
@@ -475,11 +483,13 @@ function mark(s, range) {
     const tail = document.createRange(); tail.setStart(range.startContainer, range.startOffset); tail.setEnd(inMark, inMark.childNodes.length);
     const rest = tail.extractContents(), txt = document.createTextNode(ZW);
     inMark.after(txt);
-    if (rest.textContent.replace(new RegExp(ZW, 'g'), '')) { const m2 = document.createElement('mark'); m2.append(rest); txt.after(m2); }
+    if (rest.textContent.replace(new RegExp(ZW, 'g'), '')) { const m2 = newMark(hlOf(inMark)); m2.append(rest); txt.after(m2); }
+    const was = hlOf(inMark);
     if (!inMark.textContent.replace(new RegExp(ZW, 'g'), '')) inMark.remove();
-    place(txt, 1);
+    if (was !== c) { const m = newMark(c), t2 = document.createTextNode(ZW); m.append(t2); txt.replaceWith(m); place(t2, 1); }   // 다른 색을 누르면 그 색으로 이어서 칠해요
+    else place(txt, 1);
   } else {        // 지금부터 쓰는 글자를 칠해요
-    const m = document.createElement('mark'), txt = document.createTextNode(ZW); m.append(txt);
+    const m = newMark(c), txt = document.createTextNode(ZW); m.append(txt);
     range.insertNode(m); place(txt, 1);
   }
 }
@@ -487,7 +497,7 @@ function mark(s, range) {
 async function fmtAction(f) {
   const s = getSelection(); const range = s.rangeCount ? s.getRangeAt(0).cloneRange() : null;
   const at = range && (range.commonAncestorContainer.nodeType === 1 ? range.commonAncestorContainer : range.commonAncestorContainer.parentElement);
-  if (f === 'mark') mark(s, range);
+  if (f.startsWith('hl-')) mark(s, range, f.slice(3));
   else if (f === 'link') {
     if (at?.closest('a')) { const a = at.closest('a'); a.replaceWith(...a.childNodes); }   // 다시 누르면 링크가 빠져요
     else {

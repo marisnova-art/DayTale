@@ -20,7 +20,9 @@
 .ed-body h2 { margin: 22px 0 6px; font-size: 1.2em; font-weight: 700; color: var(--text); letter-spacing: -.03em; }
 .ed-body h3 { margin: 18px 0 4px; font-size: 1.08em; font-weight: 700; color: var(--text); }
 .ed-body b, .ed-body strong { color: var(--text); font-weight: 700; }
-.ed-body mark { background: rgba(183,164,255,.32); color: var(--text); border-radius: 3px; box-shadow: 0 0 0 2px rgba(183,164,255,.32); }
+.ed-body mark { --hl: rgba(255,214,10,.42); background: var(--hl); color: var(--text); border-radius: 3px; box-shadow: 0 0 0 2px var(--hl); }
+.ed-body mark.hl-blue { --hl: rgba(64,156,255,.34); }
+.ed-body mark.hl-red { --hl: rgba(255,92,92,.34); }
 .ed-body blockquote { margin: 14px 0; padding: 2px 0 2px 16px; border-left: 2px solid var(--record); color: var(--text-3); }
 .ed-body a { color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
 .ed-body hr { border: 0; height: 1px; background: var(--line-2); margin: 20px 0; }
@@ -336,3 +338,17 @@
 .ed > .ed-pan .acts button.on { color: #E0A100; }
 .ed > .ed-pan .acts .bad { background: rgba(255,107,107,.14); color: var(--danger); }
 .ed > .ed-pan .up { height: 30px; margin-top: 2px; }
+
+/* 형광펜 색 버튼: 색 동그라미 안에 형광펜. 켜지면 동그라미에 테두리 */
+.tb.hl .hsw { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(255,214,10,.75); color: #2a2730; }
+.tb.hl-b .hsw { background: rgba(64,156,255,.6); }
+.tb.hl-r .hsw { background: rgba(255,92,92,.6); }
+.tb.hl.on { background: none; color: inherit; }
+.tb.hl.on .hsw { box-shadow: 0 0 0 2px var(--text); }
+/* 키보드 위 줄 아이콘: 24px, 조금 더 진하게 */
+@media (max-width: 899px), (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
+  .ed-dock .ed-bar .tb { color: rgba(var(--fg),.9); }
+  .ed-dock .ed-bar .tb > .i { width: 24px; height: 24px; stroke-width: 2.1; }
+  .ed-dock .ed-bar .base .tb { width: 40px; }
+  .ed-dock .ed-bar .fmt .tb { width: 38px; }
+}

@@ -34,7 +34,7 @@ export default {
   'ed.image': "写真", 'ed.attach': "写真を追加", 'card.title': "カードで保存", 'card.bg': "背景", 'card.myPhoto': "自分の写真", 'card.gradient': "今日のグラデーション", 'card.dim': "暗さ（文字を読みやすく）", 'card.ratio': "比率", 'card.share': "共有", 'card.save': "写真に保存", 'card.saved': "画像を保存しました。", 'card.empty': "先に文章を書いてください。", 'card.photoFail': "写真を読み込めませんでした。",
   'list.del': '削除', 'ed.finish': '保存', 'ed.format': '書式', 'ed.keyboard': 'キーボード', 'ed.text': '本文', 'ed.saveFail': '保存できませんでした。接続を確認してください。', 'photo.soon': '写真の追加はまもなく使えます', 'ed.back': '戻る', 'ed.undo': '元に戻す', 'ed.done': '完了', 'ed.saved': '保存済み', 'ed.saving': '保存中', 'ed.more': 'その他', 'ed.title': 'タイトル', 'ed.body': '思いつくまま書いてみましょう。',
   'ed.kind': '種類', 'ed.folder': 'フォルダ', 'ed.date': '日付', 'ed.time': '時間', 'ed.place': '場所', 'ed.where': 'どこに置きましたか？', 'ed.due': '期限',
-  'ed.bold': '太字', 'ed.italic': '斜体', 'ed.underline': '下線', 'ed.mark': 'マーカー', 'ed.heading': '見出し', 'ed.quote': '引用', 'ed.link': 'リンク', 'ed.linkAsk': 'リンク先（https://…）',
+  'ed.bold': '太字', 'ed.italic': '斜体', 'ed.underline': '下線', 'ed.mark': 'マーカー', 'ed.hl.y': '黄色マーカー', 'ed.hl.b': '青マーカー', 'ed.hl.r': '赤マーカー', 'ed.heading': '見出し', 'ed.quote': '引用', 'ed.link': 'リンク', 'ed.linkAsk': 'リンク先（https://…）',
   'ed.blocks': 'ブロックを追加', 'ed.check': 'チェックリスト', 'ed.bullet': '箇条書き', 'ed.numbered': '番号付きリスト', 'ed.divider': '区切り線', 'ed.template': 'テンプレート', 'ed.addBlock': 'ブロックを追加',
   'ed.favorite': 'お気に入り', 'ed.unfavorite': 'お気に入り解除', 'ed.pin': '固定', 'ed.unpin': '固定を解除', 'ed.move': 'フォルダを移動', 'ed.trash': '削除',
   'ed.trashed': 'ゴミ箱へ移動しました。', 'ed.created': '{date}に作成', 'ed.edited': '{date}に編集', 'ed.locked': '体験期間が終了したため、閲覧のみできます。',

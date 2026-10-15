@@ -7,7 +7,7 @@ import { $$ } from './utils.js';
 const SAFE = {
   tags: new Set(['P','DIV','BR','B','STRONG','I','EM','U','S','STRIKE','DEL','SPAN','MARK','UL','OL','LI','BLOCKQUOTE','H2','H3','A','HR']),
   drop: new Set(['SCRIPT','STYLE','IFRAME','OBJECT','EMBED','LINK','META','TEMPLATE','SVG','MATH','IMG','VIDEO','AUDIO','CANVAS','FORM','INPUT','BUTTON','SELECT','TEXTAREA','NOSCRIPT','TITLE','HEAD','PICTURE','SOURCE','FRAME','FRAMESET','APPLET','BASE']),
-  cls: /^(todo|done|c-(gray|red|orange|amber|green|teal|blue|violet|pink)|hl-(yellow|orange|green|blue|pink|violet)|bg-(yellow|orange|green|blue|pink|violet)|fs-(s|l|xl)|ico)$/
+  cls: /^(todo|done|c-(gray|red|orange|amber|green|teal|blue|violet|pink)|hl-(yellow|orange|green|blue|pink|violet|red)|bg-(yellow|orange|green|blue|pink|violet)|fs-(s|l|xl)|ico)$/
 };
 function sanitizeHTML(html) {
   const doc = new DOMParser().parseFromString(`<body>${html || ''}</body>`, 'text/html');
