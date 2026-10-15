@@ -20,13 +20,19 @@ async function request() {
   schedule(); return p;
 }
 const at = (k, hm) => new Date(`${k}T${hm || '09:00'}`).getTime();
+/* 알림 시점: 몇 분 전에 울릴지. 설정 기본값(일정 10분 전 · 할 일 제시간)이 있고, 기록마다 meta.remind로 바꿀 수 있어요 ('off' = 끄기) */
+const BEFORE = [0, 5, 10, 30, 60, 1440];
+const defBefore = type => { const n = S.prefs.notify || {}; return type === 'event' ? n.eventBefore ?? 10 : n.todoBefore ?? 0; };
+const beforeOf = e => { const r = e.meta?.remind; return r === 'off' ? null : r != null && r !== '' ? +r : defBefore(e.type); };
+const beforeLabel = (v, type = 'event') => v === 'off' || v == null ? t('remind.off') : +v === 0 ? t(type === 'todo' ? 'remind.0t' : 'remind.0') : +v >= 1440 ? t('remind.d') : +v >= 60 ? t('remind.h', { n: +v / 60 }) : t('remind.m', { n: +v });
 /* 앞으로 hours 시간 안에 울릴 것 */
 function upcoming(hours = 24) {
   const now = Date.now(), lim = now + hours * 3600e3, out = [], n = S.prefs.notify || {};
   if (n.reminders !== false) for (const e of live()) {
     const m = e.meta || {};
-    if (e.type === 'event' && m.date && m.time) out.push({ key: e.id, at: at(m.date, m.time) - 10 * 60e3, title: displayTitle(e, t('common.untitled')), body: t('notify.eventSoon', { time: m.time }), id: e.id });
-    else if (e.type === 'todo' && m.date && !m.done) out.push({ key: e.id, at: at(m.date, m.time || '09:00'), title: displayTitle(e, t('common.untitled')), body: t('notify.todoDue'), id: e.id });
+    const b = (e.type === 'event' || e.type === 'todo') ? beforeOf(e) : null; if (b == null) continue;
+    if (e.type === 'event' && m.date && m.time) out.push({ key: e.id, at: at(m.date, m.time) - b * 60e3, title: displayTitle(e, t('common.untitled')), body: t(b >= 1440 ? 'notify.eventTomorrow' : 'notify.eventSoon', { time: m.time }), id: e.id });
+    else if (e.type === 'todo' && m.date && !m.done) out.push({ key: e.id, at: at(m.date, m.time || n.todoAt || '09:00') - b * 60e3, title: displayTitle(e, t('common.untitled')), body: t(b >= 1440 ? 'notify.todoTomorrow' : 'notify.todoDue'), id: e.id });
   }
   for (const k of [todayKey(), dayKey(addDays(new Date(), 1))]) {
     if (n.morning) out.push({ key: 'morning', at: at(k, n.morningAt || '08:00'), title: t('notify.morning'), body: t('notify.morningBody', { n: live().filter(e => e.type === 'event' && e.meta.date === k).length }), daily: k });
@@ -78,4 +84,4 @@ async function unsubscribe() {
   try { if (ep && Sync.sb) await Sync.sb.rpc('push_unsubscribe', { p_endpoint: ep }); const reg = await navigator.serviceWorker?.getRegistration?.(); await (await reg?.pushManager.getSubscription())?.unsubscribe(); } catch {}
 }
 const pushOn = () => !!ls.get('daytale.push');
-export const Reminders = { supported, permission, request, schedule, upcoming, subscribe, unsubscribe, pushOn, pushOK };
+export const Reminders = { BEFORE, defBefore, beforeOf, beforeLabel, supported, permission, request, schedule, upcoming, subscribe, unsubscribe, pushOn, pushOK };

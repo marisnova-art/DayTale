@@ -1,6 +1,7 @@
 /* 기록 편집기: 정보 한 줄 + 제목 + 본문. 도구는 한 곳에만 있어요
    모바일: 키보드 위 막대(뒤로 | Aa · 체크 · 사진 · ⋯ | 완료). Aa·⋯ 판은 키보드 자리에 열려서 글 위치가 움직이지 않아요
    PC: 글 위 한 줄에 서식 도구가 모두 보여요. ⋯ 는 그 아래로 작은 판 */
+import { Reminders } from '../features/reminders.js';
 import { CFG } from '../core/config.js';
 import { fit as fitRow } from '../ui/fit.js';
 import { S, isEmpty, newEntry, onChange, patchEntry, purgeEntries, saveEntry, trashEntry, TYPES, addFolder, folderList } from '../data/store.js';
@@ -238,6 +239,10 @@ function paintPan() {
   if (e.type === 'todo' || e.type === 'event') {
     h += field('date', 'date', 'calendar', t(e.type === 'todo' ? 'ed.due' : 'ed.date'), m.date || (e.type === 'event' ? todayKey() : ''));
     h += field('time', 'time', 'clock', t('ed.time'), m.time);
+    // 알림: 이 기록만 시점을 바꿀 수 있어요 (기본 = 설정값)
+    const rv = m.remind ?? '', defL = t('remind.def', { v: Reminders.beforeLabel(Reminders.defBefore(e.type), e.type) });
+    h += row('data-exp="remind"', icon('bell', 20), t('ed.remind'), esc(rv === '' ? defL : Reminders.beforeLabel(rv, e.type)), true, exp === 'remind');
+    if (exp === 'remind') h += `<div class="sub">${[['', defL], ...Reminders.BEFORE.map(x => [String(x), Reminders.beforeLabel(x, e.type)]), ['off', t('remind.off')]].map(([v, l]) => `<button class="it${String(rv) === v ? ' on' : ''}" data-remind="${v}" aria-pressed="${String(rv) === v}" ${dis}><span class="ic">${icon(v === 'off' ? 'bell-off' : v === '' ? 'settings' : 'clock', 20)}</span><span class="lb">${esc(l)}</span>${String(rv) === v ? check : ''}</button>`).join('')}</div>`;
     if (e.type === 'event') h += field('place', 'text', 'map-pin', t('ed.place'), m.place, t('ed.place')) + recentPlaces(m.place);
   }
   if (e.type !== 'item' && e.type !== 'event') h += field('place', 'text', 'map-pin', t('ed.place'), m.place, t('ed.placePh')) + recentPlaces(m.place);
@@ -289,6 +294,8 @@ async function onAct(ev) {
   if (fb && !cur.ro) { fmt(fb.dataset.f); return; }
   const xp = ev.target.closest('[data-exp]');
   if (xp && !cur.ro) { cur.exp = cur.exp === xp.dataset.exp ? null : xp.dataset.exp; paintPan(); return; }
+  const rm = ev.target.closest('[data-remind]');
+  if (rm && !cur.ro) { cur.exp = null; setMeta('remind', rm.dataset.remind || null); Reminders.schedule(); paintPan(); return; }
   const pl = ev.target.closest('[data-place]');
   if (pl && !cur.ro) { setMeta('place', pl.dataset.place); paintChips(); return; }
   const ty = ev.target.closest('[data-type]'), fo = ev.target.closest('[data-folder]'), x = ev.target.closest('[data-x]');

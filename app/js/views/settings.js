@@ -71,6 +71,9 @@ function group(g) {
     const perm = Reminders.permission();
     return card('', perm === 'granted' ? `<p class="snote ok">${icon('circle-check', 16)} ${esc(t('set.notifyOn'))}</p>` : perm === 'unsupported' ? `<p class="snote">${esc(t('set.notifyNo'))}</p>` : row({ ic: 'bell', label: t('set.notifyAsk'), sub: esc(perm === 'denied' ? t('set.notifyDenied') : t('set.notifyAskSub')), act: 'perm' }))
       + card('', toggle('notify.reminders', t('set.reminders'), t('set.remindersSub'), n.reminders !== false)
+        + (n.reminders !== false ? `<button class="srow sub" data-a="before" data-k="eventBefore"><span class="stx"><b>${esc(t('set.evBefore'))}</b></span><span class="sv">${esc(Reminders.beforeLabel(n.eventBefore ?? 10))}</span>${icon('chevron-right', 18)}</button>`
+          + `<button class="srow sub" data-a="before" data-k="todoBefore"><span class="stx"><b>${esc(t('set.todoBefore'))}</b></span><span class="sv">${esc(Reminders.beforeLabel(n.todoBefore ?? 0, 'todo'))}</span>${icon('chevron-right', 18)}</button>`
+          + `<label class="srow sub"><span class="stx"><b>${esc(t('set.todoAt'))}</b><small>${esc(t('set.todoAtSub'))}</small></span><input type="time" data-time="todoAt" value="${esc(n.todoAt || '09:00')}"></label>` : '')
         + toggle('notify.morning', t('set.morning'), '', !!n.morning) + (n.morning ? `<label class="srow sub"><span class="stx"><b>${esc(t('set.at'))}</b></span><input type="time" data-time="morningAt" value="${esc(n.morningAt || '08:00')}"></label>` : '')
         + toggle('notify.evening', t('set.evening'), t('set.eveningSub'), !!n.evening) + (n.evening ? `<label class="srow sub"><span class="stx"><b>${esc(t('set.at'))}</b></span><input type="time" data-time="eveningAt" value="${esc(n.eveningAt || '21:00')}"></label>` : ''))
       + `<p class="snote">${esc(t(Reminders.pushOn() ? 'set.notifyPush' : 'set.notifyHonest'))}</p>`;
@@ -136,6 +139,11 @@ async function onClick(ev, paint) {
   else if (a === 'type') { const v = await pickType(S.prefs.defaultType); if (v) { setPref('defaultType', v); paint(); } }
   else if (a === 'city') { const v = await pickCity(); if (v !== undefined) { setPref('city', v); Weather.refresh({ force: true }).then(() => emit('weather')); paint(); } }
   else if (a === 'addDay') addDay(paint);
+  else if (a === 'before') {
+    const k = b.dataset.k, { pickAction } = await import('./pickers.js');
+    const v = await pickAction(t(k === 'eventBefore' ? 'set.evBefore' : 'set.todoBefore'), Reminders.BEFORE.map(x => ({ v: String(x), label: Reminders.beforeLabel(x, k === 'todoBefore' ? 'todo' : 'event') })));
+    if (v != null) { setPref('notify', { ...S.prefs.notify, [k]: +v }); Reminders.schedule(); paint(); }
+  }
   else if (a === 'perm') { const p = await Reminders.request(); if (p === 'denied') toast(t('set.notifyDenied'), { bad: true }); paint(); }
   else if (a === 'sync') { await Sync.run(); toast(t('sync.done')); paint(); }
   else if (a === 'deleteAccount') deleteAccount();
