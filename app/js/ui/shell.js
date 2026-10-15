@@ -49,6 +49,19 @@ function frame() {
   onChange(w => { if (w === 'quiet') paintSoon(); else if (['entries', 'folders', 'account', 'prefs'].includes(w)) paint(); });
   trackKeyboard();
   const nav = $('.drawer .nav'); nav.addEventListener('scroll', () => fades(nav), { passive: true }); addEventListener('resize', () => fades(nav));
+  // 메뉴가 열려 있을 때 끌어도 뒤 화면(배경)은 움직이지 않아요. 메뉴 목록이 길 때만 목록 안에서 스크롤돼요
+  let ty = 0;
+  const lock = e => {
+    if (!document.documentElement.classList.contains('menu-open')) return;
+    const n = e.target.closest?.('.drawer .nav');
+    if (n && n.scrollHeight > n.clientHeight + 1) {
+      const dy = e.touches[0].clientY - ty;
+      if (!((dy > 0 && n.scrollTop <= 0) || (dy < 0 && n.scrollTop + n.clientHeight >= n.scrollHeight - 1))) return;   // 목록 끝에서 더 끌면 뒤로 넘어가지 않게
+    }
+    if (e.cancelable) e.preventDefault();
+  };
+  addEventListener('touchstart', e => { ty = e.touches[0].clientY; }, { passive: true });
+  addEventListener('touchmove', lock, { passive: false });
   paint();
 }
 /* 쓰기: 지금 보는 목록에 맞춰 시작해요 (할 일 → 할 일, 일정·캘린더 → 일정, 폴더 → 그 폴더) */

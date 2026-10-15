@@ -87,3 +87,6 @@
 @media (min-width: 1200px) and (min-height: 501px), (min-width: 1200px) and (pointer: fine) { .pane .ed-tools .tb { width: 36px; } .pane .ed-tools .sep { margin: 0 2px; } }
 /* 백업 화면 설명은 잘리지 않게 두 줄까지 (언어마다 길이가 달라요) */
 .bk .r .p, .bk .r .t { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+/* dev.92 할 일 '오늘까지 · 시간'이 흰 카드에서 묻히지 않게: 진한 주황 글씨 + 옅은 바탕 */
+.r .p .due { --due: #FFB08F; color: var(--due); font-weight: 700; background: rgba(255,140,100,.16); padding: 1px 7px; border-radius: 7px; }
+:root[data-ui="white"] .r .p .due { --due: #D9480F; background: rgba(217,72,15,.1); }
