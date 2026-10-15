@@ -37,7 +37,7 @@
 .ev .ki.k-event { color: var(--event); background: color-mix(in srgb, var(--event) 16%, transparent); border-color: transparent; }
 .ev .ki.k-todo { background: color-mix(in srgb, var(--todo) 14%, transparent); border-color: transparent; }
 .ev .ki.k-record { color: var(--record); background: color-mix(in srgb, var(--record) 14%, transparent); border-color: transparent; }
-.ev .ki.tk .ck { width: 16px; height: 16px; border-radius: 8px; border: 2px solid var(--todo); display: flex; align-items: center; justify-content: center; }
+.ev .ki.tk .ck { flex: none; box-sizing: border-box; width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--todo); display: flex; align-items: center; justify-content: center; }
 .ev .ki.tk.on .ck { background: var(--todo); border-color: var(--todo); color: #3A2A06; }
 .agenda .blank { margin-top: 8px; height: 46px; border-radius: 16px; border: 1px dashed rgba(var(--fg),.10); display: flex; align-items: center; padding: 0 14px; font-size: var(--fs-s); font-weight: 500; color: var(--faint); }
 .cal .filters { margin: 14px 0 0; }

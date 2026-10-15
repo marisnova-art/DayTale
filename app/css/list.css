@@ -23,7 +23,7 @@
 .r .tm { font-size: var(--fs-s); font-weight: 600; color: var(--faint); flex: none; align-self: flex-start; margin-top: 3px; }
 .r .chk { align-self: center; }
 /* 할 일: 다른 기록과 같은 타일 안에 체크 동그라미. 끝내면 타일이 차고 ✓ */
-.r .kc.tk .ck { width: 20px; height: 20px; border-radius: 10px; border: 2px solid rgba(var(--fg),.34); display: flex; align-items: center; justify-content: center; }
+.r .kc.tk .ck { flex: none; box-sizing: border-box; width: 20px; height: 20px; border-radius: 50%; border: 2px solid rgba(var(--fg),.34); display: flex; align-items: center; justify-content: center; }
 .r .kc.tk.on { background: rgba(var(--fg),.12); }
 .r .kc.tk.on .ck { background: var(--text-2); border-color: var(--text-2); color: var(--on-text); }
 .r .side { display: flex; gap: 6px; flex: none; }
