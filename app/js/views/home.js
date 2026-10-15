@@ -1,6 +1,6 @@
 /* 감성형 홈: 날짜 · 이야기(오늘 할 일·일정도 문장 속에) · 질문 입력창. PC는 오른쪽에 오늘 패널 */
 import { Account } from '../data/account.js';
-import { S, addEntry, displayTitle, live } from '../data/store.js';
+import { S, addEntry, displayTitle, live, setPref } from '../data/store.js';
 import { Photos } from '../features/photos.js';
 import { Weather } from '../features/weather.js';
 import { compose } from '../story/engine.js';
@@ -121,13 +121,25 @@ async function renderTidy(view) {
   const { row } = await import('./list.js');
   const recent = live().filter(e => e.type !== 'todo' && e.type !== 'event').sort((a, b) => b.updated_at.localeCompare(a.updated_at)).slice(0, 8);
   view.innerHTML = `<div class="home-wrap"><section class="home tidy">
-    <div class="when"><span>${esc(fmtDate(new Date(), { month: 'long', day: 'numeric', weekday: 'long' }))}</span><i></i><b class="clock">${esc(fmtTime(new Date()))}</b></div>
+    <div class="when"><span>${esc(fmtDate(new Date(), { month: 'long', day: 'numeric', weekday: 'long' }))}</span><i></i><b class="clock">${esc(fmtTime(new Date()))}</b></div>${backupNudge()}
     <div style="margin-top:16px">${askBox(t('nav.new'))}</div>
     <div class="tidy-today" style="margin-top:18px;background:var(--sheet);border:1px solid var(--line);border-radius:24px;padding:4px 18px 8px"></div>
     ${recent.length ? `<div class="grp"><span>${esc(t('nav.all'))}</span><a href="#/all" style="color:var(--muted)">${esc(t('common.seeAll'))}</a></div><div class="card">${recent.map(e => row(e)).join('')}</div>` : ''}
     <div class="spacer"></div></section></div>`;
-  view.querySelector('.tidy-today').append(todayPanel());
+  view.querySelector('.tidy-today').append(todayPanel()); wireNudge(view);
   wireAsk(view, { onSaved: () => toast(t('home.saved')) });
+}
+
+/* 백업 안내: 기록이 10개 넘게 쌓였고, 마지막 백업(없으면 가입) 뒤 30일이 지났을 때 한 달에 한 번만 조용히 */
+const DAY = 864e5;
+function backupNudge() {
+  const p = S.prefs, last = p.lastBackupAt, from = last || Account.profile?.created_at;
+  if (!from || live().length < 10 || Date.now() - Date.parse(from) < 30 * DAY) return '';
+  if (p.backupNudgeAt && Date.now() - Date.parse(p.backupNudgeAt) < 30 * DAY) return '';
+  return `<div class="bkn">${icon('download', 18)}<span>${esc(t(last ? 'safe.nudgeOld' : 'safe.nudgeNew'))}</span><a class="go" href="#/backup" data-bkn>${esc(t('safe.nudgeGo'))}</a><button class="x" data-bkn aria-label="${esc(t('common.close'))}">${icon('x', 16)}</button></div>`;
+}
+function wireNudge(view) {
+  view.querySelectorAll('[data-bkn]').forEach(b => b.addEventListener('click', () => { setPref('backupNudgeAt', new Date().toISOString()); view.querySelector('.bkn')?.remove(); }));
 }
 
 /* 방금 남긴 한 줄은 오늘 하루 동안 이야기 끝에 남아요 (처음 한 번만 반짝) */
@@ -144,14 +156,14 @@ function render(view, r, keepPh) {
   const s = story(); const now = new Date();
   const q = pickQuestion(s.ctx, { recall: s.recall });
   view.innerHTML = `<div class="home-wrap"><section class="home">
-      <div class="when"><span>${esc(fmtDate(now, { month: 'long', day: 'numeric', weekday: 'long' }))}</span><i></i><b class="clock">${esc(fmtTime(now))}</b></div>
+      <div class="when"><span>${esc(fmtDate(now, { month: 'long', day: 'numeric', weekday: 'long' }))}</span><i></i><b class="clock">${esc(fmtTime(now))}</b></div>${backupNudge()}
       <div class="story${s.fresh ? ' fade-in' : ''}" aria-live="polite">${s.html}${justLine()}</div>
       <div class="askq"><p class="q"><button class="qtext" title="${esc(t('home.questions'))}">${esc(q)}</button></p>
         ${askBox(q)}</div>
       <div class="spacer"></div>
     </section><aside class="today-side"></aside></div>`;
   if (!document.documentElement.classList.contains('story-wait')) s.fresh = false;   // 첫 이야기는 다 받아 온 뒤 보여 줄 때 스르륵 나타나요
-  Photos.hydrate(view);
+  Photos.hydrate(view); wireNudge(view);
   view.querySelectorAll('.story .lq').forEach(a => a.addEventListener('click', ev => { ev.preventDefault(); const w = litWord(a.dataset.lit); if (w) wordSheet(w); }));
   view.querySelectorAll('.story .wq, .story .wgo').forEach(a => a.addEventListener('click', ev => { ev.preventDefault(); const w = wordById(getLang(), a.dataset.word); if (w) (a.classList.contains('wgo') ? writeWith : wordSheet)(w); }));
   view.querySelector('.today-side').append(todayPanel());

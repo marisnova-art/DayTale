@@ -139,3 +139,9 @@
 .kept .kb { display: flex; gap: 8px; font-size: var(--fs-s); color: var(--muted); }
 .kept .kb i { margin-left: auto; font-style: normal; color: var(--faint); flex: none; }
 .kept .body > .card { margin-top: 14px; }
+/* 백업 안내 (한 달에 한 번, 조용히) */
+.bkn { display: flex; align-items: center; gap: 10px; margin: 14px 0 4px; padding: 8px 8px 8px 16px; border-radius: 999px; background: rgba(var(--srf),.55); border: 1px solid rgba(var(--fg),.10); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); font-size: var(--fs-s); color: var(--text-2); }
+.bkn > svg { flex: none; color: var(--muted); }
+.bkn span { flex: 1; min-width: 0; line-height: 1.4; }
+.bkn .go { flex: none; height: 32px; padding: 0 14px; border-radius: 999px; display: inline-flex; align-items: center; font-weight: 700; color: var(--on-text); background: var(--text); }
+.bkn .x { flex: none; width: 32px; height: 32px; border-radius: 50%; border: 0; display: grid; place-items: center; background: transparent; color: var(--muted); }
