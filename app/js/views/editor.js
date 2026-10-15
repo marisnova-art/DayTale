@@ -38,7 +38,7 @@ function render(view, r, opts = {}) {   // opts.pane: PC 나란히 보기의 오
   const ro = !S.canWrite;
   const photoBtn = `<button class="tb" data-act="photo" aria-label="${esc(t('ed.photo'))}" title="${esc(t('ed.photo'))}">${icon('camera', 20)}</button>`;
   const fontBtn = `<button class="tb lbl ffb" data-act="font" aria-label="${esc(t('ed.font'))}" title="${esc(t('ed.font'))}">${icon('a-large-small', 18)}<span></span></button>`;
-  const cancel = `<button class="ed-cancel" data-act="cancel">${esc(t('common.cancel'))}</button>`;
+  const cancel = `<button class="ed-cancel" data-act="cancel">${icon('x', 18)}<span>${esc(t('common.cancel'))}</span></button>`;
   const done = `<button class="ed-done" data-act="done">${icon('check', 18)}<span>${esc(t('ed.finish'))}</span></button>`;
   view.innerHTML = `<div class="ed-page"><div class="ed-top">${cancel}<span class="sp"></span>${done}</div><div class="ed">
     <div class="ed-tools" role="toolbar"${ro ? ' hidden' : ''}>${ro ? '' : `<span class="grp">${fontBtn}</span><span class="grp">${INLINE.slice(0, 3).map(f => fbtn(f)).join('')}</span><span class="grp">${STYLE.slice(1).map(f => fbtn(f)).join('')}${fbtn(INLINE[4])}</span><span class="grp">${HL.map(hlBtn).join('')}</span><span class="grp">${[LISTS[2], LISTS[0], LISTS[1], LISTS[3]].map(f => fbtn(f)).join('')}</span><span class="grp">${photoBtn}${fbtn(LISTS[4])}${fbtn(LISTS[5])}</span>`}</div>
