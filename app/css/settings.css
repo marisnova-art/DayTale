@@ -171,9 +171,10 @@
 .pv2 .pgo { width: 100%; }
 .pmore { margin: 30px 4px 0; padding-top: 18px; border-top: 1px solid var(--line); font-size: var(--fs-s); line-height: 1.6; color: var(--muted-2); }
 .pmore b { color: var(--muted); } .pmore p { margin: 6px 0 0; } .pmore a { color: inherit; }
-/* 연간은 따뜻한 색으로 먼저 눈에 띄게, 고른 타일은 바깥 테두리로 */
-.pv2 .ptile.best { background: linear-gradient(135deg, #FF8A6A, #FFB37A) !important; border-color: transparent !important; }
-.pv2 .ptile.best .tl, .pv2 .ptile.best b, .pv2 .ptile.best small { color: #FFFFFF; }
-.pv2 .ptile.best small { opacity: .9; }
-.pv2 .ptile.best em { background: #FFFFFF; color: #E8603C; }
-.pv2 .ptile.on { outline: 3px solid var(--text); outline-offset: 3px; }
+/* 고른 요금 타일만 따뜻한 주황으로 채워요 (테두리 선 없음). 연간이 기본으로 골라져 있어요 */
+.pv2 .ptile, .pv2 .ptile.on { border-color: transparent !important; outline: 0; }
+.pv2 .ptile.on { background: linear-gradient(135deg, #FF8A6A, #FFB37A) border-box !important; }
+.pv2 .ptile.on .tl, .pv2 .ptile.on b, .pv2 .ptile.on small { color: #FFFFFF; }
+.pv2 .ptile.on small { opacity: .9; }
+.pv2 .ptile em { background: #FF8A6A; color: #FFFFFF; }
+.pv2 .ptile.on em { background: #FFFFFF; color: #E8603C; }
