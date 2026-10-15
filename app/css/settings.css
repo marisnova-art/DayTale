@@ -185,7 +185,7 @@
 /* 안 읽은 알림이 있으면 설정 › 알림 줄에도 점 */
 .has-unread .snav a[href$="/notify"] .stx b::after { content: ''; display: inline-block; width: 7px; height: 7px; margin-left: 8px; vertical-align: 3px; border-radius: 4px; background: var(--accent); }
 /* 점이 무엇인지 맨 위에 한 줄로 */
-.ntc .nlegend { display: flex; align-items: center; gap: 8px; margin: 4px 6px 14px; font-size: var(--fs-s); color: var(--muted); }
+.ntc .nlegend { display: flex; align-items: center; gap: 8px; margin: 22px 6px -4px; font-size: var(--fs-s); color: var(--muted); }
 .ntc .nlegend i { flex: none; width: 10px; height: 10px; border-radius: 5px; background: var(--accent); }
 /* 모바일 아래 막대의 종: 점을 아이콘에 바짝, 조금 작게 */
 .has-unread .mbar .bell::after { top: calc(50% - 13px); right: auto; left: calc(50% + 5px); width: 7px; height: 7px; }
