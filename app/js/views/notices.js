@@ -21,7 +21,7 @@ function forMe(n) {
 let cache = null;
 async function load() {
   if (!Sync.sb) return [];
-  const { data, error } = await Sync.sb.from('notices').select('id,user_id,kind,lang,title,body,created_at,read_at,banner,audience,starts_at,ends_at').order('created_at', { ascending: false }).limit(50);
+  const { data, error } = await Sync.sb.from('notices').select('id,user_id,kind,lang,title,body,created_at,read_at,banner,audience,starts_at,ends_at,image_url,cta_label,cta_url').order('created_at', { ascending: false }).limit(50);
   return cache = error ? (cache || []) : data.filter(forMe);
 }
 const seenAt = () => Number(ls.get(SEEN, 0)) || 0;
@@ -47,23 +47,43 @@ async function past() {
 /* 안 읽은 개수 (종 모양 점, 앱 아이콘 숫자) */
 async function unread() { return problems().length + (await past()).filter(x => x.fresh).length; }
 
-/* 홈 배너 (하루에 하나만) */
+/* 홈 배너: 'strip' = 홈 위 띠(글자만), 'popup' = 이미지와 함께 시트(모바일은 아래에서, PC는 가운데 창).
+   종류마다 하루에 하나만. 닫거나 보거나 알림함에서 읽은 공지는 다시 띄우지 않아요 */
 const BN = 'daytale.banner', todayKey = () => new Date().toDateString();
-function pickBanner(list) {
-  const st = ls.get(BN, { closed: [], day: '' }), now = Date.now();
-  if (st.day === todayKey()) return null;   // 오늘 이미 하나를 닫았어요
-  return (list || []).find(n => n.banner && !n.user_id && !st.closed.includes(n.id) && (!n.starts_at || Date.parse(n.starts_at) <= now) && (!n.ends_at || Date.parse(n.ends_at) > now)) || null;
+const bstate = () => { const st = ls.get(BN, null); return st && typeof st.day === 'object' ? st : { closed: [], day: {} }; };
+function pickBanner(list, kind) {
+  const st = bstate(), now = Date.now();
+  if (st.day[kind] === todayKey()) return null;   // 오늘 이 종류는 이미 하나를 닫았어요
+  return (list || []).find(n => n.banner === kind && !n.user_id && !st.closed.includes(n.id) && (!n.starts_at || Date.parse(n.starts_at) <= now) && (!n.ends_at || Date.parse(n.ends_at) > now)) || null;
 }
-const bannerHTML = n => n ? `<div class="hbn" data-id="${n.id}">${icon('megaphone', 18)}<a class="tx" href="#/notices" data-hbn><b>${esc(n.title)}</b>${n.body ? `<span>${esc(n.body)}</span>` : ''}</a><a class="go" href="#/notices" data-hbn>${esc(t('banner.go'))}</a><button class="x" data-hbn aria-label="${esc(t('common.close'))}">${icon('x', 16)}</button></div>` : '';
-function closeBanner(id, today = true) { const st = ls.get(BN, { closed: [], day: '' }), ids = [].concat(id); ls.set(BN, { closed: [...st.closed.filter(x => !ids.includes(x)), ...ids].slice(-50), day: today ? todayKey() : st.day }); }
-/* 홈에 넣기: 받아 둔 것으로 먼저 그리고, 새로 받아 와서 바뀌었으면 다시 그려요. 백업 안내와 겹치면 배너가 먼저예요 */
+function closeBanner(ids, kind) { const st = bstate(); ids = [].concat(ids); ls.set(BN, { closed: [...st.closed.filter(x => !ids.includes(x)), ...ids].slice(-50), day: kind ? { ...st.day, [kind]: todayKey() } : st.day }); }
+/* 버튼이 갈 곳: 앱 안(#/…) 또는 https 주소만. 없으면 알림함 */
+const ctaHref = n => /^#\/[\w\/-]*$/.test(n.cta_url || '') || /^https:\/\/[^\s"'<>]+$/.test(n.cta_url || '') ? n.cta_url : '#/notices';
+const ext = u => u.startsWith('https:') ? ' target="_blank" rel="noopener"' : '';
+const stripHTML = n => n ? `<div class="hbn" data-id="${n.id}">${icon('megaphone', 18)}<a class="tx" href="${esc(ctaHref(n))}"${ext(ctaHref(n))} data-hbn><b>${esc(n.title)}</b>${n.body ? `<span>${esc(n.body)}</span>` : ''}</a><a class="go" href="${esc(ctaHref(n))}"${ext(ctaHref(n))} data-hbn>${esc(n.cta_label || t('banner.go'))}</a><button class="x" data-hbn aria-label="${esc(t('common.close'))}">${icon('x', 16)}</button></div>` : '';
+let popOpen = false;
+async function popup(n) {
+  if (!n || popOpen) return; popOpen = true;
+  const { openSheet } = await import('../ui/feedback.js');
+  const href = ctaHref(n);
+  const el = document.createElement('div'); el.className = 'npop';
+  el.innerHTML = `${n.image_url && /^https:\/\//.test(n.image_url) ? `<img class="pim" src="${esc(n.image_url)}" alt="">` : ''}<h3>${esc(n.title)}</h3>${n.body ? `<p>${esc(n.body)}</p>` : ''}<div class="acts"><button class="btn line" data-x>${esc(t('common.close'))}</button><a class="btn primary" href="${esc(href)}"${ext(href)}>${esc(n.cta_label || t('banner.go'))}</a></div>`;
+  closeBanner(n.id, 'popup');   // 한 번 뜬 팝업은 다시 띄우지 않아요
+  const sh = openSheet(el, { label: n.title, onClose: () => { popOpen = false; } });
+  sh.el.classList.add('pop-sheet');
+  el.querySelector('[data-x]').onclick = () => sh.close();
+  el.querySelector('a.btn').addEventListener('click', () => sh.close());
+}
+/* 홈에 넣기: 받아 둔 것으로 먼저 그리고, 새로 받아 와서 바뀌었으면 다시 그려요. 띠와 백업 안내가 겹치면 띠가 먼저예요 */
 function banner(slot) {
   if (!slot) return;
   const paint = list => {
-    const n = pickBanner(list), cur = slot.querySelector('.hbn');
-    if (String(n?.id ?? '') === (cur?.dataset.id ?? '')) return;
-    slot.innerHTML = bannerHTML(n); slot.closest('.home')?.classList.toggle('has-hbn', !!n);
-    slot.querySelectorAll('[data-hbn]').forEach(b => b.addEventListener('click', () => { closeBanner(n.id); slot.innerHTML = ''; slot.closest('.home')?.classList.remove('has-hbn'); }));
+    const n = pickBanner(list, 'strip'), cur = slot.querySelector('.hbn');
+    if (String(n?.id ?? '') !== (cur?.dataset.id ?? '')) {
+      slot.innerHTML = stripHTML(n); slot.closest('.home')?.classList.toggle('has-hbn', !!n);
+      slot.querySelectorAll('[data-hbn]').forEach(b => b.addEventListener('click', () => { closeBanner(n.id, 'strip'); slot.innerHTML = ''; slot.closest('.home')?.classList.remove('has-hbn'); }));
+    }
+    const p = pickBanner(list, 'popup'); if (p) setTimeout(() => { if (slot.isConnected) popup(p); }, 700);
   };
   if (cache) paint(cache);
   load().then(paint, () => {});
@@ -85,7 +105,7 @@ function render(view) {
       : `<div class="empty">${icon('bell', 28)}<b>${esc(t('empty.inbox'))}</b><p>${esc(t('empty.inbox.s'))}</p><a class="btn line" href="#/settings/notify">${icon('settings', 18)}${esc(t('inbox.settings'))}</a></div>`;
     // 열었으니 읽음으로
     ls.set(SEEN, now);
-    const seenB = old.filter(x => x.n?.banner).map(x => x.n.id); if (seenB.length) closeBanner(seenB, false);   // 알림함에서 본 공지는 홈 배너로 다시 띄우지 않아요
+    const seenB = old.filter(x => x.n?.banner).map(x => x.n.id); if (seenB.length) closeBanner(seenB);   // 알림함에서 본 공지는 홈 배너로 다시 띄우지 않아요
     const mine = old.filter(x => x.n?.user_id && !x.n.read_at).map(x => x.n.id);
     if (mine.length) await Sync.sb.from('notices').update({ read_at: new Date().toISOString() }).in('id', mine);
     const top = Math.max(0, ...old.filter(x => x.n && !x.n.user_id).map(x => x.n.id)); if (top) localStorage.setItem('daytale.noticeSeen', String(top));

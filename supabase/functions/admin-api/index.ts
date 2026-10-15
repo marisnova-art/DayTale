@@ -149,7 +149,7 @@ async function act(a: Admin, body: any, { db, env, fetch }: Deps) {
     }
 
     case 'notices': {
-      const { data, error } = await db.from('notices').select('id,kind,lang,title,body,created_at,banner,audience,starts_at,ends_at').is('user_id', null).order('created_at', { ascending: false }).range(0, 49);
+      const { data, error } = await db.from('notices').select('id,kind,lang,title,body,created_at,banner,audience,starts_at,ends_at,image_url,cta_label,cta_url').is('user_id', null).order('created_at', { ascending: false }).range(0, 49);
       if (error) throw new Fail(500, error.message);
       return { rows: data };
     }
@@ -160,15 +160,32 @@ async function act(a: Admin, body: any, { db, env, fetch }: Deps) {
       const lang = ['ko', 'en', 'ja', 'es', 'fr'].includes(body.lang) ? body.lang : null;
       if (!title) throw new Fail(400, 'title required');
       // 홈 배너: 대상과 기간 (관리자 화면이 그 사람 시간대의 0시를 ISO로 보내요)
-      const banner = body.banner === true || body.banner === 'on' || body.banner === 'true';
+      const banner = ['strip', 'popup'].includes(body.banner) ? body.banner : null;
+      const img = String(body.image_url ?? ''), image_url = banner === 'popup' && /^https:\/\/[\w.-]+\/storage\/v1\/object\/public\/notice-images\/[\w.-]+$/.test(img) ? img : null;
+      const cta = String(body.cta_url ?? '').trim(), cta_url = /^#\/[\w\/-]*$/.test(cta) || /^https:\/\/[^\s"'<>]{1,290}$/.test(cta) ? cta : null;
+      const cta_label = String(body.cta_label ?? '').trim().slice(0, 20) || null;
       const audience = ['all', 'trial', 'subscriber', 'ended'].includes(body.audience) ? body.audience : 'all';
       const iso = (v: unknown) => { if (!v) return null; const d = new Date(String(v)); if (isNaN(+d)) throw new Fail(400, 'bad date'); return d.toISOString(); };
       const starts_at = iso(body.starts_at), ends_at = iso(body.ends_at);
       if (starts_at && ends_at && ends_at <= starts_at) throw new Fail(400, 'bad period');
-      const { error } = await db.from('notices').insert({ user_id: null, kind: 'announce', lang, title, body: text, banner, audience, starts_at, ends_at });
+      const { error } = await db.from('notices').insert({ user_id: null, kind: 'announce', lang, title, body: text, banner, audience, starts_at, ends_at, image_url, cta_label, cta_url });
       if (error) throw new Fail(500, error.message);
       await audit(db, a, 'notice_create', {}, { title, lang, banner, audience, starts_at, ends_at });
       return { ok: true };
+    }
+
+    // 팝업 이미지 올리기: 관리자 화면이 줄인 data URL(webp/jpeg/png, 500KB 까지) → 공개 저장소 notice-images
+    case 'notice_image': {
+      ownerOnly(a);
+      const m = String(body.data ?? '').match(/^data:image\/(webp|jpeg|png);base64,([A-Za-z0-9+\/=]+)$/);
+      if (!m) throw new Fail(400, 'bad image');
+      const bytes = Uint8Array.from(atob(m[2]), c => c.charCodeAt(0));
+      if (bytes.length > 524288) throw new Fail(400, 'image too large');
+      const name = `${new Date().toISOString().slice(0, 10)}-${crypto.randomUUID().slice(0, 8)}.${m[1] === 'jpeg' ? 'jpg' : m[1]}`;
+      const { error } = await db.storage.from('notice-images').upload(name, bytes, { contentType: 'image/' + m[1], upsert: false });
+      if (error) throw new Fail(500, error.message);
+      await audit(db, a, 'notice_image', {}, { name, size: bytes.length });
+      return { url: db.storage.from('notice-images').getPublicUrl(name).data.publicUrl };
     }
 
     case 'notice_delete': {

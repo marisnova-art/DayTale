@@ -224,6 +224,9 @@ dialog.confirm::backdrop{ background:rgba(0,0,0,.7) } dialog.confirm p{ color:va
 .blist{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:14px }
 .meter.thin{ height:6px; margin:8px 0 0; color:var(--ok) }
 .grid3{ display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:12px }
+.nform .nprev{ display:block; max-width:360px; aspect-ratio:16/10; object-fit:cover; border-radius:14px; margin-top:8px }
+.nform input[type=file]{ padding:8px }
+.audit .nthumb{ width:56px; height:35px; object-fit:cover; border-radius:8px; flex:none }
 .nform label.check{ flex-direction:row; align-items:center; gap:8px; color:var(--text); font-size:14px }
 .nform label.check input{ width:18px; height:18px; padding:0 }
 .nform .nper label{ flex:1 }

@@ -288,11 +288,16 @@ create table if not exists public.notices (
   read_at     timestamptz
 );
 create index if not exists notices_user_idx on public.notices(user_id, created_at desc);
--- 홈 배너: 모두에게 보내는 공지 중 banner 인 것은 기간(starts_at~ends_at) 동안 홈 위에 조용히 떠요. audience = all | trial | subscriber | ended
-alter table public.notices add column if not exists banner boolean not null default false,
-  add column if not exists audience text not null default 'all',
+-- 홈 배너: 모두에게 보내는 공지는 기간(starts_at~ends_at) 동안 홈에도 띄울 수 있어요.
+--   banner = null(알림함만) | 'strip'(홈 위 띠, 글자만) | 'popup'(이미지와 함께 모바일은 아래에서 올라오는 시트, PC는 가운데 창)
+--   audience = all | trial | subscriber | ended. image_url = 공개 저장소(notice-images) 주소. cta_* = 버튼 글자·이동할 곳(앱 안 #/… 또는 https)
+alter table public.notices add column if not exists banner text check (banner in ('strip', 'popup')),
+  add column if not exists audience text not null default 'all' check (audience in ('all', 'trial', 'subscriber', 'ended')),
   add column if not exists starts_at timestamptz,
-  add column if not exists ends_at timestamptz;
+  add column if not exists ends_at timestamptz,
+  add column if not exists image_url text,
+  add column if not exists cta_label text,
+  add column if not exists cta_url text;
 
 -- =====================================================================
 -- 트리거: 주인·버전·시간 고정, 삭제 표시, 쓰기 잠금

@@ -754,6 +754,16 @@ async function viewVouchers(q) {
 }
 
 /* ---------- 공지 (앱 알림함에 모두에게) ---------- */
+/* 팝업 이미지: 가로 1200px 까지 줄여 webp(안 되면 jpeg)로 */
+function shrink(file) {
+  return new Promise((ok, no) => {
+    const u = URL.createObjectURL(file), im = new Image();
+    im.onload = () => { const w = Math.min(1200, im.naturalWidth), c = document.createElement('canvas'); c.width = w; c.height = Math.round(im.naturalHeight * w / im.naturalWidth); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); URL.revokeObjectURL(u);
+      let d = c.toDataURL('image/webp', .82); if (!d.startsWith('data:image/webp')) d = c.toDataURL('image/jpeg', .82); ok(d); };
+    im.onerror = () => { URL.revokeObjectURL(u); no(new Error('bad image')); }; im.src = u;
+  });
+}
+const SHOW = { '': '알림함에만', strip: '상단 띠배너 (글자)', popup: '하단 팝업 (이미지)' };
 const AUD = { all: '모든 회원', trial: '무료 체험 중', subscriber: '구독 중', ended: '체험 끝 · 미구독' };
 const ymd = v => { if (!v) return ''; const d = new Date(v), z = x => String(x).padStart(2, '0'); return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`; };
 const period = n => `${ymd(n.starts_at) || '지금'} ~ ${n.ends_at ? ymd(new Date(Date.parse(n.ends_at) - 864e5)) : '내릴 때까지'}`;
@@ -766,15 +776,28 @@ async function viewNotices() {
       <label>내용<textarea name="body" maxlength="2000" rows="3" placeholder="두세 문장으로"></textarea></label>
       <label>언어<select name="lang"><option value="">모든 언어</option><option value="ko">한국어</option><option value="en">English</option><option value="ja">日本語</option><option value="es">Español</option><option value="fr">Français</option></select></label>
       <label>대상<select name="audience">${Object.entries(AUD).map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select></label>
-      <label class="check"><input type="checkbox" name="banner"> 홈 위에 배너로도 띄우기</label>
+      <label>홈에 띄우기<select name="banner">${Object.entries(SHOW).map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select></label>
+      <div class="npopf" hidden>
+        <label>이미지 <span class="muted xs">가로로 긴 사진 (16:10). 1200px로 줄여 올려요</span><input type="file" name="img" accept="image/*"></label>
+        <img class="nprev" alt="" hidden>
+      </div>
+      <div class="row gap nper"><label>버튼 글자<input name="cta_label" maxlength="20" placeholder="보기"></label><label>버튼 누르면<input name="cta_url" maxlength="300" placeholder="#/plans 또는 https://…"></label></div>
       <div class="row gap nper"><label>시작일<input type="date" name="starts"></label><label>종료일<input type="date" name="ends"></label></div>
-      <p class="muted xs">기간을 비우면 바로 시작해서 내릴 때까지 보여요. 시작일 전에는 앱에 보이지 않아요. 배너는 닫거나 보면 사라지고, 하루에 하나만 떠요.</p>
+      <p class="muted xs">기간을 비우면 바로 시작해서 내릴 때까지 보여요. 시작일 전에는 앱에 보이지 않아요. 띠배너·팝업은 종류마다 하루에 하나만 뜨고, 닫거나 보면 다시 뜨지 않아요. 버튼을 비우면 알림함으로 가요.</p>
       <div class="row end"><button class="btn primary">올리기</button></div></form>` : ''}
-    <section class="box pad">${r.rows.length ? `<ul class="audit">${r.rows.map(n => `<li><span class="ava violet">${I.bell}</span><div><b>${esc(n.title)}</b> <span class="muted xs">${esc(n.lang || '모든 언어')} · ${AUD[n.audience] || AUD.all}${n.banner ? ' · 홈 배너' : ''}${n.starts_at || n.ends_at ? ' · ' + period(n) : ''}</span><small>${esc(n.body)}</small><small>${when(n.created_at)}</small></div>
+    <section class="box pad">${r.rows.length ? `<ul class="audit">${r.rows.map(n => `<li>${n.image_url ? `<img class="nthumb" src="${esc(n.image_url)}" alt="">` : `<span class="ava violet">${I.bell}</span>`}<div><b>${esc(n.title)}</b> <span class="muted xs">${esc(n.lang || '모든 언어')} · ${AUD[n.audience] || AUD.all}${n.banner ? ' · ' + SHOW[n.banner] : ''}${n.starts_at || n.ends_at ? ' · ' + period(n) : ''}</span><small>${esc(n.body)}</small><small>${when(n.created_at)}</small></div>
       ${me.role === 'owner' ? `<button class="btn ghost sm" data-del="${n.id}">내리기</button>` : ''}</li>`).join('')}</ul>` : '<p class="muted">올린 공지가 없습니다.</p>'}</section>`);
   const f = document.getElementById('nf');
   const local = (v, add = 0) => { if (!v) return null; const d = new Date(v + 'T00:00:00'); d.setDate(d.getDate() + add); return d.toISOString(); };   // 내 시간대 0시 (종료일은 그다음 날 0시까지)
-  if (f) f.onsubmit = async e => { e.preventDefault(); const v = Object.fromEntries(new FormData(f)); if (v.starts && v.ends && v.ends < v.starts) return toast('종료일이 시작일보다 빨라요.', true); try { await api('notice_create', { ...v, starts_at: local(v.starts), ends_at: local(v.ends, 1) }); toast('공지를 올렸습니다.'); viewNotices(); } catch (er) { toast(er.message, true); } };
+  let img = null;   // 줄인 이미지 (data URL)
+  if (f) {
+    const box = f.querySelector('.npopf'), prev = f.querySelector('.nprev');
+    f.banner.onchange = () => { box.hidden = f.banner.value !== 'popup'; };
+    f.img.onchange = async () => { img = null; prev.hidden = true; const file = f.img.files[0]; if (!file) return; try { img = await shrink(file); prev.src = img; prev.hidden = false; } catch { toast('이미지를 읽지 못했어요.', true); } };
+  }
+  if (f) f.onsubmit = async e => { e.preventDefault(); const v = Object.fromEntries(new FormData(f)); delete v.img; if (v.starts && v.ends && v.ends < v.starts) return toast('종료일이 시작일보다 빨라요.', true); try {
+    if (v.banner === 'popup' && img) v.image_url = (await api('notice_image', { data: img })).url;
+    await api('notice_create', { ...v, starts_at: local(v.starts), ends_at: local(v.ends, 1) }); toast('공지를 올렸습니다.'); viewNotices(); } catch (er) { toast(er.message, true); } };
   document.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => { if (!await confirmBox({ title: '공지 내리기', body: '앱 알림함에서 사라집니다.', ok: '내리기', danger: true })) return; try { await api('notice_delete', { id: Number(b.dataset.del) }); viewNotices(); } catch (e) { toast(e.message, true); } });
 }
 

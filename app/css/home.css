@@ -154,3 +154,14 @@
 .hbn .go { flex: none; height: 32px; padding: 0 14px; border-radius: 999px; display: inline-flex; align-items: center; font-size: var(--fs-s); font-weight: 700; color: var(--on-text); background: var(--text); text-decoration: none; }
 .hbn .x { flex: none; width: 32px; height: 32px; border-radius: 50%; border: 0; display: grid; place-items: center; background: transparent; color: var(--muted); }
 .home.has-hbn .bkn { display: none; }   /* 한 번에 하나만: 배너가 먼저 */
+/* 홈 팝업 공지: 이미지 + 제목 + 내용 + 버튼 (모바일 아래 시트, PC 가운데 창) */
+.npop .pim { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; border-radius: 20px; background: rgba(var(--fg),.06); margin: 2px 0 18px; }
+.npop h3 { margin: 0 0 8px; font-size: 22px; line-height: 1.35; font-weight: 800; letter-spacing: -.03em; color: var(--text); }
+.npop p { margin: 0 0 22px; font-size: var(--fs-m, 16px); line-height: 1.55; color: var(--text-2); white-space: pre-line; }
+.npop .acts { display: flex; gap: 10px; }
+.npop .acts .btn { flex: 1; justify-content: center; }
+.npop .acts .btn.primary { flex: 2; }
+.pop-sheet .sh-top { display: none; }   /* 닫기는 아래 버튼·손잡이·바깥 누르기로 */
+.npop { padding-top: 14px; }
+.npop .acts .btn.line { border: 0; background: rgba(var(--fg),.08); color: var(--text); }
+.npop .acts .btn:focus:not(:focus-visible), .npop [data-x]:focus { outline: none; box-shadow: none; }
