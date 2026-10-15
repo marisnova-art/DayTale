@@ -31,7 +31,7 @@ function showAuth(mode = 'signin', note = '') {
       ${mode === 'signin' ? `<div class="forgot"><a href="#" class="lk" data-mode="reset">${esc(t('auth.forgot'))}</a></div>` : '<div style="height:16px"></div>'}
       <button class="btn primary" type="submit">${esc(t(signup ? 'auth.signup' : reset ? 'common.ok' : newpw ? 'common.save' : 'auth.signin'))}</button>
       ${signup || mode === 'signin' ? `<div class="or">${esc(t('auth.or'))}</div><button type="button" class="btn line google">${G}${esc(t('auth.google'))}</button>` : ''}
-      ${signup ? `<p class="legal">${t('auth.agree')}</p><p class="legal safe">${icon('shield', 14)} ${esc(t('safe.privacyShort'))}</p>` : ''}
+      ${signup ? `<p class="legal">${t('auth.agree')}</p><p class="legal safe">${icon('shield', 14)} ${t('safe.privacyShort').split(/(?<=[.。])\s*/).filter(Boolean).map(esc).join('<br>')}</p>` : ''}
     </form>
     <div class="bottom">${mode === 'signin' ? `<a href="#" class="lk" data-mode="signup">${t('auth.toSignup')}</a>` : newpw ? '' : `<a href="#" class="lk" data-mode="signin">${t('auth.toSignin')}</a>`}</div>
   </div>`;

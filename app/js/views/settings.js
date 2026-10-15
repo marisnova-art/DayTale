@@ -82,7 +82,7 @@ function group(g) {
     const sv = saveState(), last = p.lastBackupAt;
     return card(t('safe.title'), row({ ic: sv.ic, label: sv.text, sub: esc(sync), value: t('set.syncNow'), act: 'sync', chev: false })
         + row({ ic: 'download', label: t('safe.backup'), sub: esc(last ? fmtDate(last, { year: 'numeric', month: 'long', day: 'numeric' }) : t('safe.never')), value: t('bk.title'), href: '#/backup' }))
-      + `<p class="snote">${icon('shield', 15)} ${esc(t('safe.privacy'))}</p>`
+      + `<p class="snote">${icon('shield', 15)} ${t('safe.privacy').split(/(?<=[.。])\s*/).filter(Boolean).map(esc).join('<br>')}</p>`
       + card(t('set.usage'), `<div class="usage">${[[t('set.uEntries'), `${fmtNum(ents)} / ${fmtNum(LIMITS.entries)}`, ents / LIMITS.entries], ...(CFG.PHOTOS_URL ? [[t('set.uPhotos'), photos, st.subscriber ? st.photo_bytes / LIMITS.paidBytes : (st.photo_count || 0) / LIMITS.trialPhotos]] : []), [t('set.uFolders'), `${S.folders.size} / ${LIMITS.folders}`, S.folders.size / LIMITS.folders]]
         .map(([l, v, r]) => `<div class="u"><span>${esc(l)}</span><b>${esc(v)}</b><i><em style="width:${Math.min(100, Math.max(1, Math.round(r * 100)))}%"></em></i></div>`).join('')}</div>`)
       + card('', row({ ic: 'trash-2', label: t('nav.trash'), sub: esc(t('set.trashSub')), href: '#/trash' }))
