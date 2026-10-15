@@ -136,12 +136,12 @@ function paintBody(view, { mode, r, folder, q }) {
     count.textContent = open.length ? fmtNum(open.length) : '';
     body.innerHTML = (open.length ? `<div class="grp"><span>${esc(t('list.openTodos'))}</span><span>${open.length}</span></div><div class="card">${open.map(e => row(e)).join('')}</div>` : '') +
       (done.length ? `<div class="grp"><span>${esc(t('list.doneTodos'))}</span><span>${done.length}</span></div><div class="card">${done.map(e => row(e)).join('')}</div>` : '') +
-      (!all.length ? `<div class="empty">${esc(t('list.empty'))}</div>` : '');
+      (!all.length ? emptyHTML(TYPE_ICON.todo || 'check-square', 'list', true) : '');
     return;
   }
   if (mode === 'trash') {
     count.textContent = list.length ? fmtNum(list.length) : '';
-    body.innerHTML = list.length ? `<p class="hint">${esc(t('list.trashNote'))}</p>` + groups(list, { mode }, e => dayKey(new Date(e.deleted_at))) : `<div class="empty">${esc(t('list.trashEmpty'))}</div>`;
+    body.innerHTML = list.length ? `<p class="hint">${esc(t('list.trashNote'))}</p>` + groups(list, { mode }, e => dayKey(new Date(e.deleted_at))) : emptyHTML('trash-2', 'trash');
     return;
   }
   if (mode === 'search') {
@@ -151,7 +151,7 @@ function paintBody(view, { mode, r, folder, q }) {
     const found = list.filter(e => { const h = hay(e); return terms.every(w => h.includes(w)); })
       .sort((a, b) => (b.title.toLowerCase().includes(terms[0]) ? 1 : 0) - (a.title.toLowerCase().includes(terms[0]) ? 1 : 0) || b.updated_at.localeCompare(a.updated_at)).slice(0, 300);
     count.textContent = '';
-    body.innerHTML = found.length ? `<p class="hint">${esc(t('list.found', { n: fmtNum(found.length) }))}</p><div class="card" style="margin-top:12px">${found.map(e => row(e, { terms })).join('')}</div>` : `<div class="empty">${esc(t('list.noResults'))}</div>`;
+    body.innerHTML = found.length ? `<p class="hint">${esc(t('list.found', { n: fmtNum(found.length) }))}</p><div class="card" style="margin-top:12px">${found.map(e => row(e, { terms })).join('')}</div>` : emptyHTML('search', 'search');
     return;
   }
   if (mode === 'type' && r.params.type === 'event') {   // 일정: 다가오는 일정(가까운 순) · 지난 일정(최근 순)
@@ -160,14 +160,16 @@ function paintBody(view, { mode, r, folder, q }) {
     count.textContent = up.length ? fmtNum(up.length) : '';
     body.innerHTML = (up.length ? `<div class="grp"><span>${esc(t('list.upcoming'))}</span><span>${up.length}</span></div><div class="card">${up.map(e => row(e, { mode })).join('')}</div>` : '') +
       (past.length ? `<div class="grp"><span>${esc(t('list.past'))}</span><span>${past.length}</span></div><div class="card">${past.map(e => row(e, { mode })).join('')}</div>` : '') +
-      (!list.length ? `<div class="empty">${esc(t('list.empty'))}</div>` : '');
+      (!list.length ? emptyHTML(TYPE_ICON.event || 'calendar', 'list', true) : '');
     return;
   }
   count.textContent = list.length ? fmtNum(list.length) : '';
   const pinned = list.filter(e => e.pinned).sort(byNew), rest = list.filter(e => !e.pinned).sort(byNew);
   body.innerHTML = (pinned.length ? `<div class="grp"><span>${esc(t('list.pinned'))}</span><span>${pinned.length}</span></div><div class="card">${pinned.map(e => row(e, { mode })).join('')}</div>` : '') +
-    (rest.length ? groups(rest.slice(0, 600), { mode }) : pinned.length ? '' : `<div class="empty">${esc(t(mode === 'fav' ? 'list.emptyFav' : 'list.empty'))}</div>`);
+    (rest.length ? groups(rest.slice(0, 600), { mode }) : pinned.length ? '' : mode === 'fav' ? emptyHTML('star', 'fav') : emptyHTML(mode === 'type' ? TYPE_ICON[r.params.type] || 'layers' : mode === 'folder' || mode === 'nofolder' ? 'folder' : 'layers', 'list', true));
 }
+/* 비어 있을 때: 가운데에 아이콘 · 한 줄 제목 · 짧은 안내 (+ 쓸 수 있는 목록이면 쓰기 버튼) */
+const emptyHTML = (ic, k, write) => `<div class="empty">${icon(ic, 28)}<b>${esc(t('empty.' + k))}</b><p>${esc(t('empty.' + k + '.s'))}</p>${write ? `<button class="btn primary" data-new>${icon('pencil', 18)}${esc(t('nav.write'))}</button>` : ''}</div>`;
 const refresh = view => view.paintList?.();
 const leave = () => Editor.leave();
 const newQuery = (mode, r, folder) => mode === 'type' ? { type: r.params.type } : mode === 'folder' ? { folder: folder.id } : mode === 'todo' ? { type: 'todo' } : {};
@@ -192,7 +194,7 @@ function openPane(view, id, query) {
   delete pane.dataset.new; pane.dataset.id = id || '';
   if (!id && !query) {
     Editor.leave();
-    pane.innerHTML = `<div class="pane-empty">${icon('feather', 30)}<p>${esc(t('list.empty'))}</p><button class="btn primary" data-new>${icon('pencil', 18)}${esc(t('nav.write'))}</button></div>`;
+    pane.innerHTML = `<div class="pane-empty">${icon('feather', 28)}<p>${esc(t('empty.pane'))}</p></div>`;
     return;
   }
   if (query) { pane.dataset.new = '1'; sel = null; markSel(view); }

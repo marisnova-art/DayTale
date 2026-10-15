@@ -90,3 +90,11 @@
 /* dev.92 할 일 '오늘까지 · 시간'이 흰 카드에서 묻히지 않게: 진한 주황 글씨 + 옅은 바탕 */
 .r .p .due { --due: #FFB08F; color: var(--due); font-weight: 700; background: rgba(255,140,100,.16); padding: 1px 7px; border-radius: 7px; }
 :root[data-ui="white"] .r .p .due { --due: #D9480F; background: rgba(217,72,15,.1); }
+/* dev.98 비어 있는 목록: 화면 가운데 쯤에 아이콘 · 제목 · 안내 · (쓰기) */
+.lst .empty { min-height: 46vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 40px 24px; text-align: center; color: rgba(var(--fg),.62); font-size: var(--fs-s); }
+.lst .empty > .i { width: 56px; height: 56px; padding: 14px; border-radius: 50%; background: rgba(var(--fg),.1); color: rgba(var(--fg),.8); margin-bottom: 6px; }
+.lst .empty b { font-size: var(--fs-m); font-weight: 700; color: var(--text); }
+.lst .empty p { margin: 0; max-width: 300px; line-height: 1.5; }
+.lst .empty .btn { margin-top: 12px; height: 44px; border-radius: 22px; padding: 0 18px; display: inline-flex; align-items: center; gap: 8px; }
+.pane-empty { min-height: inherit; }
+.pane-empty > .i { width: 56px; height: 56px; padding: 14px; border-radius: 50%; background: rgba(var(--fg),.07); }
