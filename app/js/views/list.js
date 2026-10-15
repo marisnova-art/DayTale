@@ -39,6 +39,7 @@ function row(e, { terms = [], mode = '', split = false } = {}) {
   if (e.type === 'todo' && m.date && !m.done) sub = `<span class="due">${esc(m.date <= today ? t('todo.due') : fmtDate(m.date + 'T00:00', { month: 'short', day: 'numeric' }))}${m.time ? ' ' + esc(fmtHM(m.time)) : ''}</span>` + (sub ? ' · ' + esc(sub) : '');
   else if (e.type === 'item' && m.place) sub = m.place;
   else if (e.type === 'scrap' && m.url) { let host = ''; try { host = new URL(m.url).hostname.replace(/^www\./, ''); } catch {} sub = [host, sub].filter(Boolean).join(' · '); }
+  else if (m.place && e.type !== 'event') sub = [m.place, sub].filter(Boolean).join(' · ');   // 다른 기록도 장소가 있으면 미리보기 앞에
   const subHtml = sub.startsWith('<span') ? sub : hl(sub, terms);
   const f = e.folder_id && S.folders.get(e.folder_id);
   const time = mode === 'trash' ? '' : dayKey(new Date(e.created_at)) === today ? fmtTime(new Date(e.created_at)) : fmtDate(e.created_at, { month: 'numeric', day: 'numeric' });

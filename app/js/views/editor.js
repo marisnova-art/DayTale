@@ -131,16 +131,25 @@ function paintChips(full = true) {
   const when = d => [fmtDate(d + 'T00:00', { month: 'long', day: 'numeric' }), m.time && fmtHM(m.time)].filter(Boolean).join(' ');
   const parts = e.type === 'todo' ? [m.date ? when(m.date) : t('ed.noDue')] : e.type === 'event' ? [m.date ? when(m.date) : t('ed.noDate')]
     : [f ? f.name : t('folder.none'), cur.isNew ? '' : fmtDate(e.created_at, { month: 'long', day: 'numeric' })];
-  if (m.place && e.type === 'event') parts.push(m.place);   // 고른 것은 모두 칩에 보여요 (일정 장소도)
+  // 고른 것은 모두 칩에 보여요. 장소는 핀과 함께 (물건 둔 곳은 맨 앞에 따로)
   if ((e.type === 'todo' || e.type === 'event') && f) parts.push(f.name);
   // 물건 둔 곳은 장소가, 스크랩은 사이트 이름이 칩 맨 앞에 굵게 (비었으면 '장소 넣기' · '링크')
   let lead = `${icon(TYPE_ICON[e.type] || 'file-text', 17)}<span>${esc(typeLabel(e.type))}</span>`;
   if (e.type === 'item') lead = `${icon('map-pin', 17)}<b class="${m.place ? '' : 'ph'}">${esc(m.place || t('ed.addPlace'))}</b><i>·</i><span>${esc(typeLabel(e.type))}</span>`;
   if (e.type === 'scrap') lead = `${icon('link', 17)}<b class="${m.url ? '' : 'ph'}">${esc(hostOf(m.url) || t('ed.link'))}</b><i>·</i><span>${esc(typeLabel(e.type))}</span>`;
-  el.info.innerHTML = `${lead}${parts.filter(Boolean).map(p => `<i>·</i><span>${esc(p)}</span>`).join('')}${e.favorite ? `<i>·</i>${icon('star', 15)}` : ''}${e.pinned ? `<i>·</i>${icon('pin', 15)}` : ''}${icon('chevron-down', 16, 'dn')}`;
+  el.info.innerHTML = `${lead}${parts.filter(Boolean).map(p => `<i>·</i><span>${esc(p)}</span>`).join('')}${m.place && e.type !== 'item' ? `<i>·</i><span class="pl">${icon('map-pin', 14)}${esc(m.place)}</span>` : ''}${e.favorite ? `<i>·</i>${icon('star', 15)}` : ''}${e.pinned ? `<i>·</i>${icon('pin', 15)}` : ''}${icon('chevron-down', 16, 'dn')}`;
   if (!full) return;   // 날짜 · 시간을 고르는 중에는 칸을 다시 그리지 않아요 (다시 그리면 아이폰 선택 창이 닫혀요)
   if (e.type === 'event' && !m.date) m.date = todayKey();
   if (cur.pan) paintPan();
+}
+/* 최근 장소: 다른 기록에 적은 장소 이름 (최근 것부터 6개). 누르면 바로 넣어져요. 이름만 저장, 위치(GPS)는 쓰지 않아요 */
+function recentPlaces(now) {
+  if (cur.ro) return '';
+  const seen = new Set([now || '']), out = [];
+  for (const x of [...S.entries.values()].filter(x => !x.deleted_at && x.meta?.place).sort((a, b) => b.updated_at.localeCompare(a.updated_at))) {
+    const p = x.meta.place.trim(); if (!p || seen.has(p)) continue; seen.add(p); out.push(p); if (out.length >= 6) break;
+  }
+  return out.length ? `<div class="places">${out.map(p => `<button type="button" data-place="${esc(p)}">${icon('map-pin', 14)}${esc(p)}</button>`).join('')}</div>` : '';
 }
 const hostOf = u => { try { return u ? new URL(u).hostname.replace(/^www\./, '') : ''; } catch { return ''; } };
 const wireMeta = box => $$('[data-m]', box).forEach(i => i.addEventListener('change', () => setMeta(i.dataset.m, i.value)));
@@ -219,7 +228,7 @@ function paintPan() {
   const field = (k, type, ic, label, val, ph = '') => `<label class="it"><span class="ic">${icon(ic, 20)}</span><span class="lb">${esc(label)}</span><input type="${type}" data-m="${k}" value="${esc(val || '')}" ${ph ? `placeholder="${esc(ph)}" maxlength="120"` : ''} ${dis}></label>`;
   const check = icon('check', 18, 'ck');
   let h = '';
-  if (e.type === 'item') h += field('place', 'text', 'map-pin', t('ed.place'), m.place, t('ed.where'));
+  if (e.type === 'item') h += field('place', 'text', 'map-pin', t('ed.place'), m.place, t('ed.where')) + recentPlaces(m.place);
   if (e.type === 'scrap') h += `<label class="it url"><span class="ic">${icon('link', 20)}</span><span class="lb">${esc(t('ed.link'))}</span><input type="url" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" data-m="url" maxlength="2000" placeholder="${esc(t('ed.urlPh'))}" value="${esc(m.url || '')}" ${dis}></label>`
     + (m.url ? `<button class="it" data-act="open-url"><span class="ic">${icon('external-link', 20)}</span><span class="lb">${esc(t('ed.openLink'))}</span><em>${esc(hostOf(m.url))}</em></button>` : cur.ro ? '' : `<button class="it" data-act="paste-url"><span class="ic">${icon('copy', 20)}</span><span class="lb">${esc(t('ed.paste'))}</span></button>`);
   h += row('data-exp="type"', icon('layers', 20), t('ed.kind'), `${icon(TYPE_ICON[e.type], 16)}${esc(typeLabel(e.type))}`, true, exp === 'type');
@@ -227,8 +236,9 @@ function paintPan() {
   if (e.type === 'todo' || e.type === 'event') {
     h += field('date', 'date', 'calendar', t(e.type === 'todo' ? 'ed.due' : 'ed.date'), m.date || (e.type === 'event' ? todayKey() : ''));
     h += field('time', 'time', 'clock', t('ed.time'), m.time);
-    if (e.type === 'event') h += field('place', 'text', 'map-pin', t('ed.place'), m.place, t('ed.place'));
+    if (e.type === 'event') h += field('place', 'text', 'map-pin', t('ed.place'), m.place, t('ed.place')) + recentPlaces(m.place);
   }
+  if (e.type !== 'item' && e.type !== 'event') h += field('place', 'text', 'map-pin', t('ed.place'), m.place, t('ed.placePh')) + recentPlaces(m.place);
   h += row('data-exp="folder"', icon('folder', 20), t('ed.folder'), esc(f ? f.name : t('folder.none')), true, exp === 'folder');
   if (exp === 'folder') h += `<div class="sub"><button class="it${!e.folder_id ? ' on' : ''}" data-folder="" ${dis}><span class="ic">${icon('folder-x', 20)}</span><span class="lb">${esc(t('folder.none'))}</span>${!e.folder_id ? check : ''}</button>${folderList().map(x => `<button class="it${x.id === e.folder_id ? ' on' : ''}" data-folder="${x.id}" ${dis}><span class="ic">${fIcon(x.color)}</span><span class="lb">${esc(x.name)}</span>${x.id === e.folder_id ? check : ''}</button>`).join('')}${cur.ro ? '' : `<button class="it" data-folder="+"><span class="ic">${icon('plus', 20)}</span><span class="lb">${esc(t('folder.new'))}</span></button>`}</div>`;
   if (!isPC()) h += row('data-act="card"', icon('image', 20), t('card.title'), '');
@@ -277,6 +287,8 @@ async function onAct(ev) {
   if (fb && !cur.ro) { fmt(fb.dataset.f); return; }
   const xp = ev.target.closest('[data-exp]');
   if (xp && !cur.ro) { cur.exp = cur.exp === xp.dataset.exp ? null : xp.dataset.exp; paintPan(); return; }
+  const pl = ev.target.closest('[data-place]');
+  if (pl && !cur.ro) { setMeta('place', pl.dataset.place); paintChips(); return; }
   const ty = ev.target.closest('[data-type]'), fo = ev.target.closest('[data-folder]'), x = ev.target.closest('[data-x]');
   const e = cur.e;
   if (ty && !cur.ro) { cur.exp = null; if (ty.dataset.type !== e.type) { e.type = ty.dataset.type; cur.saved = false; paintChips(); commit(); } else paintPan(); return; }
