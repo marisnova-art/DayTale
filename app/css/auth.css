@@ -21,3 +21,5 @@
 .auth .bottom { margin-top: auto; padding-top: 28px; text-align: center; }
 .auth .g { width: 18px; height: 18px; }
 @media (min-width: 900px) and (min-height: 501px), (min-width: 900px) and (pointer: fine) { .auth { justify-content: center; padding-top: 40px; } .auth .hero { margin-top: 48px; } .auth .bottom { margin-top: 28px; } }
+.auth .legal.safe { margin-top: 10px; }
+.legal.safe svg { vertical-align: -2px; margin-right: 2px; color: var(--ok); }

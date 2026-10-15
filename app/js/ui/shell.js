@@ -25,6 +25,7 @@ function frame() {
     </aside>
     <div class="main">
       <div class="pc-top"><button class="btn primary" data-act="new" style="height:44px;border-radius:22px;padding:0 18px">${icon('pencil', 18)}${esc(t('nav.write'))}</button><button class="icon-btn glass bell" data-go="/notices" aria-label="${esc(t('nav.notices'))}">${icon('bell', 19)}</button></div>
+      <button class="netbar" data-go="/settings/data" hidden></button>
       <main id="view" class="view" tabindex="-1"></main>
     </div>
     <nav class="mbar glass" aria-label="${esc(t('nav.menu'))}">
@@ -128,12 +129,16 @@ function paint() {
   const d = Account.trialDays(), sub = S.status?.subscriber;
   // 프로필은 한 줄: 작은 사진 + 이름. 체험·이용권은 7일 이하로 남았을 때만 작은 칩, 구독 중이면 아무것도 없어요. 오른쪽 끝은 대표 배지 자리
   const chip = sub || d == null || d > 7 ? '' : `<span class="pchip" data-go="/plans">${esc(d > 0 ? t(Account.onPass() ? 'pass.chip' : 'trial.chip', { n: d }) : t('trial.chipEnd'))}</span>`;
-  $('.profile-card').innerHTML = `<span class="who">${Account.avatarHTML('s')}<span class="nm">${esc(Account.name())}</span>${chip}<span class="pbadge"></span></span>${saveLine()}`;
-  paintBadges(); mark(); requestAnimationFrame(() => fades($('.drawer .nav')));
+  $('.profile-card').innerHTML = `<span class="who">${Account.avatarHTML('s')}<span class="nm">${esc(Account.name())}</span>${chip}<span class="pbadge"></span></span>`;
+  paintBadges(); mark(); paintSave(); requestAnimationFrame(() => fades($('.drawer .nav')));
 }
-/* 저장 상태 한 줄: 누르면 설정 › 데이터 */
-const saveLine = () => { const st = saveState(); return `<span class="psave${st.bad ? ' bad' : st.off ? ' off' : ''}" data-go="/settings/data">${icon(st.ic, 14)}${esc(st.text)}</span>`; };
-function paintSave() { const el = $('.profile-card .psave'); if (el) el.outerHTML = saveLine(); }
+/* 저장 상태: 평소엔 숨기고, 오프라인이거나 늦어질 때만 위에 얇은 띠 (누르면 설정 › 데이터) */
+function paintSave() {
+  const st = saveState(), el = $('.netbar'), show = st.off || st.bad;
+  el.hidden = !show; if (!show) return;
+  el.className = 'netbar' + (st.bad ? ' bad' : '');
+  el.innerHTML = `${icon(st.ic, 15)}<span>${esc(st.bad ? st.text : t('safe.offBar'))}</span>`;
+}
 /* 메뉴 묶음 접기: 접힌 묶음 이름만 기억해요 */
 const navShut = () => { try { return JSON.parse(localStorage.getItem('dt.navShut') || '[]'); } catch { return []; } };
 function toggleGrp(b) {
