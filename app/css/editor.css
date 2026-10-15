@@ -314,3 +314,25 @@
   .ed-dock .ed-bar .fmt .tb.lbl { width: auto; height: 36px; padding: 0 11px 0 9px; margin: 0 2px; }
   .ed-dock .ed-bar .sep { height: 20px; margin: 0 3px; flex: none; }
 }
+/* 옵션 판 = 메뉴: 한 줄에 하나 (이름 · 지금 값 ›). 종류 · 폴더는 누르면 그 자리에서 목록이 펼쳐져요. 아래는 같은 모양의 알약 버튼 셋 */
+.ed > .ed-pan { padding: 6px 0 4px; max-height: 70vh; overflow-y: auto; overscroll-behavior: contain; }
+.ed-pan .rows { display: flex; flex-direction: column; }
+.ed-pan .it { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px; padding: 0 18px; font-size: var(--fs-m); font-weight: 600; color: var(--text); text-align: left; }
+.ed-pan .it:hover { background: rgba(var(--fg),.04); }
+.ed-pan .it .ic { flex: none; width: 20px; display: flex; color: var(--muted); }
+.ed-pan .it .lb { flex: none; }
+.ed-pan .it em { margin-left: auto; display: flex; align-items: center; gap: 5px; min-width: 0; font-style: normal; font-weight: 600; font-size: var(--fs-s); color: var(--muted); white-space: nowrap; overflow: hidden; }
+.ed-pan .it .chev { transition: transform .2s; }
+.ed-pan .it.open .chev { transform: rotate(90deg); }
+.ed-pan .it.open { background: rgba(var(--fg),.05); }
+.ed-pan .it input { margin-left: auto; min-width: 0; max-width: 60%; background: none; border: 0; outline: none; text-align: right; font: inherit; font-size: var(--fs-s); color: var(--muted); color-scheme: inherit; }
+.ed-pan .it input[type=text] { flex: 1; }
+.ed-pan .sub { display: flex; flex-direction: column; margin: 0 10px 4px; padding: 4px 0; border-radius: 14px; background: rgba(var(--fg),.04); }
+.ed-pan .sub .it { min-height: 44px; padding: 0 12px 0 14px; font-size: var(--fs-s); }
+.ed-pan .sub .it.on { color: var(--text); font-weight: 700; }
+.ed-pan .sub .it .ck { margin-left: auto; color: #E8573F; flex: none; }
+.ed > .ed-pan .acts { display: flex; gap: 8px; padding: 10px 14px 2px; margin-top: 4px; border-top: 1px solid var(--line); }
+.ed > .ed-pan .acts button { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; height: 42px; border-radius: 21px; background: rgba(var(--fg),.07); font-size: var(--fs-s); font-weight: 700; color: var(--text-2); white-space: nowrap; }
+.ed > .ed-pan .acts button.on { color: #E0A100; }
+.ed > .ed-pan .acts .bad { background: rgba(255,107,107,.14); color: var(--danger); }
+.ed > .ed-pan .up { height: 30px; margin-top: 2px; }

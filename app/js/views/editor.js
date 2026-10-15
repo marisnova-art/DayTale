@@ -215,22 +215,32 @@ function openPan() {
 }
 function closePan() {
   if (!cur?.pan) return;
-  cur.pan = null; cur.el.pan.hidden = true; cur.el.pan.innerHTML = '';
+  cur.pan = null; cur.exp = null; cur.el.pan.hidden = true; cur.el.pan.innerHTML = '';
   cur.el.info.setAttribute('aria-expanded', 'false'); cur.el.info.classList.remove('on');
 }
 function paintPan() {
-  const { e, el } = cur;
+  const { e, el } = cur, m = e.meta || {}, exp = cur.exp, dis = cur.ro ? 'disabled' : '';
   el.info.setAttribute('aria-expanded', 'true'); el.info.classList.add('on');
-  const dis = cur.ro ? 'disabled' : '';
-  el.pan.innerHTML = `<div class="lab">${esc(t('ed.kind'))}</div><div class="kinds">${TYPES.map(ty => `<button class="kc${ty === e.type ? ' on' : ''}" data-type="${ty}" aria-pressed="${ty === e.type}" ${dis}>${icon(TYPE_ICON[ty], 18)}${esc(typeLabel(ty))}</button>`).join('')}</div>
-    ${metaHTML(e, true)}
-    <div class="lab">${esc(t('ed.folder'))}</div><div class="kinds"><button class="kc${!e.folder_id ? ' on' : ''}" data-folder="" ${dis}>${icon('folder-x', 18)}${esc(t('folder.none'))}</button>${folderList().map(f => `<button class="kc${f.id === e.folder_id ? ' on' : ''}" data-folder="${f.id}" ${dis}><svg class="i" width="18" height="18" viewBox="0 0 24 24" style="color:${esc(f.color || '#A9A5AF')}"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>${esc(f.name)}</button>`).join('')}${cur.ro ? '' : `<button class="kc" data-folder="+">${icon('plus', 18)}${esc(t('folder.new'))}</button>`}</div>
-    ${isPC() ? '' : `<div class="lab">${esc(t('ed.image'))}</div><div class="kinds imgs"><button class="kc" data-act="card">${icon('image', 18)}${esc(t('card.title'))}</button></div>`}
-    <div class="acts"><button data-x="fav" class="${e.favorite ? 'on' : ''}">${icon('star', 19)}${esc(t(e.favorite ? 'ed.unfavorite' : 'ed.favorite'))}</button><button data-x="pin" class="${e.pinned ? 'on' : ''}">${icon('pin', 19)}${esc(t(e.pinned ? 'ed.unpin' : 'ed.pin'))}</button><button data-x="trash" class="bad">${icon('trash-2', 19)}${esc(t('ed.trash'))}</button></div>
+  const f = e.folder_id && S.folders.get(e.folder_id);
+  const fIcon = c => `<svg class="i" width="20" height="20" viewBox="0 0 24 24" style="color:${esc(c || '#A9A5AF')}"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>`;
+  const row = (attrs, ic, label, val, more = true, on = false) => `<button class="it${on ? ' open' : ''}" ${attrs} ${dis}><span class="ic">${ic}</span><span class="lb">${esc(label)}</span><em>${val}${more ? icon('chevron-right', 16, 'chev') : ''}</em></button>`;
+  const field = (k, type, ic, label, val, ph = '') => `<label class="it"><span class="ic">${icon(ic, 20)}</span><span class="lb">${esc(label)}</span><input type="${type}" data-m="${k}" value="${esc(val || '')}" ${ph ? `placeholder="${esc(ph)}" maxlength="120"` : ''} ${dis}></label>`;
+  const check = icon('check', 18, 'ck');
+  let h = row('data-exp="type"', icon('layers', 20), t('ed.kind'), `${icon(TYPE_ICON[e.type], 16)}${esc(typeLabel(e.type))}`, true, exp === 'type');
+  if (exp === 'type') h += `<div class="sub">${TYPES.map(ty => `<button class="it${ty === e.type ? ' on' : ''}" data-type="${ty}" aria-pressed="${ty === e.type}" ${dis}><span class="ic">${icon(TYPE_ICON[ty], 20)}</span><span class="lb">${esc(typeLabel(ty))}</span>${ty === e.type ? check : ''}</button>`).join('')}</div>`;
+  if (e.type === 'todo' || e.type === 'event') {
+    h += field('date', 'date', 'calendar', t(e.type === 'todo' ? 'ed.due' : 'ed.date'), m.date || (e.type === 'event' ? todayKey() : ''));
+    h += field('time', 'time', 'clock', t('ed.time'), m.time);
+    if (e.type === 'event') h += field('place', 'text', 'map-pin', t('ed.place'), m.place, t('ed.place'));
+  }
+  h += row('data-exp="folder"', icon('folder', 20), t('ed.folder'), esc(f ? f.name : t('folder.none')), true, exp === 'folder');
+  if (exp === 'folder') h += `<div class="sub"><button class="it${!e.folder_id ? ' on' : ''}" data-folder="" ${dis}><span class="ic">${icon('folder-x', 20)}</span><span class="lb">${esc(t('folder.none'))}</span>${!e.folder_id ? check : ''}</button>${folderList().map(x => `<button class="it${x.id === e.folder_id ? ' on' : ''}" data-folder="${x.id}" ${dis}><span class="ic">${fIcon(x.color)}</span><span class="lb">${esc(x.name)}</span>${x.id === e.folder_id ? check : ''}</button>`).join('')}${cur.ro ? '' : `<button class="it" data-folder="+"><span class="ic">${icon('plus', 20)}</span><span class="lb">${esc(t('folder.new'))}</span></button>`}</div>`;
+  if (!isPC()) h += row('data-act="card"', icon('image', 20), t('card.title'), '');
+  el.pan.innerHTML = `<div class="rows">${h}</div>
+    <div class="acts"><button data-x="fav" class="${e.favorite ? 'on' : ''}">${icon('star', 18)}${esc(t(e.favorite ? 'ed.unfavorite' : 'ed.favorite'))}</button><button data-x="pin" class="${e.pinned ? 'on' : ''}">${icon('pin', 18)}${esc(t(e.pinned ? 'ed.unpin' : 'ed.pin'))}</button><button data-x="trash" class="bad">${icon('trash-2', 18)}${esc(t('ed.trash'))}</button></div>
     <button class="up" data-act="more" aria-label="${esc(t('common.close'))}">${icon('chevron-up', 20)}</button>`;
   wireMeta(el.pan);
   fitRow($('.acts', el.pan), 2);
-  $$('.kinds .on', el.pan).forEach(b => { const w = b.parentElement; if (b.offsetLeft + b.offsetWidth > w.clientWidth) w.scrollLeft = b.offsetLeft - 12; });   // 고른 종류 · 폴더가 옆으로 가려져 있으면 보이게
 }
 /* 지금 커서 자리의 서식을 버튼에 표시해요 (켜짐/꺼짐) */
 function paintState() {
@@ -265,13 +275,16 @@ async function onAct(ev) {
   if (!cur) return;
   const fb = ev.target.closest('[data-f]');
   if (fb && !cur.ro) { fmt(fb.dataset.f); return; }
+  const xp = ev.target.closest('[data-exp]');
+  if (xp && !cur.ro) { cur.exp = cur.exp === xp.dataset.exp ? null : xp.dataset.exp; paintPan(); return; }
   const ty = ev.target.closest('[data-type]'), fo = ev.target.closest('[data-folder]'), x = ev.target.closest('[data-x]');
   const e = cur.e;
-  if (ty && !cur.ro) { if (ty.dataset.type !== e.type) { e.type = ty.dataset.type; cur.saved = false; paintChips(); commit(); } return; }
+  if (ty && !cur.ro) { cur.exp = null; if (ty.dataset.type !== e.type) { e.type = ty.dataset.type; cur.saved = false; paintChips(); commit(); } else paintPan(); return; }
   if (fo && !cur.ro) {
     let id = fo.dataset.folder;
     if (id === '+') { const name = await promptDlg(t('folder.new'), { placeholder: t('folder.name'), maxlength: 40 }); if (!name || !cur) return; const f = await addFolder(name); if (!f) return; id = f.id; }
-    if ((id || null) !== e.folder_id) { e.folder_id = id || null; cur.saved = false; paintChips(); commit(); }
+    cur.exp = null;
+    if ((id || null) !== e.folder_id) { e.folder_id = id || null; cur.saved = false; paintChips(); commit(); } else if (cur.pan) paintPan();
     return;
   }
   if (x) { more(x.dataset.x); return; }
