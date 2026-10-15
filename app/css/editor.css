@@ -351,4 +351,7 @@
   .ed-dock .ed-bar .tb > .i { width: 24px; height: 24px; stroke-width: 2.1; }
   .ed-dock .ed-bar .base .tb { width: 40px; }
   .ed-dock .ed-bar .fmt .tb { width: 38px; }
+  /* 켜진 버튼: 검은 덩어리 대신 옅은 바탕 + 진한 아이콘 (아이콘이 늘 보여요) */
+  .ed-dock .ed-bar .tb.on { background: rgba(var(--fg),.13); color: var(--text); }
+  .ed-dock .ed-bar .tb.on > .i { stroke-width: 2.5; }
 }
