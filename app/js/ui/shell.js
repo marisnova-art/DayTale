@@ -65,17 +65,15 @@ function trackKeyboard() {
   const vv = window.visualViewport; if (!vv) return;
   const root = document.documentElement;
   // --vvh · --vvt: 지금 눈에 보이는 화면(키보드 위)의 높이와 위치. 편집기는 이 상자 안에서만 스크롤해서, 서식 막대가 글 위를 덮거나 흔들리지 않아요
-  let raf = 0, pin = 0;
+  let raf = 0;
   const upd = () => { raf = 0; const h = Math.max(0, Math.round(innerHeight - vv.height - vv.offsetTop)); root.style.setProperty('--kb', h + 'px'); root.classList.toggle('kb-open', h > 80);
     root.style.setProperty('--vvh', Math.round(vv.height) + 'px'); root.style.setProperty('--vvt', Math.round(vv.offsetTop) + 'px');
     // 아이폰은 키보드가 내려간 뒤 화면을 위로 밀어 둔 채로 둘 때가 있어요 (아래 검은 띠 · 위 버튼이 상태 표시줄 밑으로). 쓰기 화면은 늘 제자리로 돌려 놓아요
-    if (h <= 80 && root.classList.contains('ed-mode') && (scrollY || vv.offsetTop)) scrollTo(0, 0);
-    // 키보드가 올라와도 쓰기 화면 자체는 이미 키보드 위에 맞춰져 있어서, 아이폰이 문서를 위로 밀 필요가 없어요. 밀리면 위쪽에 흐린 띠가 생겨서 제자리로 돌려요
-    else if (h > 80 && root.classList.contains('ed-mode') && scrollY) { clearTimeout(pin); pin = setTimeout(() => { if (scrollY) scrollTo(0, 0); }, 80); } };
+    if (h <= 80 && root.classList.contains('ed-mode') && (scrollY || vv.offsetTop)) scrollTo(0, 0); };
   const soon = () => { if (!raf) raf = requestAnimationFrame(upd); };
   vv.addEventListener('resize', soon); vv.addEventListener('scroll', soon); upd();
   // 아이폰은 키보드가 내려간 뒤 마지막 크기 알림을 빠뜨릴 때가 있어서, 입력이 끝나면 조금 뒤 한 번 더 재요
-  addEventListener('focusout', () => [250, 600].forEach(ms => setTimeout(upd, ms)));
+  addEventListener('focusout', () => [250, 600, 1200].forEach(ms => setTimeout(upd, ms)));
 }
 let pt = 0; const paintSoon = () => { clearTimeout(pt); pt = setTimeout(paint, 600); };
 const isPC = () => matchMedia('(min-width: 900px) and (min-height: 501px), (min-width: 900px) and (pointer: fine)').matches;

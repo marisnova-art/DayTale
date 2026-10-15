@@ -41,10 +41,7 @@ function render(view, r, opts = {}) {   // opts.pane: PC 나란히 보기의 오
   const cancel = `<button class="ed-cancel" data-act="cancel">${esc(t('common.cancel'))}</button>`;
   const done = `<button class="ed-done" data-act="done">${icon('check', 18)}<span>${esc(t('ed.finish'))}</span></button>`;
   view.innerHTML = `<div class="ed-page"><div class="ed-top">${cancel}<span class="sp"></span>${done}</div><div class="ed">
-    <div class="ed-tools" role="toolbar">
-      ${cancel}
-      ${ro ? '<span class="sp"></span>' : `<span class="sep"></span>${fontBtn}<span class="sep"></span><span class="tb-scroll">${STYLE.slice(1).map(f => fbtn(f)).join('')}<span class="sep"></span>${INLINE.filter(f => f[0] !== 'mark').map(f => fbtn(f)).join('')}<span class="sep"></span>${HL.map(hlBtn).join('')}<span class="sep"></span>${LISTS.slice(0, 4).map(f => fbtn(f)).join('')}<span class="sep"></span>${fbtn(LISTS[4])}${photoBtn}</span><span class="sp"></span>`}
-      ${done}</div>
+    <div class="ed-tools" role="toolbar"${ro ? ' hidden' : ''}>${ro ? '' : `<span class="grp">${fontBtn}</span><span class="grp">${INLINE.slice(0, 3).map(f => fbtn(f)).join('')}</span><span class="grp">${STYLE.slice(1).map(f => fbtn(f)).join('')}${fbtn(INLINE[4])}</span><span class="grp">${HL.map(hlBtn).join('')}</span><span class="grp">${[LISTS[2], LISTS[0], LISTS[1], LISTS[3]].map(f => fbtn(f)).join('')}</span><span class="grp">${photoBtn}${fbtn(LISTS[4])}</span>`}</div>
     ${ro ? `<div class="ed-locked"><span>${esc(t('ed.locked'))}</span><button data-act="plans">${esc(t('trial.plans'))}</button></div>` : ''}
     <button class="ed-info" data-act="more" aria-expanded="false"></button><div class="ed-pan" hidden></div><div class="ed-meta"></div>
     <div class="ed-body" ${ro ? '' : 'contenteditable="true"'} spellcheck="true" data-ph="${esc(t('ed.body'))}" role="textbox" aria-multiline="true" aria-label="${esc(t('ed.body'))}"></div>
@@ -68,10 +65,6 @@ function render(view, r, opts = {}) {   // opts.pane: PC 나란히 보기의 오
   paintChips(); paintPhotos(); paintFoot(); paintFont();
   const save = debounce(() => commit(), 600); cur.save = save;
   cur.hist = new History(el.body);
-  const sc = $('.tb-scroll', view);   // 서식 단추 줄이 넘치면 오른쪽 끝을 흐리게, 마우스 휠로도 옆으로
-  if (sc) { const upd = () => sc.classList.toggle('more-r', sc.scrollLeft < sc.scrollWidth - sc.clientWidth - 2);
-    sc.addEventListener('scroll', upd, { passive: true }); new ResizeObserver(upd).observe(sc);
-    sc.addEventListener('wheel', ev => { if (sc.scrollWidth > sc.clientWidth && Math.abs(ev.deltaY) > Math.abs(ev.deltaX)) { ev.preventDefault(); sc.scrollLeft += ev.deltaY; } }, { passive: false }); }
   el.body.addEventListener('input', ev => { cur.touched = true; shortcuts(ev); cur.hist.soon(); save(); paintState(); keepCaret(); });
   el.body.addEventListener('keydown', onKey);
   el.body.addEventListener('focus', () => { document.execCommand('defaultParagraphSeparator', false, 'p'); closePan(); });
@@ -93,7 +86,9 @@ function bodyOf(e) {
   const html = e.content || (e.text ? e.text.split('\n').map(l => `<p>${esc(l) || '<br>'}</p>`).join('') : '');
   const tt = (e.title || '').trim(); if (!tt) return html;
   const first = (e.text || htmlToText(html)).split('\n').map(l => l.trim()).find(Boolean);
-  return first === tt ? html : `<p>${esc(tt)}</p>${html}`;
+  const norm = x => (x || '').replace(/[\s.,!?…·:;~'"“”‘’()\[\]-]+/g, '').toLowerCase();
+  const a = norm(first), b = norm(tt);   // 마침표 · 띄어쓰기만 다르거나 제목이 첫 줄 앞부분이면 같은 줄로 봐요
+  return !b || (a && (a.startsWith(b) || b.startsWith(a))) ? html : `<p>${esc(tt)}</p>${html}`;
 }
 const firstLine = text => (text.split('\n').map(l => l.trim()).find(Boolean) || '').slice(0, 300);
 
@@ -135,6 +130,7 @@ function paintChips(full = true) {
   const when = d => [fmtDate(d + 'T00:00', { month: 'long', day: 'numeric' }), m.time && fmtHM(m.time)].filter(Boolean).join(' ');
   const parts = e.type === 'todo' ? [m.date ? when(m.date) : t('ed.noDue')] : e.type === 'event' ? [m.date ? when(m.date) : t('ed.noDate')]
     : [f ? f.name : t('folder.none'), cur.isNew ? '' : fmtDate(e.created_at, { month: 'long', day: 'numeric' })];
+  if (m.place && e.type === 'event') parts.push(m.place);   // 고른 것은 모두 칩에 보여요 (일정 장소도)
   if ((e.type === 'todo' || e.type === 'event') && f) parts.push(f.name);
   el.info.innerHTML = `${icon(TYPE_ICON[e.type] || 'file-text', 17)}<span>${esc(typeLabel(e.type))}</span>${parts.filter(Boolean).map(p => `<i>·</i><span>${esc(p)}</span>`).join('')}${e.favorite ? `<i>·</i>${icon('star', 15)}` : ''}${e.pinned ? `<i>·</i>${icon('pin', 15)}` : ''}${icon('chevron-down', 16, 'dn')}`;
   if (!full) return;   // 날짜 · 시간을 고르는 중에는 칸을 다시 그리지 않아요 (다시 그리면 아이폰 선택 창이 닫혀요)

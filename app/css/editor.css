@@ -361,3 +361,43 @@
 @media (max-width: 899px), (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
   .ed-dock .ed-bar .fmt .tb.lbl { background: none; box-shadow: inset 0 0 0 1.5px rgba(var(--fg),.18); }   /* 글꼴은 켜고 끄는 버튼이 아니라서 켜짐(회색 바탕)과 다르게 테두리만 */
 }
+/* ===== 2026-10-15 아이폰 확인 반영 ===== */
+/* 줄 간격: 문단 사이가 너무 떨어져 보여서 한 줄처럼 가깝게 */
+.ed-body { line-height: 1.6; }
+.ed-body p, .ed-body div { margin: 0 0 2px; }
+@media (max-width: 899px), (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
+  /* 키보드가 없을 때 아래 줄: 아이콘 아래 빈칸(홈 막대 자리)이 두 줄처럼 보여서 줄여요 */
+  :root:not(.kb-open) .ed-dock .ed-bar .cap { height: calc(48px + var(--safe-b) * .6); padding-bottom: calc(var(--safe-b) * .6); }
+  /* 아이폰이 화면 끝을 비울 때 보이는 바탕을 아래 줄과 같은 색으로 (검은 띠 대신) */
+  :root.ed-mode { background-color: #1B1A20; }
+  :root[data-ui="white"].ed-mode { background-color: #FFFFFF; }
+  /* 위 취소 · 저장 줄을 상태 표시줄에서 조금 더 떨어뜨려요 */
+  .view > .ed-page > .ed-top { padding-top: calc(12px + var(--safe-t)); }
+}
+/* PC: 위에 취소 · 저장 한 줄, 그 아래 서식 줄 (모바일과 같은 순서, 모든 서식이 다 보여요) */
+@media (min-width: 900px) and (min-height: 501px), (min-width: 900px) and (pointer: fine) {
+  .ed-page > .ed-top { display: flex; align-items: center; max-width: 760px; margin: 0 auto; padding: 18px 24px 0; position: sticky; top: 0; z-index: 21; }
+  .ed-top .sp { flex: 1; }
+  .ed-top .ed-cancel { height: 42px; padding: 0 14px; border-radius: 21px; font-size: var(--fs-s); font-weight: 700; color: var(--text-2); background: rgba(var(--fg),.08); }
+  .ed-top .ed-done { height: 42px; }
+  .main .pane .ed-page > .ed-top { max-width: var(--pc-read); padding: 18px 26px 0; }
+  .ed-tools { top: 70px; height: auto; min-height: 54px; flex-wrap: wrap; justify-content: center; gap: 2px 0; padding: 6px 8px; border-radius: 22px; margin-top: 10px; }
+  .ed-tools .grp { display: flex; align-items: center; flex: none; padding: 0 4px; }
+  .ed-tools .grp + .grp { border-left: 1px solid var(--line-2); }
+  .ed-tools .tb { width: 38px; height: 40px; border-radius: 12px; }
+  .ed-tools .tb.on { background: rgba(var(--fg),.13); color: var(--text); }
+  .ed-tools .tb.hl.on { background: none; }
+  .ed-tools .tb.lbl { width: auto; background: none; box-shadow: inset 0 0 0 1.5px rgba(var(--fg),.18); }
+}
+@media (min-width: 900px) and (min-height: 501px), (min-width: 900px) and (pointer: fine) {
+  /* 서식 줄이 한 줄에 다 들어가게: 단추 34px, 글꼴은 이름만, 줄은 글 칸보다 조금 넓게 */
+  .ed-tools { margin-left: -14px; margin-right: -14px; padding: 6px 4px; }
+  .ed-tools .grp { padding: 0 3px; }
+  .ed-tools .tb { width: 34px; }
+  .ed-tools .tb.lbl { padding: 0 11px; margin: 0 1px; }
+  .ed-tools .tb.lbl > .i { display: none; }
+}
+/* 칩: 고른 것이 많으면 잘라 내지 않고 두 줄로 (종류 · 날짜 · 장소 · 폴더가 다 보여요) */
+.ed .ed-info { flex-wrap: wrap; height: auto; min-height: 40px; padding-top: 7px; padding-bottom: 7px; row-gap: 2px; line-height: 1.35; }
+.ed .ed-info span { overflow: visible; white-space: nowrap; }
+.ed .ed-info:has(> span:nth-of-type(3)) { border-radius: 16px; }
