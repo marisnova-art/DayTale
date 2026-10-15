@@ -68,6 +68,8 @@ function paint(el, { bg, wide, ink, body, accent, theme, scrim, light = false })
   el.style.setProperty('--bg-grad-wide', wide || bg);
   // 문서 바탕(html)도 같은 배경을 알아야 화면 끝(아이폰 홈 막대 자리)이 다른 색으로 비치지 않아요
   if (el === document.body) ['--bg-grad', '--scrim'].forEach((k, i) => document.documentElement.style.setProperty(k, i ? scrim : bg));
+  // 배경의 맨 아래 색: 쓰기 화면에서 아이폰 홈 막대 자리가 이 색으로 이어져요 (그라데이션을 다시 그리면 띠처럼 끊겨 보여서)
+  document.documentElement.style.setProperty('--bg-end', (String(bg).match(/#[0-9a-fA-F]{6}/g) || ['#16181C']).pop());
   el.style.setProperty('--accent', accent);
   el.style.setProperty('--ink', ink); el.style.setProperty('--ink-rgb', rgb(ink)); el.style.setProperty('--ink-body', body);
   el.style.setProperty('--scrim', scrim);
