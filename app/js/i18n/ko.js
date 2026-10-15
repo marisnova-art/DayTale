@@ -92,7 +92,7 @@ export default {
   'plan.trialSub': '체험 중에는 모든 기능을 쓸 수 있어요.', 'plan.endedSub': '지금은 읽기·찾기·내보내기·삭제만 돼요. 구독하면 바로 다시 쓸 수 있어요.',
   'plan.headline': '하루를 계속 남겨 보세요', 'plan.perMonth': '한 달 {price}꼴', 'plan.save': '{n}% 절약', 'plan.monthlySub': '언제든 해지', 'plan.start': '{plan} 구독 시작', 'plan.waiting': '결제를 확인하는 중…',
   'plan.taxIncl': '세금이 포함된 가격이에요.', 'plan.taxNote': '결제 화면에서 나라에 맞는 세금 포함 가격이 보여요.', 'plan.cancelAny': '언제든 해지할 수 있고, 남은 기간까지 쓸 수 있어요.',
-  'plan.includes': '구독하면', 'plan.f1': '기록 쓰기·고치기 제한 없음', 'plan.f2': '사진 1GB', 'plan.f3': '휴대폰·PC 어디서나 동기화', 'plan.f4': 'JSON·마크다운·PDF 백업', 'plan.f5': '광고 없음, 내 기록은 나만',
+  'plan.includes': '구독하면', 'plan.f1': '기록 쓰기·고치기 제한 없음', 'plan.f2': '사진 1GB', 'plan.f3': '휴대폰·PC 어디서나 동기화', 'plan.f4': 'JSON·마크다운·PDF 백업',
   'plan.afterTrial': '구독하지 않으면', 'plan.afterTrialBody': '체험이 끝나도 기록은 그대로 있어요. 읽기, 찾기, 내보내기, 삭제는 언제나 돼요. 마지막 접속 후 1년이 지나면 계정이 정리되고, 30일 전과 7일 전에 메일로 알려 드려요.',
   'plan.paddle': '결제는 <a href="https://www.paddle.com" target="_blank" rel="noopener">Paddle</a>이 대신 처리해요. 카드 정보는 저희에게 오지 않아요.',
   'plan.manageLater': '구독 정보를 불러오는 중이에요.', 'plan.updatePay': '결제 수단 바꾸기', 'plan.cancel': '구독 해지', 'plan.cancelSub': '남은 기간까지는 계속 쓸 수 있어요', 'plan.recheck': '다시 확인',

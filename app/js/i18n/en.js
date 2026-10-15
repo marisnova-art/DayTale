@@ -87,7 +87,7 @@ export default {
   'plan.trialSub': 'Everything is available during your trial.', 'plan.endedSub': 'You can read, search, export and delete. Subscribe to start writing again.',
   'plan.headline': 'Keep your days going', 'plan.perMonth': 'About {price} a month', 'plan.save': 'Save {n}%', 'plan.monthlySub': 'Cancel anytime', 'plan.start': 'Start {plan} plan', 'plan.waiting': 'Confirming payment…',
   'plan.taxIncl': 'Prices include tax.', 'plan.taxNote': 'Checkout shows the tax-inclusive price for your country.', 'plan.cancelAny': 'Cancel anytime and keep access until the end of the period.',
-  'plan.includes': 'With a subscription', 'plan.f1': 'Unlimited writing and editing', 'plan.f2': '1 GB of photos', 'plan.f3': 'Sync across phone and computer', 'plan.f4': 'JSON, Markdown and PDF backups', 'plan.f5': 'No ads. Your entries are yours alone',
+  'plan.includes': 'With a subscription', 'plan.f1': 'Unlimited writing and editing', 'plan.f2': '1 GB of photos', 'plan.f3': 'Sync across phone and computer', 'plan.f4': 'JSON, Markdown and PDF backups',
   'plan.afterTrial': 'If you don’t subscribe', 'plan.afterTrialBody': 'Your entries stay after the trial. You can always read, search, export and delete. Accounts are removed one year after the last sign-in, with emails 30 and 7 days before.',
   'plan.paddle': 'Payments are handled by <a href="https://www.paddle.com" target="_blank" rel="noopener">Paddle</a>. Your card details never reach us.',
   'plan.manageLater': 'Loading your subscription…', 'plan.updatePay': 'Update payment method', 'plan.cancel': 'Cancel subscription', 'plan.cancelSub': 'You keep access until the end of the period', 'plan.recheck': 'Check again',

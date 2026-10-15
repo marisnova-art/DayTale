@@ -17,7 +17,7 @@ function render(view) {
       : `<div class="pstat${d > 0 ? '' : ' end'}">${icon(d > 0 ? 'hourglass' : 'lock', 20)}<span><b>${esc(d > 0 ? Account.leftText(d) : t('trial.ended'))}</b><small>${esc(d > 0 ? t('plan.trialSub') : t('plan.endedSub'))}</small></span></div>`;
     // 구독 전 (데이원처럼 단순하게): 제목 한 줄 → 체험 상태 한 줄 → 체크 목록 → 연간/월간 타일 → 버튼 하나 → 작은 안내
     const tile = (k, price, per, badge) => `<button class="ptile${pick === k ? ' on' : ''}" data-plan="${k}" role="radio" aria-checked="${pick === k}">${badge ? `<em>${esc(badge)}</em>` : ''}<span class="tl">${esc(t('plan.' + k))}</span><b>${esc(price)}</b><small>${esc(per)}</small></button>`;
-    const feats = `<ul class="pchk">${['f1', 'f2', 'f3', 'f4', 'f5'].map(f => `<li>${icon('check', 20)}${esc(t('plan.' + f))}</li>`).join('')}</ul>`;
+    const feats = `<ul class="pchk">${['f1', 'f2', 'f3', 'f4'].map(f => `<li>${icon('check', 20)}${esc(t('plan.' + f))}</li>`).join('')}</ul>`;
     body.innerHTML = st.subscriber ? status + manage(sub) + `<h3 class="sgh">${esc(t('plan.includes'))}</h3>${feats}` : `<div class="pv2">
       <h1 class="ptitle">${esc(t('plan.headline'))}</h1>
       <p class="ptrial${d > 0 ? '' : ' end'}">${icon(d > 0 ? 'hourglass' : 'lock', 17)}<span><b>${esc(d > 0 ? Account.leftText(d) : t('trial.ended'))}</b> · ${esc(d > 0 ? t('plan.trialSub') : t('plan.endedSub'))}</span></p>
