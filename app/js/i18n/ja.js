@@ -8,6 +8,7 @@ export default {
   'nav.trash': 'ゴミ箱', 'nav.search': '記録を探す', 'nav.newFolder': '新しいフォルダ',
   'type.note': 'メモ', 'type.todo': 'やること', 'type.event': '予定', 'type.idea': 'アイデア', 'type.item': '物の置き場所', 'type.personal': '個人の記録', 'type.scrap': 'スクラップ',
   'trial.chip': '体験 あと{n}日', 'pass.chip': '利用券 あと{n}日', 'trial.chipEnd': '体験終了', 'trial.left': '無料体験はあと{n}日です', 'trial.lastDay': '無料体験は今日までです', 'trial.ended': '無料体験が終了しました', 'trial.plans': 'プランを見る', 'sub.active': '購読中',
+  'safe.title': '記録を守る', 'safe.saved': 'すべて保存済み', 'safe.saving': '保存中…', 'safe.local': 'この端末に保存済み', 'safe.localN': 'この端末に保存済み · {n}件送信待ち', 'safe.late': '保存に時間がかかっています', 'safe.backup': '最後のバックアップ', 'safe.never': 'まだバックアップがありません', 'safe.privacy': '記録は送受信中も保存時も暗号化されます。開けるのはご自身のアカウントだけで、広告やAIの学習には使いません。',
   'sync.offline': 'オフラインです。変更はこの端末に保存し、接続が戻ったら同期します。', 'sync.conflict': '別の端末で同じ記録が変更されたため、コピーを残しました。', 'sync.suffix': '（コピー）',
   'err.generic': '問題が発生しました。もう一度試しています。', 'err.quota': '保存できる容量の上限に達しました。', 'err.locked': '体験期間が終了したため、新しく書いたり編集したりできません。閲覧・検索・書き出しはこれまでどおり使えます。',
   'err.noStorage': 'このブラウザでは端末への保存がブロックされています。閉じると書きかけの内容が消えることがあります。', 'err.noServer': 'サーバーの接続情報がありません。',

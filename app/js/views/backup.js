@@ -1,6 +1,6 @@
 /* 백업·내보내기 화면 (설정 › 데이터에서 열어요) */
 import { Backup } from '../features/backup.js';
-import { S } from '../data/store.js';
+import { S, setPref } from '../data/store.js';
 import { fmtNum, t } from '../core/i18n.js';
 import { esc, icon } from '../core/utils.js';
 import { toast } from '../ui/feedback.js';
@@ -20,6 +20,7 @@ function render(view) {
     const x = b.dataset.x;
     if (x === 'import') { view.querySelector('.bk-file').click(); return; }
     const n = x === 'json' ? Backup.exportJSON({ trash: trash() }) : x === 'md' ? Backup.exportMarkdown({ trash: trash() }) : Backup.exportPDF({ trash: trash() });
+    setPref('lastBackupAt', new Date().toISOString());   // 설정 › 데이터의 '마지막 백업'
     if (x !== 'pdf') toast(t('bk.done', { n: fmtNum(n) }));
   });
   view.querySelector('.bk-file').addEventListener('change', async ev => {

@@ -1,6 +1,7 @@
 /* 앱 틀 그리기: 모바일은 아래 막대 하나(메뉴 | 홈 · 캘린더 · 모든 기록 · 알림 | 쓰기, 메뉴는 막대가 위로 늘어나며 열려요), PC는 왼쪽 사이드바 + 오른쪽 위 알림 */
 import { Account } from '../data/account.js';
 import { S, TYPES, folderList, live, onChange } from '../data/store.js';
+import { saveState } from '../features/safe.js';
 import { brand } from '../core/config.js';
 import { getLang, t } from '../core/i18n.js';
 import { $, $$, dayKey, esc, icon, todayKey } from '../core/utils.js';
@@ -47,7 +48,7 @@ function frame() {
   });
   $('.search input').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.value.trim()) { closeMenu(); go('/search?q=' + encodeURIComponent(e.target.value.trim())); } });
   addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
-  onChange(w => { if (w === 'quiet') paintSoon(); else if (['entries', 'folders', 'account', 'prefs'].includes(w)) paint(); });
+  onChange(w => { if (w === 'sync') paintSave(); else if (w === 'quiet') paintSoon(); else if (['entries', 'folders', 'account', 'prefs'].includes(w)) paint(); });
   trackKeyboard();
   const nav = $('.drawer .nav'); nav.addEventListener('scroll', () => fades(nav), { passive: true }); addEventListener('resize', () => fades(nav));
   // 메뉴가 열려 있을 때 끌어도 뒤 화면(배경)은 움직이지 않아요. 메뉴 목록이 길 때만 목록 안에서 스크롤돼요
@@ -127,9 +128,12 @@ function paint() {
   const d = Account.trialDays(), sub = S.status?.subscriber;
   // 프로필은 한 줄: 작은 사진 + 이름. 체험·이용권은 7일 이하로 남았을 때만 작은 칩, 구독 중이면 아무것도 없어요. 오른쪽 끝은 대표 배지 자리
   const chip = sub || d == null || d > 7 ? '' : `<span class="pchip" data-go="/plans">${esc(d > 0 ? t(Account.onPass() ? 'pass.chip' : 'trial.chip', { n: d }) : t('trial.chipEnd'))}</span>`;
-  $('.profile-card').innerHTML = `<span class="who">${Account.avatarHTML('s')}<span class="nm">${esc(Account.name())}</span>${chip}<span class="pbadge"></span></span>`;
+  $('.profile-card').innerHTML = `<span class="who">${Account.avatarHTML('s')}<span class="nm">${esc(Account.name())}</span>${chip}<span class="pbadge"></span></span>${saveLine()}`;
   paintBadges(); mark(); requestAnimationFrame(() => fades($('.drawer .nav')));
 }
+/* 저장 상태 한 줄: 누르면 설정 › 데이터 */
+const saveLine = () => { const st = saveState(); return `<span class="psave${st.bad ? ' bad' : ''}" data-go="/settings/data">${icon(st.ic, 14)}${esc(st.text)}</span>`; };
+function paintSave() { const el = $('.profile-card .psave'); if (el) el.outerHTML = saveLine(); }
 /* 메뉴 묶음 접기: 접힌 묶음 이름만 기억해요 */
 const navShut = () => { try { return JSON.parse(localStorage.getItem('dt.navShut') || '[]'); } catch { return []; } };
 function toggleGrp(b) {

@@ -14,6 +14,7 @@ import { Weather } from '../features/weather.js';
 import { confirmDlg, openSheet, promptDlg, toast } from '../ui/feedback.js';
 import { go } from '../ui/router.js';
 import { pickType, typeLabel } from './pickers.js';
+import { saveState } from '../features/safe.js';
 
 const GROUPS = [['account', 'user'], ['display', 'palette'], ['record', 'notebook-pen'], ['notify', 'bell'], ['data', 'database'], ['info', 'info']];
 const isWide = () => matchMedia('(min-width: 1200px) and (min-height: 501px), (min-width: 1200px) and (pointer: fine)').matches;
@@ -78,10 +79,13 @@ function group(g) {
     const st = S.status || {}; const ents = S.entries.size;
     const photos = st.subscriber ? `${(st.photo_bytes / 1024 ** 2).toFixed(1)}MB / 1GB` : `${fmtNum(st.photo_count || 0)} / ${LIMITS.trialPhotos}`;
     const sync = !navigator.onLine ? t('sync.offline') : S.sync === 'syncing' ? t('sync.syncing') : S.lastSyncAt ? t('sync.at', { when: fmtRel(S.lastSyncAt) }) : t('sync.never');
-    return card('', row({ ic: 'refresh-cw', label: t('set.syncNow'), sub: esc(sync), act: 'sync', chev: false }))
+    const sv = saveState(), last = p.lastBackupAt;
+    return card(t('safe.title'), row({ ic: sv.ic, label: sv.text, sub: esc(sync), value: t('set.syncNow'), act: 'sync', chev: false })
+        + row({ ic: 'download', label: t('safe.backup'), sub: esc(last ? fmtDate(last, { year: 'numeric', month: 'long', day: 'numeric' }) : t('safe.never')), value: t('bk.title'), href: '#/backup' }))
+      + `<p class="snote">${icon('shield', 15)} ${esc(t('safe.privacy'))}</p>`
       + card(t('set.usage'), `<div class="usage">${[[t('set.uEntries'), `${fmtNum(ents)} / ${fmtNum(LIMITS.entries)}`, ents / LIMITS.entries], ...(CFG.PHOTOS_URL ? [[t('set.uPhotos'), photos, st.subscriber ? st.photo_bytes / LIMITS.paidBytes : (st.photo_count || 0) / LIMITS.trialPhotos]] : []), [t('set.uFolders'), `${S.folders.size} / ${LIMITS.folders}`, S.folders.size / LIMITS.folders]]
         .map(([l, v, r]) => `<div class="u"><span>${esc(l)}</span><b>${esc(v)}</b><i><em style="width:${Math.min(100, Math.max(1, Math.round(r * 100)))}%"></em></i></div>`).join('')}</div>`)
-      + card('', row({ ic: 'download', label: t('bk.title'), sub: esc(t('set.backupSub')), href: '#/backup' }) + row({ ic: 'trash-2', label: t('nav.trash'), sub: esc(t('set.trashSub')), href: '#/trash' }))
+      + card('', row({ ic: 'trash-2', label: t('nav.trash'), sub: esc(t('set.trashSub')), href: '#/trash' }))
       + card(t('set.danger'), row({ ic: 'circle-x', label: t('set.deleteAccount'), sub: esc(t('set.deleteSub')), act: 'deleteAccount', danger: true }));
   }
   if (g === 'info') return card('', `<div class="sabout"><img src="icons/icon-192.png" alt="" width="56" height="56"><b>${esc(brand(getLang()))}</b><small>${esc(CFG.BRAND?.tagline || '')}</small><small>${esc(t('set.version', { v: APP_VERSION }))}</small></div>`)
