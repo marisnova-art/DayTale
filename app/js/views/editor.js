@@ -129,7 +129,7 @@ function leave() {
 }
 
 /* ---------- 정보 한 줄: 종류 · 폴더 · 날짜 (누르면 ⋯ 판) / 일정·할 일 날짜 칸 ---------- */
-function paintChips() {
+function paintChips(full = true) {
   const { e, el } = cur, m = e.meta || {};
   const f = e.folder_id && S.folders.get(e.folder_id);
   const when = d => [fmtDate(d + 'T00:00', { month: 'long', day: 'numeric' }), m.time && fmtHM(m.time)].filter(Boolean).join(' ');
@@ -137,6 +137,7 @@ function paintChips() {
     : [f ? f.name : t('folder.none'), cur.isNew ? '' : fmtDate(e.created_at, { month: 'long', day: 'numeric' })];
   if ((e.type === 'todo' || e.type === 'event') && f) parts.push(f.name);
   el.info.innerHTML = `${icon(TYPE_ICON[e.type] || 'file-text', 17)}<span>${esc(typeLabel(e.type))}</span>${parts.filter(Boolean).map(p => `<i>·</i><span>${esc(p)}</span>`).join('')}${e.favorite ? `<i>·</i>${icon('star', 15)}` : ''}${e.pinned ? `<i>·</i>${icon('pin', 15)}` : ''}${icon('chevron-down', 16, 'dn')}`;
+  if (!full) return;   // 날짜 · 시간을 고르는 중에는 칸을 다시 그리지 않아요 (다시 그리면 아이폰 선택 창이 닫혀요)
   el.meta.innerHTML = metaHTML(e, false);
   el.meta.hidden = !el.meta.innerHTML;
   if (e.type === 'event' && !m.date) m.date = todayKey();
@@ -161,7 +162,8 @@ function setMeta(k, v) {
   // 할 일에 시간만 넣으면 날짜는 오늘로 (시간 알림은 날짜가 있어야 울려요)
   if (k === 'time' && v && cur.e.type === 'todo' && !cur.e.meta.date) cur.e.meta.date = todayKey();
   commit();
-  if (k !== 'place') paintChips();   // 칩에 날짜 · 시간이 보여요
+  if (k === 'time' && cur.e.meta.date) $$('[data-m=date]', cur.el.root).forEach(i => { if (!i.value) i.value = cur.e.meta.date; });
+  paintChips(false);   // 칩 글자만 바꿔요
 }
 /* 글꼴: 기록 하나 전체(제목+본문)에 적용 */
 function paintFont() { const f = fontOf(cur.e); useFont(f); cur.el.root.querySelector('.ed').dataset.font = f;

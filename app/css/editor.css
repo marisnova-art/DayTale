@@ -355,3 +355,9 @@
   .ed-dock .ed-bar .tb.on { background: rgba(var(--fg),.13); color: var(--text); }
   .ed-dock .ed-bar .tb.on > .i { stroke-width: 2.5; }
 }
+@media (max-width: 899px), (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
+  .ed-dock .ed-bar .tb.hl.on { background: none; }   /* 형광펜은 색 동그라미 테두리로 켜짐을 보여요 */
+}
+@media (max-width: 899px), (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
+  .ed-dock .ed-bar .fmt .tb.lbl { background: none; box-shadow: inset 0 0 0 1.5px rgba(var(--fg),.18); }   /* 글꼴은 켜고 끄는 버튼이 아니라서 켜짐(회색 바탕)과 다르게 테두리만 */
+}
