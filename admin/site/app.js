@@ -784,7 +784,7 @@ async function viewNotices() {
       </div>
       <div class="row gap nper"><label>버튼 글자<input name="cta_label" maxlength="20" placeholder="비우면: 자세히 보기"></label><label>버튼 누르면<input name="cta_url" maxlength="300" placeholder="비우면: 공지 상세 화면 · #/plans · https://…"></label></div>
       <div class="row gap nper"><label>시작일<input type="date" name="starts"></label><label>종료일<input type="date" name="ends"></label></div>
-      <p class="muted xs">기간을 비우면 바로 시작해서 내릴 때까지 보여요. 시작일 전에는 앱에 보이지 않아요. 띠배너·팝업은 종류마다 하루에 하나만 뜨고, 닫거나 보면 다시 뜨지 않아요. 버튼을 비우면 '자세히 보기'로 공지 상세 화면이 열려요.</p>
+      <p class="muted xs">기간을 비우면 바로 시작해서 내릴 때까지 보여요. 시작일 전에는 앱에 보이지 않아요. 띠배너는 닫거나 보면 다시 뜨지 않아요. 팝업은 기간 동안 하루 한 번 뜨고, '자세히 보기'로 읽으면 그만 떠요. 버튼을 비우면 '자세히 보기'로 공지 상세 화면이 열려요.</p>
       <div class="row end"><button class="btn primary">올리기</button></div></form>` : ''}
     <section class="box pad">${r.rows.length ? `<ul class="audit">${r.rows.map(n => `<li>${n.image_url ? `<img class="nthumb" src="${esc(n.image_url)}" alt="">` : `<span class="ava violet">${I.bell}</span>`}<div><b>${esc(n.title)}</b> <span class="muted xs">${esc(n.lang || '모든 언어')} · ${AUD[n.audience] || AUD.all}${n.banner ? ' · ' + SHOW[n.banner] : ''}${n.starts_at || n.ends_at ? ' · ' + period(n) : ''}</span><small>${esc(n.body)}</small>${n.detail ? `<small class="muted">+ 자세한 내용 ${num(n.detail.length)}자</small>` : ''}<small>${when(n.created_at)}</small></div>
       ${me.role === 'owner' ? `<button class="btn ghost sm" data-del="${n.id}">내리기</button>` : ''}</li>`).join('')}</ul>` : '<p class="muted">올린 공지가 없습니다.</p>'}</section>`);

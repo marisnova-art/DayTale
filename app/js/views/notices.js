@@ -48,7 +48,7 @@ async function past() {
 async function unread() { return problems().length + (await past()).filter(x => x.fresh).length; }
 
 /* 홈 배너: 'strip' = 홈 위 띠(글자만), 'popup' = 이미지와 함께 시트(모바일은 아래에서, PC는 가운데 창).
-   종류마다 하루에 하나만. 닫거나 보거나 알림함에서 읽은 공지는 다시 띄우지 않아요 */
+   종류마다 하루에 하나만. 띠는 닫거나 보면 끝, 팝업은 기간 동안 하루 한 번 뜨고 '자세히 보기'로 읽으면 끝 */
 const BN = 'daytale.banner', todayKey = () => new Date().toDateString();
 const bstate = () => { const st = ls.get(BN, null); return st && typeof st.day === 'object' ? st : { closed: [], day: {} }; };
 function pickBanner(list, kind) {
@@ -69,12 +69,12 @@ async function popup(n) {
   const { openSheet } = await import('../ui/feedback.js');
   const href = ctaHref(n);
   const el = document.createElement('div'); el.className = 'npop';
-  el.innerHTML = `${n.image_url && /^https:\/\//.test(n.image_url) ? `<img class="pim" src="${esc(n.image_url)}" alt="">` : ''}<h3>${esc(n.title)}</h3>${n.body ? `<p>${esc(n.body)}</p>` : ''}<div class="acts"><button class="btn line" data-x>${esc(t('common.close'))}</button><a class="btn primary" href="${esc(href)}"${ext(href)}>${esc(ctaLabel(n))}</a></div>`;
-  closeBanner(n.id, 'popup');   // 한 번 뜬 팝업은 다시 띄우지 않아요
+  el.innerHTML = `${n.image_url && /^(https:\/\/|\/notice\/[\w.-]+$)/.test(n.image_url) ? `<img class="pim" src="${esc(n.image_url)}" alt="">` : ''}<h3>${esc(n.title)}</h3>${n.body ? `<p>${esc(n.body)}</p>` : ''}<div class="acts"><button class="btn line" data-x>${esc(t('common.close'))}</button><a class="btn primary" href="${esc(href)}"${ext(href)}>${esc(ctaLabel(n))}</a></div>`;
+  const st = bstate(); ls.set(BN, { ...st, day: { ...st.day, popup: todayKey() } });   // 팝업은 기간 동안 하루 한 번. '자세히 보기'로 읽으면 그만 띄워요
   const sh = openSheet(el, { label: n.title, onClose: () => { popOpen = false; } });
   sh.el.classList.add('pop-sheet');
   el.querySelector('[data-x]').onclick = () => sh.close();
-  el.querySelector('a.btn').addEventListener('click', () => sh.close());
+  el.querySelector('a.btn').addEventListener('click', () => { closeBanner(n.id); sh.close(); });
 }
 /* 홈에 넣기: 받아 둔 것으로 먼저 그리고, 새로 받아 와서 바뀌었으면 다시 그려요. 띠와 백업 안내가 겹치면 띠가 먼저예요 */
 function banner(slot) {
@@ -101,7 +101,7 @@ async function renderDetail(view, id) {
   const body = view.querySelector('.body'); if (!body) return;
   if (!n) { body.innerHTML = `<div class="empty">${icon('bell', 28)}<b>${esc(t('inbox.gone'))}</b><a class="btn line" href="#/notices">${esc(t('nav.notices'))}</a></div>`; return; }
   const href = custom(n) ? n.cta_url : '';
-  body.innerHTML = `<article class="nart">${n.image_url && /^https:\/\//.test(n.image_url) ? `<img class="pim" src="${esc(n.image_url)}" alt="">` : ''}
+  body.innerHTML = `<article class="nart">${n.image_url && /^(https:\/\/|\/notice\/[\w.-]+$)/.test(n.image_url) ? `<img class="pim" src="${esc(n.image_url)}" alt="">` : ''}
     <h2>${esc(n.title)}</h2><time>${esc(fmtDate(new Date(n.starts_at || n.created_at), { year: 'numeric', month: 'long', day: 'numeric' }))}</time>
     <div class="ntext">${esc(n.detail || n.body)}</div>
     ${href ? `<a class="btn primary" href="${esc(href)}"${ext(href)}>${esc(ctaLabel(n))}</a>` : ''}</article>`;
@@ -123,7 +123,7 @@ function render(view, r) {
       : `<div class="empty">${icon('bell', 28)}<b>${esc(t('empty.inbox'))}</b><p>${esc(t('empty.inbox.s'))}</p><a class="btn line" href="#/settings/notify">${icon('settings', 18)}${esc(t('inbox.settings'))}</a></div>`;
     // 열었으니 읽음으로
     ls.set(SEEN, now);
-    const seenB = old.filter(x => x.n?.banner).map(x => x.n.id); if (seenB.length) closeBanner(seenB);   // 알림함에서 본 공지는 홈 배너로 다시 띄우지 않아요
+    const seenB = old.filter(x => x.n?.banner === 'strip').map(x => x.n.id); if (seenB.length) closeBanner(seenB);   // 알림함에서 본 공지는 홈 배너로 다시 띄우지 않아요
     const mine = old.filter(x => x.n?.user_id && !x.n.read_at).map(x => x.n.id);
     if (mine.length) await Sync.sb.from('notices').update({ read_at: new Date().toISOString() }).in('id', mine);
     const top = Math.max(0, ...old.filter(x => x.n && !x.n.user_id).map(x => x.n.id)); if (top) localStorage.setItem('daytale.noticeSeen', String(top));
