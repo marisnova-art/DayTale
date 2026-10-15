@@ -22,6 +22,7 @@ export default {
   'set.todoAtSub': 'Le avisamos a esta hora el día de vencimiento',
   'notify.eventTomorrow': 'Mañana a las {time}',
   'notify.todoTomorrow': 'Vence mañana',
+  'inbox.todoPast': 'Aviso de vencimiento', 'inbox.check': 'Requiere atención', 'inbox.soon': 'Próximos avisos', 'inbox.past': 'Anteriores', 'inbox.tomorrow': 'Mañana', 'inbox.settings': 'Ajustes de avisos', 'inbox.locked': 'Su prueba terminó y la escritura está en pausa', 'inbox.lockedS': 'Suscríbase para seguir escribiendo. Leer y exportar siguen disponibles.', 'inbox.lateS': 'Lo intentaremos de nuevo en breve. Toque para ver el estado.', 'inbox.offS': 'Se enviarán cuando vuelva la conexión.', 'empty.inbox': 'Aún no hay avisos', 'empty.inbox.s': 'Aquí aparecerán los avisos de eventos y tareas, los anuncios y las novedades.',
   'sync.offline': 'Está sin conexión. Los cambios se guardan en este dispositivo y se sincronizarán cuando vuelva la conexión.', 'sync.conflict': 'Este registro se modificó en otro dispositivo, así que se guardó una copia.', 'sync.suffix': '(copia)',
   'err.generic': 'Algo salió mal. Lo intentamos de nuevo.', 'err.quota': 'Ha alcanzado el límite de almacenamiento.', 'err.locked': 'Su prueba ha terminado, así que la escritura y la edición están en pausa. Puede seguir leyendo, buscando y exportando.',
   'err.noStorage': 'Este navegador bloquea el almacenamiento en el dispositivo. El texto sin guardar podría perderse al cerrarlo.', 'err.noServer': 'No hay ninguna conexión con el servidor configurada.',

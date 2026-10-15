@@ -119,7 +119,16 @@ function trialNudge() {
   if ((ls.get(key, 99)) <= k) return; ls.set(key, k);
   toast(t('trial.nudge', { n: d }), { action: t('trial.plans'), onAction: () => go('/plans'), ms: 9000 });
 }
-async function checkNotices() { try { const { unread } = await import('./views/notices.js'); document.documentElement.classList.toggle('has-unread', (await unread()) > 0); } catch {} }
+/* 안 읽은 알림: 종·메뉴·설정 › 알림에 점, 설치한 앱은 아이콘에 숫자 (지원하는 곳만) */
+async function checkNotices() {
+  try {
+    const { unread } = await import('./views/notices.js'); const n = await unread();
+    document.documentElement.classList.toggle('has-unread', n > 0);
+    if ('setAppBadge' in navigator) (n ? navigator.setAppBadge(n) : navigator.clearAppBadge()).catch(() => {});
+  } catch {}
+}
+const checkSoon = debounce(checkNotices, 3000);
+setInterval(() => { if (S.user && document.visibilityState === 'visible') checkNotices(); }, 5 * 60e3);   // 알림 시각이 지나면 점이 생겨요
 const reschedule = debounce(() => Reminders.schedule(), 800);
 function applyPrefs() {
   const l = S.prefs.lang || detectLang(); if (l !== getLang()) { setLang(l); frame(); rerender(); }
@@ -146,7 +155,7 @@ onChange(w => {
   else if (w?.type === 'conflict') toast(t('sync.conflict'), { action: t('common.open'), onAction: () => go('/e/' + w.id), ms: 8000 });
   if (w === 'entries' || w === 'quiet' || w === 'prefs') reschedule();
   if (w === 'entries' && live().length && !ls.get('daytale.installAsked')) Install.maybeOffer();
-  if (w === 'notices') checkNotices();
+  if (w === 'notices') checkNotices(); else if (w === 'sync' || w === 'locked' || w === 'entries') checkSoon();
   if ((w === 'entries' || w === 'folders' || w === 'account' || w === 'settled' || w === 'lit') && mounted?.refresh && now()) mounted.refresh($('#view'), now());
 });
 /* 약관 링크(가입 화면 등)는 새 창이나 소개 사이트가 아니라 앱 안 시트로 열어요 */

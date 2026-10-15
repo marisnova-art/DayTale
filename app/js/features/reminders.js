@@ -40,6 +40,20 @@ function upcoming(hours = 24) {
   }
   return out.filter(x => x.at > now - 1000 && x.at < lim).sort((a, b) => a.at - b.at);
 }
+/* 알림함용: from~to 사이에 울렸거나 울릴 일정·할 일 알림 (아침·저녁 인사는 빼요) */
+function timeline(from, to) {
+  const n = S.prefs.notify || {}, out = [];
+  if (n.reminders === false) return out;
+  for (const e of live()) {
+    const m = e.meta || {}; if (e.type !== 'event' && e.type !== 'todo') continue;
+    const b = beforeOf(e); if (b == null || !m.date) continue;
+    if (e.type === 'event' && !m.time) continue;
+    if (e.type === 'todo' && m.done) continue;
+    const x = at(m.date, m.time || n.todoAt || '09:00') - b * 60e3;
+    if (x >= from && x < to) out.push({ id: e.id, type: e.type, at: x, b, title: displayTitle(e, t('common.untitled')), time: m.time || '' });
+  }
+  return out.sort((a, c) => a.at - c.at);
+}
 function schedule() {
   timers.forEach(clearTimeout); timers = [];
   if (permission() !== 'granted' || ls.get('daytale.push')) return;   // 서버 푸시가 맡고 있으면 앱 타이머는 쉬어요
@@ -84,4 +98,4 @@ async function unsubscribe() {
   try { if (ep && Sync.sb) await Sync.sb.rpc('push_unsubscribe', { p_endpoint: ep }); const reg = await navigator.serviceWorker?.getRegistration?.(); await (await reg?.pushManager.getSubscription())?.unsubscribe(); } catch {}
 }
 const pushOn = () => !!ls.get('daytale.push');
-export const Reminders = { BEFORE, defBefore, beforeOf, beforeLabel, supported, permission, request, schedule, upcoming, subscribe, unsubscribe, pushOn, pushOK };
+export const Reminders = { BEFORE, defBefore, beforeOf, beforeLabel, supported, permission, request, schedule, upcoming, timeline, subscribe, unsubscribe, pushOn, pushOK };
