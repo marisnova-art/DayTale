@@ -43,10 +43,9 @@ function render(view, r, opts = {}) {   // opts.pane: PC 나란히 보기의 오
   view.innerHTML = `<div class="ed-page"><div class="ed-top">${cancel}<span class="sp"></span>${done}</div><div class="ed">
     <div class="ed-tools" role="toolbar"${ro ? ' hidden' : ''}>${ro ? '' : `<span class="grp">${fontBtn}</span><span class="grp">${INLINE.slice(0, 3).map(f => fbtn(f)).join('')}</span><span class="grp">${STYLE.slice(1).map(f => fbtn(f)).join('')}${fbtn(INLINE[4])}</span><span class="grp">${HL.map(hlBtn).join('')}</span><span class="grp">${[LISTS[2], LISTS[0], LISTS[1], LISTS[3]].map(f => fbtn(f)).join('')}</span><span class="grp">${photoBtn}${fbtn(LISTS[4])}${fbtn(LISTS[5])}</span>`}</div>
     ${ro ? `<div class="ed-locked"><span>${esc(t('ed.locked'))}</span><button data-act="plans">${esc(t('trial.plans'))}</button></div>` : ''}
-    <button class="ed-info" data-act="more" aria-expanded="false"></button><div class="ed-pan" hidden></div><div class="ed-meta"></div>
+    <button class="ed-info" data-act="more" aria-expanded="false"></button><div class="ed-pan" hidden></div>
     <div class="ed-body" ${ro ? '' : 'contenteditable="true"'} spellcheck="true" data-ph="${esc(t('ed.body'))}" role="textbox" aria-multiline="true" aria-label="${esc(t('ed.body'))}"></div>
     <div class="ed-photos"></div>
-    <div class="ed-foot"></div>
   </div>
   <div class="ed-dock">
     <div class="ed-bar"${ro ? " hidden" : ""}><div class="cap" role="toolbar">${ro ? "" : `
@@ -54,7 +53,7 @@ function render(view, r, opts = {}) {   // opts.pane: PC 나란히 보기의 오
       <span class="fmt"><button class="tb x" data-act="aa" aria-label="${esc(t('common.close'))}">${icon('x', 19)}</button><span class="sep"></span>${fontBtn}${STYLE.slice(1).map(f => fbtn(f)).join('')}${fbtn(INLINE[4])}<span class="sep"></span>${HL.map(hlBtn).join('')}<span class="sep"></span>${[LISTS[2], LISTS[0], LISTS[1], LISTS[3]].map(f => fbtn(f)).join('')}</span>`}</div></div>
   </div>
   <input type="file" accept="image/*" multiple hidden class="ed-file"></div>`;
-  const el = { root: view, body: $('.ed-body', view), info: $('.ed-info', view), meta: $('.ed-meta', view), photos: $('.ed-photos', view), foot: $('.ed-foot', view), pan: $('.ed-pan', view), cap: $('.ed-bar .cap', view) };
+  const el = { root: view, body: $('.ed-body', view), info: $('.ed-info', view), photos: $('.ed-photos', view), pan: $('.ed-pan', view), cap: $('.ed-bar .cap', view) };
   cur = { e, isNew, wasNew: isNew, el, ro, pan: null, saved: carried ? false : undefined, pane: opts.pane ? opts : null };
   if (!opts.pane) { document.documentElement.classList.add('ed-mode'); scrollTo(0, 0); }   // 휴대폰: 편집기 상자 안에서만 스크롤 (editor.css)
   if (!opts.pane && window.visualViewport) { const vv = window.visualViewport, k = () => requestAnimationFrame(keepCaret); vv.addEventListener('resize', k); cur.offVV = () => vv.removeEventListener('resize', k); }
@@ -132,25 +131,16 @@ function paintChips(full = true) {
     : [f ? f.name : t('folder.none'), cur.isNew ? '' : fmtDate(e.created_at, { month: 'long', day: 'numeric' })];
   if (m.place && e.type === 'event') parts.push(m.place);   // 고른 것은 모두 칩에 보여요 (일정 장소도)
   if ((e.type === 'todo' || e.type === 'event') && f) parts.push(f.name);
-  el.info.innerHTML = `${icon(TYPE_ICON[e.type] || 'file-text', 17)}<span>${esc(typeLabel(e.type))}</span>${parts.filter(Boolean).map(p => `<i>·</i><span>${esc(p)}</span>`).join('')}${e.favorite ? `<i>·</i>${icon('star', 15)}` : ''}${e.pinned ? `<i>·</i>${icon('pin', 15)}` : ''}${icon('chevron-down', 16, 'dn')}`;
+  // 물건 둔 곳은 장소가, 스크랩은 사이트 이름이 칩 맨 앞에 굵게 (비었으면 '장소 넣기' · '링크')
+  let lead = `${icon(TYPE_ICON[e.type] || 'file-text', 17)}<span>${esc(typeLabel(e.type))}</span>`;
+  if (e.type === 'item') lead = `${icon('map-pin', 17)}<b class="${m.place ? '' : 'ph'}">${esc(m.place || t('ed.addPlace'))}</b><i>·</i><span>${esc(typeLabel(e.type))}</span>`;
+  if (e.type === 'scrap') lead = `${icon('link', 17)}<b class="${m.url ? '' : 'ph'}">${esc(hostOf(m.url) || t('ed.link'))}</b><i>·</i><span>${esc(typeLabel(e.type))}</span>`;
+  el.info.innerHTML = `${lead}${parts.filter(Boolean).map(p => `<i>·</i><span>${esc(p)}</span>`).join('')}${e.favorite ? `<i>·</i>${icon('star', 15)}` : ''}${e.pinned ? `<i>·</i>${icon('pin', 15)}` : ''}${icon('chevron-down', 16, 'dn')}`;
   if (!full) return;   // 날짜 · 시간을 고르는 중에는 칸을 다시 그리지 않아요 (다시 그리면 아이폰 선택 창이 닫혀요)
-  el.meta.innerHTML = metaHTML(e, false);
-  el.meta.hidden = !el.meta.innerHTML;
   if (e.type === 'event' && !m.date) m.date = todayKey();
-  wireMeta(el.meta);
   if (cur.pan) paintPan();
 }
-/* 날짜 · 시간 · 장소 칸. 일정 · 할 일은 옵션 판 안에, 스크랩 링크 · 물건 둔 곳은 글 위에 그대로 */
-function metaHTML(e, inPan) {
-  const m = e.meta || {}, ro = cur.ro ? 'disabled' : '';
-  const timed = e.type === 'event' || e.type === 'todo';
-  if (timed !== inPan) return '';
-  if (e.type === 'event') return `<div class="lab">${esc(t('ed.date'))}</div><div class="ed-meta"><label>${icon('calendar', 16)}<input type="date" data-m="date" value="${esc(m.date || todayKey())}" ${ro}></label><label>${icon('clock', 16)}<input type="time" data-m="time" value="${esc(m.time || '')}" ${ro}></label><label class="wide">${icon('map-pin', 16)}<input type="text" data-m="place" maxlength="120" placeholder="${esc(t('ed.place'))}" value="${esc(m.place || '')}" ${ro}></label></div>`;
-  if (e.type === 'todo') return `<div class="lab">${esc(t('ed.due'))}</div><div class="ed-meta"><label>${icon('calendar', 16)}<input type="date" data-m="date" value="${esc(m.date || '')}" ${ro}></label><label>${icon('clock', 16)}<input type="time" data-m="time" value="${esc(m.time || '')}" ${ro}></label></div>`;
-  if (e.type === 'scrap') return `<label class="url" style="flex:1">${icon('link', 16)}<input type="url" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" data-m="url" maxlength="2000" style="width:100%" placeholder="${esc(t('ed.urlPh'))}" value="${esc(m.url || '')}" ${ro}></label>${m.url ? `<button class="urlbtn open" data-act="open-url">${icon('external-link', 16)}${esc(t('ed.open'))}</button>` : ro ? '' : `<button class="urlbtn" data-act="paste-url">${icon('copy', 16)}${esc(t('ed.paste'))}</button>`}`;
-  if (e.type === 'item') return `<label style="flex:1">${icon('map-pin', 16)}<input type="text" data-m="place" maxlength="120" style="width:100%" placeholder="${esc(t('ed.where'))}" value="${esc(m.place || '')}" ${ro}></label>`;
-  return '';
-}
+const hostOf = u => { try { return u ? new URL(u).hostname.replace(/^www\./, '') : ''; } catch { return ''; } };
 const wireMeta = box => $$('[data-m]', box).forEach(i => i.addEventListener('change', () => setMeta(i.dataset.m, i.value)));
 function setMeta(k, v) {
   if (k === 'url') v = safeUrl(v);
@@ -160,6 +150,7 @@ function setMeta(k, v) {
   commit();
   if (k === 'time' && cur.e.meta.date) $$('[data-m=date]', cur.el.root).forEach(i => { if (!i.value) i.value = cur.e.meta.date; });
   paintChips(false);   // 칩 글자만 바꿔요
+  if (k === 'url' && cur.pan) paintPan();   // 열기 · 붙여넣기 버튼이 바뀌어요
 }
 /* 글꼴: 기록 하나 전체(제목+본문)에 적용 */
 function paintFont() { const f = fontOf(cur.e); useFont(f); cur.el.root.querySelector('.ed').dataset.font = f;
@@ -187,10 +178,9 @@ function viewPhoto(p) {
   d.innerHTML = `${Photos.imgTag(p, { full: true })}<button class="icon-btn x" aria-label="${esc(t('common.close'))}">${icon('x', 22)}</button>`;
   d.addEventListener('click', () => d.remove()); document.body.append(d); Photos.hydrate(d);
 }
-function paintFoot() {
-  const e = cur.e; if (cur.isNew) { cur.el.foot.textContent = ''; return; }
-  cur.el.foot.textContent = t('ed.created', { date: fmtDate(e.created_at, { year: 'numeric', month: 'long', day: 'numeric' }) }) + ' · ' + t('ed.edited', { date: fmtRel(e.updated_at) });
-}
+/* 만듦 · 고침은 옵션 판 맨 아래 작은 글씨로 */
+const footText = e => cur.isNew ? '' : t('ed.created', { date: fmtDate(e.created_at, { year: 'numeric', month: 'long', day: 'numeric' }) }) + ' · ' + t('ed.edited', { date: fmtRel(e.updated_at) });
+function paintFoot() { const f = cur.el.pan.querySelector('.foot'); if (f) f.textContent = footText(cur.e); }
 
 /* ---------- 서식 줄 (모바일: 키보드 위 막대가 서식 아이콘 줄로 바뀌어요. 키보드는 그대로) ---------- */
 function toggleFmt(on = !cur.el.cap?.classList.contains('on-fmt')) {
@@ -226,7 +216,11 @@ function paintPan() {
   const row = (attrs, ic, label, val, more = true, on = false) => `<button class="it${on ? ' open' : ''}" ${attrs} ${dis}><span class="ic">${ic}</span><span class="lb">${esc(label)}</span><em>${val}${more ? icon('chevron-right', 16, 'chev') : ''}</em></button>`;
   const field = (k, type, ic, label, val, ph = '') => `<label class="it"><span class="ic">${icon(ic, 20)}</span><span class="lb">${esc(label)}</span><input type="${type}" data-m="${k}" value="${esc(val || '')}" ${ph ? `placeholder="${esc(ph)}" maxlength="120"` : ''} ${dis}></label>`;
   const check = icon('check', 18, 'ck');
-  let h = row('data-exp="type"', icon('layers', 20), t('ed.kind'), `${icon(TYPE_ICON[e.type], 16)}${esc(typeLabel(e.type))}`, true, exp === 'type');
+  let h = '';
+  if (e.type === 'item') h += field('place', 'text', 'map-pin', t('ed.place'), m.place, t('ed.where'));
+  if (e.type === 'scrap') h += `<label class="it url"><span class="ic">${icon('link', 20)}</span><span class="lb">${esc(t('ed.link'))}</span><input type="url" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" data-m="url" maxlength="2000" placeholder="${esc(t('ed.urlPh'))}" value="${esc(m.url || '')}" ${dis}></label>`
+    + (m.url ? `<button class="it" data-act="open-url"><span class="ic">${icon('external-link', 20)}</span><span class="lb">${esc(t('ed.openLink'))}</span><em>${esc(hostOf(m.url))}</em></button>` : cur.ro ? '' : `<button class="it" data-act="paste-url"><span class="ic">${icon('copy', 20)}</span><span class="lb">${esc(t('ed.paste'))}</span></button>`);
+  h += row('data-exp="type"', icon('layers', 20), t('ed.kind'), `${icon(TYPE_ICON[e.type], 16)}${esc(typeLabel(e.type))}`, true, exp === 'type');
   if (exp === 'type') h += `<div class="sub">${TYPES.map(ty => `<button class="it${ty === e.type ? ' on' : ''}" data-type="${ty}" aria-pressed="${ty === e.type}" ${dis}><span class="ic">${icon(TYPE_ICON[ty], 20)}</span><span class="lb">${esc(typeLabel(ty))}</span>${ty === e.type ? check : ''}</button>`).join('')}</div>`;
   if (e.type === 'todo' || e.type === 'event') {
     h += field('date', 'date', 'calendar', t(e.type === 'todo' ? 'ed.due' : 'ed.date'), m.date || (e.type === 'event' ? todayKey() : ''));
@@ -238,6 +232,7 @@ function paintPan() {
   if (!isPC()) h += row('data-act="card"', icon('image', 20), t('card.title'), '');
   el.pan.innerHTML = `<div class="rows">${h}</div>
     <div class="acts"><button data-x="fav" class="${e.favorite ? 'on' : ''}">${icon('star', 18)}${esc(t(e.favorite ? 'ed.unfavorite' : 'ed.favorite'))}</button><button data-x="pin" class="${e.pinned ? 'on' : ''}">${icon('pin', 18)}${esc(t(e.pinned ? 'ed.unpin' : 'ed.pin'))}</button><button data-x="trash" class="bad">${icon('trash-2', 18)}${esc(t('ed.trash'))}</button></div>
+    <p class="foot">${esc(footText(e))}</p>
     <button class="up" data-act="more" aria-label="${esc(t('common.close'))}">${icon('chevron-up', 20)}</button>`;
   wireMeta(el.pan);
   fitRow($('.acts', el.pan), 2);
@@ -303,7 +298,7 @@ async function onAct(ev) {
   else if (a === 'photo') { if (!CFG.PHOTOS_URL) toast(t('photo.soon')); else if ((e.photos || []).length >= 4) toast(t('photo.perEntry')); else cur.el.root.querySelector('.ed-file').click(); }
   else if (a === 'ph') photoMenu(b.dataset.id);
   else if (a === 'open-url') openUrl(e.meta.url);
-  else if (a === 'paste-url') { try { const v = (await navigator.clipboard.readText()).trim(); if (v) setMeta('url', v); else cur.el.meta.querySelector('[data-m=url]')?.focus(); } catch { cur.el.meta.querySelector('[data-m=url]')?.focus(); } }
+  else if (a === 'paste-url') { try { const v = (await navigator.clipboard.readText()).trim(); if (v) setMeta('url', v); else cur.el.pan.querySelector('[data-m=url]')?.focus(); } catch { cur.el.pan.querySelector('[data-m=url]')?.focus(); } }
   else if (a === 'card') { await commit(); if (!cur) return; closePan(); const { openCard } = await import('../features/card.js'); openCard(cur.e); }
 }
 /* 작성 완료: 짧게 축하하고, 새 기록은 모든 기록(맨 위에 반짝), 고친 기록은 원래 있던 화면으로 */

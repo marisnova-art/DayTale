@@ -417,3 +417,10 @@
 .ed-meta input[type=text], .ed-meta input[type=url] { width: auto; flex: 1; }
 .ed-pan .it input, .ed-pan .it em { font-size: var(--fs-m); }
 .ed-pan .sub .it { font-size: var(--fs-m); min-height: 46px; }
+/* dev.91 칩 하나 + 옵션: 물건 둔 곳 장소 · 스크랩 사이트가 칩 맨 앞에 굵게, 칸은 옵션 판 맨 위 */
+.ed .ed-info b { font-weight: 800; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ed .ed-info b.ph { font-weight: 700; color: rgba(var(--fg),.62); text-decoration: underline dotted; text-underline-offset: 4px; }
+.ed-pan .it.url input { flex: 1; min-width: 0; max-width: none; text-align: right; }
+.ed-pan .it em { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ed-pan .foot { margin: 4px 16px 2px; font-size: var(--fs-s); color: var(--faint); text-align: center; }
+.ed-pan .foot:empty { display: none; }
