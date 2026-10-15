@@ -20,7 +20,7 @@ const STYLE = [['p', 'pilcrow', 'ed.text'], ['heading', 'type', 'ed.heading'], [
 const INLINE = [['bold', 'bold', 'ed.bold'], ['italic', 'italic', 'ed.italic'], ['underline', 'underline', 'ed.underline'], ['mark', 'highlighter', 'ed.mark'], ['link', 'link', 'ed.link']];
 const HL = [['hl-y', 'ed.hl.y'], ['hl-b', 'ed.hl.b'], ['hl-r', 'ed.hl.r']];
 const hlBtn = ([k, l]) => `<button class="tb hl ${k}" data-f="${k}" aria-label="${esc(t(l))}" title="${esc(t(l))}" aria-pressed="false"><span class="hsw">${icon('highlighter', 16)}</span></button>`;
-const LISTS = [['bullet', 'list', 'ed.bullet'], ['numbered', 'list-ordered', 'ed.numbered'], ['check', 'list-todo', 'ed.check'], ['divider', 'minus', 'ed.divider'], ['undo', 'undo-2', 'ed.undo']];
+const LISTS = [['bullet', 'list', 'ed.bullet'], ['numbered', 'list-ordered', 'ed.numbered'], ['check', 'list-todo', 'ed.check'], ['divider', 'minus', 'ed.divider'], ['undo', 'undo-2', 'ed.undo'], ['redo', 'redo-2', 'ed.redo']];
 let cur = null;   // { e, isNew, saved, el, off, pan }
 
 const fbtn = ([k, ic, l], cls = 'tb') => `<button class="${cls}" data-f="${k}" aria-label="${esc(t(l))}" title="${esc(t(l))}" aria-pressed="false">${icon(ic, 20)}</button>`;
@@ -41,7 +41,7 @@ function render(view, r, opts = {}) {   // opts.pane: PC 나란히 보기의 오
   const cancel = `<button class="ed-cancel" data-act="cancel">${esc(t('common.cancel'))}</button>`;
   const done = `<button class="ed-done" data-act="done">${icon('check', 18)}<span>${esc(t('ed.finish'))}</span></button>`;
   view.innerHTML = `<div class="ed-page"><div class="ed-top">${cancel}<span class="sp"></span>${done}</div><div class="ed">
-    <div class="ed-tools" role="toolbar"${ro ? ' hidden' : ''}>${ro ? '' : `<span class="grp">${fontBtn}</span><span class="grp">${INLINE.slice(0, 3).map(f => fbtn(f)).join('')}</span><span class="grp">${STYLE.slice(1).map(f => fbtn(f)).join('')}${fbtn(INLINE[4])}</span><span class="grp">${HL.map(hlBtn).join('')}</span><span class="grp">${[LISTS[2], LISTS[0], LISTS[1], LISTS[3]].map(f => fbtn(f)).join('')}</span><span class="grp">${photoBtn}${fbtn(LISTS[4])}</span>`}</div>
+    <div class="ed-tools" role="toolbar"${ro ? ' hidden' : ''}>${ro ? '' : `<span class="grp">${fontBtn}</span><span class="grp">${INLINE.slice(0, 3).map(f => fbtn(f)).join('')}</span><span class="grp">${STYLE.slice(1).map(f => fbtn(f)).join('')}${fbtn(INLINE[4])}</span><span class="grp">${HL.map(hlBtn).join('')}</span><span class="grp">${[LISTS[2], LISTS[0], LISTS[1], LISTS[3]].map(f => fbtn(f)).join('')}</span><span class="grp">${photoBtn}${fbtn(LISTS[4])}${fbtn(LISTS[5])}</span>`}</div>
     ${ro ? `<div class="ed-locked"><span>${esc(t('ed.locked'))}</span><button data-act="plans">${esc(t('trial.plans'))}</button></div>` : ''}
     <button class="ed-info" data-act="more" aria-expanded="false"></button><div class="ed-pan" hidden></div><div class="ed-meta"></div>
     <div class="ed-body" ${ro ? '' : 'contenteditable="true"'} spellcheck="true" data-ph="${esc(t('ed.body'))}" role="textbox" aria-multiline="true" aria-label="${esc(t('ed.body'))}"></div>
@@ -50,7 +50,7 @@ function render(view, r, opts = {}) {   // opts.pane: PC 나란히 보기의 오
   </div>
   <div class="ed-dock">
     <div class="ed-bar"${ro ? " hidden" : ""}><div class="cap" role="toolbar">${ro ? "" : `
-      <span class="base"><button class="tb" data-act="aa" aria-label="${esc(t('ed.format'))}" title="${esc(t('ed.format'))}" aria-expanded="false">${icon('a-large-small', 24)}</button><span class="sep"></span>${INLINE.slice(0, 3).map(f => fbtn(f)).join('')}<span class="sep"></span>${fbtn(LISTS[2])}${photoBtn}<span class="sp"></span>${fbtn(LISTS[4])}</span>
+      <span class="base"><button class="tb" data-act="aa" aria-label="${esc(t('ed.format'))}" title="${esc(t('ed.format'))}" aria-expanded="false">${icon('a-large-small', 24)}</button><span class="sep"></span>${INLINE.slice(0, 3).map(f => fbtn(f)).join('')}<span class="sep"></span>${fbtn(LISTS[2])}${photoBtn}<span class="sp"></span>${fbtn(LISTS[4])}${fbtn(LISTS[5])}</span>
       <span class="fmt"><button class="tb x" data-act="aa" aria-label="${esc(t('common.close'))}">${icon('x', 19)}</button><span class="sep"></span>${fontBtn}${STYLE.slice(1).map(f => fbtn(f)).join('')}${fbtn(INLINE[4])}<span class="sep"></span>${HL.map(hlBtn).join('')}<span class="sep"></span>${[LISTS[2], LISTS[0], LISTS[1], LISTS[3]].map(f => fbtn(f)).join('')}</span>`}</div></div>
   </div>
   <input type="file" accept="image/*" multiple hidden class="ed-file"></div>`;
@@ -256,6 +256,8 @@ function paintState() {
   };
   on.p = inBody && !on.heading && !on.quote;
   $$('[data-f]', cur.el.root).forEach(b => { const v = !!on[b.dataset.f]; b.classList.toggle('on', v); b.setAttribute('aria-pressed', String(v)); });
+  // 되돌리기 · 다시 하기: 할 것이 없으면 흐리게
+  const h = cur.hist; $$('[data-f=undo]', cur.el.root).forEach(b => b.classList.toggle('off', !h?.canUndo)); $$('[data-f=redo]', cur.el.root).forEach(b => b.classList.toggle('off', !h?.redo.length));
 }
 const saveRange = () => { const s = getSelection(); return s.rangeCount && cur.el.body.contains(s.anchorNode) ? s.getRangeAt(0).cloneRange() : null; };
 const restoreRange = r => { if (!r) return; const s = getSelection(); s.removeAllRanges(); s.addRange(r); };
@@ -265,6 +267,7 @@ async function fmt(f) {
   if (document.activeElement !== body) { const r = saveRange(); body.focus({ preventScroll: true }); restoreRange(r); }
   if (['bold', 'italic', 'underline'].includes(f)) { cur.hist.snap(); document.execCommand(f); }
   else if (f === 'undo') { if (!cur.hist.back()) return; }
+  else if (f === 'redo') { if (!cur.hist.fwd()) return; }
   else if (f.startsWith('hl-') || f === 'link') { cur.hist.snap(); await fmtAction(f); cur.hist?.snap(); return; }
   else applyBlock(f);
   cur.saved = false; cur.save(); paintState();
