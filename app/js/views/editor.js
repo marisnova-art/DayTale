@@ -210,7 +210,7 @@ function openPan() {
   if (!cur) return;
   if (cur.pan) { closePan(); return; }
   cur.pan = 'more';
-  if (!isPC() && document.activeElement === cur.el.body) cur.el.body.blur();   // 옵션은 글이 아니라 설정이라 키보드는 내려요
+  if (!isPC() && document.activeElement === cur.el.body) { cur.el.body.blur(); [0, 300, 700].forEach(ms => setTimeout(() => { if (!document.documentElement.classList.contains('kb-open') && scrollY) scrollTo(0, 0); }, ms)); }   // 옵션은 글이 아니라 설정이라 키보드는 내려요 (밀린 화면은 제자리로)
   cur.el.pan.hidden = false; paintPan();
 }
 function closePan() {
