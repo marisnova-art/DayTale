@@ -315,7 +315,8 @@
   .ed-bar .cap .sp { flex: 1; }
   .ed-dock .ed-bar .tb { width: 42px; height: 40px; border-radius: 12px; flex: none; }
   .ed-dock .ed-bar .fmt .tb { width: 36px; }
-  .ed-dock .ed-bar .fmt .tb.x { width: 40px; background: var(--text); color: var(--on-text); }
+  .ed-dock .ed-bar .fmt .tb.x { width: 40px; height: 40px; flex: none; border-radius: 50%; margin-left: -1px; background: var(--text); color: var(--on-text); }   /* 캡슐 안이라 동그랗게 */
+  .ed-dock .ed-bar .tb.lbl { border-radius: 999px; }   /* 글꼴 단추도 캡슐에 맞춰 둥글게 */
   .ed-dock .ed-bar .fmt .tb.lbl { width: auto; height: 36px; padding: 0 11px 0 9px; margin: 0 2px; }
   .ed-dock .ed-bar .sep { height: 20px; margin: 0 3px; flex: none; }
 }
