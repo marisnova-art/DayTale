@@ -87,7 +87,7 @@ export default {
   'plan.trialSub': '体験期間中はすべての機能を使えます。', 'plan.endedSub': '閲覧・検索・書き出し・削除ができます。購読すると、また書けるようになります。',
   'plan.headline': '毎日の記録を続けましょう', 'plan.perMonth': '月あたり約{price}', 'plan.save': '{n}%お得', 'plan.monthlySub': 'いつでも解約できます', 'plan.start': '{plan}プランを始める', 'plan.waiting': '支払いを確認しています…',
   'plan.taxIncl': '価格は税込みです。', 'plan.taxNote': 'お支払い画面には、お住まいの国の税込み価格が表示されます。', 'plan.cancelAny': 'いつでも解約でき、期間の終わりまで使えます。',
-  'plan.includes': '購読すると', 'plan.f1': '記録の作成・編集が無制限', 'plan.f2': '写真 1GB', 'plan.f3': 'スマートフォンとパソコンで同期', 'plan.f4': 'JSON・Markdown・PDFでバックアップ',
+  'plan.b1': '記録が一日の物語に', 'plan.b1s': '書いた記録が、ホームで読みやすい物語になって戻ってきます。', 'plan.b2': '毎日新しい背景とことば', 'plan.b2s': '時間に合わせて変わる背景と、天気や季節に合うひとこと。', 'plan.b3': '写真とステッカーで彩る', 'plan.b3s': '記録ごとに写真4枚(合計1GB)、文の中にステッカー。', 'plan.b4': '記録の作成・編集が無制限', 'plan.b4s': '日記からToDo・予定・メモまでひとつの場所で。', 'plan.b5': 'どこでも、安心して', 'plan.b5s': 'スマートフォンとパソコンで同期、JSON・Markdown・PDFでバックアップ。', 'plan.includes': '購読すると', 'plan.f1': '記録の作成・編集が無制限', 'plan.f2': '写真 1GB', 'plan.f3': 'スマートフォンとパソコンで同期', 'plan.f4': 'JSON・Markdown・PDFでバックアップ',
   'plan.afterTrial': '購読しない場合', 'plan.afterTrialBody': '体験期間が終わっても記録は残ります。閲覧・検索・書き出し・削除はいつでもできます。最後のログインから1年が経つとアカウントは削除され、その30日前と7日前にメールでお知らせします。',
   'plan.paddle': 'お支払いは<a href="https://www.paddle.com" target="_blank" rel="noopener">Paddle</a>が代行します。カード情報が私たちに届くことはありません。',
   'plan.manageLater': '購読情報を読み込んでいます…', 'plan.updatePay': '支払い方法を変更', 'plan.cancel': '購読を解約', 'plan.cancelSub': '期間の終わりまでは引き続き使えます', 'plan.recheck': '購読状況を再確認',
