@@ -288,6 +288,11 @@ create table if not exists public.notices (
   read_at     timestamptz
 );
 create index if not exists notices_user_idx on public.notices(user_id, created_at desc);
+-- 홈 배너: 모두에게 보내는 공지 중 banner 인 것은 기간(starts_at~ends_at) 동안 홈 위에 조용히 떠요. audience = all | trial | subscriber | ended
+alter table public.notices add column if not exists banner boolean not null default false,
+  add column if not exists audience text not null default 'all',
+  add column if not exists starts_at timestamptz,
+  add column if not exists ends_at timestamptz;
 
 -- =====================================================================
 -- 트리거: 주인·버전·시간 고정, 삭제 표시, 쓰기 잠금
@@ -423,7 +428,7 @@ create policy "settings: own" on public.user_settings for all using (user_id = a
 drop policy if exists "phrases: read" on public.phrase_packs;
 create policy "phrases: read" on public.phrase_packs for select to authenticated using (active);
 drop policy if exists "notices: read own" on public.notices;
-create policy "notices: read own" on public.notices for select using (user_id = auth.uid() or user_id is null);
+create policy "notices: read own" on public.notices for select using (user_id = auth.uid() or (user_id is null and (starts_at is null or starts_at <= now())));   -- 예약한 공지는 시작 전엔 안 보여요
 drop policy if exists "notices: mark read" on public.notices;
 create policy "notices: mark read" on public.notices for update using (user_id = auth.uid()) with check (user_id = auth.uid());
 

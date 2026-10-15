@@ -224,6 +224,9 @@ dialog.confirm::backdrop{ background:rgba(0,0,0,.7) } dialog.confirm p{ color:va
 .blist{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:14px }
 .meter.thin{ height:6px; margin:8px 0 0; color:var(--ok) }
 .grid3{ display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:12px }
+.nform label.check{ flex-direction:row; align-items:center; gap:8px; color:var(--text); font-size:14px }
+.nform label.check input{ width:18px; height:18px; padding:0 }
+.nform .nper label{ flex:1 }
 .nform h3.label{ margin:6px 0 0 }
 tr.off td{ opacity:.45 } td.nowrap{ white-space:nowrap }
 /* 이용권: 방금 만든 코드 */

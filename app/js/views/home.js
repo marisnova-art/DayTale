@@ -14,6 +14,7 @@ import { esc, h, icon, slotOf, sunUp, todayKey } from '../core/utils.js';
 import { toast } from '../ui/feedback.js';
 import { wordSheet, writeWith } from '../features/words-ui.js';
 import { todayPanel } from './today.js';
+import { banner } from './notices.js';
 import { TYPE_ICON } from '../ui/shell.js';
 
 /* PC 홈은 감성형 + 정리형을 합쳐요: 가운데 이야기, 오른쪽 오늘 정리 (보기 방식 고르기는 휴대폰만) */
@@ -121,12 +122,12 @@ async function renderTidy(view) {
   const { row } = await import('./list.js');
   const recent = live().filter(e => e.type !== 'todo' && e.type !== 'event').sort((a, b) => b.updated_at.localeCompare(a.updated_at)).slice(0, 8);
   view.innerHTML = `<div class="home-wrap"><section class="home tidy">
-    <div class="when"><span>${esc(fmtDate(new Date(), { month: 'long', day: 'numeric', weekday: 'long' }))}</span><i></i><b class="clock">${esc(fmtTime(new Date()))}</b></div>${backupNudge()}
+    <div class="when"><span>${esc(fmtDate(new Date(), { month: 'long', day: 'numeric', weekday: 'long' }))}</span><i></i><b class="clock">${esc(fmtTime(new Date()))}</b></div><div class="hbn-slot"></div>${backupNudge()}
     <div style="margin-top:16px">${askBox(t('nav.new'))}</div>
     <div class="tidy-today" style="margin-top:18px;background:var(--sheet);border:1px solid var(--line);border-radius:24px;padding:4px 18px 8px"></div>
     ${recent.length ? `<div class="grp"><span>${esc(t('nav.all'))}</span><a href="#/all" style="color:var(--muted)">${esc(t('common.seeAll'))}</a></div><div class="card">${recent.map(e => row(e)).join('')}</div>` : ''}
     <div class="spacer"></div></section></div>`;
-  view.querySelector('.tidy-today').append(todayPanel()); wireNudge(view);
+  view.querySelector('.tidy-today').append(todayPanel()); wireNudge(view); banner(view.querySelector('.hbn-slot'));
   wireAsk(view, { onSaved: () => toast(t('home.saved')) });
 }
 
@@ -156,14 +157,14 @@ function render(view, r, keepPh) {
   const s = story(); const now = new Date();
   const q = pickQuestion(s.ctx, { recall: s.recall });
   view.innerHTML = `<div class="home-wrap"><section class="home">
-      <div class="when"><span>${esc(fmtDate(now, { month: 'long', day: 'numeric', weekday: 'long' }))}</span><i></i><b class="clock">${esc(fmtTime(now))}</b></div>${backupNudge()}
+      <div class="when"><span>${esc(fmtDate(now, { month: 'long', day: 'numeric', weekday: 'long' }))}</span><i></i><b class="clock">${esc(fmtTime(now))}</b></div><div class="hbn-slot"></div>${backupNudge()}
       <div class="story${s.fresh ? ' fade-in' : ''}" aria-live="polite">${s.html}${justLine()}</div>
       <div class="askq"><p class="q"><button class="qtext" title="${esc(t('home.questions'))}">${esc(q)}</button></p>
         ${askBox(q)}</div>
       <div class="spacer"></div>
     </section><aside class="today-side"></aside></div>`;
   if (!document.documentElement.classList.contains('story-wait')) s.fresh = false;   // 첫 이야기는 다 받아 온 뒤 보여 줄 때 스르륵 나타나요
-  Photos.hydrate(view); wireNudge(view);
+  Photos.hydrate(view); wireNudge(view); banner(view.querySelector('.hbn-slot'));
   view.querySelectorAll('.story .lq').forEach(a => a.addEventListener('click', ev => { ev.preventDefault(); const w = litWord(a.dataset.lit); if (w) wordSheet(w); }));
   view.querySelectorAll('.story .wq, .story .wgo').forEach(a => a.addEventListener('click', ev => { ev.preventDefault(); const w = wordById(getLang(), a.dataset.word); if (w) (a.classList.contains('wgo') ? writeWith : wordSheet)(w); }));
   view.querySelector('.today-side').append(todayPanel());

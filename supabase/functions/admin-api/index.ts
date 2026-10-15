@@ -149,7 +149,7 @@ async function act(a: Admin, body: any, { db, env, fetch }: Deps) {
     }
 
     case 'notices': {
-      const { data, error } = await db.from('notices').select('id,kind,lang,title,body,created_at').is('user_id', null).order('created_at', { ascending: false }).range(0, 49);
+      const { data, error } = await db.from('notices').select('id,kind,lang,title,body,created_at,banner,audience,starts_at,ends_at').is('user_id', null).order('created_at', { ascending: false }).range(0, 49);
       if (error) throw new Fail(500, error.message);
       return { rows: data };
     }
@@ -159,9 +159,15 @@ async function act(a: Admin, body: any, { db, env, fetch }: Deps) {
       const title = String(body.title ?? '').trim().slice(0, 120), text = String(body.body ?? '').trim().slice(0, 2000);
       const lang = ['ko', 'en', 'ja', 'es', 'fr'].includes(body.lang) ? body.lang : null;
       if (!title) throw new Fail(400, 'title required');
-      const { error } = await db.from('notices').insert({ user_id: null, kind: 'announce', lang, title, body: text });
+      // 홈 배너: 대상과 기간 (관리자 화면이 그 사람 시간대의 0시를 ISO로 보내요)
+      const banner = body.banner === true || body.banner === 'on' || body.banner === 'true';
+      const audience = ['all', 'trial', 'subscriber', 'ended'].includes(body.audience) ? body.audience : 'all';
+      const iso = (v: unknown) => { if (!v) return null; const d = new Date(String(v)); if (isNaN(+d)) throw new Fail(400, 'bad date'); return d.toISOString(); };
+      const starts_at = iso(body.starts_at), ends_at = iso(body.ends_at);
+      if (starts_at && ends_at && ends_at <= starts_at) throw new Fail(400, 'bad period');
+      const { error } = await db.from('notices').insert({ user_id: null, kind: 'announce', lang, title, body: text, banner, audience, starts_at, ends_at });
       if (error) throw new Fail(500, error.message);
-      await audit(db, a, 'notice_create', {}, { title, lang });
+      await audit(db, a, 'notice_create', {}, { title, lang, banner, audience, starts_at, ends_at });
       return { ok: true };
     }
 

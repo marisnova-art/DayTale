@@ -8,7 +8,7 @@ export default {
   'nav.trash': '휴지통', 'nav.search': '기록 찾기', 'nav.newFolder': '새 폴더',
   'type.note': '메모', 'type.todo': '할 일', 'type.event': '일정', 'type.idea': '아이디어', 'type.item': '물건 둔 곳', 'type.personal': '개인 기록', 'type.scrap': '스크랩',
   'trial.chip': '체험 {n}일', 'pass.chip': '이용권 {n}일', 'trial.chipEnd': '체험 끝남', 'trial.left': '무료 체험 {n}일 남음', 'trial.lastDay': '무료 체험 오늘까지', 'trial.ended': '무료 체험이 끝났어요', 'trial.plans': '구독 보기', 'sub.active': '구독 중',
-  'safe.title': '내 기록 지키기', 'safe.offBar': '오프라인이에요 · 이 기기에 저장하고 있어요', 'safe.privacyShort': '기록은 암호화되어 나만 열 수 있어요. 광고나 AI 학습에는 쓰지 않아요.', 'safe.nudgeOld': '마지막 백업 뒤로 한 달이 지났어요. 파일로 받아 둘까요?', 'safe.nudgeNew': '기록이 꽤 쌓였어요. 백업 파일을 받아 둘까요?', 'safe.nudgeGo': '받기', 'safe.saved': '모두 저장됨', 'safe.saving': '저장하는 중…', 'safe.local': '이 기기에 저장됨', 'safe.localN': '이 기기에 저장됨 · {n}개 보낼 예정', 'safe.late': '저장이 늦어지고 있어요', 'safe.backup': '마지막 백업', 'safe.never': '아직 받아 둔 적 없어요', 'safe.privacy': '기록은 오갈 때도, 저장될 때도 암호화돼요. 내 계정으로만 열 수 있고, 광고나 AI 학습에는 쓰지 않아요.',
+  'safe.title': '내 기록 지키기', 'safe.offBar': '오프라인이에요 · 이 기기에 저장하고 있어요', 'safe.privacyShort': '기록은 암호화되어 나만 열 수 있어요. 광고나 AI 학습에는 쓰지 않아요.', 'safe.nudgeOld': '마지막 백업 뒤로 한 달이 지났어요. 파일로 받아 둘까요?', 'safe.nudgeNew': '기록이 꽤 쌓였어요. 백업 파일을 받아 둘까요?', 'banner.go': '보기', 'safe.nudgeGo': '받기', 'safe.saved': '모두 저장됨', 'safe.saving': '저장하는 중…', 'safe.local': '이 기기에 저장됨', 'safe.localN': '이 기기에 저장됨 · {n}개 보낼 예정', 'safe.late': '저장이 늦어지고 있어요', 'safe.backup': '마지막 백업', 'safe.never': '아직 받아 둔 적 없어요', 'safe.privacy': '기록은 오갈 때도, 저장될 때도 암호화돼요. 내 계정으로만 열 수 있고, 광고나 AI 학습에는 쓰지 않아요.',
   'remind.def': '기본 ({v})',
   'remind.off': '알림 없음',
   'remind.0': '시작할 때',
