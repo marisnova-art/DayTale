@@ -4,10 +4,11 @@ import { esc, icon } from '../core/utils.js';
 import { Account } from '../data/account.js';
 import { S, onChange } from '../data/store.js';
 import { Billing } from '../features/billing.js';
+import { snav } from './settings.js';
 
 let pick = 'yearly', off = null;
 function render(view) {
-  view.innerHTML = `<section class="plans"><div class="shead"><a class="icon-btn back" href="#/settings/account" aria-label="${esc(t('ed.back'))}">${icon('chevron-left', 22)}</a><h2>${esc(t('plan.title'))}</h2></div><div class="pbody"></div><div style="height:120px"></div></section>`;
+  view.innerHTML = `<section class="set has-g plans">${snav('account')}<div class="sbody"><div class="shead"><a class="icon-btn back" href="#/settings/account" aria-label="${esc(t('ed.back'))}">${icon('chevron-left', 22)}</a><h2>${esc(t('plan.title'))}</h2></div><div class="pbody"></div></div><div style="height:120px"></div></section>`;
   const body = view.querySelector('.pbody');
   const paint = async () => {
     const pr = await Billing.localPrices(); const st = S.status || {}; const sub = Billing.sub; const d = Account.trialDays();
@@ -24,7 +25,7 @@ function render(view) {
       <div class="ptiles" role="radiogroup">${tile('yearly', pr.yearly, t('plan.perMonth', { price: pr.yearlyPerMonth }), pr.save > 0 ? t('plan.save', { n: pr.save }) : '')}${tile('monthly', pr.monthly, t('plan.monthlySub'), '')}</div>
       <button class="btn primary wide pgo" data-buy ${Billing.waiting ? 'disabled' : ''}>${esc(Billing.waiting ? t('plan.waiting') : t('plan.start', { plan: t('plan.' + pick) }))}</button>
       <p class="pfine">${esc(pr.local ? t('plan.taxIncl') : t('plan.taxNote'))} ${esc(t('plan.cancelAny'))}</p>
-      <div class="pmore"><b>${esc(t('plan.afterTrial'))}</b><p>${esc(t('plan.afterTrialBody'))}</p><p>${t('plan.paddle')}</p></div></div>`;
+      <div class="pmore"><b>${esc(t('plan.afterTrial'))}</b><p>${esc(t('plan.afterTrialBody'))}</p></div></div>`;
   };
   view.paintPlans = paint;
   body.addEventListener('click', ev => {

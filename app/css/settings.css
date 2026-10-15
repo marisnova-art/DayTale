@@ -58,8 +58,8 @@
 .citypick .list { max-height: 52vh; overflow: auto; }
 .pick small { margin-left: auto; font-size: var(--fs-s); color: var(--muted-2); font-weight: 500; }
 
-/* 구독 */
-.plans { padding: 22px 16px 0; max-width: 560px; margin: 0 auto; }
+/* 구독 (화면 틀은 설정과 같은 .set) */
+/* 구독 화면은 설정과 같은 틀(.set)을 써요 */
 .pstat { display: flex; gap: 12px; align-items: flex-start; margin-top: 14px; padding: 16px; border-radius: 18px; background: rgba(var(--srf),.62); border: 1px solid rgba(var(--fg),.08); color: var(--accent); }
 .pstat span { display: flex; flex-direction: column; gap: 3px; } .pstat b { color: var(--text); font-size: var(--fs-m); } .pstat small { color: var(--muted); font-size: var(--fs-s); line-height: 1.5; }
 .pstat.on { color: var(--ok); } .pstat.end { color: var(--danger); }

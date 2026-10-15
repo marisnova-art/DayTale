@@ -92,10 +92,12 @@ function group(g) {
   return '';
 }
 
+/* 설정 왼쪽 목록 (구독 화면도 PC에서 같은 틀 안에 보여 줘요) */
+const snav = g => `<nav class="snav"><h1>${esc(t('nav.settings'))}</h1>
+      <div class="scard">${GROUPS.map(([k, ic]) => `<a class="srow${k === g ? ' on' : ''}" href="#/settings/${k}"><span class="si">${icon(ic, 19)}</span><span class="stx"><b>${esc(t('set.g.' + k))}</b></span>${icon('chevron-right', 18)}</a>`).join('')}</div></nav>`;
 function render(view, r) {
   const g = r.params.group || (isWide() ? 'account' : '');   // 넓은 PC만 첫 그룹을 바로 열어요
-  view.innerHTML = `<section class="set${g ? ' has-g' : ''}"><nav class="snav"><h1>${esc(t('nav.settings'))}</h1>
-      <div class="scard">${GROUPS.map(([k, ic]) => `<a class="srow${k === g ? ' on' : ''}" href="#/settings/${k}"><span class="si">${icon(ic, 19)}</span><span class="stx"><b>${esc(t('set.g.' + k))}</b></span>${icon('chevron-right', 18)}</a>`).join('')}</div></nav>
+  view.innerHTML = `<section class="set${g ? ' has-g' : ''}">${snav(g)}
     <div class="sbody">${g ? `<div class="shead"><a class="icon-btn back" href="#/settings" aria-label="${esc(t('ed.back'))}">${icon('chevron-left', 22)}</a><h2>${esc(t('set.g.' + g))}</h2></div><div class="sgroup">${group(g)}</div>` : ''}</div><div style="height:120px"></div></section>`;
   const paint = () => { const box = view.querySelector('.sgroup'); if (box) box.innerHTML = group(g); };
   view.paintSet = paint;
@@ -188,4 +190,4 @@ async function deleteAccount() {
   await Reminders.unsubscribe(); await S.db.destroy().catch(() => {}); await endSession(); location.hash = ''; location.reload();
 }
 const refresh = view => view.paintSet?.();
-export { refresh, render };
+export { refresh, render, snav };
