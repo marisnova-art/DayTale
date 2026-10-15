@@ -3,7 +3,7 @@ import { Account } from '../data/account.js';
 import { S, TYPES, folderList, live, onChange } from '../data/store.js';
 import { brand } from '../core/config.js';
 import { getLang, t } from '../core/i18n.js';
-import { $, $$, esc, icon, todayKey } from '../core/utils.js';
+import { $, $$, dayKey, esc, icon, todayKey } from '../core/utils.js';
 import { go, now } from './router.js';
 
 const TYPE_ICON = { note: 'file-text', todo: 'check-square', event: 'calendar', idea: 'lightbulb', item: 'map-pin', personal: 'feather', scrap: 'bookmark' };
@@ -42,6 +42,7 @@ function frame() {
     if (b.dataset.go) { closeMenu(); go(b.dataset.go); return; }
     const a = b.dataset.act;
     if (a === 'menu') openMenu(); else if (a === 'close-menu') closeMenu(); else if (a === 'new') { closeMenu(); const sp = document.querySelector('#view .split'); if (sp) sp.closest('#view').dispatchEvent(new CustomEvent('split-new', { detail: newPath() })); else go(newPath()); }
+    else if (a === 'grp') toggleGrp(b);
     else if (a === 'new-folder') import('../views/folders.js').then(m => m.newFolderDialog());
   });
   $('.search input').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.value.trim()) { closeMenu(); go('/search?q=' + encodeURIComponent(e.target.value.trim())); } });
@@ -107,19 +108,35 @@ function paint() {
   const c = n => n ? `<span class="c">${n}</span>` : '';
   const item = (path, ic, label, n, cls = '') => `<a class="m${cls}" href="#${path}" data-path="${path}">${icon(ic, 18)}${esc(label)}${c(n)}</a>`;
   const types = TYPES.filter(x => x !== 'todo' && x !== 'event');
+  const md = today.slice(5), y = +today.slice(0, 4);
+  const pastN = all.filter(e => { const d = new Date(e.created_at); return d.getFullYear() < y && dayKey(d).slice(5) === md; }).length;   // 지난해들의 오늘
+  // 접히는 묶음: 머리글을 누르면 접고 펴요 (기기마다 기억). 지금 화면이 들어 있는 묶음은 접혀 있어도 펴서 보여요
+  const p = now()?.path || '/home';
+  const grp = (k, label, body, extra = '') => { const shut = navShut().includes(k) && !body.includes(`data-path="${p}"`);
+    return `<div class="h g${shut ? ' shut' : ''}"><button data-act="grp" data-g="${k}" aria-expanded="${!shut}">${esc(label)}${icon('chevron-down', 15)}</button>${extra}</div><div class="gb${shut ? ' shut' : ''}">${body}</div>`; };
   $('.drawer .nav').innerHTML =
-    item('/home', 'home', t('nav.home')) + item('/all', 'layers', t('nav.all'), all.length) + item('/favorites', 'star', t('nav.fav'), all.filter(e => e.favorite).length) +
-    `<div class="h">${esc(t('nav.byType'))}</div>` + item('/todo', 'check-square', t('nav.todo'), openTodos) + item('/type/event', 'calendar', t('type.event'), upEvents) + item('/calendar', 'calendar-days', t('nav.calendar')) +
-    types.map(x => item('/type/' + x, TYPE_ICON[x], t('type.' + x), cnt[x])).join('') +
-    `<div class="h">${esc(t('nav.folders'))}<button data-act="new-folder" aria-label="${esc(t('nav.newFolder'))}">${icon('plus', 16)}</button></div>` +
-    folderList().map(f => `<a class="m" href="#/folder/${f.id}" data-path="/folder/${f.id}"><svg class="i" width="18" height="18" viewBox="0 0 24 24" style="color:${esc(f.color || '#A9A5AF')}">${'<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>'}</svg>${esc(f.name)}${c(fc[f.id])}</a>`).join('') +
-    item('/nofolder', 'folder-x', t('nav.noFolder'), nofolder, ' dim');
+    item('/home', 'home', t('nav.home')) + item('/all', 'layers', t('nav.all'), all.length) + item('/calendar', 'calendar-days', t('nav.calendar')) +
+    grp('look', t('nav.lookBack'), item('/past', 'history', t('nav.past'), pastN) + item('/favorites', 'star', t('nav.fav'), all.filter(e => e.favorite).length)) +
+    grp('type', t('nav.byType'), item('/todo', 'check-square', t('nav.todo'), openTodos) + item('/type/event', 'calendar', t('type.event'), upEvents) +
+      types.map(x => item('/type/' + x, TYPE_ICON[x], t('type.' + x), cnt[x])).join('')) +
+    grp('folder', t('nav.folders'),
+      folderList().map(f => `<a class="m" href="#/folder/${f.id}" data-path="/folder/${f.id}"><svg class="i" width="18" height="18" viewBox="0 0 24 24" style="color:${esc(f.color || '#A9A5AF')}">${'<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>'}</svg>${esc(f.name)}${c(fc[f.id])}</a>`).join('') +
+      item('/nofolder', 'folder-x', t('nav.noFolder'), nofolder, ' dim'),
+      `<button class="add" data-act="new-folder" aria-label="${esc(t('nav.newFolder'))}">${icon('plus', 16)}</button>`);
   // 프로필 카드 + 체험 막대
   const d = Account.trialDays(), sub = S.status?.subscriber;
   // 프로필은 한 줄: 작은 사진 + 이름. 체험·이용권은 7일 이하로 남았을 때만 작은 칩, 구독 중이면 아무것도 없어요. 오른쪽 끝은 대표 배지 자리
   const chip = sub || d == null || d > 7 ? '' : `<span class="pchip" data-go="/plans">${esc(d > 0 ? t(Account.onPass() ? 'pass.chip' : 'trial.chip', { n: d }) : t('trial.chipEnd'))}</span>`;
   $('.profile-card').innerHTML = `<span class="who">${Account.avatarHTML('s')}<span class="nm">${esc(Account.name())}</span>${chip}<span class="pbadge"></span></span>`;
   paintBadges(); mark(); requestAnimationFrame(() => fades($('.drawer .nav')));
+}
+/* 메뉴 묶음 접기: 접힌 묶음 이름만 기억해요 */
+const navShut = () => { try { return JSON.parse(localStorage.getItem('dt.navShut') || '[]'); } catch { return []; } };
+function toggleGrp(b) {
+  const h = b.parentElement, shut = !h.classList.contains('shut'), k = b.dataset.g;
+  h.classList.toggle('shut', shut); h.nextElementSibling.classList.toggle('shut', shut); b.setAttribute('aria-expanded', String(!shut));
+  try { const s = navShut().filter(x => x !== k); if (shut) s.push(k); localStorage.setItem('dt.navShut', JSON.stringify(s)); } catch {}
+  fades($('.drawer .nav'));
 }
 function fades(n) { if (!n) return; n.classList.toggle('more-t', n.scrollTop > 4); n.classList.toggle('more-b', n.scrollTop + n.clientHeight < n.scrollHeight - 4); }
 function paintBadges() { $$('.bell').forEach(b => { b.querySelector('.badge-dot')?.remove(); if (unread) b.insertAdjacentHTML('beforeend', '<span class="badge-dot"></span>'); }); }

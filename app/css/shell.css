@@ -70,7 +70,16 @@
 .m .c { margin-left: auto; font-size: var(--fs-s); font-weight: 600; color: var(--faint); font-variant-numeric: tabular-nums; }
 .m.dim { color: var(--muted-2); }
 .nav .h { font-size: var(--fs-s); font-weight: 600; color: var(--faint); letter-spacing: .1em; padding: 14px 12px 4px; display: flex; align-items: center; justify-content: space-between; }
-.nav .h button { color: var(--faint); width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; }
+.nav .h .add { color: var(--faint); width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; }
+.nav .h .add:hover { background: var(--fill); color: var(--text-3); }
+/* 접히는 묶음 머리글: 이름 + 작은 꺾쇠 (접히면 옆을 봐요) */
+.nav .h.g { padding: 12px 6px 4px 6px; }
+.nav .h.g > button[data-act=grp] { display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 8px 0 6px; border-radius: 999px; color: inherit; font: inherit; letter-spacing: inherit; }
+@media (hover: hover) { .nav .h.g > button[data-act=grp]:hover { background: var(--fill); color: var(--text-3); } }
+.nav .h.g > button[data-act=grp] .i { transition: transform .2s; }
+.nav .h.g.shut > button[data-act=grp] .i { transform: rotate(-90deg); }
+.nav .gb { display: flex; flex-direction: column; }
+.nav .gb.shut { display: none; }
 .drawer .foot { flex: none; margin-top: auto; display: flex; flex-direction: column; gap: 0; border-top: 1px solid var(--line); padding: 8px 4px 0; }
 .drawer .foot .m { flex: none; }   /* 휴지통 · 설정: 다른 메뉴와 같은 줄 모양 (PC · 모바일 같아요) */
 

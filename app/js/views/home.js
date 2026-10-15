@@ -24,7 +24,7 @@ function sideCards() {
   const past = all.filter(e => { const k = new Date(e.created_at); return k.getFullYear() < now.getFullYear() && todayKeyOf(k).slice(5) === md; }).sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
   const row = e => `<a class="trow" href="#/e/${e.id}"><span class="ti rc">${icon(TYPE_ICON[e.type] || 'file-text', 18)}</span><span class="t">${esc(displayTitle(e, t('common.untitled')))}</span><span class="tm">${esc(fmtTime(new Date(e.updated_at)))}</span></a>`;
   return (recent.length ? `<div class="today tcard"><div class="top"><h2>${esc(t('home.recent'))}</h2><a class="chip" href="#/all">${esc(t('common.seeAll'))}</a></div>${recent.map(row).join('')}</div>` : '')
-    + (past ? `<a class="today tcard past" href="#/e/${past.id}"><div class="top"><h2>${esc(t('home.yearsAgo', { n: now.getFullYear() - new Date(past.created_at).getFullYear() }))}</h2></div><p>“${esc((past.text || displayTitle(past, '')).slice(0, 120))}”</p></a>` : '');
+    + (past ? `<a class="today tcard past" href="#/past"><div class="top"><h2>${esc(t('home.yearsAgo', { n: now.getFullYear() - new Date(past.created_at).getFullYear() }))}</h2></div><p>“${esc((past.text || displayTitle(past, '')).slice(0, 120))}”</p></a>` : '');
 }
 const todayKeyOf = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 

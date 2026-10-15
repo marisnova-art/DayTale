@@ -47,7 +47,7 @@ document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preven
 /* ---------- 화면 목록 (모듈은 필요할 때 불러요) ---------- */
 const V = name => () => import(`./views/${name}.js`);
 route('/home', V('home'));
-['/all', '/favorites', '/type/:type', '/todo', '/folder/:id', '/nofolder', '/trash', '/search'].forEach(p => route(p, V('list')));
+['/all', '/favorites', '/past', '/type/:type', '/todo', '/folder/:id', '/nofolder', '/trash', '/search'].forEach(p => route(p, V('list')));
 route('/new', V('editor')); route('/e/:id', V('editor'));
 route('/backup', V('backup'));
 route('/calendar', V('calendar'));

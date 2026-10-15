@@ -15,7 +15,7 @@ import { render as rerender } from '../ui/router.js';
 let filter = 'all';
 /* PC 나란히 보기 (넓은 화면): 왼쪽 목록 + 오른쪽에 고른 기록. 처음엔 맨 위 기록이 열려 있어요 */
 const wide = matchMedia('(min-width: 1200px) and (min-height: 501px), (min-width: 1200px) and (pointer: fine)');
-const SPLIT = new Set(['all', 'fav', 'type', 'todo', 'folder', 'nofolder', 'search', 'trash']);
+const SPLIT = new Set(['all', 'fav', 'past', 'type', 'todo', 'folder', 'nofolder', 'search', 'trash']);
 let sel = null;
 wide.addEventListener('change', () => { if (document.querySelector('#view .lst')) rerender(); });
 // 미리보기: 제목으로 보이는 줄(제목이 없으면 첫 줄)은 빼고 그다음 줄부터
@@ -53,20 +53,20 @@ function row(e, { terms = [], mode = '', split = false } = {}) {
   if (mode === 'trash') return split ? `<div class="swp tr" data-id="${e.id}">${a}</div>` : a;
   return `<div class="swp" data-id="${e.id}"><button class="swp-del" data-del="${e.id}" tabindex="-1">${icon('trash-2', 20)}<span>${esc(t('list.del'))}</span></button>${a}</div>`;
 }
-function groups(list, opts, key = e => dayKey(new Date(e.created_at))) {
+function groups(list, opts, key = e => dayKey(new Date(e.created_at)), label = dayLabel) {
   const out = []; let g = null;
   for (const e of list) { const k = key(e); if (!g || g.k !== k) { g = { k, items: [] }; out.push(g); } g.items.push(e); }
-  return out.map(g => `<div class="grp"><span>${esc(dayLabel(g.k))}</span><span>${g.items.length}</span></div><div class="card">${g.items.map(e => row(e, opts)).join('')}</div>`).join('');
+  return out.map(g => `<div class="grp"><span>${esc(label(g.k))}</span><span>${g.items.length}</span></div><div class="card">${g.items.map(e => row(e, opts)).join('')}</div>`).join('');
 }
 
 function render(view, r) {
   Editor.leave();
   const p = r.path;
-  const mode = p === '/todo' ? 'todo' : p === '/trash' ? 'trash' : p === '/search' ? 'search' : p.startsWith('/folder/') ? 'folder' : p === '/nofolder' ? 'nofolder' : p.startsWith('/type/') ? 'type' : p === '/favorites' ? 'fav' : 'all';
+  const mode = p === '/todo' ? 'todo' : p === '/trash' ? 'trash' : p === '/search' ? 'search' : p.startsWith('/folder/') ? 'folder' : p === '/nofolder' ? 'nofolder' : p.startsWith('/type/') ? 'type' : p === '/favorites' ? 'fav' : p === '/past' ? 'past' : 'all';
   if (mode !== 'all') filter = 'all';
   const folder = mode === 'folder' ? S.folders.get(r.params.id) : null;
   if (mode === 'folder' && !folder) { go('/all', { replace: true }); return; }
-  const title = mode === 'todo' ? t('nav.todo') : mode === 'trash' ? t('nav.trash') : mode === 'search' ? t('nav.search') : mode === 'folder' ? folder.name : mode === 'nofolder' ? t('nav.noFolder') : mode === 'type' ? typeLabel(r.params.type) : mode === 'fav' ? t('nav.fav') : t('nav.all');
+  const title = mode === 'todo' ? t('nav.todo') : mode === 'trash' ? t('nav.trash') : mode === 'search' ? t('nav.search') : mode === 'folder' ? folder.name : mode === 'nofolder' ? t('nav.noFolder') : mode === 'type' ? typeLabel(r.params.type) : mode === 'fav' ? t('nav.fav') : mode === 'past' ? t('nav.past') : t('nav.all');
   const split = wide.matches && SPLIT.has(mode);
   view.innerHTML = (split ? '<div class="split">' : '') + `<section class="lst" data-mode="${mode}"><div class="lst-head"><h1>${esc(title)}</h1><span class="c"></span><span class="act"></span></div><div class="filters"></div>
     ${mode === 'search' ? `<label class="field searchbar">${icon('search', 18)}<input type="search" enterkeyhint="search" placeholder="${esc(t('list.search'))}" aria-label="${esc(t('nav.search'))}"></label>` : ''}
@@ -155,6 +155,13 @@ function paintBody(view, { mode, r, folder, q }) {
       .sort((a, b) => (b.title.toLowerCase().includes(terms[0]) ? 1 : 0) - (a.title.toLowerCase().includes(terms[0]) ? 1 : 0) || b.updated_at.localeCompare(a.updated_at)).slice(0, 300);
     count.textContent = '';
     body.innerHTML = found.length ? `<p class="hint">${esc(t('list.found', { n: fmtNum(found.length) }))}</p><div class="card" style="margin-top:12px">${found.map(e => row(e, { terms })).join('')}</div>` : emptyHTML('search', 'search');
+    return;
+  }
+  if (mode === 'past') {   // 과거의 오늘: 지난해들의 같은 날짜에 쓴 기록, 가까운 해부터
+    const y = new Date().getFullYear(), md = todayKey().slice(5);
+    const found = list.filter(e => { const d = new Date(e.created_at); return d.getFullYear() < y && dayKey(d).slice(5) === md; }).sort(byNew);
+    count.textContent = found.length ? fmtNum(found.length) : '';
+    body.innerHTML = found.length ? `<p class="hint">${esc(fmtDate(new Date(), { month: 'long', day: 'numeric' }))}</p>` + groups(found, { mode, split: !!view.querySelector('.pane') }, e => String(new Date(e.created_at).getFullYear()), k => t('list.yearsAgo', { n: y - +k }) + ' · ' + k) : emptyHTML('history', 'past');
     return;
   }
   if (mode === 'type' && r.params.type === 'event') {   // 일정: 다가오는 일정(가까운 순) · 지난 일정(최근 순)
