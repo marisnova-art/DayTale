@@ -448,3 +448,7 @@
 .ed-pan .places { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 4px 10px 44px; }
 .ed-pan .places button { display: inline-flex; align-items: center; gap: 4px; height: 32px; padding: 0 12px 0 10px; border-radius: 999px; background: var(--fill); color: var(--text-3); font-size: var(--fs-s); font-weight: 600; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ed-pan .places button .i { flex: none; color: var(--muted); }
+/* 칩이 길어지면 두 줄까지: 점(·)은 뒤 항목과 붙어 다니고(줄 끝에 점만 남지 않게), 긴 장소 이름은 … 로 줄여요 */
+.ed .ed-info .pt { display: inline-flex; align-items: center; gap: 7px; font-style: normal; white-space: nowrap; min-width: 0; }
+.ed .ed-info .pl { min-width: 0; }
+.ed .ed-info .pl > span { overflow: hidden; text-overflow: ellipsis; max-width: 12em; }

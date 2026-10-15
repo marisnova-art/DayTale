@@ -137,7 +137,9 @@ function paintChips(full = true) {
   let lead = `${icon(TYPE_ICON[e.type] || 'file-text', 17)}<span>${esc(typeLabel(e.type))}</span>`;
   if (e.type === 'item') lead = `${icon('map-pin', 17)}<b class="${m.place ? '' : 'ph'}">${esc(m.place || t('ed.addPlace'))}</b><i>·</i><span>${esc(typeLabel(e.type))}</span>`;
   if (e.type === 'scrap') lead = `${icon('link', 17)}<b class="${m.url ? '' : 'ph'}">${esc(hostOf(m.url) || t('ed.link'))}</b><i>·</i><span>${esc(typeLabel(e.type))}</span>`;
-  el.info.innerHTML = `${lead}${parts.filter(Boolean).map(p => `<i>·</i><span>${esc(p)}</span>`).join('')}${m.place && e.type !== 'item' ? `<i>·</i><span class="pl">${icon('map-pin', 14)}${esc(m.place)}</span>` : ''}${e.favorite ? `<i>·</i>${icon('star', 15)}` : ''}${e.pinned ? `<i>·</i>${icon('pin', 15)}` : ''}${icon('chevron-down', 16, 'dn')}`;
+  el.info.innerHTML = `${lead}${parts.filter(Boolean).map(p => `<em class="pt"><i>·</i><span>${esc(p)}</span></em>`).join('')}${m.place && e.type !== 'item' ? `<em class="pt"><i>·</i><span class="pl">${icon('map-pin', 14)}<span>${esc(m.place)}</span></span></em>` : ''}${e.favorite ? `<i>·</i>${icon('star', 15)}` : ''}${e.pinned ? `<i>·</i>${icon('pin', 15)}` : ''}${icon('chevron-down', 16, 'dn')}`;
+  // 두 줄이 되면 둘째 줄 맨 앞의 점(·)은 숨겨요
+  requestAnimationFrame(() => { let top = null; $$('.pt', el.info).forEach(p => { const d = p.querySelector('i'); d.style.display = ''; const y = p.offsetTop; if (top != null && y > top + 4) d.style.display = 'none'; top = y; }); });
   if (!full) return;   // 날짜 · 시간을 고르는 중에는 칸을 다시 그리지 않아요 (다시 그리면 아이폰 선택 창이 닫혀요)
   if (e.type === 'event' && !m.date) m.date = todayKey();
   if (cur.pan) paintPan();
