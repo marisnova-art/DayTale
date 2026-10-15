@@ -405,3 +405,15 @@
 .tb.off { opacity: .3; }
 /* 손가락으로 누른 뒤 단추가 '켜진 것처럼' 회색으로 남지 않게 (아이폰은 누른 자리를 마우스 올림으로 기억해요) */
 @media (hover: none) { .tb:hover, .ed-cancel:hover, .ed-pan .it:hover { background: none; } .tb.on:hover { background: rgba(var(--fg),.13); } .tb.x:hover { background: var(--text); } .tb.lbl:hover { background: none; } }
+/* 옵션 판: 펼친 목록이 위 줄에 붙지 않게 위아래 숨 쉴 틈. 펼친 줄은 바탕 없이 글자만 진하게 */
+.ed-pan .it.open { background: none; color: var(--text); }
+.ed-pan .it.open em { color: var(--text); }
+.ed-pan .sub { margin: 6px 14px 10px; padding: 6px 0; border-radius: 16px; }
+/* 입력 칸 글자 키우기: 장소 · 링크 · 날짜 · 시간 값이 본문보다 작아 보여서 18px로 (모바일 · PC 같아요) */
+.ed-meta label { height: 48px; padding: 0 14px; border-radius: 14px; font-size: var(--fs-m); }
+.ed-meta label .i { width: 20px; height: 20px; }
+.ed-meta input { font-size: var(--fs-m); font-weight: 600; }
+.ed-meta label.wide, .ed-meta label:has(input[type=text]) { flex: 1 1 100%; }
+.ed-meta input[type=text], .ed-meta input[type=url] { width: auto; flex: 1; }
+.ed-pan .it input, .ed-pan .it em { font-size: var(--fs-m); }
+.ed-pan .sub .it { font-size: var(--fs-m); min-height: 46px; }
