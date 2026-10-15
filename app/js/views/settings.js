@@ -16,6 +16,7 @@ import { go } from '../ui/router.js';
 import { pickType, typeLabel } from './pickers.js';
 
 const GROUPS = [['account', 'user'], ['display', 'palette'], ['record', 'notebook-pen'], ['notify', 'bell'], ['data', 'database'], ['info', 'info']];
+const isWide = () => matchMedia('(min-width: 1200px) and (min-height: 501px), (min-width: 1200px) and (pointer: fine)').matches;
 const isPC = () => matchMedia('(min-width: 900px) and (min-height: 501px), (min-width: 900px) and (pointer: fine)').matches;
 const LICENSES = [
   ['Pretendard', 'SIL Open Font License 1.1', 'https://github.com/orioncactus/pretendard'],
@@ -92,7 +93,7 @@ function group(g) {
 }
 
 function render(view, r) {
-  const g = r.params.group || (isPC() ? 'account' : '');
+  const g = r.params.group || (isWide() ? 'account' : '');   // 넓은 PC만 첫 그룹을 바로 열어요
   view.innerHTML = `<section class="set${g ? ' has-g' : ''}"><nav class="snav"><h1>${esc(t('nav.settings'))}</h1>
       <div class="scard">${GROUPS.map(([k, ic]) => `<a class="srow${k === g ? ' on' : ''}" href="#/settings/${k}"><span class="si">${icon(ic, 19)}</span><span class="stx"><b>${esc(t('set.g.' + k))}</b></span>${icon('chevron-right', 18)}</a>`).join('')}</div></nav>
     <div class="sbody">${g ? `<div class="shead"><a class="icon-btn back" href="#/settings" aria-label="${esc(t('ed.back'))}">${icon('chevron-left', 22)}</a><h2>${esc(t('set.g.' + g))}</h2></div><div class="sgroup">${group(g)}</div>` : ''}</div><div style="height:120px"></div></section>`;

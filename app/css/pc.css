@@ -10,7 +10,10 @@
   /* 홈: 이야기는 남은 자리 가운데, 오늘 정리는 오른쪽 끝 */
   .main .home-wrap { display: flex; gap: var(--pc-gap); padding: 0 var(--pc-r) 0 var(--pc-l); max-width: none; margin: 0; justify-content: flex-start; }
   .main .home-wrap .home { flex: 1; min-width: 0; max-width: 680px; margin: 0 auto; }
-  .main .today-side { width: var(--pc-side); position: sticky; top: 90px; align-self: flex-start; display: flex !important; flex-direction: column; gap: 14px; max-height: calc(100dvh - 104px); overflow-y: auto; scrollbar-width: none; }
+  .main .today-side { width: var(--pc-side); position: sticky; top: 90px; align-self: flex-start; display: flex !important; flex-direction: column; gap: 14px; margin-top: 0; }
+  /* 오른쪽 카드: 그림자를 자르는 스크롤 칸을 없애고, 제목은 모두 같은 글자색 */
+  .main .today-side .today { box-shadow: 0 12px 32px rgba(0,0,0,.18); }
+  .main .today-side .today .top h2 { color: var(--text); }
   .main .today-side .today { position: static; }
   .main .today-side .tcard { display: block; background: var(--sheet); border: 1px solid rgba(var(--fg),.08); border-radius: 28px; padding: 20px 20px 10px; color: inherit; }
   .main .today-side .tcard .top { margin: 0 0 6px; }
@@ -51,4 +54,17 @@
   .tpv .ed-info { pointer-events: none; }
   .tpv .ed-body { margin-top: 14px; color: var(--text-2); }
 }
-@media (min-width: 900px) and (min-height: 501px) and (max-width: 1199px), (min-width: 900px) and (pointer: fine) and (max-width: 1199px) { .cal-pc .pane { display: none; } }
+/* 900~1199 (패드 · 좁은 창): 한 칸으로 */
+@media (min-width: 900px) and (min-height: 501px) and (max-width: 1199px), (min-width: 900px) and (pointer: fine) and (max-width: 1199px) {
+  .cal-pc .pane { display: none; }
+  /* 홈: 이야기 아래에 오늘 정리 */
+  .main .home-wrap { flex-direction: column; align-items: flex-start; }
+  .main .home-wrap .home { width: 100%; margin: 0; }
+  .main .today-side { position: static; width: 100%; max-width: 680px; margin: 8px 0 120px; }
+  /* 설정: 휴대폰처럼 그룹 목록 → 고르면 내용 (뒤로 버튼) */
+  .main .set { display: block; max-width: calc(var(--pc-l) + 640px); }
+  .main .set.has-g .snav { display: none; }
+  .main .set:not(.has-g) .sbody { display: none; }
+  .main .set .sbody { padding-top: 0; }
+  .main .shead .back { display: inline-flex; }
+}
