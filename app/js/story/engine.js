@@ -8,6 +8,7 @@ import fr from './fr.js';
 import { S, displayTitle, emit, live, setPref } from '../data/store.js';
 import { fmtHM, getLang, t } from '../core/i18n.js';
 import { litById, litReady, loadLit, pickLit, setLitRemote } from './lit.js';
+import { hasWords, todayWord, wordDay } from './words.js';
 import { addDays, dayKey, esc, ls, parseDay, slotOf, sunUp, todayKey } from '../core/utils.js';
 import { localeRegion, seasonFor, tempUnit } from '../core/countries.js';
 import { sticker } from '../core/stickers.js';
@@ -147,7 +148,10 @@ function compose({ name, weather = null, city = null, geo = null, holiday = null
   out.push(p1);
 
   // 2. 문학 한 구절: 저작권이 끝난 작가의 글을 2~3줄로. 날짜·시간대마다 하나, 2주 안에는 되풀이하지 않아요
-  const lit = litLine(ctx, lang); if (lit) out.push({ lit: true, html: lit });
+  //    한 마디 묶음이 있는 언어는 날마다 70%는 '힘이 되는 한 마디'(누가 한 말인지 + 굵은 원문 + 이어 쓰기), 30%는 문학 줄
+  const word = hasWords(lang) && wordDay(ctx) ? todayWord(ctx, lang) : null;
+  if (word) out.push({ word });
+  else { const lit = litLine(ctx, lang); if (lit) out.push({ lit: true, html: lit }); }
 
   // 3. 오늘 할 것
   const plan = [];
@@ -201,7 +205,8 @@ function litLine(ctx, lang) {
   if (!litReady(lang)) { loadLit(lang).then(ok => ok && emit('lit')); return ''; }
   let i = log[key], x = i != null ? litById(lang, i) : null;
   if (!x) { const p = pickLit(ctx, lang, Object.values(log)); if (!p) return ''; i = p.i; log[key] = i; ls.set('daytale.lit', log); x = litById(lang, i); }
-  return x ? esc(x.text).replace(/\*\*(.+?)\*\*/g, '<b class="w">$1</b>') : '';
+  // 굵은 구절은 누를 수 있어요: 명언과 같은 시트(출처 · 간직하기 · 느낀 점 쓰기)
+  return x ? esc(x.text).replace(/\*\*(.+?)\*\*/g, `<a class="w lq" href="#" role="button" data-lit="${esc(String(x.id))}">$1</a>`) : '';
 }
 
 export { batchim, compose, gather, josa, setRemote };

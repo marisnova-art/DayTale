@@ -435,3 +435,10 @@
 @media (max-width: 899px), (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
   .ed-top .ed-cancel { height: 40px; padding: 0 16px 0 12px; border-radius: 20px; font-size: var(--fs-s); font-weight: 800; color: var(--text); background: rgba(var(--fg),.16); border: 1px solid rgba(var(--fg),.16); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
 }
+
+/* 한 마디로 쓴 기록: 본문 위에 그 문장 (지울 수 없고, 기록과 함께 남아요) */
+.ed .ed-quote { margin: 4px 0 14px; padding: 0 0 0 14px; border-left: 3px solid rgba(var(--ink-rgb),.25); }
+.ed .ed-quote blockquote { margin: 0; font-size: 18px; line-height: 1.5; font-weight: 600; color: var(--ink, var(--text)); }
+.ed .ed-quote figcaption { margin-top: 4px; font-size: var(--fs-s); color: rgba(var(--ink-rgb),.6); }
+.ed .ed-body[data-q] { position: relative; }
+.ed .ed-body[data-q]:has(> p:only-child > br:only-child)::before { content: attr(data-ph); position: absolute; left: 0; top: 0; color: rgba(var(--fg),.4); pointer-events: none; }

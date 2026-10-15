@@ -32,7 +32,7 @@ function render(view, r, opts = {}) {   // opts.pane: PC 나란히 보기의 오
   const e = isNew ? newEntry({ type: r.query.type || S.prefs.defaultType || 'note', folder_id: r.query.folder || null, meta: r.query.date ? { date: r.query.date } : {} })
     : S.entries.get(r.params.id);
   let carried = false;
-  if (isNew) { try { const c = JSON.parse(sessionStorage.getItem('daytale.carry') || 'null'); sessionStorage.removeItem('daytale.carry'); carried = !!c; if (c?.text) { e.content = c.text.split('\n').map(l => `<p>${esc(l) || '<br>'}</p>`).join(''); e.text = c.text; if (c.prompt) e.meta = { ...e.meta, prompt: c.prompt }; }
+  if (isNew) { try { const c = JSON.parse(sessionStorage.getItem('daytale.carry') || 'null'); sessionStorage.removeItem('daytale.carry'); carried = !!c; if (c?.quote?.q) e.meta = { ...e.meta, quote: { id: String(c.quote.id || ''), lang: String(c.quote.lang || ''), q: String(c.quote.q).slice(0, 400), by: String(c.quote.by || '').slice(0, 80), src: String(c.quote.src || '').slice(0, 120) } }; if (c?.text) { e.content = c.text.split('\n').map(l => `<p>${esc(l) || '<br>'}</p>`).join(''); e.text = c.text; if (c.prompt) e.meta = { ...e.meta, prompt: c.prompt }; }
     if (c?.url) { e.type = 'scrap'; e.meta = { ...e.meta, url: safeUrl(c.url) || undefined }; e.title = (c.title || '').slice(0, 300); if (!e.title) { try { e.title = new URL(c.url).hostname.replace(/^www\./, ''); } catch {} } } } catch {} }
   if (!e) { view.innerHTML = `<div class="ed-page"><div class="ed"><button class="icon-btn" data-act="back" aria-label="${esc(t('ed.back'))}">${icon('chevron-left', 22)}</button><p class="note" style="padding:40px 4px">${esc(t('list.noResults'))}</p></div></div>`; view.querySelector('[data-act=back]').onclick = () => history.length > 1 ? history.back() : go('/home'); return; }
   const ro = !S.canWrite;
@@ -45,7 +45,8 @@ function render(view, r, opts = {}) {   // opts.pane: PC 나란히 보기의 오
     <div class="ed-tools" role="toolbar"${ro ? ' hidden' : ''}>${ro ? '' : `<span class="grp">${fontBtn}</span><span class="grp">${INLINE.slice(0, 3).map(f => fbtn(f)).join('')}</span><span class="grp">${STYLE.slice(1).map(f => fbtn(f)).join('')}${fbtn(INLINE[4])}</span><span class="grp">${HL.map(hlBtn).join('')}</span><span class="grp">${[LISTS[2], LISTS[0], LISTS[1], LISTS[3]].map(f => fbtn(f)).join('')}</span><span class="grp">${photoBtn}${fbtn(LISTS[4])}${fbtn(LISTS[5])}</span>`}</div>
     ${ro ? `<div class="ed-locked"><span>${esc(t('ed.locked'))}</span><button data-act="plans">${esc(t('trial.plans'))}</button></div>` : ''}
     <button class="ed-info" data-act="more" aria-expanded="false"></button><div class="ed-pan" hidden></div>
-    <div class="ed-body" ${ro ? '' : 'contenteditable="true"'} spellcheck="true" data-ph="${esc(t('ed.body'))}" role="textbox" aria-multiline="true" aria-label="${esc(t('ed.body'))}"></div>
+    ${e.meta?.quote?.q ? `<figure class="ed-quote"><blockquote>${esc(e.meta.quote.q)}</blockquote><figcaption>${esc(e.meta.quote.by)}${e.meta.quote.src ? ` · ${esc(e.meta.quote.src)}` : ''}</figcaption></figure>` : ''}
+    <div class="ed-body" ${ro ? '' : 'contenteditable="true"'} spellcheck="true" data-ph="${esc(t(e.meta?.quote?.q && isNew ? 'word.ph' : 'ed.body'))}"${e.meta?.quote?.q && isNew ? ' data-q' : ''} role="textbox" aria-multiline="true" aria-label="${esc(t('ed.body'))}"></div>
     <div class="ed-photos"></div>
   </div>
   <div class="ed-dock">
