@@ -51,7 +51,7 @@ function render(view) {
     const old = (await past()).map(x => ({ ...x, tm: fmtRel(new Date(x.at).toISOString()) }));
     const body = view.querySelector('.body'); if (!body) return;
     body.innerHTML = prob.length + soon.length + old.length
-      ? grp(t('inbox.check'), prob) + grp(t('inbox.soon'), soon) + grp(t('inbox.past'), old)
+      ? (prob.length || old.some(x => x.fresh) ? `<p class="nlegend"><i></i>${esc(t('inbox.legend'))}</p>` : '') + grp(t('inbox.check'), prob) + grp(t('inbox.soon'), soon) + grp(t('inbox.past'), old)
       : `<div class="empty">${icon('bell', 28)}<b>${esc(t('empty.inbox'))}</b><p>${esc(t('empty.inbox.s'))}</p><a class="btn line" href="#/settings/notify">${icon('settings', 18)}${esc(t('inbox.settings'))}</a></div>`;
     // 열었으니 읽음으로
     ls.set(SEEN, now);

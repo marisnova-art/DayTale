@@ -22,7 +22,7 @@ export default {
   'set.todoAtSub': '期限日のこの時刻にお知らせします',
   'notify.eventTomorrow': '明日 {time} 開始',
   'notify.todoTomorrow': '明日が期限です',
-  'inbox.todoPast': '期限のお知らせ', 'inbox.check': '確認が必要です', 'inbox.soon': 'これからの通知', 'inbox.past': '過去の通知', 'inbox.tomorrow': '明日', 'inbox.settings': '通知の設定', 'inbox.locked': '体験期間が終わり、書き込みが止まっています', 'inbox.lockedS': '購読するとすぐに書けます。閲覧と書き出しはそのまま使えます。', 'inbox.lateS': 'しばらくして再試行します。タップで状態を確認できます。', 'inbox.offS': '接続されたら自動で送ります。', 'empty.inbox': 'まだ通知はありません', 'empty.inbox.s': '予定・ToDoの通知やお知らせがここに集まります。',
+  'inbox.todoPast': '期限のお知らせ', 'inbox.legend': '点はまだ確認していない通知です', 'inbox.check': '確認が必要です', 'inbox.soon': 'これからの通知', 'inbox.past': '過去の通知', 'inbox.tomorrow': '明日', 'inbox.settings': '通知の設定', 'inbox.locked': '体験期間が終わり、書き込みが止まっています', 'inbox.lockedS': '購読するとすぐに書けます。閲覧と書き出しはそのまま使えます。', 'inbox.lateS': 'しばらくして再試行します。タップで状態を確認できます。', 'inbox.offS': '接続されたら自動で送ります。', 'empty.inbox': 'まだ通知はありません', 'empty.inbox.s': '予定・ToDoの通知やお知らせがここに集まります。',
   'sync.offline': 'オフラインです。変更はこの端末に保存し、接続が戻ったら同期します。', 'sync.conflict': '別の端末で同じ記録が変更されたため、コピーを残しました。', 'sync.suffix': '（コピー）',
   'err.generic': '問題が発生しました。もう一度試しています。', 'err.quota': '保存できる容量の上限に達しました。', 'err.locked': '体験期間が終了したため、新しく書いたり編集したりできません。閲覧・検索・書き出しはこれまでどおり使えます。',
   'err.noStorage': 'このブラウザでは端末への保存がブロックされています。閉じると書きかけの内容が消えることがあります。', 'err.noServer': 'サーバーの接続情報がありません。',

@@ -22,7 +22,7 @@ export default {
   'set.todoAtSub': '마감일 이 시각에 알려 드려요',
   'notify.eventTomorrow': '내일 {time} 시작',
   'notify.todoTomorrow': '내일까지예요',
-  'inbox.todoPast': '마감 알림', 'inbox.check': '확인이 필요해요', 'inbox.soon': '다가오는 알림', 'inbox.past': '지난 알림', 'inbox.tomorrow': '내일', 'inbox.settings': '알림 설정', 'inbox.locked': '체험이 끝나 쓰기가 잠겼어요', 'inbox.lockedS': '구독하면 바로 다시 쓸 수 있어요. 읽기와 내보내기는 그대로 돼요.', 'inbox.lateS': '잠시 뒤 다시 시도할게요. 눌러서 상태를 볼 수 있어요.', 'inbox.offS': '연결되면 자동으로 보낼게요.', 'empty.inbox': '아직 알림이 없어요', 'empty.inbox.s': '일정·할 일 알림과 공지, 안내가 여기에 모여요.',
+  'inbox.todoPast': '마감 알림', 'inbox.legend': '점은 아직 확인하지 않은 알림이에요', 'inbox.check': '확인이 필요해요', 'inbox.soon': '다가오는 알림', 'inbox.past': '지난 알림', 'inbox.tomorrow': '내일', 'inbox.settings': '알림 설정', 'inbox.locked': '체험이 끝나 쓰기가 잠겼어요', 'inbox.lockedS': '구독하면 바로 다시 쓸 수 있어요. 읽기와 내보내기는 그대로 돼요.', 'inbox.lateS': '잠시 뒤 다시 시도할게요. 눌러서 상태를 볼 수 있어요.', 'inbox.offS': '연결되면 자동으로 보낼게요.', 'empty.inbox': '아직 알림이 없어요', 'empty.inbox.s': '일정·할 일 알림과 공지, 안내가 여기에 모여요.',
   'sync.offline': '오프라인이에요. 이 기기에 저장해 두었다가 연결되면 보낼게요.', 'sync.conflict': '다른 기기에서 같은 기록을 고쳐서 사본을 만들었어요.', 'sync.suffix': '(사본)',
   'err.generic': '잠시 문제가 생겼어요. 다시 해 볼게요.', 'err.quota': '저장 한도에 닿았어요.', 'err.locked': '체험이 끝나서 새로 쓰거나 고칠 수 없어요. 읽기·찾기·내보내기는 그대로 돼요.',
   'err.noStorage': '이 브라우저는 기기 저장을 막고 있어요. 창을 닫으면 쓰던 내용이 사라질 수 있어요.', 'err.noServer': '서버 연결 정보가 없어요.',

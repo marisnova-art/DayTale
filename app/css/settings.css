@@ -81,10 +81,10 @@
 
 /* 알림함 · 종 표시 */
 .ntc .lst-head { align-items: center; padding-left: 0; }
-.ntc .nt { align-items: flex-start; } .ntc .nt.new .t::after { content: ''; display: inline-block; width: 7px; height: 7px; margin-left: 8px; border-radius: 4px; background: var(--accent); vertical-align: middle; }
+.ntc .nt { align-items: flex-start; } .ntc .nt.new .t::after { content: ''; display: inline-block; width: 10px; height: 10px; margin-left: 8px; border-radius: 4px; background: var(--accent); vertical-align: middle; }
 .ntc .p.wrap { white-space: normal; line-height: 1.55; }
 .has-unread .bell { position: relative; }
-.has-unread .bell::after, .has-unread .menu-btn::after { content: ''; position: absolute; top: 9px; right: 10px; width: 8px; height: 8px; border-radius: 4px; background: var(--accent); box-shadow: 0 0 0 2px rgba(var(--srf),.9); }
+.has-unread .bell::after { content: ''; position: absolute; top: 9px; right: 10px; width: 8px; height: 8px; border-radius: 4px; background: var(--accent); box-shadow: 0 0 0 2px rgba(var(--srf),.9); }
 
 /* 설치 안내 */
 .inst .lead { color: var(--muted); font-size: var(--fs-s); line-height: 1.6; margin: 6px 0 14px; }
@@ -184,3 +184,11 @@
 .ntc .empty .btn { margin-top: 14px; }
 /* 안 읽은 알림이 있으면 설정 › 알림 줄에도 점 */
 .has-unread .snav a[href$="/notify"] .stx b::after { content: ''; display: inline-block; width: 7px; height: 7px; margin-left: 8px; vertical-align: 3px; border-radius: 4px; background: var(--accent); }
+/* 점이 무엇인지 맨 위에 한 줄로 */
+.ntc .nlegend { display: flex; align-items: center; gap: 8px; margin: 4px 6px 14px; font-size: var(--fs-s); color: var(--muted); }
+.ntc .nlegend i { flex: none; width: 10px; height: 10px; border-radius: 5px; background: var(--accent); }
+/* 모바일 아래 막대의 종: 점을 아이콘에 바짝, 조금 작게 */
+.has-unread .mbar .bell::after { top: calc(50% - 13px); right: auto; left: calc(50% + 5px); width: 7px; height: 7px; }
+/* 안 읽음 점은 배경과 상관없이 늘 같은 주황 (흰 카드 위에서도 잘 보이게) */
+.ntc .nt.new .t::after, .ntc .nlegend i, .has-unread .bell::after, .has-unread .snav a[href$="/notify"] .stx b::after { background: #FF7A59; }
+.has-unread .mbar .bell::after { box-shadow: 0 0 0 2px var(--sheet, #FFFFFF); }
