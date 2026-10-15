@@ -428,5 +428,5 @@
 /* dev.96 취소도 저장처럼 버튼으로: 같은 높이 · 둥근 알약, 색은 유리 회색 (저장만 색이 있어요) */
 .ed-cancel { display: inline-flex; align-items: center; gap: 6px; }
 @media (max-width: 899px), (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
-  .ed-top .ed-cancel { height: 40px; padding: 0 16px 0 12px; border-radius: 20px; font-size: var(--fs-s); font-weight: 800; color: var(--text); background: rgba(var(--fg),.16); border: 1px solid rgba(var(--fg),.16); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); box-shadow: 0 6px 18px rgba(0,0,0,.18); }
+  .ed-top .ed-cancel { height: 40px; padding: 0 16px 0 12px; border-radius: 20px; font-size: var(--fs-s); font-weight: 800; color: var(--text); background: rgba(var(--fg),.16); border: 1px solid rgba(var(--fg),.16); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
 }
