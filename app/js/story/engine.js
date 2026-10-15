@@ -122,7 +122,9 @@ function compose({ name, weather = null, city = null, geo = null, holiday = null
   const ctx = gather(new Date(), { cc: geo?.cc, lat: geo?.lat }); ctx.weather = weather; ctx.holiday = holiday;
   ctx.light = sunUp(ctx.now, geo?.lat, geo?.lon);   // 해가 졌으면 햇살·푸른 하늘 문장은 나오지 않아요
   const W = P.words, out = [];
-  const entryLink = e => ({ html: link('#/e/' + e.id, esc(displayTitle(e, t('common.untitled')))), plain: displayTitle(e, t('common.untitled')) });
+  // 이야기 속 제목은 짧게: 긴 글의 첫 줄이 홈을 길게 늘리지 않게 (글자 24자까지)
+  const short = e => { const s = Array.from(displayTitle(e, t('common.untitled'))); return s.length > 24 ? s.slice(0, 23).join('').trimEnd() + '…' : s.join(''); };
+  const entryLink = e => ({ html: link('#/e/' + e.id, esc(short(e))), plain: short(e) });
   const vars = { name: { html: link('#/settings/account', esc(name)), plain: name } };
   const extra = part => (R[part] || []).filter(r => match(r.cond, ctx));
 

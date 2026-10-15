@@ -118,7 +118,7 @@ async function renderTidy(view) {
 /* 방금 남긴 한 줄은 오늘 하루 동안 이야기 끝에 남아요 (처음 한 번만 반짝) */
 function justLine() {
   if (!just || just.day !== todayKey() || !S.entries.get(just.id) || S.entries.get(just.id).deleted_at) return '';
-  const short = just.text.length > 80 ? just.text.slice(0, 80) + '…' : just.text;
+  const short = just.text.length > 40 ? just.text.slice(0, 40).trimEnd() + '…' : just.text;
   const html = `<p class="just${just.fresh ? ' hl' : ''}">${sticker('sparkles')} ${t('home.just', { text: `<a class="w" href="#/e/${just.id}">${esc(short)}</a>` })}</p>`;
   just.fresh = false; return html;
 }

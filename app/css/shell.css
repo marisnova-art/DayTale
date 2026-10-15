@@ -254,7 +254,6 @@ dialog.dlg .btn { height: 44px; }
   :root { --pc-max: 1440px; --pc-read: 720px; --story: 26px; }
   .main > .pc-top, .main > .view { width: 100%; max-width: var(--pc-max); }   /* 큰 화면: 메뉴 옆에 붙이고 남는 자리는 오른쪽 여백 (pc.css) */
   .main .home { max-width: 680px; }
-  .today-side .trow .t { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; white-space: normal; }
   /* 캘린더 주: 칸은 내용만큼 (빈 날은 낮게), 기록 글은 세 줄까지 */
   .cal .pcw { align-items: start; }
   .cal .pcw .col { min-height: 180px; }

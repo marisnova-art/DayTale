@@ -63,7 +63,7 @@
 .today .lbl em { font-style: normal; color: var(--event); }
 .trow { display: flex; align-items: center; gap: 14px; min-height: 58px; border-bottom: 1px solid var(--line); }
 .trow:last-child { border-bottom: 0; }
-.trow .t { flex: 1; font-size: var(--fs-m); font-weight: 600; color: var(--text-2); letter-spacing: -.02em; }
+.trow .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-m); font-weight: 600; color: var(--text-2); letter-spacing: -.02em; }
 .trow .t.done { color: var(--faint); text-decoration: line-through; text-decoration-color: #4A4752; }
 .trow .tm { font-size: var(--fs-s); font-weight: 600; color: var(--muted-2); font-variant-numeric: tabular-nums; }
 .trow .due { font-size: var(--fs-s); font-weight: 700; color: var(--event); background: rgba(255,157,122,.14); padding: 4px 8px; border-radius: 8px; }

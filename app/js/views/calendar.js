@@ -24,7 +24,7 @@ function index() {
     else if (e.type === 'todo') put(e.meta.date || (e.meta.done && e.meta.doneAt ? dayKey(new Date(e.meta.doneAt)) : null), 'todo', e);
     else put(dayKey(new Date(e.created_at)), 'record', e);
   }
-  m.forEach(d => { d.event.sort((a, b) => (a.meta.time || '99').localeCompare(b.meta.time || '99')); d.todo.sort((a, b) => (a.meta.done ? 1 : 0) - (b.meta.done ? 1 : 0)); d.record.sort((a, b) => a.created_at.localeCompare(b.created_at)); });
+  m.forEach(d => { d.event.sort((a, b) => (a.meta.time || '99').localeCompare(b.meta.time || '99')); d.todo.sort((a, b) => (a.meta.done ? 1 : 0) - (b.meta.done ? 1 : 0)); d.record.sort((a, b) => b.created_at.localeCompare(a.created_at)); });   // 기록은 최신이 위로
   return m;
 }
 const dots = d => !d ? '' : ['event', 'todo', 'record'].filter(k => pass(k) && (k === 'todo' ? d.todo.some(e => !e.meta.done) : d[k].length)).slice(0, 3).map(k => `<u style="background:${COL[k]}"></u>`).join('');
@@ -128,7 +128,7 @@ function paint(root) {
       <span class="wkrange">${esc(fmtDate(days[0], { month: 'long', day: 'numeric' }))} – ${esc(fmtDate(days[6], days[6].getMonth() === days[0].getMonth() ? { day: 'numeric' } : { month: 'long', day: 'numeric' }))}</span>
       <div class="weekstrip">${days.map(d => { const k = dayKey(d); return `<button class="day${k === state.sel ? ' on' : ''}${d.getDay() === 0 || d.getDay() === 6 ? ' we' : ''}" data-day="${k}">${esc(fmtDate(d, { weekday: 'narrow' }))}<b>${d.getDate()}</b><span class="dots">${dots(idx.get(k)).replace(/<u /g, '<i ').replace(/<\/u>/g, '</i>')}</span></button>`; }).join('')}</div>
       <button class="navbtn" data-nav="1" aria-label="${esc(t('cal.nextWeek'))}">${icon('chevron-right', 24)}</button></div>
-      <div class="agenda">${days.filter(d => !days.some(x => dayKey(x) === today) || dayKey(d) >= today).map(d => dayBlock(dayKey(d), idx.get(dayKey(d)))).join('')}</div>
+      <div class="agenda">${days.filter(d => !days.some(x => dayKey(x) === today) || dayKey(d) >= (state.sel < today ? state.sel : today))   /* 이번 주는 오늘부터, 지난 날을 고르면 그날부터 */.map(d => dayBlock(dayKey(d), idx.get(dayKey(d)))).join('')}</div>
       <div class="pcw">${days.map(d => { const k = dayKey(d), x = idx.get(k); const list = x ? [...(pass('event') ? x.event.map(e => item(e, 'event')) : []), ...(pass('todo') ? x.todo.map(e => item(e, 'todo')) : []), ...(pass('record') ? x.record.map(e => item(e, 'record')) : [])] : [];
         return `<div class="col${k === today ? ' now' : ''}"><div class="hd" data-day="${k}">${esc(fmtDate(d, { weekday: 'short' }))}<b>${d.getDate()}</b></div>${list.join('')}<button class="add only" data-add="${k}" aria-label="${esc(t('cal.add'))}" style="align-self:flex-start;margin-top:auto">${icon('plus', 15)}</button></div>`; }).join('')}</div>`;
   } else {

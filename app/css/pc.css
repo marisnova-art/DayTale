@@ -17,7 +17,7 @@
   .main .today-side .today { position: static; }
   .main .today-side .tcard { display: block; background: var(--sheet); border: 1px solid rgba(var(--fg),.08); border-radius: 28px; padding: 20px 20px 10px; color: inherit; }
   .main .today-side .tcard .top { margin: 0 0 6px; }
-  .main .today-side .past p { margin: 4px 0 12px; font-size: var(--fs-s); line-height: 1.6; color: var(--text-3); }
+  .main .today-side .past p { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; margin: 4px 0 12px; font-size: var(--fs-s); line-height: 1.6; color: var(--text-3); }
 
   /* 단독 쓰기: 모바일처럼 배경 위에 바로, 메뉴 옆 기준선에 붙이고 글 칸은 800까지 */
   .main > .view > .ed-page > .ed-top, .main > .view > .ed-page > .ed { margin: 0; max-width: calc(var(--pc-l) + 800px); padding-left: var(--pc-l); padding-right: 0; }
