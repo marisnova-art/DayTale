@@ -57,8 +57,8 @@
 .weekstrip .day.we b { color: var(--event); }
 .weekstrip .day.on { background: var(--text-2); color: var(--faint); }
 .weekstrip .day.on b { color: var(--on-text); }
-.weekstrip .dots { display: flex; gap: 3px; height: 4px; }
-.weekstrip .dots i { width: 4px; height: 4px; border-radius: 2px; }
+.weekstrip .dots { display: flex; gap: 4px; height: 7px; }
+.weekstrip .dots i { width: 7px; height: 7px; border-radius: 4px; }
 .today .lbl { font-size: var(--fs-s); font-weight: 700; color: var(--faint); letter-spacing: .04em; margin-top: 18px; }
 .today .lbl em { font-style: normal; color: var(--event); }
 .trow { display: flex; align-items: center; gap: 14px; min-height: 58px; border-bottom: 1px solid var(--line); }

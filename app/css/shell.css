@@ -40,18 +40,16 @@
 .drawer .profile-card { margin-top: 0; }
 .logo { width: 30px; height: 30px; border-radius: 10px; background: linear-gradient(140deg, #FFB37A, #E5577A); flex: none; }
 .brand { flex: 1; font-size: var(--fs-m); font-weight: 700; color: var(--text); }
-.profile-card { flex: none; margin: 14px 4px 0; padding: 14px; border-radius: 18px; background: var(--fill); border: 1px solid var(--fill-2); display: flex; flex-direction: column; gap: 12px; text-align: left; }
-.profile-card .who { display: flex; align-items: center; gap: 12px; }
+.profile-card { flex: none; margin: 14px 4px 0; padding: 8px 12px 8px 8px; border-radius: 16px; background: transparent; border: 0; display: flex; flex-direction: column; text-align: left; }
+.profile-card:hover { background: var(--fill); }
+.profile-card .who { min-width: 0; }
+.profile-card .avatar { width: 30px; height: 30px; border-radius: 15px; box-shadow: none; }
+.profile-card .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.profile-card .pchip { flex: none; height: 26px; padding: 0 10px; border-radius: 13px; display: inline-flex; align-items: center; font-size: var(--fs-s); font-weight: 700; color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); white-space: nowrap; }
+.profile-card .pbadge:empty { display: none; }   /* 대표 배지 자리 (배지 기능과 함께 채워요) */
+.profile-card .who { display: flex; align-items: center; gap: 10px; }
 .profile-card .nm { font-size: var(--fs-m); font-weight: 700; color: var(--text-2); letter-spacing: -.02em; display: block; }
-.profile-card .em { font-size: var(--fs-s); font-weight: 500; color: var(--muted-2); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 190px; }
-.trialbar { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
-.trialbar .tx { display: flex; justify-content: space-between; font-size: var(--fs-s); font-weight: 600; color: var(--text-3); }
-.trialbar .tx em { font-style: normal; color: var(--accent); }
-.trialbar .tx span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* 구독 보기: 체험 막대 아래 한 줄 (글자가 커져도 두 줄로 갈라지지 않게) */
-.trialbar .tb-plans { display: flex; align-items: center; justify-content: flex-start; gap: 2px; font-size: var(--fs-s); font-weight: 600; color: #A9A29A; white-space: nowrap; }
-.trialbar .bar { height: 3px; border-radius: 2px; background: var(--line-2); }
-.trialbar .bar i { display: block; height: 3px; border-radius: 2px; background: var(--accent); }
 .search { flex: none; margin: 12px 4px 4px; height: 48px; border-radius: 16px; background: var(--fill); border: 1px solid var(--fill-2); display: flex; align-items: center; gap: 10px; padding: 0 16px; color: var(--muted-2); }
 .search input { border: 0; background: none; color: var(--text-2); width: 100%; outline: none; }
 .search input::placeholder { color: var(--muted-2); }
@@ -177,7 +175,6 @@ dialog.dlg .btn { height: 44px; }
   :root[data-ui="white"] .drawer .m.on { background: #F0EEF3; border-color: transparent; color: #18171C; }
   :root[data-ui="white"] .drawer .m.on svg { color: #18171C; }
   :root[data-ui="white"] .drawer .head .close { background: #F0EEF3; }
-  :root[data-ui="white"] .drawer .trialbar .tb-plans { color: #77737F; }
   :root[data-ui="glass"] .drawer { background: linear-gradient(rgba(var(--fg),.16), rgba(var(--fg),.16)), rgba(var(--srf),.72); border-color: rgba(var(--fg),.28);
     -webkit-backdrop-filter: blur(30px) saturate(1.4); backdrop-filter: blur(30px) saturate(1.4);
     --text-3: #FFFFFF; --muted-2: rgba(var(--fg),.72); --faint: rgba(var(--fg),.6); --fill: rgba(var(--fg),.14); --fill-2: rgba(var(--fg),.2); --line: rgba(var(--fg),.2); --line-2: rgba(var(--fg),.28); }
@@ -232,7 +229,7 @@ dialog.dlg .btn { height: 44px; }
   /* 메뉴: 높이가 낮아서 두 칸으로 — 왼쪽 프로필 · 찾기 · 휴지통 · 설정, 오른쪽 메뉴 목록(스크롤), 맨 아래 닫기 줄 */
   .drawer { bottom: calc(8px + var(--safe-b)); max-width: 760px; height: calc(100dvh - 16px - var(--safe-b)); max-height: none; padding: 10px 10px 8px;
     display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); grid-template-rows: auto auto minmax(0, 1fr) auto; column-gap: 12px; }
-  .drawer .profile-card { grid-area: 1 / 1; margin: 0 4px; padding: 12px; gap: 8px; }
+  .drawer .profile-card { grid-area: 1 / 1; margin: 0 4px; padding: 8px; }
   .drawer .search { grid-area: 2 / 1; margin: 8px 4px 0; height: 44px; }
   .drawer .foot .m { height: 40px; }
   .drawer .foot { grid-area: 3 / 1; align-self: end; border-top: 0; }

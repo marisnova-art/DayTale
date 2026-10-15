@@ -39,6 +39,12 @@ svg.i { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: rou
 .fs.more-r { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); }
 .fs.more-l { -webkit-mask-image: linear-gradient(90deg, transparent, #000 28px); mask-image: linear-gradient(90deg, transparent, #000 28px); }
 .fs.more-l.more-r { -webkit-mask-image: linear-gradient(90deg, transparent, #000 28px, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(90deg, transparent, #000 28px, #000 calc(100% - 28px), transparent); }
+.filters > .fa { display: none; flex: none; width: 36px; height: 36px; border-radius: 18px; align-items: center; justify-content: center; color: rgba(var(--fg),.7); }
+.filters > .fa:hover { background: rgba(var(--fg),.08); color: rgba(var(--fg),.95); }
+@media (pointer: fine) {
+  .filters.can-l > .fa.fl, .filters.can-r > .fa.fr { display: inline-flex; }   /* PC: 넘칠 때만 ‹ › */
+  .filters > .fs button { padding: 0 12px; }
+}
 .chip { white-space: nowrap; height: 34px; padding: 0 14px; border-radius: 17px; background: var(--raised-2); font-size: var(--fs-s); font-weight: 700; color: var(--text-3); display: inline-flex; align-items: center; gap: 6px; }
 .icon-btn { width: 44px; height: 44px; border-radius: 22px; display: inline-flex; align-items: center; justify-content: center; color: var(--text); position: relative; }
 .icon-btn:hover { background: var(--fill); }

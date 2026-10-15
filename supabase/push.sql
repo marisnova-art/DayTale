@@ -96,9 +96,9 @@ language sql stable security definer set search_path = public as $$
     where coalesce(s.nt->>'reminders', 'true') <> 'false' and e.type = 'event' and e.deleted_at is null
       and e.meta->>'date' between (s.today - 1)::text and (s.today + 1)::text
     union all
-    -- 할 일: 마감일 아침 9시
-    select s.id, 'todo:' || e.id || ':' || (e.meta->>'date'), 'todo', e.title, e.id, null,
-           push_ts(e.meta->>'date', '09:00', s.tz)
+    -- 할 일: 시간을 넣었으면 그 시각, 없으면 마감일 아침 9시
+    select s.id, 'todo:' || e.id || ':' || (e.meta->>'date') || coalesce('T' || nullif(e.meta->>'time', ''), ''), 'todo', e.title, e.id, nullif(e.meta->>'time', ''),
+           push_ts(e.meta->>'date', coalesce(nullif(e.meta->>'time', ''), '09:00'), s.tz)
     from s join entries e on e.user_id = s.user_id
     where coalesce(s.nt->>'reminders', 'true') <> 'false' and e.type = 'todo' and e.deleted_at is null
       and coalesce(e.meta->>'done', 'false') <> 'true'

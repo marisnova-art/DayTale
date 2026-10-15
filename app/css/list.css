@@ -22,6 +22,10 @@
 .r .p mark, .r .t mark { background: rgba(255,179,122,.28); color: var(--text); border-radius: 3px; }
 .r .tm { font-size: var(--fs-s); font-weight: 600; color: var(--faint); flex: none; align-self: flex-start; margin-top: 3px; }
 .r .chk { align-self: center; }
+/* 할 일: 다른 기록과 같은 타일 안에 체크 동그라미. 끝내면 타일이 차고 ✓ */
+.r .kc.tk .ck { width: 20px; height: 20px; border-radius: 10px; border: 2px solid rgba(var(--fg),.34); display: flex; align-items: center; justify-content: center; }
+.r .kc.tk.on { background: rgba(var(--fg),.12); }
+.r .kc.tk.on .ck { background: var(--text-2); border-color: var(--text-2); color: var(--on-text); }
 .r .side { display: flex; gap: 6px; flex: none; }
 .r .side button { height: 34px; padding: 0 12px; border-radius: 17px; background: var(--raised-2); font-size: var(--fs-s); font-weight: 700; color: var(--text-3); }
 .r .side button.bad { color: var(--danger); background: rgba(255,107,107,.14); }   /* 지우는 단추는 어디서나 같은 모양: 옅은 빨강 바탕 + 빨간 글씨 */

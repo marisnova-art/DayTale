@@ -128,7 +128,7 @@ function paintChips() {
   el.info.innerHTML = `${icon(TYPE_ICON[e.type] || 'file-text', 17)}<span>${esc(typeLabel(e.type))}</span><i>·</i>${icon('folder', 16)}<span>${esc(f ? f.name : t('folder.none'))}</span>${when ? `<i>·</i><span>${esc(when)}</span>` : ''}${e.favorite ? `<i>·</i>${icon('star', 15)}` : ''}${e.pinned ? `<i>·</i>${icon('pin', 15)}` : ''}`;
   const m = e.meta || {}, ro = cur.ro ? 'disabled' : '';
   el.meta.innerHTML = e.type === 'event' ? `<label>${icon('calendar', 16)}<input type="date" data-m="date" value="${esc(m.date || todayKey())}" ${ro}></label><label>${icon('clock', 16)}<input type="time" data-m="time" value="${esc(m.time || '')}" ${ro}></label><label>${icon('map-pin', 16)}<input type="text" data-m="place" maxlength="120" placeholder="${esc(t('ed.place'))}" value="${esc(m.place || '')}" ${ro}></label>`
-    : e.type === 'todo' ? `<label>${icon('calendar', 16)}${esc(t('ed.due'))}<input type="date" data-m="date" value="${esc(m.date || '')}" ${ro}></label>`
+    : e.type === 'todo' ? `<label>${icon('calendar', 16)}${esc(t('ed.due'))}<input type="date" data-m="date" value="${esc(m.date || '')}" ${ro}></label><label>${icon('clock', 16)}<input type="time" data-m="time" value="${esc(m.time || '')}" ${ro}></label>`
     : e.type === 'scrap' ? `<label class="url" style="flex:1">${icon('link', 16)}<input type="url" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" data-m="url" maxlength="2000" style="width:100%" placeholder="${esc(t('ed.urlPh'))}" value="${esc(m.url || '')}" ${ro}></label>${m.url ? `<button class="urlbtn open" data-act="open-url">${icon('external-link', 16)}${esc(t('ed.open'))}</button>` : ro ? '' : `<button class="urlbtn" data-act="paste-url">${icon('copy', 16)}${esc(t('ed.paste'))}</button>`}`
     : e.type === 'item' ? `<label style="flex:1">${icon('map-pin', 16)}<input type="text" data-m="place" maxlength="120" style="width:100%" placeholder="${esc(t('ed.where'))}" value="${esc(m.place || '')}" ${ro}></label>` : '';
   el.meta.hidden = !el.meta.innerHTML;
@@ -138,7 +138,10 @@ function paintChips() {
 }
 function setMeta(k, v) {
   if (k === 'url') { v = safeUrl(v); if (v && !cur.el.title.value.trim()) { try { cur.el.title.value = new URL(v).hostname.replace(/^www\./, ''); } catch {} } }   // 제목이 비어 있으면 사이트 이름을 넣어 둬요
-  cur.e.meta = { ...cur.e.meta, [k]: v || undefined }; cur.saved = false; commit();
+  cur.e.meta = { ...cur.e.meta, [k]: v || undefined }; cur.saved = false;
+  // 할 일에 시간만 넣으면 날짜는 오늘로 (시간 알림은 날짜가 있어야 울려요)
+  if (k === 'time' && v && cur.e.type === 'todo' && !cur.e.meta.date) { cur.e.meta.date = todayKey(); const d = cur.el.meta.querySelector('[data-m=date]'); if (d) d.value = cur.e.meta.date; }
+  commit();
   if (k === 'url') paintChips();
 }
 /* 글꼴: 기록 하나 전체(제목+본문)에 적용 */

@@ -26,7 +26,7 @@ function upcoming(hours = 24) {
   if (n.reminders !== false) for (const e of live()) {
     const m = e.meta || {};
     if (e.type === 'event' && m.date && m.time) out.push({ key: e.id, at: at(m.date, m.time) - 10 * 60e3, title: displayTitle(e, t('common.untitled')), body: t('notify.eventSoon', { time: m.time }), id: e.id });
-    else if (e.type === 'todo' && m.date && !m.done) out.push({ key: e.id, at: at(m.date, '09:00'), title: displayTitle(e, t('common.untitled')), body: t('notify.todoDue'), id: e.id });
+    else if (e.type === 'todo' && m.date && !m.done) out.push({ key: e.id, at: at(m.date, m.time || '09:00'), title: displayTitle(e, t('common.untitled')), body: t('notify.todoDue'), id: e.id });
   }
   for (const k of [todayKey(), dayKey(addDays(new Date(), 1))]) {
     if (n.morning) out.push({ key: 'morning', at: at(k, n.morningAt || '08:00'), title: t('notify.morning'), body: t('notify.morningBody', { n: live().filter(e => e.type === 'event' && e.meta.date === k).length }), daily: k });

@@ -35,13 +35,13 @@ function row(e, { terms = [], mode = '' } = {}) {
   const today = todayKey(), m = e.meta || {};
   let sub = preview(e);
   if (e.type === 'event' && m.date) sub = [m.date === today ? t('list.today') : fmtDate(m.date + 'T00:00', { month: 'short', day: 'numeric' }), m.time && fmtHM(m.time), m.place].filter(Boolean).join(' · ');
-  if (e.type === 'todo' && m.date && !m.done) sub = `<span class="due">${esc(m.date <= today ? t('todo.due') : fmtDate(m.date + 'T00:00', { month: 'short', day: 'numeric' }))}</span>` + (sub ? ' · ' + esc(sub) : '');
+  if (e.type === 'todo' && m.date && !m.done) sub = `<span class="due">${esc(m.date <= today ? t('todo.due') : fmtDate(m.date + 'T00:00', { month: 'short', day: 'numeric' }))}${m.time ? ' ' + esc(fmtHM(m.time)) : ''}</span>` + (sub ? ' · ' + esc(sub) : '');
   else if (e.type === 'item' && m.place) sub = m.place;
   else if (e.type === 'scrap' && m.url) { let host = ''; try { host = new URL(m.url).hostname.replace(/^www\./, ''); } catch {} sub = [host, sub].filter(Boolean).join(' · '); }
   const subHtml = sub.startsWith('<span') ? sub : hl(sub, terms);
   const f = e.folder_id && S.folders.get(e.folder_id);
   const time = mode === 'trash' ? '' : dayKey(new Date(e.created_at)) === today ? fmtTime(new Date(e.created_at)) : fmtDate(e.created_at, { month: 'numeric', day: 'numeric' });
-  const lead = e.type === 'todo' && mode !== 'trash' ? `<button class="chk${m.done ? ' on' : ''}" data-done="${e.id}" aria-label="${esc(t('common.done'))}" aria-pressed="${!!m.done}">${m.done ? icon('check', 14) : ''}</button>`
+  const lead = e.type === 'todo' && mode !== 'trash' ? `<button class="kc tk${m.done ? ' on' : ''}" data-done="${e.id}" aria-label="${esc(t('common.done'))}" aria-pressed="${!!m.done}"><i class="ck">${m.done ? icon('check', 13) : ''}</i></button>`
     : `<span class="kc">${icon(TYPE_ICON[e.type] || 'file-text', 20)}</span>`;
   const side = mode === 'trash' ? `<span class="side"><button data-restore="${e.id}">${esc(t('list.restore'))}</button><button class="bad" data-purge="${e.id}" aria-label="${esc(t('list.purge'))}">${icon('trash-2', 15)}</button></span>` : `<span class="tm">${e.favorite ? icon('star', 13) + ' ' : ''}${e.pinned ? icon('pin', 13) + ' ' : ''}${esc(time)}</span>`;
   const ps = e.photos || [];
@@ -106,7 +106,13 @@ function render(view, r) {
 }
 function paintBody(view, { mode, r, folder, q }) {
   const body = view.querySelector('.body'), count = view.querySelector('.lst-head .c'), fl = view.querySelector('.filters');
-  fl.addEventListener('scroll', e => edges(e.target), { passive: true, capture: true });
+  if (!fl.dataset.on) {
+    fl.dataset.on = 1;
+    fl.addEventListener('scroll', e => edges(e.target), { passive: true, capture: true });
+    // PC는 손가락으로 밀 수 없으니: 마우스 휠을 옆으로 바꾸고, 넘칠 때만 양 끝 ‹ › 단추 (pointer: fine 에서만 보여요)
+    fl.addEventListener('wheel', e => { const fs = e.target.closest('.fs'); if (!fs || Math.abs(e.deltaX) > Math.abs(e.deltaY) || fs.scrollWidth <= fs.clientWidth) return; e.preventDefault(); fs.scrollLeft += e.deltaY; }, { passive: false });
+    fl.addEventListener('click', e => { const b = e.target.closest('[data-fs]'); if (!b) return; e.stopPropagation(); const fs = fl.querySelector('.fs'); fs?.scrollBy({ left: +b.dataset.fs * fs.clientWidth * .6, behavior: 'smooth' }); });
+  }
   let list = mode === 'trash' ? trash() : live();
   if (mode === 'type') list = list.filter(e => e.type === r.params.type);
   if (mode === 'folder') list = list.filter(e => e.folder_id === folder.id);
@@ -115,9 +121,11 @@ function paintBody(view, { mode, r, folder, q }) {
   // 종류 칩 (모든 기록·폴더에서)
   if (mode === 'all' || mode === 'folder' || mode === 'nofolder' || mode === 'fav') {
     const kinds = TYPES.filter(ty => list.some(e => e.type === ty));
-    const x = fl.firstElementChild?.scrollLeft || 0;
+    const x = fl.querySelector('.fs')?.scrollLeft || 0;
     fl.innerHTML = kinds.length > 1 ? '<div class="fs">' + [`<button class="${filter === 'all' ? 'on' : ''}" data-f="all">${esc(t('list.all'))}</button>`, ...kinds.map(ty => `<button class="${filter === ty ? 'on' : ''}" data-f="${ty}">${esc(typeLabel(ty))}</button>`)].join('') + '</div>' : '';
-    if (fl.firstElementChild) { fl.firstElementChild.scrollLeft = x; capsule(fl.firstElementChild); }
+    if (kinds.length > 1) fl.insertAdjacentHTML('afterbegin', `<button class="fa fl" data-fs="-1" tabindex="-1" aria-hidden="true">${icon('chevron-left', 18)}</button>`), fl.insertAdjacentHTML('beforeend', `<button class="fa fr" data-fs="1" tabindex="-1" aria-hidden="true">${icon('chevron-right', 18)}</button>`);
+    const fs = fl.querySelector('.fs');
+    if (fs) { fs.scrollLeft = x; capsule(fs); }
     if (filter !== 'all') list = list.filter(e => e.type === filter);
   } else fl.innerHTML = '';
   const byNew = (a, b) => b.created_at.localeCompare(a.created_at);
@@ -241,6 +249,8 @@ function edges(fl) {
   const max = fl.scrollWidth - fl.clientWidth;
   fl.classList.toggle('more-l', max > 2 && fl.scrollLeft > 2);
   fl.classList.toggle('more-r', max > 2 && fl.scrollLeft < max - 2);
+  fl.parentElement?.classList.toggle('can-l', fl.classList.contains('more-l'));
+  fl.parentElement?.classList.toggle('can-r', fl.classList.contains('more-r'));
 }
 function capsule(fl) {
   const on = fl.querySelector('.on');

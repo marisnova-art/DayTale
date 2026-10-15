@@ -7,7 +7,7 @@ export default {
   'nav.allShort': 'Todos', 'nav.home': 'Inicio', 'nav.all': 'Todos los registros', 'nav.byType': 'Por tipo', 'nav.todo': 'Tareas', 'nav.calendar': 'Calendario', 'nav.folders': 'Carpetas', 'nav.noFolder': 'Sin carpeta',
   'nav.trash': 'Papelera', 'nav.search': 'Buscar registros', 'nav.newFolder': 'Nueva carpeta',
   'type.note': 'Notas', 'type.todo': 'Tareas', 'type.event': 'Eventos', 'type.idea': 'Ideas', 'type.item': 'Dónde están las cosas', 'type.personal': 'Personal', 'type.scrap': 'Recortes',
-  'trial.left': 'Quedan {n} días de prueba gratuita', 'trial.lastDay': 'La prueba gratuita termina hoy', 'trial.ended': 'Su prueba gratuita ha terminado', 'trial.plans': 'Ver planes', 'sub.active': 'Suscrito',
+  'trial.chip': 'Prueba: {n} d', 'pass.chip': 'Acceso: {n} d', 'trial.chipEnd': 'Prueba terminada', 'trial.left': 'Quedan {n} días de prueba gratuita', 'trial.lastDay': 'La prueba gratuita termina hoy', 'trial.ended': 'Su prueba gratuita ha terminado', 'trial.plans': 'Ver planes', 'sub.active': 'Suscrito',
   'sync.offline': 'Está sin conexión. Los cambios se guardan en este dispositivo y se sincronizarán cuando vuelva la conexión.', 'sync.conflict': 'Este registro se modificó en otro dispositivo, así que se guardó una copia.', 'sync.suffix': '(copia)',
   'err.generic': 'Algo salió mal. Lo intentamos de nuevo.', 'err.quota': 'Ha alcanzado el límite de almacenamiento.', 'err.locked': 'Su prueba ha terminado, así que la escritura y la edición están en pausa. Puede seguir leyendo, buscando y exportando.',
   'err.noStorage': 'Este navegador bloquea el almacenamiento en el dispositivo. El texto sin guardar podría perderse al cerrarlo.', 'err.noServer': 'No hay ninguna conexión con el servidor configurada.',

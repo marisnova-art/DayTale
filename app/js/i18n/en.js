@@ -7,7 +7,7 @@ export default {
   'nav.allShort': 'All', 'nav.home': 'Home', 'nav.all': 'All entries', 'nav.byType': 'Types', 'nav.todo': 'To-dos', 'nav.calendar': 'Calendar', 'nav.folders': 'Folders', 'nav.noFolder': 'No folder',
   'nav.trash': 'Trash', 'nav.search': 'Search', 'nav.newFolder': 'New folder',
   'type.note': 'Notes', 'type.todo': 'To-dos', 'type.event': 'Events', 'type.idea': 'Ideas', 'type.item': 'Where I put it', 'type.personal': 'Personal', 'type.scrap': 'Clippings',
-  'trial.left': '{n} days of free trial left', 'trial.lastDay': 'Free trial ends today', 'trial.ended': 'Your free trial has ended', 'trial.plans': 'See plans', 'sub.active': 'Subscribed',
+  'trial.chip': 'Trial: {n}d', 'pass.chip': 'Pass: {n}d', 'trial.chipEnd': 'Trial ended', 'trial.left': '{n} days of free trial left', 'trial.lastDay': 'Free trial ends today', 'trial.ended': 'Your free trial has ended', 'trial.plans': 'See plans', 'sub.active': 'Subscribed',
   'sync.offline': "You're offline. Changes are saved on this device and will sync when you're back.", 'sync.conflict': 'This entry was changed on another device, so a copy was kept.', 'sync.suffix': '(copy)',
   'err.generic': 'Something went wrong. Trying again.', 'err.quota': 'You have reached the storage limit.', 'err.locked': 'Your trial has ended, so writing and editing are paused. Reading, search and export still work.',
   'err.noStorage': 'This browser blocks on-device storage. Unsaved text may be lost when you close it.', 'err.noServer': 'No server connection is configured.',

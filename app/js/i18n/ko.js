@@ -7,7 +7,7 @@ export default {
   'nav.allShort': '모든 기록', 'nav.home': '홈', 'nav.all': '모든 기록', 'nav.byType': '종류', 'nav.todo': '할 일', 'nav.calendar': '캘린더', 'nav.folders': '폴더', 'nav.noFolder': '폴더 없음',
   'nav.trash': '휴지통', 'nav.search': '기록 찾기', 'nav.newFolder': '새 폴더',
   'type.note': '메모', 'type.todo': '할 일', 'type.event': '일정', 'type.idea': '아이디어', 'type.item': '물건 둔 곳', 'type.personal': '개인 기록', 'type.scrap': '스크랩',
-  'trial.left': '무료 체험 {n}일 남음', 'trial.lastDay': '무료 체험 오늘까지', 'trial.ended': '무료 체험이 끝났어요', 'trial.plans': '구독 보기', 'sub.active': '구독 중',
+  'trial.chip': '체험 {n}일', 'pass.chip': '이용권 {n}일', 'trial.chipEnd': '체험 끝남', 'trial.left': '무료 체험 {n}일 남음', 'trial.lastDay': '무료 체험 오늘까지', 'trial.ended': '무료 체험이 끝났어요', 'trial.plans': '구독 보기', 'sub.active': '구독 중',
   'sync.offline': '오프라인이에요. 이 기기에 저장해 두었다가 연결되면 보낼게요.', 'sync.conflict': '다른 기기에서 같은 기록을 고쳐서 사본을 만들었어요.', 'sync.suffix': '(사본)',
   'err.generic': '잠시 문제가 생겼어요. 다시 해 볼게요.', 'err.quota': '저장 한도에 닿았어요.', 'err.locked': '체험이 끝나서 새로 쓰거나 고칠 수 없어요. 읽기·찾기·내보내기는 그대로 돼요.',
   'err.noStorage': '이 브라우저는 기기 저장을 막고 있어요. 창을 닫으면 쓰던 내용이 사라질 수 있어요.', 'err.noServer': '서버 연결 정보가 없어요.',

@@ -101,9 +101,9 @@ function paint() {
     item('/nofolder', 'folder-x', t('nav.noFolder'), nofolder, ' dim');
   // 프로필 카드 + 체험 막대
   const d = Account.trialDays(), sub = S.status?.subscriber;
-  $('.profile-card').innerHTML = `<span class="who">${Account.avatarHTML('l')}<span style="flex:1;min-width:0"><span class="nm">${esc(Account.name())}</span><span class="em">${esc(S.user?.email || '')}</span></span>${icon('chevron-right', 18)}</span>` +
-    (sub ? `<span class="trialbar"><span class="tx"><span>${esc(t('sub.active'))}</span></span></span>` : d == null ? '' :
-      `<span class="trialbar"><span class="tx"><span>${d > 0 ? Account.leftText(`<em>${d}</em>`) : esc(t('trial.ended'))}</span></span><span class="bar"><i style="width:${Math.round(Account.trialRatio() * 100)}%"></i></span><span class="tb-plans">${esc(t('trial.plans'))}${icon('chevron-right', 14)}</span></span>`);
+  // 프로필은 한 줄: 작은 사진 + 이름. 체험·이용권은 7일 이하로 남았을 때만 작은 칩, 구독 중이면 아무것도 없어요. 오른쪽 끝은 대표 배지 자리
+  const chip = sub || d == null || d > 7 ? '' : `<span class="pchip" data-go="/plans">${esc(d > 0 ? t(Account.onPass() ? 'pass.chip' : 'trial.chip', { n: d }) : t('trial.chipEnd'))}</span>`;
+  $('.profile-card').innerHTML = `<span class="who">${Account.avatarHTML('s')}<span class="nm">${esc(Account.name())}</span>${chip}<span class="pbadge"></span></span>`;
   paintBadges(); mark(); requestAnimationFrame(() => fades($('.drawer .nav')));
 }
 function fades(n) { if (!n) return; n.classList.toggle('more-t', n.scrollTop > 4); n.classList.toggle('more-b', n.scrollTop + n.clientHeight < n.scrollHeight - 4); }
