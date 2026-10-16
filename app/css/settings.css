@@ -32,6 +32,8 @@
 .sprof b { font-size: var(--fs-m); color: var(--text); }
 .sprof small { font-size: var(--fs-s); color: var(--muted-2); overflow: hidden; text-overflow: ellipsis; }
 .avatar.big { width: 52px; height: 52px; border-radius: 26px; display: grid; place-items: center; font-size: var(--fs-l); font-weight: 700; color: #fff; box-shadow: none; flex: none; }
+.avatar.m { width: 34px; height: 34px; border-radius: 17px; display: grid; place-items: center; flex: none; font-size: var(--fs-s); font-weight: 700; color: #fff; box-shadow: none; }
+.avatar.m.add { background: none; border: 1.5px dashed rgba(var(--fg),.28); color: var(--muted); }
 .usage { display: flex; flex-direction: column; gap: 14px; padding: 16px 0; }
 .usage .u { display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; font-size: var(--fs-s); color: var(--muted); }
 .usage .u b { color: var(--text-2); font-weight: 600; font-variant-numeric: tabular-nums; }

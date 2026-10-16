@@ -49,9 +49,18 @@ function planLine() {
   const d = Account.trialDays(); return d > 0 ? Account.leftText(d) : t('trial.ended');
 }
 
+/* 다른 모습 2칸: 사진 + 이름 (비우면 기본 모습을 써요) */
+function altRows() {
+  const al = Account.profile?.alts || [];
+  return [0, 1].map(i => { const x = al[i] || {}, has = x.n || x.a;
+    const av = x.a ? `<span class="avatar m"><img src="${esc(x.a)}" alt=""></span>` : has ? `<span class="avatar m">${esc((x.n || '·').trim().charAt(0).toUpperCase())}</span>` : `<span class="avatar m add">${icon('plus', 18)}</span>`;
+    return `<button class="srow" data-a="alt" data-i="${i}">${av}<span class="stx"><b>${esc(x.n || (has ? Account.name({ base: true }) : t('set.altAdd')))}</b><small>${esc(t('set.altN', { n: i + 2 }))}</small></span>${icon('chevron-right', 18)}</button>`; }).join('');
+}
+
 function group(g) {
   const p = S.prefs, n = p.notify || {};
-  if (g === 'account') return card('', `<div class="sprof"><button class="avbtn" data-a="photo" aria-label="${esc(t('set.photo'))}">${Account.avatarHTML('big')}<i>${icon('camera', 14)}</i></button><input type="file" accept="image/*" hidden class="av-file"><span><b>${esc(Account.name())}</b><small>${esc(S.user?.email || '')}</small></span><button class="chip" data-a="name">${esc(t('set.editName'))}</button></div>`)
+  if (g === 'account') return card('', `<div class="sprof"><button class="avbtn" data-a="photo" aria-label="${esc(t('set.photo'))}">${Account.avatarHTML('big', { base: true })}<i>${icon('camera', 14)}</i></button><input type="file" accept="image/*" hidden class="av-file"><span><b>${esc(Account.name({ base: true }))}</b><small>${esc(S.user?.email || '')}</small></span><button class="chip" data-a="name">${esc(t('set.editName'))}</button></div>`)
+    + card(t('set.alts'), altRows()) + `<p class="snote">${esc(t('set.altsSub'))}</p>`
     + card(t('set.plan'), row({ ic: 'gem', label: t('set.planNow'), sub: esc(planLine()), href: '#/plans' }) + row({ ic: 'ticket', label: t('set.voucher'), sub: esc(t('set.voucherSub')), act: 'voucher' }))
     + card(t('set.invite'), row({ ic: 'gift', label: t('set.myCode'), sub: esc(t('set.inviteSub')), value: S.status?.referral_code || '', act: 'code' }) + row({ ic: 'user-plus', label: t('set.enterCode'), act: 'redeem' }))
     + card(t('set.security'), row({ ic: 'key-round', label: t('set.password'), act: 'password' }) + row({ ic: 'log-out', label: t('set.signOut'), act: 'signout', chev: false }));
@@ -120,6 +129,16 @@ function render(view, r) {
   });
 }
 
+async function altEdit(i, paint) {
+  const al = [0, 1].map(k => ({ n: '', a: '', ...((Account.profile?.alts || [])[k] || {}) })), x = al[i];
+  const save = async () => { const v = al.filter(y => y.n || y.a); if (await Account.update({ alts: v })) paint(); else toast(t('err.generic'), { bad: true }); };
+  const { pickAction } = await import('./pickers.js');
+  const v = await pickAction('', [{ v: 'photo', label: t('set.photo'), icon: 'camera' }, { v: 'name', label: t('set.editName'), icon: 'pencil' }, ...(x.n || x.a ? [{ v: 'remove', label: t('set.altRemove'), icon: 'trash-2', danger: true }] : [])]);
+  if (v === 'photo') { const inp = document.querySelector('.av-file'); inp.onchange = async () => { const f = inp.files[0]; inp.value = ''; if (!f) return; try { x.a = await Account.photoFrom(f); await save(); } catch { toast(t('set.photoFail'), { bad: true }); } }; inp.click(); }
+  else if (v === 'name') { const n = await promptDlg(t('set.editName'), { value: x.n, maxlength: 40 }); if (n != null) { x.n = n.trim(); await save(); } }
+  else if (v === 'remove') { al.splice(i, 1); await save(); }
+}
+
 async function onClick(ev, paint) {
   const s = ev.target.closest('[data-s]');
   if (s) { const k = s.dataset.s; let v = s.dataset.v; if (k === 'weekStart') v = +v; if (k === 'lang' && !v) v = null; setPref(k, v); paint(); if (k === 'lang') location.reload(); return; }
@@ -135,7 +154,8 @@ async function onClick(ev, paint) {
     if (v === 'change') pickFile(); else if (v === 'remove' && await Account.update({ avatar: null })) paint();
     return;
   }
-  if (a === 'name') { const v = await promptDlg(t('set.editName'), { value: Account.name(), maxlength: 40 }); if (v && v.trim()) { await Account.update({ display_name: v.trim() }); paint(); } }
+  if (a === 'alt') { altEdit(+b.dataset.i, paint); return; }
+  if (a === 'name') { const v = await promptDlg(t('set.editName'), { value: Account.name({ base: true }), maxlength: 40 }); if (v && v.trim()) { await Account.update({ display_name: v.trim() }); paint(); } }
   else if (a === 'code') { const c = S.status?.referral_code; if (!c) return; const text = t('set.inviteText', { name: brand(getLang()), code: c, url: (CFG.SITE_URL || location.origin).replace(/\/$/, '') + '/?ref=invite' }); if (navigator.share) navigator.share({ text }).catch(() => {}); else { navigator.clipboard?.writeText(text); toast(t('set.copied')); } }
   else if (a === 'redeem' || a === 'voucher') redeemCode(a, paint);
   else if (a === 'password') { const v = await promptDlg(t('set.newPassword'), { type: 'password', maxlength: 72 }); if (!v) return; if (v.length < 8) { toast(t('auth.weak'), { bad: true }); return; } const { error } = await Sync.sb.auth.updateUser({ password: v }); toast(error ? t('err.generic') : t('set.passwordOk'), { bad: !!error }); }

@@ -64,7 +64,8 @@ const Account = {
   async load() {
     const sb = Sync.sb; if (!sb || !S.user) return;
     const cols = 'display_name,lang,country,timezone,created_at';
-    let [st, pr] = await Promise.all([sb.rpc('my_status'), sb.from('profiles').select(cols + ',avatar,' + AUD).maybeSingle()]);
+    let [st, pr] = await Promise.all([sb.rpc('my_status'), sb.from('profiles').select(cols + ',avatar,alts,' + AUD).maybeSingle()]);
+    if (pr.error) pr = await sb.from('profiles').select(cols + ',avatar,' + AUD).maybeSingle();   // 서버에 '다른 모습' 칸이 아직 없을 때
     if (pr.error) pr = await sb.from('profiles').select(cols + ',avatar').maybeSingle();   // 서버에 회원 구성 칸이 아직 없을 때
     if (pr.error) pr = await sb.from('profiles').select(cols).maybeSingle();   // 서버에 사진 칸이 아직 없을 때
     if (!st.error && st.data) { S.status = st.data; ls.set('daytale.status.' + S.user.id, st.data); }
@@ -97,11 +98,18 @@ const Account = {
   /* 남은 날 문구: 무료 체험 n일 / 이용권 n일 (n은 그대로 넣어 HTML로 감쌀 수 있게) */
   leftText(n) { return this.onPass() ? t('pass.left', { n }) : t('trial.left', { n }); },
   trialRatio() { const d = this.trialDays(); return d == null || this.onPass() ? 1 : Math.max(0, Math.min(1, d / 30)); },
-  name() { return this.profile?.display_name || (S.user?.email || '').split('@')[0]; },
-  initial() { return (this.name() || '·').trim().charAt(0).toUpperCase(); },
+  /* 다른 모습(최대 2개): 기본 모습과 함께 하루씩 돌아가며 보여요. 비운 칸은 기본 값을 써요 */
+  alts() { const a = this.profile?.alts; return Array.isArray(a) ? a.filter(x => x && (x.n || x.a)).slice(0, 2) : []; },
+  look() {
+    const list = this.alts(); if (!list.length) return null;
+    const d = new Date(), day = Math.floor((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())) / 864e5);
+    const i = day % (list.length + 1); return i ? list[i - 1] : null;
+  },
+  name(o = {}) { const b = this.profile?.display_name || (S.user?.email || '').split('@')[0]; return (!o.base && this.look()?.n) || b; },
+  initial(o) { return (this.name(o) || '·').trim().charAt(0).toUpperCase(); },
   /* 프로필 사진: 직접 넣은 사진 → Google 사진 → 없으면 첫 글자 */
-  avatar() { return this.profile?.avatar || S.user?.picture || ''; },
-  avatarHTML(cls = '') { const a = this.avatar(); return `<span class="avatar${cls ? ' ' + cls : ''}">${a ? `<img src="${esc(a)}" alt="" referrerpolicy="no-referrer">` : esc(this.initial())}</span>`; },
+  avatar(o = {}) { const b = this.profile?.avatar || S.user?.picture || ''; return (!o.base && this.look()?.a) || b; },
+  avatarHTML(cls = '', o) { const a = this.avatar(o), ini = this.initial(o); return `<span class="avatar${cls ? ' ' + cls : ''}">${a ? `<img src="${esc(a)}" alt="" referrerpolicy="no-referrer">` : esc(ini)}</span>`; },
   /* 고른 사진을 가운데 정사각형으로 잘라 256px로 줄여요 (약 10KB, 사진 저장소 없이 계정 정보에 저장) */
   async photoFrom(file) {
     const bmp = await createImageBitmap(file); const s = Math.min(bmp.width, bmp.height), N = 256;

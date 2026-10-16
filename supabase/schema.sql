@@ -43,7 +43,20 @@ create policy "profiles: update own" on public.profiles for update using (id = a
 revoke all on public.profiles from anon, authenticated;
 grant select on public.profiles to authenticated;
 -- 사용자가 바꿀 수 있는 칸만 허용 (체험 기간·보너스·초대 정보는 서버만)
-grant update (display_name, lang, country, timezone, avatar) on public.profiles to authenticated;
+-- 프로필 '다른 모습' 2개 (dev.143)
+create or replace function public.profile_alts_ok(v jsonb) returns boolean language sql immutable set search_path = '' as $$
+  select jsonb_typeof(v) = 'array' and jsonb_array_length(v) <= 2 and not exists (
+    select 1 from jsonb_array_elements(v) e
+    where jsonb_typeof(e) <> 'object'
+       or char_length(coalesce(e->>'n', '')) > 40
+       or char_length(coalesce(e->>'a', '')) > 60000
+       or (coalesce(e->>'a', '') <> '' and (e->>'a') !~ '^data:image/(webp|jpeg|png);base64,[A-Za-z0-9+/=]+$'))
+$$;
+grant execute on function public.profile_alts_ok(jsonb) to authenticated;   -- 제약 검사에 필요해요
+alter table public.profiles add column if not exists alts jsonb not null default '[]';
+alter table public.profiles drop constraint if exists profiles_alts_check;
+alter table public.profiles add constraint profiles_alts_check check (public.profile_alts_ok(alts));
+grant update (display_name, lang, country, timezone, avatar, alts) on public.profiles to authenticated;
 -- 회원 구성 통계용 (2026-10-14): 기기 종류와 처음 어디서 왔는지만. 기록 내용·IP·기기 고유값은 저장하지 않아요
 alter table public.profiles add column if not exists platform       text;   -- ios · android · mac · windows · linux · chromeos · other
 alter table public.profiles add column if not exists device_kind    text;   -- phone · tablet · desktop
@@ -623,7 +636,7 @@ end $$;
 revoke execute on all functions in schema public from public, anon, authenticated;
 grant execute on function public.is_subscriber(uuid), public.can_write(uuid), public.my_status(), public.touch_seen(),
   public.redeem_referral(text), public.redeem_voucher(text), public.delete_my_account(),
-  public.phrase_stamp(text, text, date), public.phrase_rows(text, text, date) to authenticated;
+  public.phrase_stamp(text, text, date), public.phrase_rows(text, text, date), public.profile_alts_ok(jsonb) to authenticated;
 grant execute on function public.photo_allowance(uuid), public.sweep_orphan_photos() to service_role;
 
 -- 함수가 찾는 스키마를 고정해요 (Supabase 보안 점검 권고). create or replace 뒤에 다시 걸어야 해서 맨 끝에 둬요.

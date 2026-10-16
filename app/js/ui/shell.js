@@ -129,7 +129,8 @@ function paint() {
   const d = Account.trialDays(), sub = S.status?.subscriber;
   // 프로필은 한 줄: 작은 사진 + 이름. 체험·이용권은 7일 이하로 남았을 때만 작은 칩, 구독 중이면 아무것도 없어요. 오른쪽 끝은 대표 배지 자리
   const chip = sub || d == null || d > 7 ? '' : `<span class="pchip" data-go="/plans">${esc(d > 0 ? t(Account.onPass() ? 'pass.chip' : 'trial.chip', { n: d }) : t('trial.chipEnd'))}</span>`;
-  $('.profile-card').innerHTML = `<span class="who">${Account.avatarHTML('s')}<span class="nm">${esc(Account.name())}</span>${chip}<span class="pbadge"></span></span>`;
+  // 이름 아래 작은 메일 (dev.143). 대표 배지는 오른쪽 끝, 프로필 사진과 같은 크기의 원 (배지 기능과 함께 채워요)
+  $('.profile-card').innerHTML = `<span class="who">${Account.avatarHTML('s')}<span class="tx"><span class="nm">${esc(Account.name())}</span>${S.user?.email ? `<small class="em">${esc(S.user.email)}</small>` : ''}</span>${chip}<span class="pbadge"></span></span>`;
   paintBadges(); mark(); paintSave(); requestAnimationFrame(() => fades($('.drawer .nav')));
 }
 /* 저장 상태: 평소엔 숨기고, 오프라인이거나 늦어질 때만 위에 얇은 띠 (누르면 설정 › 데이터) */
