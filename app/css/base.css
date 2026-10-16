@@ -1,6 +1,9 @@
 *, *::before, *::after { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; touch-action: pan-x pan-y; }   /* 두 손가락 확대·두 번 눌러 확대 없음 (밀어서 움직이기만) */
 html, body { margin: 0; height: 100%; }
+/* 아이폰 홈 화면 앱(상태 표시줄 비침)은 문서 높이를 상태 표시줄만큼 짧게 잡아서, 문서가 화면보다 짧으면(쓰기 · 로그인 · 처음 로딩)
+   배경 층과 화면 전체가 그만큼 위로 올라가고 맨 아래 홈 막대 자리에 띠가 남았어요. 문서를 화면 끝까지 늘려요 */
+@media (display-mode: standalone) and (max-width: 899px) { html { height: calc(100% + env(safe-area-inset-top, 0px)); } }
 /* 스크롤바: 윈도우 크롬의 회색 칸이 배경을 끊지 않게, 투명한 길 위에 얇은 손잡이만 */
 /* 문서 바탕 = 배경의 맨 아래 색(+ 어둡게 누른 층). 아이폰 홈 막대 자리처럼 배경 층이 닿지 않는 곳도 같은 색으로 이어져요 */
 html { background: linear-gradient(rgba(0,0,0,var(--scrim, 0)), rgba(0,0,0,var(--scrim, 0))), var(--bg-end, #16181C); }
