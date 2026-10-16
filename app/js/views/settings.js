@@ -1,5 +1,4 @@
 /* 설정: 계정·구독 · 화면 · 기록 · 알림 · 데이터 · 정보 (휴대폰은 목록 → 그룹, PC는 왼쪽 목록 + 오른쪽 내용) */
-import { sticker } from '../core/stickers.js';
 import { APP_VERSION, CFG, LANGS, LIMITS, brand } from '../core/config.js';
 import { fmtDate, fmtNum, fmtRel, getLang, t } from '../core/i18n.js';
 import { esc, h, icon, slotOf, uid } from '../core/utils.js';
@@ -42,8 +41,8 @@ const bgRow = cur => { const sw = Object.entries(SOLID).map(([k, [bg, ink, , , ,
   return `<div class="srow col"><span class="stx"><b>${esc(t('set.bg'))}</b></span>${bgSw(cur, [['grad', css(PAL[slotOf()][0]), '#F5F3EF', t('set.bgGrad')], ...sw.filter(x => !x[4])])}</div>`
     + `<div class="srow col"><span class="stx"><b>${esc(t('set.bgPat'))}</b></span>${bgSw(cur, sw.filter(x => x[4]))}</div>`; };
 const seg = (key, label, opts, cur) => `<div class="srow col"><span class="stx"><b>${esc(label)}</b></span><span class="seg wide">${opts.map(([v, l]) => `<button data-s="${key}" data-v="${v}" class="${String(cur) === String(v) ? 'on' : ''}">${esc(l)}</button>`).join('')}</span></div>`;
-/* 스티커 스타일: 고르기 전에 모양을 볼 수 있게 견본 3개 */
-const stRow = cur => `<div class="srow col"><span class="stx"><b>${esc(t('set.sticker'))}</b></span><span class="seg wide stseg">${[['bold', t('set.stBold')], ['line', t('set.stLine')], ['off', t('set.stOff')]].map(([v, l]) => `<button data-s="sticker" data-v="${v}" class="${cur === v ? 'on' : ''}"><span class="stp">${v === 'off' ? '' : ['sun', 'coffee', 'heart'].map(n => sticker(n, v)).join('')}</span>${esc(l)}</button>`).join('')}</span></div>`;
+/* 스티커 스타일 + 쓰면서 추천 켜기 */
+const stRow = cur => `<div class="srow col"><span class="stx"><b>${esc(t('set.sticker'))}</b></span><span class="seg wide">${[['bold', t('set.stBold')], ['line', t('set.stLine')], ['off', t('set.stOff')]].map(([v, l]) => `<button data-s="sticker" data-v="${v}" class="${cur === v ? 'on' : ''}">${esc(l)}</button>`).join('')}</span></div>`;
 const card = (title, inner) => `${title ? `<h3 class="sgh">${esc(title)}</h3>` : ''}<div class="scard">${inner}</div>`;
 
 function planLine() {
@@ -70,7 +69,7 @@ function group(g) {
   if (g === 'display') return (isPC() ? '' : card('', seg('mode', t('set.mode'), [['story', t('set.story')], ['tidy', t('set.tidy')]], p.mode) + `<p class="snote">${esc(t('set.modeSub'))}</p>`))   // PC 홈은 이야기 + 오늘 정리를 함께 보여 줘요
     + card('', seg('lang', t('set.lang'), [['', t('set.langAuto')], ...LANGS.map(l => [l, t('lang.' + l)])], p.lang || '')
       + seg('weekStart', t('set.weekStart'), [[0, t('set.sun')], [1, t('set.mon')]], p.weekStart || 0))
-    + card('', stRow(p.sticker || 'bold'))
+    + card('', stRow(p.sticker || 'bold') + (p.sticker === 'off' ? '' : toggle('stickerSuggest', t('set.stSuggest'), t('set.stSuggestSub'), p.stickerSuggest !== false)))
     + card('', seg('ui', t('set.ui'), [['white', t('set.uiWhite')], ['glass', t('set.uiGlass')], ['dark', t('set.uiDark')]], uiStyle()) + bgRow(p.bg in SOLID ? p.bg : 'grad'))
     + `<p class="snote">${esc(t('set.bgSub'))}</p>`;
   if (g === 'record') {

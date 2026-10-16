@@ -84,6 +84,7 @@ export default {
   'set.alts': '다른 모습', 'set.altsSub': '사진과 이름을 2개 더 넣으면 메뉴의 프로필이 하루씩 돌아가며 바뀌어요. 비운 칸은 기본 모습을 써요.', 'set.altAdd': '다른 모습 넣기', 'set.altN': '모습 {n}', 'set.altRemove': '이 모습 지우기',
   'set.sticker': '스티커', 'set.stBold': '볼드', 'set.stLine': '라인', 'set.stOff': '끄기',
   'ed.addSticker': '스티커 넣기',
+  'set.stSuggest': '쓰면서 스티커 추천', 'set.stSuggestSub': '맞는 낱말을 쓰면 커서 옆에 스티커가 흐리게 떠요. 누르면 들어가요.',
   'set.editName': '이름 바꾸기', 'set.photo': '사진 바꾸기', 'set.photoRemove': '사진 지우기', 'set.photoFail': '사진을 넣지 못했어요. 다른 사진으로 해 보세요.', 'set.plan': '구독', 'set.planNow': '지금 이용 중', 'set.invite': '친구 초대', 'set.myCode': '내 초대 코드', 'set.inviteSub': '친구가 가입 후 이 코드를 넣으면 두 사람 모두 30일을 더 써요.',
   'set.enterCode': '초대 코드 넣기', 'set.inviteText': '{name}에서 하루를 기록해 보세요. 가입 후 초대 코드 {code}를 넣으면 30일을 더 쓸 수 있어요. {url}', 'set.copied': '복사했어요', 'set.codeOk': '30일이 더해졌어요', 'set.codeBad': '이 코드는 쓸 수 없어요', 'set.voucher': '이용권 코드 넣기', 'set.voucherSub': '받은 코드를 넣으면 그 기간만큼 모든 기능을 써요.', 'pass.left': '이용권 {n}일 남음', 'pass.until': '{date}까지 이용권', 'voucher.ok': '{date}까지 모든 기능을 쓸 수 있어요', 'voucher.used': '이미 다 쓴 코드예요', 'voucher.expired': '넣을 수 있는 기한이 지난 코드예요', 'voucher.already': '이미 넣은 코드예요', 'voucher.subscribed': '자동 결제 구독 중에는 넣을 수 없어요. 해지를 예약하면 구독이 끝난 다음부터 이어서 쓸 수 있어요.', 'voucher.tooMany': '여러 번 틀렸어요. 한 시간 뒤에 다시 해 보세요.',
   'set.security': '보안', 'set.password': '비밀번호 바꾸기', 'set.newPassword': '새 비밀번호 (8자 이상)', 'set.passwordOk': '비밀번호를 바꿨어요', 'set.signOut': '로그아웃', 'set.signOutQ': '로그아웃할까요?', 'set.signOutBody': '이 기기에 저장된 기록은 다음에 로그인하면 다시 보여요.',

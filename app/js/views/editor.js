@@ -392,7 +392,7 @@ let sugT = 0, sugEl = null, sugAt = null;
 function sugSoon() { clearTimeout(sugT); hideSug(); sugT = setTimeout(sugCheck, 300); }
 function hideSug() { sugEl?.remove(); sugEl = null; sugAt = null; }
 function sugCheck() {
-  if (!cur || cur.ro || stickerStyle() === 'off') return hideSug();
+  if (!cur || cur.ro || stickerStyle() === 'off' || S.prefs.stickerSuggest === false) return hideSug();
   const s = getSelection(); if (!s.rangeCount || !s.isCollapsed || !cur.el.body.contains(s.anchorNode) || s.anchorNode.nodeType !== 3) return hideSug();
   const n = s.anchorNode, before = n.nodeValue.slice(0, s.anchorOffset).replace(/\u200B/g, '');
   const m = suggest(before, getLang());
