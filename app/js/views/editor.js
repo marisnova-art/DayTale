@@ -71,7 +71,7 @@ function render(view, r, opts = {}) {   // opts.pane: PC 나란히 보기의 오
   cur.hist = new History(el.body);
   el.body.addEventListener('input', ev => { cur.touched = true; shortcuts(ev); cur.hist.soon(); save(); paintState(); keepCaret(); });
   // 쓰면서 스티커 추천: 마지막 낱말에 맞는 스티커가 있으면 커서 위에 작은 칩을 띄워요 (누르면 그 자리에 넣어요)
-  if (!ro) { el.body.addEventListener('input', sugSoon); el.body.addEventListener('compositionend', sugSoon); el.body.addEventListener('blur', () => setTimeout(hideSug, 150)); }
+  if (!ro) { el.body.addEventListener('input', sugSoon); el.body.addEventListener('compositionend', sugSoon); el.body.addEventListener('blur', () => setTimeout(hideSug, 150)); el.body.closest('.ed')?.addEventListener('scroll', hideSug, { passive: true }); }
   el.body.addEventListener('keydown', onKey);
   el.body.addEventListener('focus', () => { document.execCommand('defaultParagraphSeparator', false, 'p'); closePan(); });
   el.body.addEventListener('click', onBodyClick);
@@ -385,29 +385,29 @@ async function more(v) {
 
 /* ---------- 본문 편집 도우미 ---------- */
 /* 쓰는 자리(커서)가 막대·판·키보드에 가리면 글 상자만 살짝 올려요 (휴대폰). 화면 전체는 움직이지 않아요 */
-/* ---------- 쓰면서 스티커 추천 ---------- */
+/* ---------- 쓰면서 스티커 추천 ----------
+   맞는 낱말을 치면 커서 바로 오른쪽에 흐린 스티커가 떠요 (글 안에 넣지 않아서 커서·줄이 움직이지 않아요).
+   누르면 그 자리에 들어가고, 계속 쓰면 사라져요. */
 let sugT = 0, sugEl = null, sugAt = null;
-function sugSoon() { clearTimeout(sugT); sugT = setTimeout(sugCheck, 250); }
+function sugSoon() { clearTimeout(sugT); hideSug(); sugT = setTimeout(sugCheck, 300); }
 function hideSug() { sugEl?.remove(); sugEl = null; sugAt = null; }
 function sugCheck() {
   if (!cur || cur.ro || stickerStyle() === 'off') return hideSug();
   const s = getSelection(); if (!s.rangeCount || !s.isCollapsed || !cur.el.body.contains(s.anchorNode) || s.anchorNode.nodeType !== 3) return hideSug();
-  const n = s.anchorNode, before = n.nodeValue.slice(0, s.anchorOffset);
+  const n = s.anchorNode, before = n.nodeValue.slice(0, s.anchorOffset).replace(/\u200B/g, '');
   const m = suggest(before, getLang());
-  if (!m || n.parentElement.closest('.stk') || n.nodeValue.slice(s.anchorOffset, s.anchorOffset + 1).match(/[\p{L}]/u)) return hideSug();
-  if (n.nextSibling?.classList?.contains('stk') && s.anchorOffset === n.nodeValue.length) return hideSug();   // 이미 넣었어요
-  const r = s.getRangeAt(0), rect = r.getClientRects()[0] || r.getBoundingClientRect();
-  if (!sugEl) {
-    sugEl = document.createElement('button'); sugEl.className = 'ed-sug'; sugEl.type = 'button';
-    sugEl.addEventListener('mousedown', ev => ev.preventDefault());   // 글 칸 포커스(키보드)를 지켜요
-    sugEl.addEventListener('touchstart', ev => { ev.preventDefault(); putSticker(); }, { passive: false });
-    sugEl.addEventListener('click', putSticker);
-    document.body.appendChild(sugEl);
-  }
+  if (!m || /[\p{L}]/u.test(n.nodeValue.charAt(s.anchorOffset))) return hideSug();
+  if (s.anchorOffset === n.nodeValue.length && n.nextSibling?.classList?.contains('stk')) return hideSug();   // 이미 넣었어요
+  const r = s.getRangeAt(0), rect = [...r.getClientRects()].pop() || r.getBoundingClientRect(); if (!rect || !rect.height) return hideSug();
+  const fs = parseFloat(getComputedStyle(cur.el.body).fontSize) || 17, size = Math.round(fs * 1.25);
+  sugEl = document.createElement('button'); sugEl.className = 'ed-ghost'; sugEl.type = 'button'; sugEl.setAttribute('aria-label', t('ed.addSticker'));
+  sugEl.innerHTML = hydrateOne(m.st);
+  sugEl.addEventListener('mousedown', ev => ev.preventDefault());   // 글 칸 포커스(키보드)를 지켜요
+  sugEl.addEventListener('touchstart', ev => { ev.preventDefault(); putSticker(); }, { passive: false });
+  sugEl.addEventListener('click', putSticker);
+  Object.assign(sugEl.style, { width: size + 'px', height: size + 'px', left: Math.min(innerWidth - size - 4, rect.right + 3) + 'px', top: Math.round(rect.top + rect.height / 2 - size / 2) + 'px' });
+  document.body.appendChild(sugEl);
   sugAt = { node: n, off: s.anchorOffset, st: m.st };
-  sugEl.innerHTML = `${hydrateOne(m.st)}<span>${esc(t('ed.addSticker'))}</span>`;
-  const w = sugEl.offsetWidth || 120, x = Math.max(8, Math.min(innerWidth - w - 8, rect.left - w / 2));
-  sugEl.style.left = x + 'px'; sugEl.style.top = Math.max(8, rect.top - 46) + 'px';
 }
 const hydrateOne = st => { const d = document.createElement('span'); d.innerHTML = `<span class="stk" data-st="${st}"></span>`; hydrateStickers(d); return d.innerHTML; };
 function putSticker() {
@@ -415,9 +415,10 @@ function putSticker() {
   const { node, off, st } = sugAt; if (!node.isConnected) return hideSug();
   cur.hist.snap();
   const d = document.createElement('span'); d.innerHTML = `<span class="stk" data-st="${st}"></span>`; hydrateStickers(d); const sp = d.firstChild;
-  const r = document.createRange(); r.setStart(node, off); r.collapse(true); r.insertNode(sp);
-  const after = document.createRange(); after.setStartAfter(sp); after.collapse(true);
-  const sel = getSelection(); sel.removeAllRanges(); sel.addRange(after);
+  // 스티커 뒤에 보이지 않는 글자 칸을 두고 커서를 거기에 놓아요 (아이폰에서 커서가 줄 끝으로 튀지 않게). 저장할 때 지워져요
+  const tail = node.splitText(off); node.parentNode.insertBefore(sp, tail);
+  if (!tail.nodeValue.startsWith('\u200B')) tail.nodeValue = '\u200B' + tail.nodeValue;
+  const sel = getSelection(), r = document.createRange(); r.setStart(tail, 1); r.collapse(true); sel.removeAllRanges(); sel.addRange(r);
   hideSug(); cur.touched = true; cur.save(); cur.hist.soon();
 }
 function keepCaret() {
