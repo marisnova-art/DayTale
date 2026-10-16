@@ -398,15 +398,19 @@ function sugCheck() {
   const m = suggest(before, getLang());
   if (!m || /[\p{L}]/u.test(n.nodeValue.charAt(s.anchorOffset))) return hideSug();
   if (s.anchorOffset === n.nodeValue.length && n.nextSibling?.classList?.contains('stk')) return hideSug();   // 이미 넣었어요
-  const r = s.getRangeAt(0), rect = [...r.getClientRects()].pop() || r.getBoundingClientRect(); if (!rect || !rect.height) return hideSug();
+  // 커서 위치 = 바로 앞 글자의 오른쪽 (아이폰은 빈 커서 위치를 엉뚱하게 줄 때가 있어요)
+  const r = document.createRange(); if (s.anchorOffset > 0) r.setStart(n, s.anchorOffset - 1); else r.setStart(n, 0); r.setEnd(n, s.anchorOffset);
+  const rect = [...r.getClientRects()].pop() || s.getRangeAt(0).getBoundingClientRect(); if (!rect || !rect.height) return hideSug();
+  // 글 상자(.ed) 안에 붙여서, 화면 키보드·스크롤과 상관없이 같은 기준으로 자리를 잡아요
+  const box = cur.el.body.closest('.ed') || cur.el.body.parentElement, br = box.getBoundingClientRect();
   const fs = parseFloat(getComputedStyle(cur.el.body).fontSize) || 17, size = Math.round(fs * 1.25);
   sugEl = document.createElement('button'); sugEl.className = 'ed-ghost'; sugEl.type = 'button'; sugEl.setAttribute('aria-label', t('ed.addSticker'));
   sugEl.innerHTML = hydrateOne(m.st);
   sugEl.addEventListener('mousedown', ev => ev.preventDefault());   // 글 칸 포커스(키보드)를 지켜요
   sugEl.addEventListener('touchstart', ev => { ev.preventDefault(); putSticker(); }, { passive: false });
   sugEl.addEventListener('click', putSticker);
-  Object.assign(sugEl.style, { width: size + 'px', height: size + 'px', left: Math.min(innerWidth - size - 4, rect.right + 3) + 'px', top: Math.round(rect.top + rect.height / 2 - size / 2) + 'px' });
-  document.body.appendChild(sugEl);
+  Object.assign(sugEl.style, { width: size + 'px', height: size + 'px', left: Math.round(Math.min(box.clientWidth - size - 2, rect.right - br.left + 3)) + 'px', top: Math.round(rect.top - br.top + box.scrollTop + rect.height / 2 - size / 2) + 'px' });
+  box.appendChild(sugEl);
   sugAt = { node: n, off: s.anchorOffset, st: m.st };
 }
 const hydrateOne = st => { const d = document.createElement('span'); d.innerHTML = `<span class="stk" data-st="${st}"></span>`; hydrateStickers(d); return d.innerHTML; };
