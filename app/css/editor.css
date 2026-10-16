@@ -204,7 +204,7 @@
   /* 문서 자체를 overflow: hidden 으로 막으면 아이폰 홈 화면 앱에서 맨 아래(홈 막대 자리)가 잘려 빈 띠가 보였어요. 스크롤은 편집기 상자 안에서만 일어나요 */
   :root.ed-mode, :root.ed-mode body { overscroll-behavior: none; }
   /* 혹시 화면 끝이 비쳐도 어둡게 덮인 배경과 같은 색이 보이게요 */
-  :root.ed-mode, :root.ed-mode body { background: linear-gradient(rgba(var(--srf),.12), rgba(var(--srf),.12)), linear-gradient(rgba(0,0,0,var(--scrim)), rgba(0,0,0,var(--scrim))), var(--bg-end, #16181C); }   /* 그라데이션 대신 맨 아래 색 한 가지로 (화면 밖 홈 막대 자리에서 그라데이션이 처음부터 다시 그려져 띠가 생겼어요) */
+  :root.ed-mode { background: linear-gradient(rgba(var(--srf),.12), rgba(var(--srf),.12)), linear-gradient(rgba(0,0,0,var(--scrim)), rgba(0,0,0,var(--scrim))), var(--bg-end, #16181C); }   /* 그라데이션 대신 맨 아래 색 한 가지로 (화면 밖 홈 막대 자리에서 그라데이션이 처음부터 다시 그려져 띠가 생겼어요) */
   /* 어둡게 덮는 층은 편집기 상자가 아니라 화면 배경 자체에 넣어요 (아이폰에서 아래쪽 끝이 잘려 원래 배경이 비치지 않게) */
   .view > .ed-page::before { display: none; }
   :root.ed-mode .backdrop { box-shadow: inset 0 0 0 100vmax rgba(var(--srf),.12); }
