@@ -199,3 +199,8 @@
 .ndet .nart time { display: block; margin: 8px 0 20px; font-size: var(--fs-s); color: var(--muted); }
 .ndet .nart .ntext { font-size: 17px; line-height: 1.75; color: var(--text-2); white-space: pre-line; overflow-wrap: anywhere; }
 .ndet .nart .btn { margin-top: 28px; }
+/* 공지·소식: 안 읽은 공지가 있으면 메뉴 단추와 메뉴의 '공지·소식' 줄에 점 */
+.has-news .drawer .m.news { position: relative; }
+.has-news .drawer .m.news::after { content: ''; width: 7px; height: 7px; border-radius: 4px; background: #FF7A59; margin-left: 8px; flex: none; }
+.has-news .mbar .menu-btn { position: relative; }
+.has-news .mbar .menu-btn::after { content: ''; position: absolute; top: calc(50% - 13px); left: calc(50% + 5px); width: 7px; height: 7px; border-radius: 4px; background: #FF7A59; box-shadow: 0 0 0 2px var(--sheet, #FFFFFF); }

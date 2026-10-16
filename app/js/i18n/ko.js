@@ -92,6 +92,7 @@ export default {
   'set.notifyOn': '알림이 켜져 있어요.', 'set.notifyNo': "이 화면에서는 알림을 켤 수 없어요. 홈 화면에 앱을 설치한 뒤 켜 주세요. (아이폰은 iOS 16.4 이상)", 'set.notifyAsk': '알림 켜기', 'set.notifyAskSub': '일정 10분 전, 할 일 마감일 아침에 알려 드려요.', 'set.notifyDenied': '브라우저 설정에서 알림이 막혀 있어요. 사이트 설정에서 허용해 주세요.',
   'set.notices': "중요한 공지", 'set.noticesSub': "서비스 변경처럼 꼭 알아야 할 소식만 보내요", 'set.news': "새 소식·혜택 받기", 'set.newsSub': "이벤트·새 기능 소식이에요. 밤 9시~아침 8시에는 보내지 않아요", 'set.newsAt': "{date}에 동의했어요. 밤 9시~아침 8시에는 보내지 않아요", 'set.newsOn': "{date}, 새 소식 받기에 동의했어요", 'set.newsOff': "{date}, 새 소식 받기를 그만했어요",
   'inbox.remWhen': "{v} 알림",
+  'nav.news': "공지·소식", 'empty.news': "아직 공지가 없어요", 'empty.news.s': "서비스 소식이 생기면 여기에 모아 둘게요",
   'set.reminders': '일정·할 일 알림', 'set.remindersSub': '기록마다 따로 바꿀 수도 있어요', 'set.morning': '아침 인사', 'set.evening': '저녁 돌아보기', 'set.eveningSub': '오늘 아직 기록이 없을 때만', 'set.at': '시각',
   'set.notifyHonest': "이 기기에서는 앱이 열려 있을 때만 알림이 와요. 앱을 닫아도 받으려면 홈 화면에 설치한 앱에서 알림을 켜 주세요. (아이폰은 iOS 16.4 이상)",
   'sync.syncing': '동기화 중…', 'sync.at': '{when} 맞춤', 'sync.never': '아직 동기화 전이에요', 'sync.done': '동기화했어요', 'err.offline': '인터넷에 연결되어 있지 않아요.',

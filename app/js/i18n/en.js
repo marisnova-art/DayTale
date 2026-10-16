@@ -87,6 +87,7 @@ export default {
   'set.notifyOn': 'Notifications are on.', 'set.notifyNo': "Notifications can’t be turned on here. Install the app on your home screen, then turn them on (iPhone: iOS 16.4 or later).", 'set.notifyAsk': 'Turn on notifications', 'set.notifyAskSub': '10 minutes before events, and on the morning a to-do is due.', 'set.notifyDenied': 'Notifications are blocked in your browser. Allow them in site settings.',
   'set.notices': "Important notices", 'set.noticesSub': "Only what you need to know, like service changes", 'set.news': "News and offers", 'set.newsSub': "Events and new features. Never sent between 9 pm and 8 am", 'set.newsAt': "You agreed on {date}. Never sent between 9 pm and 8 am", 'set.newsOn': "You agreed to receive news and offers on {date}", 'set.newsOff': "You stopped news and offers on {date}",
   'inbox.remWhen': "Reminder: {v}",
+  'nav.news': "News", 'empty.news': "No news yet", 'empty.news.s': "We’ll keep service news here.",
   'set.reminders': 'Reminders', 'set.remindersSub': 'You can change it for each entry too', 'set.morning': 'Morning greeting', 'set.evening': 'Evening check-in', 'set.eveningSub': 'Only if you haven’t written today', 'set.at': 'Time',
   'set.notifyHonest': "On this device, notifications only arrive while the app is open. To get them with the app closed, turn them on in the app installed on your home screen (iPhone: iOS 16.4 or later).",
   'sync.syncing': 'Syncing…', 'sync.at': 'Synced {when}', 'sync.never': 'Not synced yet', 'sync.done': 'Synced', 'err.offline': 'You’re offline.',

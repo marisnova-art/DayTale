@@ -53,7 +53,7 @@ route('/backup', V('backup'));
 route('/kept', V('kept'));
 route('/calendar', V('calendar'));
 route('/settings', V('settings')); route('/settings/:group', V('settings'));
-route('/plans', V('plans')); route('/notices', V('notices')); route('/notices/:id', V('notices'));
+route('/plans', V('plans')); route('/notices', V('notices')); route('/notices/:id', V('notices')); route('/news', V('notices'));
 
 let mounted = null;
 async function show(r) {
@@ -122,8 +122,9 @@ function trialNudge() {
 /* 안 읽은 알림: 종·메뉴·설정 › 알림에 점, 설치한 앱은 아이콘에 숫자 (지원하는 곳만) */
 async function checkNotices() {
   try {
-    const { unread } = await import('./views/notices.js'); const n = await unread();
-    document.documentElement.classList.toggle('has-unread', n > 0);
+    const { counts } = await import('./views/notices.js'); const c = await counts(), n = c.alerts + c.news;
+    document.documentElement.classList.toggle('has-unread', c.alerts > 0);   // 종 모양: 내 알림
+    document.documentElement.classList.toggle('has-news', c.news > 0);       // 메뉴: 공지·소식
     if ('setAppBadge' in navigator) (n ? navigator.setAppBadge(n) : navigator.clearAppBadge()).catch(() => {});
     self.caches?.open('badge-count').then(c => c.put('n', new Response(String(n)))).catch(() => {});   // 앱이 닫혀 있을 때 푸시가 오면 여기서부터 하나씩 올려요 (sw.js)
   } catch {}

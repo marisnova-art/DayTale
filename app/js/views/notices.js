@@ -40,23 +40,21 @@ function problems() {
 const remText = r => r.type === 'event' ? t(r.b >= 1440 ? 'notify.eventTomorrow' : 'notify.eventSoon', { time: fmtHM(r.time) }) : t(r.b >= 1440 ? 'notify.todoTomorrow' : 'notify.todoDue');
 /* 다가오는 일정의 때: 오늘·내일은 말로, 그 뒤는 날짜(요일)로 */
 const when = ms => { const d = new Date(ms), k = x => new Date(x).toDateString(); return (k(ms) === k(Date.now()) ? t('list.today') : k(ms) === k(Date.now() + DAY) ? t('inbox.tomorrow') : fmtDate(d, { month: 'short', day: 'numeric', weekday: 'short' })) + ' ' + fmtTime(d); };
-/* 다가오는 알림: 일정·마감이 아직 안 지난 것 (7일 안). 하루 전 알림이 이미 울렸어도 일정이 끝날 때까지 여기 있어요. 가까운 것부터 */
+/* 다가오는 알림: 앞으로 7일 안에 울릴 알림, 울릴 시각 순서로 (사흘 뒤 일정의 하루 전 알림도 미리 보여요) */
 const ricon = r => r.type === 'event' ? 'calendar' : 'check-square';
-function soon() {
+const soon = () => { const now = Date.now(); return Reminders.timeline(now, now + 7 * DAY).map(r => ({ ic: ricon(r), title: r.title, body: remText(r), href: '#/e/' + r.id, at: r.at })); };
+/* 지난 알림: 지난 7일 동안 울린 일정·할 일 알림, 새것부터 */
+function past() {
   const now = Date.now();
-  return Reminders.timeline(now - 8 * DAY, now + 7 * DAY).filter(r => r.ev > now && r.ev < now + 7 * DAY)
-    .map(r => ({ ic: ricon(r), title: r.title, body: t('inbox.remWhen', { v: Reminders.beforeLabel(r.b, r.type) }), href: '#/e/' + r.id, at: r.ev, fresh: r.at <= now && r.at > seenAt() }))
-    .sort((a, b) => a.at - b.at);
+  return Reminders.timeline(now - 7 * DAY, now).map(r => ({ ic: ricon(r), title: r.title, body: r.type === 'todo' ? t('inbox.todoPast') : remText(r), href: '#/e/' + r.id, at: r.at, fresh: r.at > seenAt() })).sort((a, b) => b.at - a.at);
 }
-/* 지난 알림: 지난 7일 동안 울렸고 일정·마감도 지난 일정·할 일 + 서버 공지, 새것부터 */
-async function past() {
-  const now = Date.now();
-  const rem = Reminders.timeline(now - 7 * DAY, now).filter(r => r.ev <= now).map(r => ({ ic: ricon(r), title: r.title, body: r.type === 'todo' ? t('inbox.todoPast') : remText(r), href: '#/e/' + r.id, at: r.at, fresh: r.at > seenAt() }));
-  const srv = (await load()).map(n => ({ ic: n.kind.startsWith('trial') ? 'hourglass' : 'megaphone', title: n.title, body: n.body, href: '#/notices/' + n.id, at: shownAt(n), fresh: noticeNew(n), n }));
-  return [...rem, ...srv].sort((a, b) => b.at - a.at);
+/* 공지·소식: 회사가 보내는 것(공지 · 새 소식 · 체험 안내). 알림함과 따로 메뉴 '공지·소식'에 모아요. 새것부터 */
+async function news() {
+  return (await load()).map(n => ({ ic: n.kind.startsWith('trial') ? 'hourglass' : 'megaphone', title: n.title, body: n.body, href: '#/notices/' + n.id, at: shownAt(n), fresh: noticeNew(n), n })).sort((a, b) => b.at - a.at);
 }
-/* 안 읽은 개수 (종 모양 점, 앱 아이콘 숫자) */
-async function unread() { return problems().length + soon().filter(x => x.fresh).length + (await past()).filter(x => x.fresh).length; }
+/* 안 읽은 개수: 알림(종 모양 점) · 공지(메뉴 점). 앱 아이콘 숫자는 둘을 더해요 */
+async function counts() { return { alerts: problems().length + past().filter(x => x.fresh).length, news: (await news()).filter(x => x.fresh).length }; }
+async function unread() { const c = await counts(); return c.alerts + c.news; }
 
 /* 홈 배너: 'strip' = 홈 위 띠(글자만), 'popup' = 이미지와 함께 시트(모바일은 아래에서, PC는 가운데 창).
    종류마다 하루에 하나만. 띠는 닫거나 보면 끝, 팝업은 기간 동안 하루 한 번 뜨고 '자세히 보기'로 읽으면 끝 */
@@ -107,10 +105,10 @@ const grp = (label, list) => list.length ? `<div class="grp"><span>${esc(label)}
 
 /* 공지 상세: 이미지 · 제목 · 날짜 · 자세한 내용 (+ 관리자가 정한 버튼) */
 async function renderDetail(view, id) {
-  view.innerHTML = `<section class="lst ntc ndet"><div class="lst-head"><a class="icon-btn" href="#/notices" aria-label="${esc(t('ed.back'))}">${icon('chevron-left', 22)}</a><h1>${esc(t('nav.notices'))}</h1></div><div class="body"></div><div style="height:120px"></div></section>`;
+  view.innerHTML = `<section class="lst ntc ndet"><div class="lst-head"><a class="icon-btn" href="#/news" aria-label="${esc(t('ed.back'))}">${icon('chevron-left', 22)}</a><h1>${esc(t('nav.news'))}</h1></div><div class="body"></div><div style="height:120px"></div></section>`;
   const n = (cache || []).find(x => x.id === id) || (await load()).find(x => x.id === id);
   const body = view.querySelector('.body'); if (!body) return;
-  if (!n) { body.innerHTML = `<div class="empty">${icon('bell', 28)}<b>${esc(t('inbox.gone'))}</b><a class="btn line" href="#/notices">${esc(t('nav.notices'))}</a></div>`; return; }
+  if (!n) { body.innerHTML = `<div class="empty">${icon('bell', 28)}<b>${esc(t('inbox.gone'))}</b><a class="btn line" href="#/news">${esc(t('nav.news'))}</a></div>`; return; }
   const href = custom(n) ? n.cta_url : '';
   body.innerHTML = `<article class="nart">${n.image_url && /^(https:\/\/|\/notice\/[\w.-]+$)/.test(n.image_url) ? `<img class="pim" src="${esc(n.image_url)}" alt="">` : ''}
     <h2>${esc(n.title)}</h2><time>${esc(fmtDate(new Date(shownAt(n)), { year: 'numeric', month: 'long', day: 'numeric' }))}</time>
@@ -118,27 +116,37 @@ async function renderDetail(view, id) {
     ${href ? `<a class="btn primary" href="${esc(href)}"${ext(href)}>${esc(ctaLabel(n))}</a>` : ''}</article>`;
   closeBanner(n.id);   // 읽었으니 배너로 다시 띄우지 않아요
   if (n.user_id && !n.read_at) await Sync.sb?.from('notices').update({ read_at: new Date().toISOString() }).eq('id', n.id);
+  if (!n.user_id && n.id > Number(localStorage.getItem('daytale.noticeSeen') || 0)) seenNews([n.id]);
+  emit('notices');
+}
+/* 공지 읽음: 모두에게 보낸 공지는 이 기기에서 본 번호들을 적어 둬요 (가장 큰 번호까지 읽은 것으로) */
+function seenNews(ids) { const top = Math.max(Number(localStorage.getItem('daytale.noticeSeen') || 0), ...ids); localStorage.setItem('daytale.noticeSeen', String(top)); }
+
+/* 공지·소식 화면 */
+async function renderNews(view) {
+  view.innerHTML = `<section class="lst ntc"><div class="lst-head"><a class="icon-btn" href="#/home" aria-label="${esc(t('ed.back'))}">${icon('chevron-left', 22)}</a><h1>${esc(t('nav.news'))}</h1></div><div class="body"></div><div style="height:120px"></div></section>`;
+  const list = (await news()).map(x => ({ ...x, tm: fmtRel(new Date(x.at).toISOString()) }));
+  const body = view.querySelector('.body'); if (!body) return;
+  body.innerHTML = list.length ? `<div class="card">${list.map(row).join('')}</div>`
+    : `<div class="empty">${icon('megaphone', 28)}<b>${esc(t('empty.news'))}</b><p>${esc(t('empty.news.s'))}</p></div>`;
+  const seenB = list.filter(x => x.n?.banner === 'strip').map(x => x.n.id); if (seenB.length) closeBanner(seenB);   // 여기서 본 공지는 홈 띠배너로 다시 띄우지 않아요
+  const mine = list.filter(x => x.n?.user_id && !x.n.read_at).map(x => x.n.id);
+  if (mine.length) await Sync.sb.from('notices').update({ read_at: new Date().toISOString() }).in('id', mine);
+  const all = list.filter(x => x.n && !x.n.user_id).map(x => x.n.id); if (all.length) seenNews(all);
+  emit('notices');
 }
 
 function render(view, r) {
   if (r?.params?.id) return renderDetail(view, Number(r.params.id));
+  if (location.hash.startsWith('#/news')) return renderNews(view);
   view.innerHTML = `<section class="lst ntc"><div class="lst-head"><a class="icon-btn" href="#/home" aria-label="${esc(t('ed.back'))}">${icon('chevron-left', 22)}</a><h1>${esc(t('nav.notices'))}</h1></div><div class="body"></div><div style="height:120px"></div></section>`;
-  (async () => {
-    const now = Date.now();
-    const prob = problems();
-    const up = soon().map(x => ({ ...x, tm: when(x.at) }));
-    const old = (await past()).map(x => ({ ...x, tm: fmtRel(new Date(x.at).toISOString()) }));
-    const body = view.querySelector('.body'); if (!body) return;
-    body.innerHTML = prob.length + up.length + old.length
-      ? (prob.length || old.some(x => x.fresh) || up.some(x => x.fresh) ? `<p class="nlegend"><i></i>${esc(t('inbox.legend'))}</p>` : '') + grp(t('inbox.check'), prob) + grp(t('inbox.soon'), up) + grp(t('inbox.past'), old)
-      : `<div class="empty">${icon('bell', 28)}<b>${esc(t('empty.inbox'))}</b><p>${esc(t('empty.inbox.s'))}</p><a class="btn line" href="#/settings/notify">${icon('settings', 18)}${esc(t('inbox.settings'))}</a></div>`;
-    // 열었으니 읽음으로
-    ls.set(SEEN, now);
-    const seenB = old.filter(x => x.n?.banner === 'strip').map(x => x.n.id); if (seenB.length) closeBanner(seenB);   // 알림함에서 본 공지는 홈 배너로 다시 띄우지 않아요
-    const mine = old.filter(x => x.n?.user_id && !x.n.read_at).map(x => x.n.id);
-    if (mine.length) await Sync.sb.from('notices').update({ read_at: new Date().toISOString() }).in('id', mine);
-    const top = Math.max(0, ...old.filter(x => x.n && !x.n.user_id).map(x => x.n.id)); if (top) localStorage.setItem('daytale.noticeSeen', String(top));
-    emit('notices');
-  })();
+  const now = Date.now();
+  const prob = problems(), up = soon().map(x => ({ ...x, tm: when(x.at) })), old = past().map(x => ({ ...x, tm: fmtRel(new Date(x.at).toISOString()) }));
+  const body = view.querySelector('.body'); if (!body) return;
+  body.innerHTML = prob.length + up.length + old.length
+    ? (prob.length || old.some(x => x.fresh) ? `<p class="nlegend"><i></i>${esc(t('inbox.legend'))}</p>` : '') + grp(t('inbox.check'), prob) + grp(t('inbox.soon'), up) + grp(t('inbox.past'), old)
+    : `<div class="empty">${icon('bell', 28)}<b>${esc(t('empty.inbox'))}</b><p>${esc(t('empty.inbox.s'))}</p><a class="btn line" href="#/settings/notify">${icon('settings', 18)}${esc(t('inbox.settings'))}</a></div>`;
+  ls.set(SEEN, now);   // 열었으니 읽음으로
+  emit('notices');
 }
-export { banner, render, unread };
+export { banner, counts, render, unread };
