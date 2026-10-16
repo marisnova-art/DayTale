@@ -38,16 +38,25 @@ function problems() {
   return out;
 }
 const remText = r => r.type === 'event' ? t(r.b >= 1440 ? 'notify.eventTomorrow' : 'notify.eventSoon', { time: fmtHM(r.time) }) : t(r.b >= 1440 ? 'notify.todoTomorrow' : 'notify.todoDue');
-const when = ms => { const d = new Date(ms), k = x => new Date(x).toDateString(); return (k(ms) === k(Date.now()) ? t('list.today') : k(ms) === k(Date.now() + DAY) ? t('inbox.tomorrow') : '') + ' ' + fmtTime(d); };
-/* 지난 알림: 일정·할 일 + 서버 공지, 새것부터 */
+/* 다가오는 일정의 때: 오늘·내일은 말로, 그 뒤는 날짜(요일)로 */
+const when = ms => { const d = new Date(ms), k = x => new Date(x).toDateString(); return (k(ms) === k(Date.now()) ? t('list.today') : k(ms) === k(Date.now() + DAY) ? t('inbox.tomorrow') : fmtDate(d, { month: 'short', day: 'numeric', weekday: 'short' })) + ' ' + fmtTime(d); };
+/* 다가오는 알림: 일정·마감이 아직 안 지난 것 (7일 안). 하루 전 알림이 이미 울렸어도 일정이 끝날 때까지 여기 있어요. 가까운 것부터 */
+const ricon = r => r.type === 'event' ? 'calendar' : 'check-square';
+function soon() {
+  const now = Date.now();
+  return Reminders.timeline(now - 8 * DAY, now + 7 * DAY).filter(r => r.ev > now && r.ev < now + 7 * DAY)
+    .map(r => ({ ic: ricon(r), title: r.title, body: t('inbox.remWhen', { v: Reminders.beforeLabel(r.b, r.type) }), href: '#/e/' + r.id, at: r.ev, fresh: r.at <= now && r.at > seenAt() }))
+    .sort((a, b) => a.at - b.at);
+}
+/* 지난 알림: 지난 7일 동안 울렸고 일정·마감도 지난 일정·할 일 + 서버 공지, 새것부터 */
 async function past() {
   const now = Date.now();
-  const rem = Reminders.timeline(now - 7 * DAY, now).map(r => ({ ic: r.type === 'event' ? 'calendar' : 'check-square', title: r.title, body: r.type === 'todo' ? t('inbox.todoPast') : remText(r), href: '#/e/' + r.id, at: r.at, fresh: r.at > seenAt() }));
+  const rem = Reminders.timeline(now - 7 * DAY, now).filter(r => r.ev <= now).map(r => ({ ic: ricon(r), title: r.title, body: r.type === 'todo' ? t('inbox.todoPast') : remText(r), href: '#/e/' + r.id, at: r.at, fresh: r.at > seenAt() }));
   const srv = (await load()).map(n => ({ ic: n.kind.startsWith('trial') ? 'hourglass' : 'megaphone', title: n.title, body: n.body, href: '#/notices/' + n.id, at: shownAt(n), fresh: noticeNew(n), n }));
   return [...rem, ...srv].sort((a, b) => b.at - a.at);
 }
 /* 안 읽은 개수 (종 모양 점, 앱 아이콘 숫자) */
-async function unread() { return problems().length + (await past()).filter(x => x.fresh).length; }
+async function unread() { return problems().length + soon().filter(x => x.fresh).length + (await past()).filter(x => x.fresh).length; }
 
 /* 홈 배너: 'strip' = 홈 위 띠(글자만), 'popup' = 이미지와 함께 시트(모바일은 아래에서, PC는 가운데 창).
    종류마다 하루에 하나만. 띠는 닫거나 보면 끝, 팝업은 기간 동안 하루 한 번 뜨고 '자세히 보기'로 읽으면 끝 */
@@ -117,11 +126,11 @@ function render(view, r) {
   (async () => {
     const now = Date.now();
     const prob = problems();
-    const soon = Reminders.timeline(now, now + 2 * DAY).map(r => ({ ic: r.type === 'event' ? 'calendar' : 'check-square', title: r.title, body: remText(r), href: '#/e/' + r.id, tm: when(r.at) }));
+    const up = soon().map(x => ({ ...x, tm: when(x.at) }));
     const old = (await past()).map(x => ({ ...x, tm: fmtRel(new Date(x.at).toISOString()) }));
     const body = view.querySelector('.body'); if (!body) return;
-    body.innerHTML = prob.length + soon.length + old.length
-      ? (prob.length || old.some(x => x.fresh) ? `<p class="nlegend"><i></i>${esc(t('inbox.legend'))}</p>` : '') + grp(t('inbox.check'), prob) + grp(t('inbox.soon'), soon) + grp(t('inbox.past'), old)
+    body.innerHTML = prob.length + up.length + old.length
+      ? (prob.length || old.some(x => x.fresh) || up.some(x => x.fresh) ? `<p class="nlegend"><i></i>${esc(t('inbox.legend'))}</p>` : '') + grp(t('inbox.check'), prob) + grp(t('inbox.soon'), up) + grp(t('inbox.past'), old)
       : `<div class="empty">${icon('bell', 28)}<b>${esc(t('empty.inbox'))}</b><p>${esc(t('empty.inbox.s'))}</p><a class="btn line" href="#/settings/notify">${icon('settings', 18)}${esc(t('inbox.settings'))}</a></div>`;
     // 열었으니 읽음으로
     ls.set(SEEN, now);

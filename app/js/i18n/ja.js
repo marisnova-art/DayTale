@@ -86,6 +86,7 @@ export default {
   'set.days': '覚えておく日', 'set.daysSub': '誕生日や記念日を登録すると、その日のホームのお話で触れます。', 'set.addDay': '日を追加', 'set.everyYear': '毎年{date}', 'set.dayName': 'どんな日ですか？', 'set.dayNamePh': '例：母の誕生日', 'set.dayDate': '日付',
   'set.notifyOn': '通知はオンです。', 'set.notifyNo': "ここでは通知をオンにできません。ホーム画面にアプリを追加してからオンにしてください（iPhoneはiOS 16.4以降）。", 'set.notifyAsk': '通知をオンにする', 'set.notifyAskSub': '予定の10分前と、やることの期限日の朝にお知らせします。', 'set.notifyDenied': 'ブラウザで通知がブロックされています。サイトの設定で許可してください。',
   'set.notices': "重要なお知らせ", 'set.noticesSub': "サービスの変更など、必ず知っておくべきことだけをお送りします", 'set.news': "新着情報・特典を受け取る", 'set.newsSub': "イベントや新機能のお知らせです。夜9時〜朝8時には送りません", 'set.newsAt': "{date}に同意しました。夜9時〜朝8時には送りません", 'set.newsOn': "{date}、新着情報の受信に同意しました", 'set.newsOff': "{date}、新着情報の受信を解除しました",
+  'inbox.remWhen': "通知: {v}",
   'set.reminders': '予定・やることの通知', 'set.remindersSub': '記録ごとに変えることもできます', 'set.morning': '朝のあいさつ', 'set.evening': '夜のふり返り', 'set.eveningSub': '今日まだ記録がないときだけ', 'set.at': '時刻',
   'set.notifyHonest': "この端末では、アプリを開いている間だけ通知が届きます。閉じていても受け取るには、ホーム画面に追加したアプリで通知をオンにしてください（iPhoneはiOS 16.4以降）。",
   'sync.syncing': '同期中…', 'sync.at': '{when}に同期', 'sync.never': 'まだ同期していません', 'sync.done': '同期しました', 'err.offline': 'オフラインです。',

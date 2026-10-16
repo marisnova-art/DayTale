@@ -49,8 +49,8 @@ function timeline(from, to) {
     const b = beforeOf(e); if (b == null || !m.date) continue;
     if (e.type === 'event' && !m.time) continue;
     if (e.type === 'todo' && m.done) continue;
-    const x = at(m.date, m.time || n.todoAt || '09:00') - b * 60e3;
-    if (x >= from && x < to) out.push({ id: e.id, type: e.type, at: x, b, title: displayTitle(e, t('common.untitled')), time: m.time || '' });
+    const ev = at(m.date, m.time || n.todoAt || '09:00'), x = ev - b * 60e3;   // ev = 일정 시각·마감, x = 알림이 울리는 때
+    if (x >= from && x < to) out.push({ id: e.id, type: e.type, at: x, ev, b, title: displayTitle(e, t('common.untitled')), time: m.time || '' });
   }
   return out.sort((a, c) => a.at - c.at);
 }
