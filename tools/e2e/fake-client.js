@@ -30,7 +30,7 @@
     onAuthStateChange: f => { subs.push(f); setTimeout(() => f('INITIAL_SESSION', session()), 0); return { data: { subscription: { unsubscribe() {} } } }; },
     refreshSession: async () => ({}),
     signInWithPassword: async ({ email, password }) => { const u = await window.__login(email, password); if (!u) return { data: {}, error: { message: 'Invalid login credentials' } }; user = u; localStorage.setItem('fake.user', JSON.stringify(u)); fire('SIGNED_IN', session()); return { data: { session: session() }, error: null }; },
-    signUp: async () => ({ data: { session: null }, error: null }),
+    signUp: async ({ email } = {}) => ({ data: { session: null, user: email === 'ann@example.com' ? { id: 'x', identities: [] } : { id: 'y', identities: [{}] } }, error: null }),   // 이미 가입된 메일은 Supabase처럼 빈 identities
     resetPasswordForEmail: async () => ({ error: null }), updateUser: async () => ({ error: null }), signInWithOAuth: async () => ({ error: null }),
     signOut: async () => { user = null; localStorage.removeItem('fake.user'); sessionStorage.setItem('fake.out', '1'); fire('SIGNED_OUT', null); return {}; }
   };

@@ -59,6 +59,8 @@ function showAuth(mode = 'signin', note = '') {
       else if (signup) {
         const { data, error } = await sb.auth.signUp({ email, password: pw, options: { emailRedirectTo: back, data: { lang: getLang() } } });
         if (error) throw error;
+        // 이미 가입된 메일: Supabase는 메일 노출을 막으려고 오류 없이 빈 계정(identities: [])을 돌려줘요. 확인 메일 안내 대신 로그인으로 보내요
+        if (data.user && Array.isArray(data.user.identities) && !data.user.identities.length) { showAuth('signin', t('auth.exists')); const f = $('#auth form'); if (f?.email) f.email.value = email; return; }
         if (!data.session) say(t('auth.checkMail', { email }));
       } else if (reset) { const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: back }); if (error) throw error; say(t('auth.resetSent', { email })); }
       else if (newpw) { const { error } = await sb.auth.updateUser({ password: pw }); if (error) throw error; location.hash = '#/home'; location.reload(); }
