@@ -24,6 +24,8 @@ async function load() {
   const { data, error } = await Sync.sb.from('notices').select('id,user_id,kind,lang,title,body,created_at,read_at,banner,audience,starts_at,ends_at,image_url,cta_label,cta_url,detail').order('created_at', { ascending: false }).limit(50);
   return cache = error ? (cache || []) : data.filter(forMe);
 }
+/* 공지가 나온 때: 시작일(그날 0시)과 올린 때 중 늦은 쪽. 오늘 날짜로 올린 공지가 '10시간 전'으로 보이지 않게 */
+const shownAt = n => Math.max(Date.parse(n.starts_at || n.created_at), Date.parse(n.created_at));
 const seenAt = () => Number(ls.get(SEEN, 0)) || 0;
 const noticeNew = n => n.user_id ? !n.read_at : n.id > Number(localStorage.getItem('daytale.noticeSeen') || 0);
 /* 지금 확인이 필요한 일 */
@@ -41,7 +43,7 @@ const when = ms => { const d = new Date(ms), k = x => new Date(x).toDateString()
 async function past() {
   const now = Date.now();
   const rem = Reminders.timeline(now - 7 * DAY, now).map(r => ({ ic: r.type === 'event' ? 'calendar' : 'check-square', title: r.title, body: r.type === 'todo' ? t('inbox.todoPast') : remText(r), href: '#/e/' + r.id, at: r.at, fresh: r.at > seenAt() }));
-  const srv = (await load()).map(n => ({ ic: n.kind.startsWith('trial') ? 'hourglass' : 'megaphone', title: n.title, body: n.body, href: '#/notices/' + n.id, at: Date.parse(n.starts_at || n.created_at), fresh: noticeNew(n), n }));
+  const srv = (await load()).map(n => ({ ic: n.kind.startsWith('trial') ? 'hourglass' : 'megaphone', title: n.title, body: n.body, href: '#/notices/' + n.id, at: shownAt(n), fresh: noticeNew(n), n }));
   return [...rem, ...srv].sort((a, b) => b.at - a.at);
 }
 /* 안 읽은 개수 (종 모양 점, 앱 아이콘 숫자) */
@@ -102,7 +104,7 @@ async function renderDetail(view, id) {
   if (!n) { body.innerHTML = `<div class="empty">${icon('bell', 28)}<b>${esc(t('inbox.gone'))}</b><a class="btn line" href="#/notices">${esc(t('nav.notices'))}</a></div>`; return; }
   const href = custom(n) ? n.cta_url : '';
   body.innerHTML = `<article class="nart">${n.image_url && /^(https:\/\/|\/notice\/[\w.-]+$)/.test(n.image_url) ? `<img class="pim" src="${esc(n.image_url)}" alt="">` : ''}
-    <h2>${esc(n.title)}</h2><time>${esc(fmtDate(new Date(n.starts_at || n.created_at), { year: 'numeric', month: 'long', day: 'numeric' }))}</time>
+    <h2>${esc(n.title)}</h2><time>${esc(fmtDate(new Date(shownAt(n)), { year: 'numeric', month: 'long', day: 'numeric' }))}</time>
     <div class="ntext">${esc(n.detail || n.body)}</div>
     ${href ? `<a class="btn primary" href="${esc(href)}"${ext(href)}>${esc(ctaLabel(n))}</a>` : ''}</article>`;
   closeBanner(n.id);   // 읽었으니 배너로 다시 띄우지 않아요

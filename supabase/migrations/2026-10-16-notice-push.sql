@@ -44,8 +44,8 @@ language sql stable security definer set search_path = public as $$
     -- 새 소식(kind = 'news', 광고성): 설정에서 따로 동의한 사람(news = true)에게만, 시작 후 하루 안에, 그 사람 시간으로 08~21시 사이에만
     select s.id, 'notice:' || n.id, case when n.kind = 'news' then 'news' else 'notice' end, n.title, null, n.id || '|' || left(n.body, 200), p_now
     from s join notices n on n.push and (n.user_id is null or n.user_id = s.user_id)
-    where coalesce(n.starts_at, n.created_at) <= p_now
-      and coalesce(n.starts_at, n.created_at) > p_now - case when n.kind = 'news' then interval '24 hours' else interval '6 hours' end
+    where greatest(n.starts_at, n.created_at) <= p_now   -- 시작일(그날 0시)과 올린 때 중 늦은 쪽부터
+      and greatest(n.starts_at, n.created_at) > p_now - case when n.kind = 'news' then interval '24 hours' else interval '6 hours' end
       and (n.ends_at is null or n.ends_at > p_now)
       and (n.lang is null or n.lang = s.lang)
       and case n.audience when 'subscriber' then is_subscriber(s.user_id)
