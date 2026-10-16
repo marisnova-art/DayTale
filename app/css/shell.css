@@ -144,8 +144,9 @@ dialog.dlg .btn { height: 44px; }
 
 /* 처음 띄울 때 */
 /* 로고 로딩: 배경은 앱과 같은 그라데이션, 로고가 숨 쉬듯 커졌다 작아지고 아래 점 세 개가 차례로 빛나요 */
-#boot { position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; background: #16181C; transition: opacity .35s ease, visibility 0s .35s; }
-#boot::before { content: ''; position: absolute; inset: 0; background: var(--bg-grad, #16181C); opacity: .9; }
+#boot { position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; background: #16181C; background-image: linear-gradient(rgba(0,0,0,var(--scrim, 0)), rgba(0,0,0,var(--scrim, 0))), var(--bg-grad, linear-gradient(#16181C, #16181C)); transition: opacity .35s ease, visibility 0s .35s; }
+/* 모바일: 로딩 화면도 앱 배경과 똑같이 화면 아래 끝(아이폰 홈 막대 자리)까지 덮어요. 사라질 때 아래에서 다른 배경이 비치지 않게 */
+@media (max-width: 899px) { #boot { bottom: auto; height: calc(100lvh + 160px); padding-bottom: 160px; background-size: 100% 100%; } }
 #boot > * { position: relative; }
 #boot.gone { opacity: 0; visibility: hidden; pointer-events: none; }
 #boot .logo { width: 52px; height: 52px; border-radius: 16px; animation: bootBreath 1.6s ease-in-out infinite; box-shadow: 0 10px 40px rgba(229,87,122,.35); }
@@ -230,7 +231,7 @@ dialog.dlg .btn { height: 44px; }
   .view { padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); padding-bottom: calc(84px + var(--safe-b)); }
   .home, .lst, .set, .cal { max-width: 640px; margin-left: auto; margin-right: auto; }
   .home { padding-top: 16px; }
-  .home .spacer { height: 90px; }
+  .home .spacer { height: 0; }
   .lst { padding-top: 14px; }
   .mbar { height: 56px; border-radius: 28px; bottom: calc(8px + var(--safe-b)); max-width: 460px; }
   .mbar .icon-btn { height: 44px; }

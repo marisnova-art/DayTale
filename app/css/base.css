@@ -23,7 +23,9 @@ svg.i { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: rou
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .backdrop { position: fixed; inset: 0; background: var(--bg-grad); z-index: -2; }
 /* 아이폰 홈 화면 앱은 화면 맨 아래(상태 표시줄 높이만큼)를 배경 층 밖으로 둬서 띠가 보였어요. 휴대폰에선 화면보다 넉넉히 길게 깔아요 */
-@media (max-width: 899px) { .backdrop { bottom: auto; height: calc(100lvh + 160px); } }
+@media (max-width: 899px) { .backdrop { bottom: auto; height: calc(100lvh + 160px); }
+  :root:not([data-pat]) { background-color: var(--bg-end, #16181C); background-image: linear-gradient(rgba(0,0,0,var(--scrim, 0)), rgba(0,0,0,var(--scrim, 0))), var(--bg-grad);
+    background-size: 100% calc(100lvh + 160px); background-position: 0 0; background-repeat: no-repeat; } }   /* 문서 바탕도 배경 층과 같은 그림 (아이폰이 배경 층을 안 그리는 맨 아래 자리용) */
 @media (min-width: 900px) and (orientation: landscape) and (min-height: 501px) { .backdrop { background: var(--bg-grad-wide, var(--bg-grad)); } }
 .backdrop::before { content: ""; position: absolute; inset: 0; background: rgba(0,0,0,var(--scrim)); pointer-events: none; }   /* 밝은 그라데이션에서도 글자가 읽히게 25% 눌러요 (단색은 0) */
 .backdrop::after { content: ""; position: absolute; inset: 0; background-image: var(--grain); opacity: .38; mix-blend-mode: overlay; pointer-events: none; }
