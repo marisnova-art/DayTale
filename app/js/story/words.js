@@ -28,7 +28,6 @@ const PACKS = {
     { id: 'c18', k: 'c', a: 'alcott', o: 'world', q: '폭풍은 두렵지 않아요. 배를 모는 법을 배우고 있으니까요.', by: '루이자 메이 올컷', src: '『작은 아씨들』', say: '『작은 아씨들』의 막내 에이미는 이렇게 말했어요.' },
     { id: 'c19', k: 'c', a: 'montgomery', o: 'world', q: '내일은 아직 아무 실수도 없는 새날이에요.', by: '루시 모드 몽고메리', src: '『빨강 머리 앤』', say: '앤은 실수투성이 하루를 보낸 저녁, 마릴라에게 이렇게 말했어요.' },
     { id: 'c20', k: 'c', a: 'montgomery', o: 'world', q: '정다운 세상아, 너는 참 아름답구나. 네 안에 살아 있어서 기뻐.', by: '루시 모드 몽고메리', src: '『빨강 머리 앤』', say: '앤은 세상을 바라보며 이렇게 속삭였어요.' },
-    { id: 'c21', k: 'c', a: 'ahn', o: 'ko', q: '하루라도 책을 읽지 않으면 입안에 가시가 돋는다.', by: '안중근', src: '유묵', say: '안중근 의사는 감옥에서 남긴 글씨에 이렇게 적었어요.' },
   ],
   // 영어: 영어로 쓴 글은 원문 그대로, 옛 번역은 저작권이 끝난 번역(Long, Gummere 등)이나 직접 옮긴 말
   en: [
@@ -52,7 +51,6 @@ const PACKS = {
     { id: "c18", k: 'c', a: "alcott", o: "world", q: "I’m not afraid of storms, for I’m learning how to sail my ship.", by: "Louisa May Alcott", src: "Little Women", say: "In Little Women, the youngest sister, Amy, said:" },
     { id: "c19", k: 'c', a: "montgomery", o: "world", q: "Isn’t it nice to think that tomorrow is a new day with no mistakes in it yet?", by: "L. M. Montgomery", src: "Anne of Green Gables", say: "After a day full of mistakes, Anne said to Marilla:" },
     { id: "c20", k: 'c', a: "montgomery", o: "world", q: "Dear old world, you are very lovely, and I am glad to be alive in you.", by: "L. M. Montgomery", src: "Anne of Green Gables", say: "Looking out at the world, Anne whispered:" },
-    { id: "c21", k: 'c', a: "ahn", o: "ko", q: "If I do not read for a single day, thorns grow in my mouth.", by: "Ahn Jung-geun", src: "calligraphy", say: "The Korean independence activist Ahn Jung-geun wrote this in calligraphy from his prison cell:" },
   ]
 };
 
