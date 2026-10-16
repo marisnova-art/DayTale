@@ -41,7 +41,7 @@ export async function handle(req: Request, deps: Deps): Promise<Response> {
   if (!first) return json({ error: 'empty' }, 502, cors);
   const symbol = first.data?.next_1_hours?.summary?.symbol_code || first.data?.next_6_hours?.summary?.symbol_code || '';
   const next12 = ts.filter((x: any) => { const t = Date.parse(x.time); return t >= now && t < now + 12 * 3600e3; }).map((x: any) => x.data.instant.details.air_temperature);
-  const out = { kind: kindOf(symbol), symbol, night: symbol.endsWith('_night'), temp: Math.round(first.data.instant.details.air_temperature),
+  const out = { kind: kindOf(symbol), symbol, night: symbol.endsWith('_night'), temp: Math.round(first.data.instant.details.air_temperature), wind: Math.round(first.data.instant.details.wind_speed ?? 0),
     max: next12.length ? Math.round(Math.max(...next12)) : null, min: next12.length ? Math.round(Math.min(...next12)) : null, at: new Date(now).toISOString() };
   // MET은 Expires 헤더를 줘요. 없으면 30분.
   const exp = Date.parse(r.headers.get('expires') || '') || now + 30 * 60e3;

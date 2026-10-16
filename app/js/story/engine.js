@@ -52,7 +52,12 @@ const opts = (list = [], ctx) => list.flatMap(x => typeof x === 'string' ? [{ te
   : x.text ? (match(x.cond, ctx) ? [x] : []) : match(x.if, ctx) ? [].concat(x.t).map(text => ({ text, w: x.w || 1 })) : []);
 
 /* ---------- 문장 채우기 ---------- */
-const SLOT_ST = { morning: 'sunrise', day: 'sunflower', evening: 'night', night: 'moon' };
+// 시간대 스티커는 하루씩 번갈아요 (같은 날은 같은 그림)
+const SLOT_ST = { morning: ['sunrise', 'alarm'], day: ['sunflower', 'book'], evening: ['sunset', 'tea'], night: ['moon', 'star'] };
+const dayNo = d => Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5);
+const slotSt = (slot, d) => SLOT_ST[slot][dayNo(d) % SLOT_ST[slot].length];
+// 날씨 스티커: 비 오는 날은 비구름과 우산을 번갈아, 바람이 세면(초속 8m 이상) 바람
+const wxSt = (ic, w, d) => ic === 'rain' && dayNo(d) % 2 ? 'umbrella' : w.wind >= 8 && ['sun', 'suncloud', 'cloud', 'moon', 'mooncloud'].includes(ic) ? 'wind' : ic;
 // 계절 스티커는 달의 날짜로 대략 한 주마다 바뀌어요 (1~8일, 9~16일, 17~24일, 25일~)
 const SEASON_ST = { spring: ['blossom', 'tulip', 'sprout', 'strawberry'], summer: ['sunflower', 'watermelon', 'shell', 'icecream'], autumn: ['leaf', 'ginkgo', 'acorn', 'mushroom'], winter: ['snowman', 'mitten', 'tangerine', 'snowflake'] };
 const seasonSt = (season, d) => SEASON_ST[season][Math.min(3, Math.floor((d.getDate() - 1) / 8))];
@@ -136,12 +141,12 @@ function compose({ name, weather = null, city = null, geo = null, holiday = null
   let air = pickText(airs, 'air');
   const airSt = weather ? '' : airs.find(a => a.text === air)?.st || '';
   if (airSt) air = glue(airSt, air);
-  else if (!weather) p1 = glue(SLOT_ST[ctx.slot], p1);
+  else if (!weather) p1 = glue(slotSt(ctx.slot, ctx.now), p1);
   if (weather) {
     const wxw = `${W.wx[weather.kind] || ''} ${deg(weather.temp)}°`;
     // 날씨는 몇 시간 전에 받아 둔 것일 수 있어서, 해가 졌으면 해 그림 대신 달·구름으로
     const ic = !ctx.light && weather.kind === 'sun' ? 'moon' : !ctx.light && weather.kind === 'suncloud' ? 'mooncloud' : ctx.light && weather.icon === 'moon' ? 'sun' : weather.icon || weather.kind;
-    const where = fill(P.where, { city: city || '', wx: { html: link('#/settings/record', glue(ic, num(esc(wxw)))), plain: wxw } });
+    const where = fill(P.where, { city: city || '', wx: { html: link('#/settings/record', glue(wxSt(ic, weather, ctx.now), num(esc(wxw)))), plain: wxw } });
     if (lang === 'en' || lang === 'es' || lang === 'fr') air = air.charAt(0).toLowerCase() + air.slice(1);
     p1 += ' ' + (city ? where : '') + ' ' + air;
   } else p1 += ' ' + air;

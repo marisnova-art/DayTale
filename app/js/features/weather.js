@@ -25,7 +25,7 @@ const Weather = {
       const r = await fetch(`${CFG.SUPABASE_URL}/functions/v1/weather?lat=${c.lat}&lon=${c.lon}`, { headers: { apikey: CFG.SUPABASE_ANON_KEY, authorization: 'Bearer ' + (session?.access_token || CFG.SUPABASE_ANON_KEY) } });
       if (!r.ok) throw new Error('weather ' + r.status);
       const j = await r.json();
-      ls.set('daytale.wx', { kind: j.kind, icon: j.night && j.kind === 'sun' ? 'moon' : j.kind, temp: j.temp, max: j.max, min: j.min, cityId: c.id, at: Date.now() });
+      ls.set('daytale.wx', { kind: j.kind, icon: j.night && j.kind === 'sun' ? 'moon' : j.kind, temp: j.temp, wind: j.wind ?? null, max: j.max, min: j.min, cityId: c.id, at: Date.now() });
       emit('weather');
     } catch (e) { console.warn(e); }
     finally { this.busy = false; }
