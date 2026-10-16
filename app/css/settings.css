@@ -211,3 +211,9 @@
 .has-unread .mbar .bell::after, .has-news .mbar .menu-btn::after { width: 10px; height: 10px; border-radius: 5px; top: calc(50% - 15px); left: calc(50% + 4px); }
 .has-unread .pc-top .bell::after { width: 10px; height: 10px; border-radius: 5px; }
 .has-news .drawer .m.news::after { width: 10px; height: 10px; border-radius: 5px; margin-left: -4px; }   /* 글자에 바짝 (줄 안 간격 12px − 4px = 8px, 알림함 점과 같아요) */
+
+/* 스티커 스타일 견본 */
+.stseg { border-radius: 20px; }
+.stseg button { flex-direction: column; gap: 4px; height: auto; padding: 10px 4px; border-radius: 16px; }
+.stseg .stp { display: flex; gap: 4px; min-height: 22px; align-items: center; }
+.stseg .stp .st { width: 22px; height: 22px; margin: 0; }

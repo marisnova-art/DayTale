@@ -35,7 +35,7 @@ let cache = null;   // 같은 시간대·같은 기록이면 이야기를 다시
 const sig = () => { const a = live(); return a.length + ':' + a.reduce((m, e) => e.updated_at > m ? e.updated_at : m, ''); };
 
 function story() {
-  const geo = Weather.city(), key = todayKey() + slotOf() + sunUp(new Date(), geo?.lat, geo?.lon) + sig() + (Account.name() || '') + Account.avatar().length + (Weather.current()?.at || '') + '|' + litStamp();
+  const geo = Weather.city(), key = todayKey() + slotOf() + sunUp(new Date(), geo?.lat, geo?.lon) + sig() + (Account.name() || '') + Account.avatar().length + (Weather.current()?.at || '') + '|' + litStamp() + (S.prefs.sticker || '');
   if (cache?.key === key) return cache;
   const wx = Weather.current();
   const { ctx, paragraphs, recall } = compose({ name: Account.name(), weather: wx, city: wx?.city, geo, max: matchMedia('(min-width: 900px) and (min-height: 501px), (min-width: 900px) and (pointer: fine)').matches ? 6 : 4 });

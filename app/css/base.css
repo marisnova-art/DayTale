@@ -34,6 +34,7 @@ svg.i { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: rou
 .backdrop::after { content: ""; position: absolute; inset: 0; background-image: var(--grain); opacity: .38; mix-blend-mode: overlay; pointer-events: none; }
 :root[data-pat] .backdrop::after { display: none; }   /* 패턴은 자기 종이결이 있어요 */
 .st { display: inline-block; width: 1.1em; height: 1.1em; vertical-align: -.2em; margin: 0 .03em; object-fit: contain; }
+.st.ln { background: currentColor; -webkit-mask-position: center; mask-position: center; -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; }   /* 라인 스티커: 글자색 */
 .glass { background: var(--glass); border: 1px solid rgba(var(--fg),.10); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); }
 .btn { height: 52px; border-radius: 999px; font-size: var(--fs-m); font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 0 20px; }
 .btn.primary { background: var(--text); color: var(--on-text); }
