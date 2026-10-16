@@ -1,7 +1,8 @@
 /* 시작: 언어 · 배경 · 로그인 상태 · 화면 연결 */
 import { APP_VERSION, CFG, brand } from './core/config.js';
 import { applyI18n, detectLang, getLang, register, setLang, t } from './core/i18n.js';
-import { $, debounce, ls } from './core/utils.js';
+import { $, debounce, ls, todayKey } from './core/utils.js';
+import { localeRegion } from './core/countries.js';
 import ko from './i18n/ko.js';
 import en from './i18n/en.js';
 import ja from './i18n/ja.js';
@@ -138,13 +139,25 @@ function applyPrefs() {
   const bg = S.prefs.bg in Backdrop.SOLID ? S.prefs.bg : 'grad', cur = Backdrop.now();   // 배경을 바꾸면 바로 칠해요
   if (bg !== (cur?.solid ? cur.name : 'grad')) Backdrop.apply(document.documentElement);
 }
-/* 서버 문장 묶음: 하루 한 번 받아 두기 */
+/* 서버 문장 묶음 (이야기 문장 · 문학 한 구절 · 힘이 되는 한 마디).
+   세계 공통 + 내 나라 줄 중에서 오늘까지 열린 것만 받아요. 하루 한 번 작은 도장(phrase_stamp)만 물어보고,
+   바뀌었을 때만 줄 전체를 1000줄씩 나눠 받아요 (주간 묶음이 쌓여도 전송량이 작게) */
 async function loadPhrases() {
-  const key = 'daytale.phrases.' + getLang(); const c = ls.get(key, null);
-  if (c) setRemote(c.rows);
-  if (c && Date.now() - c.at < 864e5) return;
-  const { data, error } = await Sync.sb.from('phrase_packs').select('id,lang,slot,cond,text,weight').eq('lang', getLang()).eq('active', true).limit(2000);
-  if (!error) { ls.set(key, { at: Date.now(), rows: data }); setRemote(data); }
+  const lang = getLang(), cc = localeRegion() || '', today = todayKey(), key = 'daytale.phrases.' + lang;
+  const c = ls.get(key, null);
+  if (c?.rows) setRemote(c.rows);
+  if (c && c.cc === cc && c.day === today) return;
+  const args = { p_lang: lang, p_country: cc, p_today: today };
+  const st = await Sync.sb.rpc('phrase_stamp', args);
+  if (st.error) return;
+  if (c && c.cc === cc && c.stamp === st.data) { ls.set(key, { ...c, day: today }); return; }
+  const rows = [];
+  for (let from = 0; from < 20000; from += 1000) {
+    const { data, error } = await Sync.sb.rpc('phrase_rows', args).range(from, from + 999);
+    if (error) return;
+    rows.push(...data); if (data.length < 1000) break;
+  }
+  ls.set(key, { day: today, cc, stamp: st.data, rows }); setRemote(rows);
 }
 
 /* ---------- 변경 → 화면 ---------- */

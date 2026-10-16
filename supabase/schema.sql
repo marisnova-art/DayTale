@@ -257,14 +257,37 @@ create table if not exists public.user_settings (
 create table if not exists public.phrase_packs (
   id          bigint generated always as identity primary key,
   lang        text not null,
-  slot        text not null,     -- greet · air · plan · stack · recall · close · ask
+  slot        text not null,     -- greet · air · close · lit (문학 한 구절) · word (힘이 되는 한 마디)
   cond        jsonb not null default '{}',   -- {"tod":"morning","season":"autumn","weather":"rain","dow":1,"holiday":"chuseok"}
   text        text not null check (char_length(text) <= 300),
   weight      int not null default 1,
   active      boolean not null default true,
-  updated_at  timestamptz not null default now()
+  updated_at  timestamptz not null default now(),
+  country     text check (country is null or country ~ '^[A-Z]{2}$'),   -- 비우면 세계 공통, 'JP' = 일본 사람에게만
+  starts_on   date,              -- 이 날부터 나와요 (주간 묶음)
+  batch       text               -- 함께 올린 묶음 이름 (예: 2026-W44 ko 공통)
 );
 create index if not exists phrase_packs_lang_idx on public.phrase_packs(lang, updated_at);
+create index if not exists phrase_packs_batch_idx on public.phrase_packs(batch);
+
+-- 앱이 하루 한 번 묻는 "바뀐 게 있나요?" 도장. 같으면 받아 둔 묶음을 그대로 써요 (전송량 절약)
+create or replace function public.phrase_stamp(p_lang text, p_country text, p_today date)
+returns text language sql stable set search_path = public as $$
+  select count(*)::text || '.' || coalesce(floor(extract(epoch from max(updated_at)))::bigint::text, '0')
+  from phrase_packs
+  where active and lang = p_lang and (country is null or country = p_country) and (starts_on is null or starts_on <= p_today)
+$$;
+
+-- 앱이 받는 줄: 그 언어 + (공통 또는 내 나라) + 오늘까지 열린 것. 1000줄씩 나눠 받아요
+create or replace function public.phrase_rows(p_lang text, p_country text, p_today date)
+returns table (id bigint, lang text, slot text, cond jsonb, text text, weight int)
+language sql stable set search_path = public as $$
+  select id, lang, slot, cond, text, weight from phrase_packs
+  where active and lang = p_lang and (country is null or country = p_country) and (starts_on is null or starts_on <= p_today)
+  order by id
+$$;
+
+-- 실행 권한은 맨 아래 grant execute 목록에서 앱 사용자에게만 열어요
 
 -- ---------- 날씨 저장 (MET Norway, 서버 함수만 씀) ----------
 create table if not exists public.weather_cache (
@@ -599,7 +622,8 @@ end $$;
 -- Supabase는 새 함수를 모두에게 열어 두므로, 전부 닫고 앱이 쓰는 것만 엽니다
 revoke execute on all functions in schema public from public, anon, authenticated;
 grant execute on function public.is_subscriber(uuid), public.can_write(uuid), public.my_status(), public.touch_seen(),
-  public.redeem_referral(text), public.redeem_voucher(text), public.delete_my_account() to authenticated;
+  public.redeem_referral(text), public.redeem_voucher(text), public.delete_my_account(),
+  public.phrase_stamp(text, text, date), public.phrase_rows(text, text, date) to authenticated;
 grant execute on function public.photo_allowance(uuid), public.sweep_orphan_photos() to service_role;
 
 -- 함수가 찾는 스키마를 고정해요 (Supabase 보안 점검 권고). create or replace 뒤에 다시 걸어야 해서 맨 끝에 둬요.

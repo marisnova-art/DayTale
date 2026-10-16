@@ -22,6 +22,7 @@ class Query {
   eq(c, v) { this.params.push(v); this.where.push(`${ident(c)} = $${this.params.length}`); return this; }
   in(c, a) { this.params.push(a); this.where.push(`${ident(c)} = any($${this.params.length})`); return this; }
   is(c, v) { if (v !== null) throw new Error('is only null'); this.where.push(`${ident(c)} is null`); return this; }
+  not(c, op, v) { if (op !== 'is' || v !== null) throw new Error('not only is null'); this.where.push(`${ident(c)} is not null`); return this; }
   order(c, o = {}) { this.ord = ` order by ${ident(c)} ${o.ascending === false ? 'desc' : 'asc'}`; return this; }
   range(a, b) { this.lim = ` limit ${b - a + 1} offset ${a}`; return this; }
   insert(row) { this.op = 'insert'; this.row = row; return this; }
@@ -31,8 +32,10 @@ class Query {
   async run() {
     try {
       if (this.op === 'insert') {
-        const k = Object.keys(this.row).map(ident);
-        await q(this.pg, `insert into public.${ident(this.table)} (${k}) values (${k.map((_, i) => '$' + (i + 1))})`, k.map(x => this.row[x]));
+        for (const row of [].concat(this.row)) {
+          const k = Object.keys(row).map(ident);
+          await q(this.pg, `insert into public.${ident(this.table)} (${k}) values (${k.map((_, i) => '$' + (i + 1))})`, k.map(x => row[x]));
+        }
         return { data: null, error: null };
       }
       const W = this.where.length ? ' where ' + this.where.join(' and ') : '';

@@ -62,6 +62,29 @@ passages for that language (`setLitRemote`, called from `setRemote` when phrases
 The admin API (`supabase/functions/admin-api`) validates these keys only for `slot = 'lit'`. No schema change was needed
 (`phrase_packs.slot` is free text).
 
+## Weekly batches (server, no app release)
+
+Quotes and story lines grow by weekly batches uploaded from the admin "이야기 문장 > 주간 묶음" box.
+
+- **Common vs per country**: each `phrase_packs` row has `country` (empty = world common, `'JP'` = only readers whose device region is JP). Text is per language (`lang`); the common pool is the same idea written natively in each language.
+- **Release date**: `starts_on` — the row appears from that day. The admin box spreads a batch over the week ("하루에 몇 개씩", default 5 → 35 rows = Mon–Sun).
+- **Batch**: `batch` names the upload (e.g. `2026-W45 en 공통`); the whole batch can be turned off or deleted at once.
+- **Slots**: `greet`, `air`, `close` (story lines), `lit` (literary passage, text must contain exactly one `**…**`), `word` (the home "힘이 되는 한 마디" quote: text = the quote, `cond.by` required, plus `src`, `say`, `a`, `o`, `season`; `cond.id: 'c3'` replaces a bundled quote).
+- **App side**: once a day the app asks `phrase_stamp(lang, country, today)`; only when it changed does it fetch `phrase_rows(...)` in pages of 1000 (`main.js loadPhrases`). Lines merge into the story engine, `lit.js` and `words.js` (`setWordsRemote`), so a language with no bundled quotes (ja, es, fr) gets them from the server.
+
+Batch file format (JSON array, prepared by Claude, pasted or chosen as a file):
+
+```json
+[
+  { "slot": "word", "text": "Tomorrow is a new day with no mistakes in it yet.", "cond": { "by": "L. M. Montgomery", "src": "Anne of Green Gables", "say": "After a day full of mistakes, Anne told Marilla:", "a": "montgomery" } },
+  { "slot": "lit", "text": "Keats wrote that **a thing of beauty is a joy for ever**.", "cond": { "a": "keats", "season": "autumn" } },
+  { "slot": "air", "text": "The air feels a little lighter today." }
+]
+```
+
+Each row may also carry its own `lang`, `country`, `starts_on`, `weight`; otherwise the box's values are used.
+Before uploading, re-read every line once per target country (see the rule below).
+
 ## Who may be quoted (rule, 2026-10-16)
 
 - Judge each person by what they are famous **for**. Writers, poets, philosophers and artists are in. People famous for a role (politics, war, independence movements, religious leadership) are out, in every language, Korean included.

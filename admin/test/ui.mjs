@@ -123,16 +123,27 @@ ok((await p.textContent('.tablebox')).includes('2026-09-24 ~ 2026-09-27') && (aw
 await p.fill('#pf textarea[name=text]', '메리 크리스마스, {name} 님.'); await p.selectOption('#pf select[name=slot]', 'greet'); await p.fill('#pf input[name=from]', '12-24'); await p.fill('#pf input[name=to]', '12-25'); await p.click('#pf .btn.primary');
 await p.waitForFunction(() => document.querySelectorAll('.tablebox tbody tr').length === 2);
 await p.screenshot({ path: `${out}/admin-phrases.png`, fullPage: true });
+// 주간 묶음: 붙여 넣기 → 미리 보기 → 올리기 (하루 2개씩, 일본만)
+await p.fill('#bf input[name=batch]', '2026-W45 ko JP'); await p.fill('#bf input[name=country]', 'jp'); await p.fill('#bf input[name=start]', '2026-11-02'); await p.fill('#bf input[name=per]', '2');
+await p.fill('#bf textarea[name=json]', JSON.stringify([{ slot: 'word', text: '내일은 아직 실수가 없는 새날이에요.', cond: { by: '루시 모드 몽고메리', src: '『빨강 머리 앤』' } }, { slot: 'air', text: '하나' }, { slot: 'air', text: '둘' }]));
+await p.click('#bcheck'); await p.waitForFunction(() => /3줄/.test(document.getElementById('bprev').textContent));
+ok((await p.textContent('#bprev')).includes('2026-11-02 ~ 2026-11-03') && (await p.textContent('#bprev')).includes('JP만'), '주간 묶음: 미리 보기 (하루 2개씩 · 일본만)');
+await p.screenshot({ path: `${out}/admin-batch.png`, fullPage: true });
+await p.click('#bsend'); await p.waitForFunction(() => document.body.textContent.includes('2026-W45 ko JP'));
+{ const r = (await pg.query(`select slot, country, starts_on::text d, batch from phrase_packs where batch = '2026-W45 ko JP' order by id`)).rows; ok(r.length === 3 && r.every(x => x.country === 'JP') && r.map(x => x.d).join() === '2026-11-02,2026-11-02,2026-11-03', '주간 묶음: 올리기 (나라·여는 날 저장)'); }
+await p.fill('#bf textarea[name=json]', JSON.stringify([{ slot: 'lit', text: '굵은 표시 없음' }])); await p.click('#bcheck');
+await p.waitForFunction(() => /\*\*/.test(document.getElementById('bprev').textContent)); ok(await p.isDisabled('#bsend'), '주간 묶음: 틀린 줄이 있으면 올리기 막힘');
+await p.click('[data-bdel]'); await p.click('dialog button[value=ok]'); await p.waitForFunction(() => document.body.textContent.includes('아직 올린 묶음이 없어요')); ok((await pg.query(`select count(*)::int n from phrase_packs where batch is not null`)).rows[0].n === 0, '주간 묶음: 묶음째 지우기');
 await p.click('[data-act]'); await p.waitForSelector('tr.off'); ok(true, '이야기 문장: 끄기');
 await p.click('tbody tr:first-child a.btn'); await p.waitForFunction(() => document.querySelector('#pf h2')?.textContent === '문장 고치기');
 await p.fill('#pf textarea[name=text]', '메리 크리스마스!'); await p.click('#pf .btn.primary'); await p.waitForFunction(() => document.querySelector('.tablebox')?.textContent.includes('메리 크리스마스!'));
 ok((await pg.query(`select count(*)::int n from phrase_packs where text = '메리 크리스마스!' and cond->'between'->>0 = '12-24'`)).rows[0].n === 1, '이야기 문장: 고치기 (조건 유지)');
 await p.click('[data-pdel]'); await p.click('dialog button[value=ok]'); await p.waitForFunction(() => document.querySelectorAll('.tablebox tbody tr').length === 1); ok(true, '이야기 문장: 지우기');
 await p.goto('http://admin.test/#/notices'); await p.waitForSelector('#nf');
-await p.fill('#nf input[name=title]', '사진을 넣을 수 있어요'); await p.fill('#nf textarea[name=body]', '기록마다 4장까지 넣을 수 있어요.'); await p.selectOption('#nf select[name=lang]', 'ko'); await p.selectOption('#nf select[name=audience]', 'trial'); await p.selectOption('#nf select[name=banner]', 'popup'); await p.setInputFiles('#nf input[name=img]', process.env.DEMO_IMG || new URL('../../app/stickers/fluent/photo.webp', import.meta.url).pathname); await p.waitForSelector('#nf .nprev:not([hidden])'); await p.fill('#nf textarea[name=detail]', '가을은 기록하기 좋은 계절이에요.\n\n이제 기록마다 사진을 4장까지 넣을 수 있어요.'); await p.fill('#nf input[name=starts]', '2026-10-15'); await p.fill('#nf input[name=ends]', '2026-10-31');
+await p.fill('#nf input[name=title]', '사진을 넣을 수 있어요'); await p.fill('#nf textarea[name=body]', '기록마다 4장까지 넣을 수 있어요.'); await p.selectOption('#nf select[name=lang]', 'ko'); await p.selectOption('#nf select[name=audience]', 'trial'); await p.selectOption('#nf select[name=banner]', 'popup'); await p.setInputFiles('#nf input[name=img]', process.env.DEMO_IMG || new URL('../../app/stickers/fluent/photo.webp', import.meta.url).pathname); await p.waitForSelector('#nf .nprev:not([hidden])'); await p.fill('#nf textarea[name=detail]', '가을은 기록하기 좋은 계절이에요.\n\n이제 기록마다 사진을 4장까지 넣을 수 있어요.'); await p.fill('#nf input[name=starts]', '2027-01-15'); await p.fill('#nf input[name=ends]', '2027-01-31');
 await p.screenshot({ path: `${out}/admin-notice-form.png`, fullPage: true }); await p.selectOption('#nf select[name=banner]', 'strip'); await p.check('#nf input[name=push]'); await p.click('#nf .btn.primary');
 await p.waitForSelector('.audit li'); ok((await p.textContent('.audit')).includes('사진을 넣을 수 있어요'), '공지 올리기');
-{ const r = (await pg.query(`select banner, audience, starts_at, ends_at, push, kind from notices where title = '사진을 넣을 수 있어요'`)).rows[0]; ok(r.push === true && r.kind === 'announce', '공지: 휴대폰 알림 켜기 저장'); ok(r.banner === 'strip' && r.audience === 'trial' && r.ends_at - r.starts_at === 17 * 864e5, '공지: 홈 배너·대상·기간 저장'); ok((await p.textContent('.audit')).includes('2026-10-15 ~ 2026-10-31'), '공지: 기간 표시'); }
+{ const r = (await pg.query(`select banner, audience, starts_at, ends_at, push, kind from notices where title = '사진을 넣을 수 있어요'`)).rows[0]; ok(r.push === true && r.kind === 'announce', '공지: 휴대폰 알림 켜기 저장'); ok(r.banner === 'strip' && r.audience === 'trial' && r.ends_at - r.starts_at === 17 * 864e5, '공지: 홈 배너·대상·기간 저장'); ok((await p.textContent('.audit')).includes('2027-01-15 ~ 2027-01-31'), '공지: 기간 표시'); }
 await p.screenshot({ path: `${out}/admin-notices.png` });
 await p.goto(`http://admin.test/#/users/${BOB}`); await p.waitForSelector('#ext');
 await p.click('#ext'); await p.fill('dialog input[name=days]', '14'); await p.click('dialog button[value=ok]'); await p.waitForTimeout(800);

@@ -17,7 +17,7 @@ export function handler(db, log) {
     let sql;
     const where = () => r.filters.length ? ' where ' + r.filters.map(([op, c, v]) => op === 'in' ? `${id(c)}::text = any(${p(v.map(String))}::text[])` : op === 'notnull' ? `${id(c)} is not null` : `${id(c)} ${op} ${p(v)}`).join(' and ') : '';
     if (r.op === 'rpc') {
-      const names = Object.keys(r.args); sql = `select * from public.${id(r.fn)}(${names.map(n => `${id(n)} => ${p(r.args[n])}`).join(', ')})`;
+      const names = Object.keys(r.args); sql = `select * from public.${id(r.fn)}(${names.map(n => `${id(n)} => ${p(r.args[n])}`).join(', ')})${r.limit ? ' limit ' + (+r.limit) : ''}${r.offset ? ' offset ' + (+r.offset) : ''}`;
     } else if (r.op === 'select') {
       sql = `select ${cols(r.cols)} from public.${id(r.table)}${where()}${r.order.length ? ' order by ' + r.order.map(([c, a]) => `${id(c)} ${a ? 'asc' : 'desc'}`).join(', ') : ''}${r.limit ? ' limit ' + (+r.limit) : ''}${r.offset ? ' offset ' + (+r.offset) : ''}`;
     } else if (r.op === 'insert' || r.op === 'upsert') {

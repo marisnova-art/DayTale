@@ -118,6 +118,28 @@ ok((await call('ann', { action: 'phrase_save', lang: 'ko', slot: 'lit', text: 'x
 ok((await call('ann', { action: 'phrase_save', lang: 'ko', slot: 'air', text: 'x', cond: { a: 'basho' } })).body.error === 'bad condition', '다른 자리에 작가 조건 거절');
 ok((await call('ann', { action: 'phrase_save', lang: 'ko', slot: 'lit', text: 'x', cond: { o: 'Korean!' } })).body.error === 'bad condition', '이상한 원문 언어 거절');
 for (const r of (await call('cat', { action: 'phrases' })).body.rows) await call('ann', { action: 'phrase_delete', id: r.id });
+// 힘이 되는 한 마디 (slot 'word') + 주간 묶음 (나라 · 여는 날 · 묶음째 끄기/지우기)
+ok((await call('ann', { action: 'phrase_save', lang: 'en', slot: 'word', text: 'Tomorrow is a new day.', cond: { by: 'L. M. Montgomery', src: 'Anne', say: 'Anne said:', a: 'montgomery' } })).status === 200, '한 마디 추가');
+ok((await call('ann', { action: 'phrase_save', lang: 'en', slot: 'word', text: 'x', cond: { src: 'y' } })).body.error === 'bad condition', '한 마디는 누가(by)가 있어야 함');
+ok((await call('ann', { action: 'phrase_save', lang: 'en', slot: 'word', text: 'x', cond: { by: 'y', wx: 'rain' } })).body.error === 'bad condition', '한 마디에 날씨 조건 거절');
+ok((await call('ann', { action: 'phrase_save', lang: 'en', slot: 'lit', text: 'no bold', cond: {} })).body.error === 'bad condition', '문학 줄은 ** 한 쌍 필요');
+ok((await call('ann', { action: 'phrase_save', lang: 'en', slot: 'air', text: 'x', country: 'japan' })).body.error === 'bad phrase', '이상한 나라 거절');
+const B = [{ slot: 'word', text: 'A', cond: { by: 'X' }, starts_on: '2026-11-02' }, { slot: 'air', text: 'B', starts_on: '2026-11-02' }, { slot: 'air', text: 'C', starts_on: '2026-11-03', country: 'JP' }].map(r => ({ lang: 'en', weight: 3, ...r }));
+ok((await call('cat', { action: 'phrase_batch', batch: 'w45', rows: B })).status === 403, 'staff는 묶음 못 올림');
+ok((await call('ann', { action: 'phrase_batch', batch: 'w45', rows: [{ lang: 'en', slot: 'lit', text: 'x' }] })).body.error === 'bad condition', '묶음 안에 틀린 줄이 있으면 모두 거절');
+ok((await call('ann', { action: 'phrase_batch', batch: 'w45', rows: B })).body.n === 3, '묶음 3줄 올림');
+const pb = (await call('cat', { action: 'phrases' })).body.batches;
+ok(pb.length === 1 && pb[0].n === 3 && pb[0].from === '2026-11-02' && pb[0].to === '2026-11-03', '묶음 목록 (줄 수 · 여는 날)');
+const rowsFor = async (cc, day) => (await asRole('authenticated', `select text from public.phrase_rows('en', '${cc}', '${day}') order by text`)).map(r => r.text);
+ok((await rowsFor('US', '2026-11-01')).join() === 'Tomorrow is a new day.', '여는 날 전에는 안 나옴');
+ok((await rowsFor('US', '2026-11-03')).join() === 'A,B,Tomorrow is a new day.', '미국: 공통 줄만');
+ok((await rowsFor('JP', '2026-11-03')).join() === 'A,B,C,Tomorrow is a new day.', '일본: 공통 + 일본 줄');
+const st1 = (await asRole('authenticated', `select public.phrase_stamp('en', 'US', '2026-11-03') s`))[0].s;
+ok((await call('ann', { action: 'phrase_batch_set', batch: 'w45', active: false })).status === 200 && (await rowsFor('JP', '2026-11-03')).length === 1, '묶음째 끄기');
+ok((await asRole('authenticated', `select public.phrase_stamp('en', 'US', '2026-11-03') s`))[0].s !== st1, '끄면 도장이 바뀜 (앱이 다시 받음)');
+ok((await call('ann', { action: 'phrase_batch_set', batch: 'w45', remove: true })).status === 200 && (await call('cat', { action: 'phrases' })).body.batches.length === 0, '묶음째 지우기');
+await denied(asRole('anon', `select * from public.phrase_rows('en', 'US', '2026-11-03')`), '로그인 안 한 사람은 못 받음');
+for (const r of (await call('cat', { action: 'phrases' })).body.rows) await call('ann', { action: 'phrase_delete', id: r.id });
 
 // 체험 안내: 일본어
 await pg.exec(`insert into auth.users(id, email) values ('eeeeeeee-0000-4000-8000-000000000005', 'eve@x.com'); update profiles set lang = 'ja', trial_ends_at = now() + interval '2 days' where id = 'eeeeeeee-0000-4000-8000-000000000005'`);

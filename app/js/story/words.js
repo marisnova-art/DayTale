@@ -57,22 +57,39 @@ const PACKS = {
 const LOG = 'daytale.word';
 const read = () => { try { return JSON.parse(localStorage.getItem(LOG) || '{}'); } catch { return {}; } };
 const write = v => { try { localStorage.setItem(LOG, JSON.stringify(v)); } catch {} };
-const hasWords = lang => !!PACKS[lang];
-const wordById = (lang, id) => (PACKS[lang] || []).find(x => x.id === id) || null;
+/* 서버 주간 묶음(phrase_packs, slot 'word')을 앱 안 명언에 더해요. cond.id 가 앱 안 번호(c1…)면 그 명언을 고쳐요.
+   cond: a 작가 · o 원문 · by 이름 · src 출처 · say 들려주는 말 · season. 글(text)이 명언 원문이에요 */
+let remote = {}, merged = {};
+function setWordsRemote(rows = []) {
+  remote = {}; merged = {};
+  for (const r of rows) {
+    if (r?.slot !== 'word' || !r.text || !r.cond?.by) continue;
+    const c = r.cond;
+    (remote[r.lang] ||= []).push({ id: c.id || 's' + r.id, k: 'c', a: c.a || c.by, o: c.o || 'world', q: r.text, by: c.by, src: c.src || '', say: c.say || '', ...(c.season ? { season: c.season } : {}) });
+  }
+}
+function list(lang) {
+  if (merged[lang]) return merged[lang];
+  const mine = remote[lang] || [], over = new Map(mine.map(x => [x.id, x]));
+  const out = (PACKS[lang] || []).map(x => over.get(x.id) || x), have = new Set(out.map(x => x.id));
+  return (merged[lang] = [...out, ...mine.filter(x => !have.has(x.id))]);
+}
+const hasWords = lang => list(lang).length > 0;
+const wordById = (lang, id) => list(lang).find(x => x.id === id) || null;
 
 /** 오늘이 명언 날인지 (날짜로 정해져서 하루 내내 같아요): 정확히 70% */
 function wordDay(ctx) { const n = Math.round(Date.parse(ctx.today + 'T00:00:00Z') / 864e5); return (n * 7) % 10 >= 3; }   // 열흘에 사흘은 문학 줄, 고르게 섞여요
 
 /** 오늘의 한 마디. ctx: { today, now, season, slot } */
 function todayWord(ctx, lang) {
-  const list = PACKS[lang]; if (!list) return null;
+  const all = list(lang); if (!all.length) return null;
   const cut = dayKey(addDays(ctx.now, -14));
   const log = Object.fromEntries(Object.entries(read()).filter(([k]) => k >= cut));
   const got = log[ctx.today] && wordById(lang, log[ctx.today]);
   if (got) return got;
   const days = Object.keys(log).sort(), seen = days.map(d => log[d]);
   const recentA = new Set(days.filter(d => d >= dayKey(addDays(ctx.now, -3))).map(d => wordById(lang, log[d])?.a).filter(Boolean));
-  const fits = list.filter(x => (!x.season || x.season === ctx.season));
+  const fits = all.filter(x => (!x.season || x.season === ctx.season));
   const unseen = fits.filter(x => !seen.includes(x.id)), fresh = unseen.filter(x => !recentA.has(x.a));
   const pool = fresh.length ? fresh : unseen.length ? unseen : fits;
   let h = 0; for (const c of ctx.today + lang) h = (h * 31 + c.charCodeAt(0)) >>> 0;
@@ -82,4 +99,4 @@ function todayWord(ctx, lang) {
   return pick;
 }
 
-export { hasWords, todayWord, wordById, wordDay };
+export { hasWords, setWordsRemote, todayWord, wordById, wordDay };

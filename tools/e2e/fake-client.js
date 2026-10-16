@@ -34,5 +34,5 @@
     resetPasswordForEmail: async () => ({ error: null }), updateUser: async () => ({ error: null }), signInWithOAuth: async () => ({ error: null }),
     signOut: async () => { user = null; localStorage.removeItem('fake.user'); sessionStorage.setItem('fake.out', '1'); fire('SIGNED_OUT', null); return {}; }
   };
-  window.supabase = { createClient: () => ({ auth, from: t => new Q(t), rpc: (fn, args) => window.__pg(user, { op: 'rpc', fn, args: args || {} }) }) };
+  window.supabase = { createClient: () => ({ auth, from: t => new Q(t), rpc: (fn, args) => { const r = { op: 'rpc', fn, args: args || {} }; return { range(a, b) { r.offset = a; r.limit = b - a + 1; return this; }, then(ok, bad) { return window.__pg(user, r).then(ok, bad); } }; } }) };
 })();

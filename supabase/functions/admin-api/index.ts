@@ -53,7 +53,7 @@ async function targetUser(db: any, id: string) {
 }
 
 // 이야기 문장 조건: 앱(js/story/engine.js match)이 아는 것만 받아요
-const LANGS = ['ko', 'en', 'ja', 'es', 'fr'], SLOTS = ['greet', 'air', 'close', 'lit'];
+const LANGS = ['ko', 'en', 'ja', 'es', 'fr'], SLOTS = ['greet', 'air', 'close', 'lit', 'word'];
 const COND: Record<string, (v: any) => boolean> = {
   tod: v => ['morning', 'day', 'evening', 'night'].includes(v),
   season: v => ['spring', 'summer', 'autumn', 'winter'].includes(v),
@@ -69,6 +69,12 @@ const LIT_COND: Record<string, (v: any) => boolean> = {
   a: v => typeof v === 'string' && /^[a-z0-9_]{1,40}$/.test(v),
   o: v => typeof v === 'string' && /^([a-z]{2,3}|world)$/.test(v)
 };
+// 힘이 되는 한 마디(slot 'word')만: id 앱 안 명언(c1…)을 고칠 때 · a 작가 · o 원문 · by 이름 · src 출처 · say 들려주는 말 · season (js/story/words.js setWordsRemote)
+const str = (n: number) => (v: any) => typeof v === 'string' && v.trim().length > 0 && v.length <= n;
+const WORD_COND: Record<string, (v: any) => boolean> = {
+  id: v => typeof v === 'string' && /^c\d{1,4}$/.test(v),
+  a: LIT_COND.a, o: LIT_COND.o, by: str(60), src: str(80), say: str(240), season: COND.season
+};
 function phraseRow(b: any) {
   const lang = LANGS.includes(b.lang) ? b.lang : null, slot = SLOTS.includes(b.slot) ? b.slot : null;
   const text = String(b.text ?? '').trim().slice(0, 300), weight = Math.round(Number(b.weight ?? 1));
@@ -78,11 +84,17 @@ function phraseRow(b: any) {
   const cond: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(b.cond && typeof b.cond === 'object' ? b.cond : {})) {
     if (v === '' || v == null) continue;
-    const ok = slot === 'lit' ? (k !== 'between' && k !== 'dow' && k !== 'cold' && k !== 'hot' && (COND[k] || LIT_COND[k])) : COND[k];
+    const ok = slot === 'word' ? WORD_COND[k] : slot === 'lit' ? (k !== 'between' && k !== 'dow' && k !== 'cold' && k !== 'hot' && (COND[k] || LIT_COND[k])) : COND[k];
     if (!ok || !ok(v)) throw new Fail(400, 'bad condition');
     cond[k] = v;
   }
-  return { lang, slot, text, weight, cond, active: b.active !== false, updated_at: new Date().toISOString() };
+  if (slot === 'word' && !cond.by) throw new Fail(400, 'bad condition');
+  if (slot === 'lit' && (text.match(/\*\*/g) || []).length !== 2) throw new Fail(400, 'bad condition');
+  // 나라(비우면 세계 공통) · 여는 날 · 묶음 이름
+  const country = b.country ? String(b.country).toUpperCase() : null, starts_on = b.starts_on || null, batch = b.batch ? String(b.batch).trim().slice(0, 60) : null;
+  if (country && !/^[A-Z]{2}$/.test(country)) throw new Fail(400, 'bad phrase');
+  if (starts_on && !/^\d{4}-\d{2}-\d{2}$/.test(starts_on)) throw new Fail(400, 'bad phrase');
+  return { lang, slot, text, weight, cond, country, starts_on, batch, active: b.active !== false, updated_at: new Date().toISOString() };
 }
 
 async function act(a: Admin, body: any, { db, env, fetch }: Deps) {
@@ -114,11 +126,25 @@ async function act(a: Admin, body: any, { db, env, fetch }: Deps) {
       return rpc(db, 'admin_audience', { p_days: [30, 90].includes(Number(body.days)) ? Number(body.days) : null });
 
     case 'phrases': {
-      let q = db.from('phrase_packs').select('id,lang,slot,cond,text,weight,active,updated_at').order('updated_at', { ascending: false }).range(0, 499);
+      let q = db.from('phrase_packs').select('id,lang,slot,cond,text,weight,active,updated_at,country,starts_on,batch').order('updated_at', { ascending: false }).range(0, 499);
       if (LANGS.includes(body.lang)) q = q.eq('lang', body.lang);
+      if (body.batch) q = q.eq('batch', String(body.batch));
       const { data, error } = await q;
       if (error) throw new Fail(500, error.message);
-      return { rows: data };
+      // 묶음 목록 (이름 · 언어 · 나라 · 줄 수 · 여는 날 범위 · 켜진 줄 수)
+      const b = await db.from('phrase_packs').select('batch,lang,country,starts_on,active').not('batch', 'is', null).range(0, 9999);
+      if (b.error) throw new Fail(500, b.error.message);
+      const map = new Map<string, any>();
+      const day = (v: any) => v == null ? null : v instanceof Date ? v.toISOString().slice(0, 10) : String(v).slice(0, 10);
+      for (const x of b.data || []) {
+        x.starts_on = day(x.starts_on);
+        const g = map.get(x.batch) || { batch: x.batch, lang: x.lang, country: x.country, n: 0, on: 0, from: null, to: null };
+        g.n++; if (x.active) g.on++;
+        if (x.starts_on && (!g.from || x.starts_on < g.from)) g.from = x.starts_on;
+        if (x.starts_on && (!g.to || x.starts_on > g.to)) g.to = x.starts_on;
+        map.set(x.batch, g);
+      }
+      return { rows: data, batches: [...map.values()].sort((x, y) => String(y.from).localeCompare(String(x.from))) };
     }
 
     case 'phrase_save': {
@@ -136,6 +162,28 @@ async function act(a: Admin, body: any, { db, env, fetch }: Deps) {
       const id = Number(body.id); if (!Number.isInteger(id) || id <= 0) throw new Fail(400, 'bad id');
       const { error } = await db.from('phrase_packs').update({ active: !!body.active, updated_at: new Date().toISOString() }).eq('id', id);
       if (error) throw new Fail(500, error.message);
+      return { ok: true };
+    }
+
+    // 주간 묶음: 한 번에 여러 줄 (최대 300). 같은 batch 이름이면 묶음째 끄기·지우기
+    case 'phrase_batch': {
+      ownerOnly(a);
+      const list = Array.isArray(body.rows) ? body.rows : [], batch = String(body.batch ?? '').trim().slice(0, 60);
+      if (!batch || !list.length || list.length > 300) throw new Fail(400, 'bad batch');
+      const rows = list.map((r: any) => phraseRow({ ...r, batch }));
+      const { error } = await db.from('phrase_packs').insert(rows);
+      if (error) throw new Fail(500, error.message);
+      await audit(db, a, 'phrase_batch', {}, { batch, n: rows.length });
+      return { ok: true, n: rows.length };
+    }
+
+    case 'phrase_batch_set': {
+      ownerOnly(a);
+      const batch = String(body.batch ?? '').trim(); if (!batch) throw new Fail(400, 'bad batch');
+      const q = db.from('phrase_packs');
+      const { error } = body.remove === true ? await q.delete().eq('batch', batch) : await q.update({ active: !!body.active, updated_at: new Date().toISOString() }).eq('batch', batch);
+      if (error) throw new Fail(500, error.message);
+      await audit(db, a, body.remove === true ? 'phrase_batch_delete' : 'phrase_batch_active', {}, { batch, active: !!body.active });
       return { ok: true };
     }
 

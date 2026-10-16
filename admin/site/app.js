@@ -20,7 +20,7 @@ const ago = d => {
 };
 const STATUS = { active: '이용 중', trialing: '체험 중', past_due: '결제 실패', paused: '일시정지', canceled: '해지됨' };
 const PLAN = { monthly: '월간', yearly: '연간' };
-const ACTION = { ban: '이용 정지', unban: '정지 해제', delete_user: '계정 삭제', cancel_subscription: '구독 해지', extend_trial: '체험 연장', notice_create: '공지 올림', notice_delete: '공지 내림', ops_daily: '매일 운영 실행', phrase_save: '문장 저장', phrase_delete: '문장 삭제', voucher_create: '이용권 발급', voucher_revoke: '이용권 취소' };
+const ACTION = { ban: '이용 정지', unban: '정지 해제', delete_user: '계정 삭제', cancel_subscription: '구독 해지', extend_trial: '체험 연장', notice_create: '공지 올림', notice_delete: '공지 내림', ops_daily: '매일 운영 실행', phrase_save: '문장 저장', phrase_delete: '문장 삭제', phrase_batch: '주간 묶음 올림', phrase_batch_active: '묶음 켜기·끄기', phrase_batch_delete: '묶음 지움', voucher_create: '이용권 발급', voucher_revoke: '이용권 취소' };
 const FLAG = c => !c || c === '—' ? '🌐' : String.fromCodePoint(...[...c.toUpperCase()].map(x => 0x1F1E6 + x.charCodeAt(0) - 65));
 const bytes = n => { n = Number(n || 0); return n >= 1024 ** 3 ? (n / 1024 ** 3).toFixed(2) + 'GB' : n >= 1024 ** 2 ? (n / 1024 ** 2).toFixed(1) + 'MB' : Math.round(n / 1024) + 'KB'; };
 const trialLeft = d => { if (!d) return ''; const n = Math.ceil((new Date(d) - Date.now()) / 864e5); return n > 0 ? `체험 ${n}일` : '체험 끝'; };
@@ -30,7 +30,7 @@ const ERR = {
   'duration must be 1 day - 1 year': '기간은 1일부터 1년까지예요.', 'count must be 1-50': '한 번에 1~50개까지 만들 수 있어요.', 'uses must be 1-1000': '쓸 수 있는 사람 수는 1~1000이에요.',
   'one code per email': '메일을 정하면 코드는 한 개만 만들어요.', 'bad email': '메일 주소를 확인해 주세요.', 'bad date': '사용 기한 날짜를 확인해 주세요 (오늘 이후).',
   'remove admin role first': '관리자 계정입니다. 먼저 관리자 명단에서 빼 주세요.', 'email does not match': '확인용 이메일이 일치하지 않습니다.',
-  'cancel the subscription first': '이용 중인 구독이 있습니다. 먼저 구독을 해지해 주세요.', 'PADDLE_API_KEY not set': '서버에 Paddle API 키가 없어 여기서 해지할 수 없습니다. Paddle 대시보드에서 해지해 주세요.', 'days must be 1-90': '연장은 1~90일까지입니다.', 'title required': '제목을 적어 주세요.', 'text required': '문장을 적어 주세요.', 'bad condition': '조건이 맞지 않습니다. 날짜는 2026-09-24 또는 12-24 모양으로 적어 주세요.', 'bad phrase': '언어·자리·가중치(1~10)를 확인해 주세요.'
+  'cancel the subscription first': '이용 중인 구독이 있습니다. 먼저 구독을 해지해 주세요.', 'PADDLE_API_KEY not set': '서버에 Paddle API 키가 없어 여기서 해지할 수 없습니다. Paddle 대시보드에서 해지해 주세요.', 'days must be 1-90': '연장은 1~90일까지입니다.', 'title required': '제목을 적어 주세요.', 'text required': '문장을 적어 주세요.', 'bad condition': '조건이 맞지 않습니다. 날짜는 2026-09-24 또는 12-24 모양으로 적어 주세요.', 'bad phrase': '언어·자리·가중치(1~10)·나라·여는 날을 확인해 주세요.', 'bad batch': '묶음 이름과 줄(최대 300)을 확인해 주세요.'
 };
 const badge = (s, cls = '') => `<span class="badge ${esc(cls || s)}">${esc(STATUS[s] || s)}</span>`;
 /* 초록 알약(↗ +21) — 참고 이미지의 변화량 표시 */
@@ -636,22 +636,81 @@ async function viewUsage(q = new URLSearchParams()) {
 
 /* ---------- 이야기 문장: 앱을 다시 배포하지 않고 계절·명절 문장 더하기 ---------- */
 const PLANG = [['ko', '한국어'], ['en', 'English'], ['ja', '日本語'], ['es', 'Español'], ['fr', 'Français']];
-const PSLOT = { greet: '인사 (첫 문장)', air: '오늘의 공기 (인사 뒤)', close: '맺음 (마지막 문장)', lit: '문학 한 구절 (저작권 끝난 글)' };
+const PSLOT = { greet: '인사 (첫 문장)', air: '오늘의 공기 (인사 뒤)', close: '맺음 (마지막 문장)', lit: '문학 한 구절 (저작권 끝난 글)', word: '힘이 되는 한 마디 (명언)' };
 const PCOND = {
   tod: ['시간대', { morning: '아침 5–11시', day: '낮 11–17시', evening: '저녁 17–21시', night: '밤 21–5시' }],
   season: ['계절', { spring: '봄', summer: '여름', autumn: '가을', winter: '겨울' }],
   wx: ['날씨', { sun: '맑음', suncloud: '구름 조금', cloud: '흐림', fog: '안개', rain: '비', snow: '눈', thunder: '천둥' }],
   dow: ['요일', { 0: '일', 1: '월', 2: '화', 3: '수', 4: '목', 5: '금', 6: '토' }]
 };
-const condText = c => Object.entries(c || {}).map(([k, v]) => k === 'between' ? `${v[0]} ~ ${v[1]}` : k === 'light' ? '해가 떠 있을 때' : k === 'a' ? `작가 ${v}` : k === 'o' ? `원문 ${v}` : k === 'id' ? `앱 안 줄 #${v} 고침` : k === 'cold' ? '추운 날 (5° 이하)' : k === 'hot' ? '더운 날 (28° 이상)' : PCOND[k] ? `${PCOND[k][0]} ${PCOND[k][1][v] ?? v}` : `${k} ${v}`).join(' · ') || '언제나';
+const condText = c => Object.entries(c || {}).map(([k, v]) => k === 'between' ? `${v[0]} ~ ${v[1]}` : k === 'light' ? '해가 떠 있을 때' : k === 'a' ? `작가 ${v}` : k === 'o' ? `원문 ${v}` : k === 'id' ? `앱 안 줄 #${v} 고침` : k === 'by' ? `${v}` : k === 'src' ? `「${v}」` : k === 'say' ? '들려주는 말 있음' : k === 'cold' ? '추운 날 (5° 이하)' : k === 'hot' ? '더운 날 (28° 이상)' : PCOND[k] ? `${PCOND[k][0]} ${PCOND[k][1][v] ?? v}` : `${k} ${v}`).join(' · ') || '언제나';
+/* 주간 묶음: Claude가 만든 JSON 파일(줄 목록)을 한 번에 올려요. 하루 N개씩 나눠 열 수 있어요 (docs/content-packs.md) */
+const nextMonday = () => { const d = new Date(); d.setDate(d.getDate() + ((8 - d.getDay()) % 7 || 7)); return d.toISOString().slice(0, 10); };
+const plusDays = (day, n) => { const d = new Date(day + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+function checkRow(x, i) {
+  const why = [];
+  if (!PSLOT[x.slot]) why.push('자리');
+  if (!String(x.text || '').trim()) why.push('문장 없음'); else if (x.text.length > 300) why.push('300자 넘음');
+  if (x.slot === 'lit' && (x.text.match(/\*\*/g) || []).length !== 2) why.push('** 한 쌍 필요');
+  if (x.slot === 'word' && !x.cond?.by) why.push('누가(by) 없음');
+  return why.length ? `${i + 1}번 줄: ${why.join(', ')}` : '';
+}
+function batchBox(batches) {
+  const own = me.role === 'owner';
+  return `<section class="box pad"><h2>주간 묶음</h2>
+    <p class="muted">구절·문장을 한 주 치씩 묶어 올려요. 세계 공통이나 한 나라만 고를 수 있고, 하루에 몇 개씩 열지도 정해요. 올리기 전에 나라마다 한 번씩 읽어 봐요.</p>
+    ${own ? `<form id="bf" class="nform">
+      <div class="grid3">
+        <label>묶음 이름<input name="batch" required maxlength="60" placeholder="예: 2026-W45 en 공통"></label>
+        <label>언어<select name="lang">${PLANG.map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select></label>
+        <label>나라 (비우면 세계 공통)<input name="country" pattern="[A-Za-z]{2}" placeholder="예: JP"></label>
+        <label>여는 날 (시작)<input name="start" type="date" value="${nextMonday()}" required></label>
+        <label>하루에 몇 개씩 (0 = 한 번에)<input name="per" type="number" min="0" max="50" value="5"></label>
+        <label>파일 (JSON)<input name="file" type="file" accept=".json,application/json"></label>
+      </div>
+      <label>또는 붙여 넣기<textarea name="json" rows="3" placeholder='[{"slot":"word","text":"…","cond":{"by":"…","src":"…","say":"…"}}, {"slot":"lit","text":"…**…**…","cond":{"a":"…"}}]'></textarea></label>
+      <div id="bprev" class="muted xs"></div>
+      <div class="row end gap"><button type="button" class="btn ghost" id="bcheck">미리 보기</button><button class="btn primary" id="bsend" disabled>올리기</button></div>
+    </form>` : ''}
+    <table class="mt"><thead><tr><th>묶음</th><th>언어 · 나라</th><th>여는 날</th><th class="r">줄</th><th></th></tr></thead><tbody>
+      ${batches.map(b => `<tr class="${b.on ? '' : 'off'}"><td><a href="${link('#/phrases', { batch: b.batch })}">${esc(b.batch)}</a></td><td>${esc(b.lang)} · ${b.country ? esc(b.country) : '공통'}</td><td class="muted">${b.from ? esc(b.from) + (b.to && b.to !== b.from ? ' ~ ' + esc(b.to) : '') : '바로'}</td><td class="r num">${num(b.n)}${b.on < b.n ? ` <span class="muted xs">(켜짐 ${num(b.on)})</span>` : ''}</td>
+        <td class="r nowrap">${own ? `<button class="btn ghost sm" data-bon="${esc(b.batch)}" data-on="${b.on ? 0 : 1}">${b.on ? '끄기' : '켜기'}</button><button class="btn ghost sm" data-bdel="${esc(b.batch)}">지우기</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="5" class="muted pad">아직 올린 묶음이 없어요.</td></tr>'}
+    </tbody></table></section>`;
+}
+function batchWire(again) {
+  const f = document.getElementById('bf'); let ready = null;
+  if (f) {
+    const prev = document.getElementById('bprev'), send = document.getElementById('bsend');
+    const build = async () => {
+      const v = Object.fromEntries(new FormData(f)); let raw = v.json.trim();
+      if (v.file?.size) raw = await v.file.text();
+      let list; try { list = JSON.parse(raw || '[]'); if (!Array.isArray(list)) list = list.rows; } catch { throw new Error('JSON 모양이 맞지 않아요.'); }
+      if (!Array.isArray(list) || !list.length) throw new Error('올릴 줄이 없어요.');
+      if (list.length > 300) throw new Error('한 번에 300줄까지 올릴 수 있어요.');
+      const bad = list.map(checkRow).filter(Boolean); if (bad.length) throw new Error(bad.slice(0, 5).join(' / '));
+      const per = Number(v.per) || 0, cc = v.country.trim().toUpperCase() || null;
+      const rows = list.map((x, i) => ({ lang: x.lang || v.lang, slot: x.slot, text: x.text.trim(), weight: x.weight || 3, cond: x.cond || {}, country: x.country ?? cc, starts_on: x.starts_on || plusDays(v.start, per ? Math.floor(i / per) : 0), active: true }));
+      return { batch: v.batch.trim(), rows };
+    };
+    const show = b => { const by = {}; b.rows.forEach(x => by[x.slot] = (by[x.slot] || 0) + 1);
+      prev.innerHTML = `${num(b.rows.length)}줄 · ${Object.entries(by).map(([k, n]) => `${esc(PSLOT[k] || k)} ${n}`).join(', ')} · ${esc(b.rows[0].starts_on)} ~ ${esc(b.rows[b.rows.length - 1].starts_on)} · ${b.rows[0].country ? esc(b.rows[0].country) + '만' : '세계 공통'}<ol class="bl">${b.rows.slice(0, 8).map(x => `<li>${esc(x.starts_on)} · ${esc(x.text.slice(0, 90))}</li>`).join('')}${b.rows.length > 8 ? '<li>…</li>' : ''}</ol>`; };
+    document.getElementById('bcheck').onclick = async () => { try { ready = await build(); show(ready); send.disabled = false; } catch (e) { ready = null; send.disabled = true; prev.textContent = e.message; } };
+    f.oninput = () => { ready = null; send.disabled = true; };
+    f.onsubmit = async e => { e.preventDefault(); if (!ready) return;
+      try { const r = await api('phrase_batch', ready); toast(`${r.n}줄 올렸어요.`); again(); } catch (er) { toast(er.message, true); } };
+  }
+  document.querySelectorAll('[data-bon]').forEach(b => b.onclick = async () => { try { await api('phrase_batch_set', { batch: b.dataset.bon, active: b.dataset.on === '1' }); again(); } catch (e) { toast(e.message, true); } });
+  document.querySelectorAll('[data-bdel]').forEach(b => b.onclick = async () => { if (!await confirmBox({ title: '묶음 지우기', body: `「${b.dataset.bdel}」 묶음의 줄이 모두 앱에서 사라져요. 잠깐 멈추려면 끄기를 쓰세요.`, ok: '지우기', danger: true })) return; try { await api('phrase_batch_set', { batch: b.dataset.bdel, remove: true }); again(); } catch (e) { toast(e.message, true); } });
+}
 async function viewPhrases(q) {
   const lang = q.get('lang') || 'all', editId = Number(q.get('edit') || 0);
   loading('#/phrases');
-  let r; try { r = await api('phrases', lang === 'all' ? {} : { lang }); } catch (e) { return failed('#/phrases', e); }
+  let r; try { r = await api('phrases', { ...(lang === 'all' ? {} : { lang }), ...(q.get('batch') ? { batch: q.get('batch') } : {}) }); } catch (e) { return failed('#/phrases', e); }
   const ed = r.rows.find(x => x.id === editId) || null, c = ed?.cond || {};
   const sel = (name, opts, v, empty = '상관없음') => `<select name="${name}"><option value="">${empty}</option>${Object.entries(opts).map(([k, l]) => `<option value="${esc(k)}"${String(v ?? '') === String(k) ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select>`;
   shell('#/phrases', `${head('이야기 문장', big(num(r.rows.length)) + '<span class="unit">개</span>', '<p class="muted">홈 이야기에 섞여 나오는 문장이에요. 앱을 다시 올리지 않아도 하루 안에 반영돼요.</p>')}
     <div class="ranges left">${[['all', '전체'], ...PLANG].map(([k, l]) => `<a href="${link('#/phrases', { lang: k })}" class="${k === lang ? 'on' : ''}">${l}</a>`).join('')}</div>
+    ${batchBox(r.batches || [])}
     ${me.role === 'owner' ? `<form id="pf" class="box pad nform"><h2>${ed ? '문장 고치기' : '새 문장'}</h2>
       <div class="grid3">
         <label>언어<select name="lang">${PLANG.map(([k, l]) => `<option value="${k}"${(ed?.lang || (lang !== 'all' ? lang : 'ko')) === k ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
@@ -676,9 +735,21 @@ async function viewPhrases(q) {
         <label>햇빛이 나오는 줄${sel('light', { 1: '해가 떠 있을 때만' }, c.light ? 1 : '')}</label>
       </div>
       <p class="muted xs">**굵게** 할 부분을 별표 두 개로 감싸요. 작가 이름은 같은 작가가 며칠 내리 나오지 않게 하는 데 써요. docs/content-packs.md 참고.</p>
+      <h3 class="label">힘이 되는 한 마디일 때만 (문장 칸 = 명언 원문)</h3>
+      <div class="grid3">
+        <label>누가 (보이는 이름)<input name="by" maxlength="60" value="${esc(c.by || '')}"></label>
+        <label>출처 (책·편지 이름)<input name="src" maxlength="80" value="${esc(c.src || '')}"></label>
+        <label>앱 안 명언 번호 (고칠 때만, 예: c3)<input name="wid" pattern="c[0-9]{1,4}" value="${esc(typeof c.id === 'string' ? c.id : '')}"></label>
+      </div>
+      <label>들려주는 말 (명언 앞에 오는 한 문장)<textarea name="say" maxlength="240" rows="2" placeholder="예: 앤은 실수투성이 하루를 보낸 저녁, 마릴라에게 이렇게 말했어요.">${esc(c.say || '')}</textarea></label>
+      <h3 class="label">누구에게, 언제부터</h3>
+      <div class="grid3">
+        <label>나라 (비우면 세계 공통)<input name="country" pattern="[A-Za-z]{2}" placeholder="예: JP" value="${esc(ed?.country || '')}"></label>
+        <label>여는 날 (비우면 바로)<input name="starts_on" type="date" value="${esc(ed?.starts_on || '')}"></label>
+      </div>
       <div class="row end gap">${ed ? `<a class="btn ghost" href="${link('#/phrases', { lang })}">취소</a>` : ''}<button class="btn primary">${ed ? '저장' : '더하기'}</button></div></form>` : ''}
     <section class="box tablebox"><table><thead><tr><th>문장</th><th>언어 · 자리</th><th>언제</th><th class="r">빈도</th><th></th></tr></thead><tbody>
-      ${r.rows.map(x => `<tr class="${x.active ? '' : 'off'}"><td>${esc(x.text)}</td><td>${esc(x.lang)} · ${esc({ greet: '인사', air: '오늘의 공기', close: '맺음', lit: '문학' }[x.slot] || x.slot)}</td><td class="muted">${esc(condText(x.cond))}</td><td class="r num">${num(x.weight)}</td>
+      ${r.rows.map(x => `<tr class="${x.active ? '' : 'off'}"><td>${esc(x.text)}</td><td>${esc(x.lang)} · ${esc({ greet: '인사', air: '오늘의 공기', close: '맺음', lit: '문학', word: '한 마디' }[x.slot] || x.slot)}<br><span class="muted xs">${x.country ? esc(x.country) : '공통'}${x.starts_on ? ' · ' + esc(x.starts_on) + '부터' : ''}</span></td><td class="muted">${esc(condText(x.cond))}</td><td class="r num">${num(x.weight)}</td>
         <td class="r nowrap">${me.role === 'owner' ? `<button class="btn ghost sm" data-act="${x.id}" data-on="${x.active ? 0 : 1}">${x.active ? '끄기' : '켜기'}</button>
           <a class="btn ghost sm" href="${link('#/phrases', { lang, edit: x.id })}">고치기</a><button class="btn ghost sm" data-pdel="${x.id}">지우기</button>` : (x.active ? '' : '<span class="muted xs">꺼짐</span>')}</td></tr>`).join('') || '<tr><td colspan="5" class="muted pad">아직 더한 문장이 없어요. 앱 안의 기본 문장은 그대로 나와요.</td></tr>'}
     </tbody></table></section>`);
@@ -690,9 +761,11 @@ async function viewPhrases(q) {
     if (v.temp) cond[v.temp] = true;
     if (v.from || v.to) cond.between = [v.from.trim(), (v.to || v.from).trim()];
     if (v.slot === 'lit') { if (v.a) cond.a = v.a.trim(); if (v.o) cond.o = v.o.trim(); if (v.lid !== '' && v.lid != null) cond.id = Number(v.lid); if (v.light) cond.light = true; }
-    try { await api('phrase_save', { id: ed?.id, lang: v.lang, slot: v.slot, text: v.text, weight: Number(v.weight), cond, active: ed ? ed.active : true }); toast(ed ? '고쳤어요.' : '더했어요.'); location.hash = link('#/phrases', { lang }); if (!ed) viewPhrases(q); }
+    if (v.slot === 'word') { for (const k of ['tod', 'wx', 'dow', 'between', 'cold', 'hot']) delete cond[k]; for (const k of ['a', 'o', 'by', 'src', 'say']) if (v[k]?.trim()) cond[k] = v[k].trim(); if (v.wid) cond.id = v.wid.trim(); }
+    try { await api('phrase_save', { id: ed?.id, lang: v.lang, slot: v.slot, text: v.text, weight: Number(v.weight), cond, country: v.country.trim() || null, starts_on: v.starts_on || null, batch: ed?.batch || null, active: ed ? ed.active : true }); toast(ed ? '고쳤어요.' : '더했어요.'); location.hash = link('#/phrases', { lang }); if (!ed) viewPhrases(q); }
     catch (er) { toast(er.message, true); }
   };
+  batchWire(() => viewPhrases(q));
   document.querySelectorAll('[data-act]').forEach(b => b.onclick = async () => { try { await api('phrase_active', { id: Number(b.dataset.act), active: b.dataset.on === '1' }); viewPhrases(q); } catch (e) { toast(e.message, true); } });
   document.querySelectorAll('[data-pdel]').forEach(b => b.onclick = async () => { if (!await confirmBox({ title: '문장 지우기', body: '이 문장이 앱에서 더 나오지 않아요. 잠깐 멈추려면 끄기를 쓰세요.', ok: '지우기', danger: true })) return; try { await api('phrase_delete', { id: Number(b.dataset.pdel) }); viewPhrases(q); } catch (e) { toast(e.message, true); } });
 }

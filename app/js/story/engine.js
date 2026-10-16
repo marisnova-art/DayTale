@@ -8,14 +8,14 @@ import fr from './fr.js';
 import { S, displayTitle, emit, live, setPref } from '../data/store.js';
 import { fmtHM, getLang, t } from '../core/i18n.js';
 import { litById, litReady, loadLit, pickLit, setLitRemote } from './lit.js';
-import { hasWords, todayWord, wordDay } from './words.js';
+import { hasWords, setWordsRemote, todayWord, wordDay } from './words.js';
 import { addDays, dayKey, esc, ls, parseDay, slotOf, sunUp, todayKey } from '../core/utils.js';
 import { localeRegion, seasonFor, tempUnit } from '../core/countries.js';
 import { sticker } from '../core/stickers.js';
 
 const BASE = { ko, en, ja, es, fr };
 let remote = {};   // { lang: { part: [{ cond, text, weight }] } }
-const setRemote = rows => { remote = {}; rows.forEach(r => { ((remote[r.lang] ||= {})[r.slot] ||= []).push(r); }); setLitRemote(rows); };
+const setRemote = rows => { remote = {}; rows.forEach(r => { ((remote[r.lang] ||= {})[r.slot] ||= []).push(r); }); setLitRemote(rows); setWordsRemote(rows); };
 
 /* ---------- 한국어 조사 ---------- */
 const JOSA = { '은': ['은', '는'], '이': ['이', '가'], '을': ['을', '를'], '과': ['과', '와'], '으로': ['으로', '로'], '이에요': ['이에요', '예요'] };
