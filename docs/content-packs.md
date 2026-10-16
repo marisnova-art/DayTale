@@ -62,6 +62,13 @@ passages for that language (`setLitRemote`, called from `setRemote` when phrases
 The admin API (`supabase/functions/admin-api`) validates these keys only for `slot = 'lit'`. No schema change was needed
 (`phrase_packs.slot` is free text).
 
+## Who may be quoted (rule, 2026-10-16)
+
+- Judge each person by what they are famous **for**. Writers, poets, philosophers and artists are in. People famous for a role (politics, war, independence movements, religious leadership) are out, in every language, Korean included.
+- No religious content, public domain only (author dead 70+ years, and check US copyright too, e.g. The Little Prince is still protected there).
+- Lines spoken by characters in novels (Anne of Green Gables, Little Women, The Secret Garden) are the safest source; prefer them.
+- Before each weekly batch upload, re-read every line once per target country.
+
 ## Countries: `app/js/core/countries.js`
 
 One row per country (ISO 3166-1 alpha-2):
