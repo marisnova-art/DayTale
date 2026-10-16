@@ -34,8 +34,8 @@
   .cal.mini .mbox { margin-top: 16px; }
   .cal.mini .filters.cf { margin-top: 14px; }
   .cal.mini .agenda .dh:first-child { margin-top: 20px; }
-  /* 설정은 다른 목록보다 30% 좁게: 왼쪽 묶음 420→294, 오른쪽 내용은 최대 480 (dev.140, 앤드류: 너무 길어 보여요) */
-  .main .set { grid-template-columns: calc(var(--pc-mid) * .7) minmax(0, 480px); gap: var(--pc-gap); padding: 34px var(--pc-r) 0 var(--pc-l); max-width: none; }
+  /* 설정은 다른 목록보다 30% 좁게: 왼쪽 묶음 420→294, 오른쪽 내용은 최대 680 (dev.142: 설명 한 줄이 두 줄로 꺾이지 않게, 다국어 여유 포함) */
+  .main .set { grid-template-columns: calc(var(--pc-mid) * .7) minmax(0, 680px); gap: var(--pc-gap); padding: 34px var(--pc-r) 0 var(--pc-l); max-width: none; }
 }
 @media (min-width: 1200px) and (min-height: 501px), (min-width: 1200px) and (pointer: fine) {
   /* 목록 · 휴지통 · 캘린더: 가운데 420 + 오른쪽 기록 칸은 끝까지 */
