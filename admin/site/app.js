@@ -770,8 +770,10 @@ const period = n => `${ymd(n.starts_at) || '지금'} ~ ${n.ends_at ? ymd(new Dat
 async function viewNotices() {
   loading('#/notices');
   let r; try { r = await api('notices'); } catch (e) { return failed('#/notices', e); }
-  shell('#/notices', `${head('공지', big(num(r.rows.length)) + '<span class="unit">개</span>', '<p class="muted">앱의 알림함에 보여요. 언어·대상을 고르면 그 사용자에게만 보여요. 홈 배너를 켜면 기간 동안 홈 위에도 떠요.</p>')}
+  shell('#/notices', `${head('공지', big(num(r.rows.length)) + '<span class="unit">개</span>', '<p class="muted">앱의 알림함에 보여요. 언어·대상을 고르면 그 사용자에게만 보여요. 홈 배너를 켜면 기간 동안 홈 위에도 떠요. 휴대폰 알림은 중요한 공지에만 켜 주세요.</p>')}
     ${me.role === 'owner' ? `<form id="nf" class="box pad nform"><h2>새 공지</h2>
+      <label>종류<select name="kind"><option value="announce">공지 (서비스 안내)</option><option value="news">새 소식 (이벤트·홍보, 광고성)</option></select></label>
+      <label class="check"><input type="checkbox" name="push"> 휴대폰 알림도 보내기 <span class="muted xs">공지: 공지 알림을 켠 사람에게 시작 후 6시간 안에 한 번. 새 소식: 설정에서 따로 동의한 사람에게만, 그 사람 시간으로 밤 9시~아침 8시는 피해 하루 안에 한 번 (한국어는 앞에 '(광고)'가 붙어요)</span></label>
       <label>제목<input name="title" maxlength="120" required placeholder="예: 사진을 넣을 수 있어요"></label>
       <label>짧은 소개 <span class="muted xs">팝업·띠배너·알림함에 보여요. 한두 문장</span><textarea name="body" maxlength="300" rows="2" placeholder="예: 이제 기록마다 사진을 4장까지 넣을 수 있어요."></textarea></label>
       <label>자세한 내용 <span class="muted xs">'자세히 보기'를 누르면 나오는 상세 화면 글. 비우면 짧은 소개만 보여요</span><textarea name="detail" maxlength="5000" rows="7" placeholder="줄바꿈 그대로 보여요"></textarea></label>
@@ -786,7 +788,7 @@ async function viewNotices() {
       <div class="row gap nper"><label>시작일<input type="date" name="starts"></label><label>종료일<input type="date" name="ends"></label></div>
       <p class="muted xs">기간을 비우면 바로 시작해서 내릴 때까지 보여요. 시작일 전에는 앱에 보이지 않아요. 띠배너는 닫거나 보면 다시 뜨지 않아요. 팝업은 기간 동안 하루 한 번 뜨고, '자세히 보기'로 읽으면 그만 떠요. 버튼을 비우면 '자세히 보기'로 공지 상세 화면이 열려요.</p>
       <div class="row end"><button class="btn primary">올리기</button></div></form>` : ''}
-    <section class="box pad">${r.rows.length ? `<ul class="audit">${r.rows.map(n => `<li>${n.image_url ? `<img class="nthumb" src="${esc(n.image_url)}" alt="">` : `<span class="ava violet">${I.bell}</span>`}<div><b>${esc(n.title)}</b> <span class="muted xs">${esc(n.lang || '모든 언어')} · ${AUD[n.audience] || AUD.all}${n.banner ? ' · ' + SHOW[n.banner] : ''}${n.starts_at || n.ends_at ? ' · ' + period(n) : ''}</span><small>${esc(n.body)}</small>${n.detail ? `<small class="muted">+ 자세한 내용 ${num(n.detail.length)}자</small>` : ''}<small>${when(n.created_at)}</small></div>
+    <section class="box pad">${r.rows.length ? `<ul class="audit">${r.rows.map(n => `<li>${n.image_url ? `<img class="nthumb" src="${esc(n.image_url)}" alt="">` : `<span class="ava violet">${I.bell}</span>`}<div><b>${esc(n.title)}</b> <span class="muted xs">${n.kind === 'news' ? '새 소식 · ' : ''}${n.push ? '휴대폰 알림 · ' : ''}${esc(n.lang || '모든 언어')} · ${AUD[n.audience] || AUD.all}${n.banner ? ' · ' + SHOW[n.banner] : ''}${n.starts_at || n.ends_at ? ' · ' + period(n) : ''}</span><small>${esc(n.body)}</small>${n.detail ? `<small class="muted">+ 자세한 내용 ${num(n.detail.length)}자</small>` : ''}<small>${when(n.created_at)}</small></div>
       ${me.role === 'owner' ? `<button class="btn ghost sm" data-del="${n.id}">내리기</button>` : ''}</li>`).join('')}</ul>` : '<p class="muted">올린 공지가 없습니다.</p>'}</section>`);
   const f = document.getElementById('nf');
   const local = (v, add = 0) => { if (!v) return null; const d = new Date(v + 'T00:00:00'); d.setDate(d.getDate() + add); return d.toISOString(); };   // 내 시간대 0시 (종료일은 그다음 날 0시까지)

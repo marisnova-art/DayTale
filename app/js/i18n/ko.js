@@ -90,6 +90,7 @@ export default {
   'set.defaultType': '새 기록 기본 종류', 'set.city': '날씨 도시', 'set.cityAuto': '자동 (기기 시간대)', 'set.cityManual': '직접 고름', 'set.citySearch': '도시나 나라 이름', 'set.dictation': '말로 입력', 'set.dictationSub': '마이크 버튼으로 말한 내용을 글로 받아 적어요.',
   'set.days': '기억할 날', 'set.daysSub': '생일, 기념일을 넣으면 그날 홈 이야기에서 챙겨 드려요.', 'set.addDay': '기억할 날 추가', 'set.everyYear': '매년 {date}', 'set.dayName': '어떤 날인가요?', 'set.dayNamePh': '예: 엄마 생신', 'set.dayDate': '날짜',
   'set.notifyOn': '알림이 켜져 있어요.', 'set.notifyNo': "이 화면에서는 알림을 켤 수 없어요. 홈 화면에 앱을 설치한 뒤 켜 주세요. (아이폰은 iOS 16.4 이상)", 'set.notifyAsk': '알림 켜기', 'set.notifyAskSub': '일정 10분 전, 할 일 마감일 아침에 알려 드려요.', 'set.notifyDenied': '브라우저 설정에서 알림이 막혀 있어요. 사이트 설정에서 허용해 주세요.',
+  'set.notices': "중요한 공지", 'set.noticesSub': "서비스 변경처럼 꼭 알아야 할 소식만 보내요", 'set.news': "새 소식·혜택 받기", 'set.newsSub': "이벤트·새 기능 소식이에요. 밤 9시~아침 8시에는 보내지 않아요", 'set.newsAt': "{date}에 동의했어요. 밤 9시~아침 8시에는 보내지 않아요", 'set.newsOn': "{date}, 새 소식 받기에 동의했어요", 'set.newsOff': "{date}, 새 소식 받기를 그만했어요",
   'set.reminders': '일정·할 일 알림', 'set.remindersSub': '기록마다 따로 바꿀 수도 있어요', 'set.morning': '아침 인사', 'set.evening': '저녁 돌아보기', 'set.eveningSub': '오늘 아직 기록이 없을 때만', 'set.at': '시각',
   'set.notifyHonest': "이 기기에서는 앱이 열려 있을 때만 알림이 와요. 앱을 닫아도 받으려면 홈 화면에 설치한 앱에서 알림을 켜 주세요. (아이폰은 iOS 16.4 이상)",
   'sync.syncing': '동기화 중…', 'sync.at': '{when} 맞춤', 'sync.never': '아직 동기화 전이에요', 'sync.done': '동기화했어요', 'err.offline': '인터넷에 연결되어 있지 않아요.',

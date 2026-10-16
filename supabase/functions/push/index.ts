@@ -37,6 +37,11 @@ export function message(d: Due) {
   const [time, early] = (d.extra || '').split('|');   // '|d' = 하루 전 알림
   if (d.kind === 'event') return { title, body: f(early ? t.eventTomorrow : t.event, { time }), id: d.entry_id, tag: d.key };
   if (d.kind === 'todo') return { title, body: early ? t.todoTomorrow : t.todo, id: d.entry_id, tag: d.key };
+  // 공지·새 소식: 제목 = 공지 제목, 본문 = 짧은 소개. 누르면 앱의 공지 화면으로. 한국어 광고성 알림은 법에 따라 '(광고)'를 앞에 붙여요
+  if (d.kind === 'notice' || d.kind === 'news') {
+    const i = (d.extra || '').indexOf('|'), nid = (d.extra || '').slice(0, i), body = (d.extra || '').slice(i + 1).trim();
+    return { title: (d.kind === 'news' && d.lang === 'ko' ? '(광고) ' : '') + title, body, id: null, url: '#/notices/' + nid, tag: d.key };
+  }
   if (d.kind === 'morning') return { title: t.morning, body: Number(d.extra) > 0 ? f(t.morningBody, { n: d.extra! }) : t.morningNone, id: null, tag: d.key };
   return { title: t.evening, body: t.eveningBody, id: null, tag: d.key };
 }

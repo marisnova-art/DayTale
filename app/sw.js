@@ -17,14 +17,19 @@ self.addEventListener('fetch', e => {
   e.respondWith(fetch(req).then(r => putCopy(req, r)).catch(() => caches.match(req, { ignoreSearch: true })));   // 앱 파일: 네트워크 먼저
 });
 /* 웹 푸시: 앱이 닫혀 있어도 서버가 보낸 알림을 띄워요 */
+/* 앱 아이콘 숫자: 푸시가 올 때마다 하나씩 올려요. 앱을 열면 앱이 정확한 안 읽은 수로 다시 적어요 (캐시 'badge-count') */
+const BADGE = 'badge-count';
+const badgeGet = () => caches.open(BADGE).then(c => c.match('n')).then(r => (r ? r.text() : '0')).then(Number).catch(() => 0);
+const badgeBump = () => badgeGet().then(n => caches.open(BADGE).then(c => c.put('n', new Response(String(n + 1)))).then(() => self.navigator.setAppBadge?.(n + 1))).catch(() => {});
 self.addEventListener('push', e => {
   let m = {}; try { m = e.data ? e.data.json() : {}; } catch { m = { title: e.data?.text() || '' }; }
-  e.waitUntil(self.registration.showNotification(m.title || 'Daytale', { body: m.body || '', tag: m.tag, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', data: { id: m.id || null } }));
+  e.waitUntil(Promise.all([self.registration.showNotification(m.title || 'Daytale', { body: m.body || '', tag: m.tag, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', data: { id: m.id || null, url: m.url || null } }), badgeBump()]));
 });
 self.addEventListener('notificationclick', e => {
-  e.notification.close(); const id = e.notification.data?.id;
+  e.notification.close(); const { id, url } = e.notification.data || {};
+  const to = /^#\/[\w\/-]*$/.test(url || '') ? url : id ? '#/e/' + id : '#/home';   // 공지는 공지 화면, 일정·할 일은 그 기록
   e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(cs => {
-    const c = cs[0]; if (c) { c.focus(); if (id) c.postMessage({ open: id }); return; }
-    return self.clients.openWindow(id ? './#/e/' + id : './#/home');
+    const c = cs[0]; if (c) { c.focus(); c.postMessage({ go: to }); return; }
+    return self.clients.openWindow('./' + to);
   }));
 });

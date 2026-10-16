@@ -149,7 +149,7 @@ async function act(a: Admin, body: any, { db, env, fetch }: Deps) {
     }
 
     case 'notices': {
-      const { data, error } = await db.from('notices').select('id,kind,lang,title,body,created_at,banner,audience,starts_at,ends_at,image_url,cta_label,cta_url,detail').is('user_id', null).order('created_at', { ascending: false }).range(0, 49);
+      const { data, error } = await db.from('notices').select('id,kind,push,lang,title,body,created_at,banner,audience,starts_at,ends_at,image_url,cta_label,cta_url,detail').is('user_id', null).order('created_at', { ascending: false }).range(0, 49);
       if (error) throw new Fail(500, error.message);
       return { rows: data };
     }
@@ -168,9 +168,11 @@ async function act(a: Admin, body: any, { db, env, fetch }: Deps) {
       const iso = (v: unknown) => { if (!v) return null; const d = new Date(String(v)); if (isNaN(+d)) throw new Fail(400, 'bad date'); return d.toISOString(); };
       const starts_at = iso(body.starts_at), ends_at = iso(body.ends_at);
       if (starts_at && ends_at && ends_at <= starts_at) throw new Fail(400, 'bad period');
-      const { error } = await db.from('notices').insert({ user_id: null, kind: 'announce', lang, title, body: text, detail, banner, audience, starts_at, ends_at, image_url, cta_label, cta_url });
+      // 종류: announce(공지) | news(새 소식, 광고성 — 앱 설정에서 따로 동의한 사람에게만, 밤에는 휴대폰 알림을 보내지 않아요). push = 휴대폰 알림도 보내기
+      const kind = body.kind === 'news' ? 'news' : 'announce', push = body.push === true || body.push === 'on';
+      const { error } = await db.from('notices').insert({ user_id: null, kind, push, lang, title, body: text, detail, banner, audience, starts_at, ends_at, image_url, cta_label, cta_url });
       if (error) throw new Fail(500, error.message);
-      await audit(db, a, 'notice_create', {}, { title, lang, banner, audience, starts_at, ends_at });
+      await audit(db, a, 'notice_create', {}, { title, kind, push, lang, banner, audience, starts_at, ends_at });
       return { ok: true };
     }
 

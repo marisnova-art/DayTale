@@ -129,6 +129,21 @@ language sql stable security definer set search_path = public as $$
            push_ts(s.today::text, coalesce(s.nt->>'eveningAt', '21:00'), s.tz)
     from s where s.nt->>'evening' = 'true'
       and not exists (select 1 from entries e where e.user_id = s.user_id and e.deleted_at is null and (e.created_at at time zone s.tz)::date = s.today)
+    union all
+    -- 공지(관리자가 '휴대폰 알림도 보내기'를 켠 것): 설정의 공지 알림(기본 켬)이 켜진 사람에게, 시작 후 6시간 안에 한 번
+    -- 새 소식(kind = 'news', 광고성): 설정에서 따로 동의한 사람(news = true)에게만, 시작 후 하루 안에, 그 사람 시간으로 08~21시 사이에만
+    select s.id, 'notice:' || n.id, case when n.kind = 'news' then 'news' else 'notice' end, n.title, null, n.id || '|' || left(n.body, 200), p_now
+    from s join notices n on n.push and (n.user_id is null or n.user_id = s.user_id)
+    where coalesce(n.starts_at, n.created_at) <= p_now
+      and coalesce(n.starts_at, n.created_at) > p_now - case when n.kind = 'news' then interval '24 hours' else interval '6 hours' end
+      and (n.ends_at is null or n.ends_at > p_now)
+      and (n.lang is null or n.lang = s.lang)
+      and case n.audience when 'subscriber' then is_subscriber(s.user_id)
+                          when 'trial' then not is_subscriber(s.user_id) and can_write(s.user_id)
+                          when 'ended' then not can_write(s.user_id)
+                          else true end
+      and case when n.kind = 'news' then s.nt->>'news' = 'true' and extract(hour from p_now at time zone s.tz) between 8 and 20
+               else coalesce(s.nt->>'notices', 'true') <> 'false' end
   )
   select d.sub_id, ps.endpoint, ps.p256dh, ps.auth, ps.lang, d.key, d.kind, d.title, d.entry_id, d.extra
   from due d join push_subs ps on ps.id = d.sub_id

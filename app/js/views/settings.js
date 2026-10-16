@@ -76,6 +76,8 @@ function group(g) {
           + `<label class="srow sub"><span class="stx"><b>${esc(t('set.todoAt'))}</b><small>${esc(t('set.todoAtSub'))}</small></span><input type="time" data-time="todoAt" value="${esc(n.todoAt || '09:00')}"></label>` : '')
         + toggle('notify.morning', t('set.morning'), '', !!n.morning) + (n.morning ? `<label class="srow sub"><span class="stx"><b>${esc(t('set.at'))}</b></span><input type="time" data-time="morningAt" value="${esc(n.morningAt || '08:00')}"></label>` : '')
         + toggle('notify.evening', t('set.evening'), t('set.eveningSub'), !!n.evening) + (n.evening ? `<label class="srow sub"><span class="stx"><b>${esc(t('set.at'))}</b></span><input type="time" data-time="eveningAt" value="${esc(n.eveningAt || '21:00')}"></label>` : ''))
+      + card('', toggle('notify.notices', t('set.notices'), t('set.noticesSub'), n.notices !== false)
+        + toggle('notify.news', t('set.news'), n.news && n.newsAt ? t('set.newsAt', { date: fmtDate(new Date(n.newsAt), { year: 'numeric', month: 'long', day: 'numeric' }) }) : t('set.newsSub'), !!n.news))
       + `<p class="snote">${esc(t(Reminders.pushOn() ? 'set.notifyPush' : 'set.notifyHonest'))}</p>`;
   }
   if (g === 'data') {
@@ -111,6 +113,8 @@ function render(view, r) {
   view.addEventListener('click', ev => onClick(ev, paint));
   view.addEventListener('change', ev => {
     const el = ev.target;
+    // 새 소식(광고성) 받기: 동의·해지한 날을 남기고 바로 알려 드려요 (정보통신망법: 수신 동의 결과 안내)
+    if (el.dataset.t === 'notify.news') { const at = new Date(); setPref('notify', { ...S.prefs.notify, news: el.checked, newsAt: at.toISOString() }); toast(t(el.checked ? 'set.newsOn' : 'set.newsOff', { date: fmtDate(at, { year: 'numeric', month: 'long', day: 'numeric' }) }), { ms: 6000 }); paint(); return; }
     if (el.dataset.t) { const [a, b] = el.dataset.t.split('.'); if (b) setPref(a, { ...S.prefs[a], [b]: el.checked }); else setPref(a, el.checked); Reminders.schedule(); paint(); }
     if (el.dataset.time) { setPref('notify', { ...S.prefs.notify, [el.dataset.time]: el.value }); Reminders.schedule(); }
   });

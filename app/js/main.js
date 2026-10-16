@@ -125,6 +125,7 @@ async function checkNotices() {
     const { unread } = await import('./views/notices.js'); const n = await unread();
     document.documentElement.classList.toggle('has-unread', n > 0);
     if ('setAppBadge' in navigator) (n ? navigator.setAppBadge(n) : navigator.clearAppBadge()).catch(() => {});
+    self.caches?.open('badge-count').then(c => c.put('n', new Response(String(n)))).catch(() => {});   // 앱이 닫혀 있을 때 푸시가 오면 여기서부터 하나씩 올려요 (sw.js)
   } catch {}
 }
 const checkSoon = debounce(checkNotices, 3000);
@@ -203,5 +204,5 @@ boot();
 
 /* 오프라인 앱 껍데기 */
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('./sw.js?v=' + APP_VERSION).catch(() => {});
-navigator.serviceWorker?.addEventListener('message', e => { if (e.data?.open) go('/e/' + e.data.open); });
+navigator.serviceWorker?.addEventListener('message', e => { if (e.data?.open) go('/e/' + e.data.open); else if (/^#\/[\w\/-]*$/.test(e.data?.go || '')) go(e.data.go.slice(1)); });
 if (/^(app\.test|localhost|127\.0\.0\.1)$/.test(location.hostname)) window.__daytale = { S, CFG, Sync };   // 개발·검사에서만 (배포 주소에서는 안 생겨요)
