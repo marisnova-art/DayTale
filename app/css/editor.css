@@ -1,5 +1,5 @@
 /* 편집기: 배경은 홈과 같은 그라데이션 위에 어둡게 한 겹. 정보 한 줄, 제목, 본문, 사진. 도구는 PC 위 한 줄 / 모바일 키보드 위 막대 하나 */
-.ed-page { min-height: 100dvh; }
+.ed-page { min-height: 100%; }
 .ed-page::before { content: ""; position: fixed; inset: -30vh 0; background: rgba(var(--srf),.12); z-index: -1; pointer-events: none; }   /* 화면 전체를 덮어요 (위아래 끊김 없이) */
 .ed { max-width: 760px; margin: 0 auto; padding: calc(18px + var(--safe-t)) 20px calc(140px + var(--safe-b)); }
 :root.kb-open .ed, :root.ed-pan-open .ed { padding-bottom: calc(var(--kb, 0px) + var(--pan, 0px) + 120px); }
@@ -215,7 +215,7 @@
   /* 서식 · 옵션 판이 열려 있으면 키보드는 내려가 있어요. 아이폰이 크기를 늦게 알려 줘도 화면 전체를 써요 (막대가 가운데로 떠오르지 않게) */
   :root.ed-pan-open .view > .ed-page { top: 0; bottom: 0; height: auto; }
   /* 배경은 화면 밖까지 넉넉히 깔아, 키보드가 내려가는 순간에도 아래에 빈 틈이 보이지 않아요 */
-  :root.ed-mode .backdrop { top: -20vh; bottom: -20vh; }
+  :root.ed-mode .backdrop { top: -20vh; bottom: auto; height: calc(100lvh + 40vh + 160px); }
   .view > .ed-page > .ed { flex: 1 1 auto; min-height: 0; width: 100%; max-width: none; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
     padding: calc(18px + var(--safe-t)) max(20px, calc((100% - 720px) / 2)) 40px; scroll-padding-bottom: 24px; }
   :root.kb-open .view > .ed-page > .ed, :root.ed-pan-open .view > .ed-page > .ed { padding-bottom: 40px; }
