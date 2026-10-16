@@ -800,7 +800,8 @@ async function viewNotices() {
   }
   if (f) f.onsubmit = async e => { e.preventDefault(); const v = Object.fromEntries(new FormData(f)); delete v.img; if (v.starts && v.ends && v.ends < v.starts) return toast('종료일이 시작일보다 빨라요.', true); try {
     if (v.banner === 'popup' && img) v.image_url = (await api('notice_image', { data: img })).url;
-    const st = local(v.starts); await api('notice_create', { ...v, starts_at: st && st < new Date().toISOString() ? new Date().toISOString() : st, ends_at: local(v.ends, 1) });   // 시작일이 오늘이면 지금부터 toast('공지를 올렸습니다.'); viewNotices(); } catch (er) { toast(er.message, true); } };
+    // 시작일이 오늘이면 지금부터 (자정으로 두면 '10시간 전'에 올린 글처럼 보여요)
+    const st = local(v.starts); await api('notice_create', { ...v, starts_at: st && st < new Date().toISOString() ? new Date().toISOString() : st, ends_at: local(v.ends, 1) }); toast('공지를 올렸습니다.'); viewNotices(); } catch (er) { toast(er.message, true); } };
   document.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => { if (!await confirmBox({ title: '공지 내리기', body: '앱 알림함에서 사라집니다.', ok: '내리기', danger: true })) return; try { await api('notice_delete', { id: Number(b.dataset.del) }); viewNotices(); } catch (e) { toast(e.message, true); } });
 }
 
