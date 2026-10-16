@@ -1,2 +1,2 @@
 /* 처음 띄울 때: 지난번 배경을 바로 칠해 둬요. 앱이 뜨기 전 로딩 화면과 아이폰 아래쪽이 다른 색으로 비쳤다가 바뀌지 않게 */
-try { var p = JSON.parse(localStorage.getItem('daytale.paint')); if (p && p.bg) { var s = document.documentElement.style; s.setProperty('--bg-grad', p.bg); s.setProperty('--scrim', p.scrim || 0); s.setProperty('--bg-end', p.end || '#16181C'); } } catch (e) {}
+try { var p = JSON.parse(localStorage.getItem('daytale.paint')); if (p && p.bg) { var s = document.documentElement.style; s.setProperty('--bg-grad', p.bg); s.setProperty('--scrim', p.scrim || 0); s.setProperty('--bg-end', p.end || '#16181C'); if (p.low) s.setProperty('--bg-low', p.low); if (p.lowEd) s.setProperty('--bg-low-ed', p.lowEd); } } catch (e) {}
