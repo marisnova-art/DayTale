@@ -204,7 +204,9 @@ grant execute on function public.admin_stats(), public.admin_usage(), public.adm
 
 -- 매시간 체험 안내를 만들어요 (이미 받은 사람은 건너뛰어서 여러 번 돌아도 안전)
 do $$ begin
-  if exists (select 1 from pg_extension where extname = 'pg_cron') then perform cron.schedule('daytale-ops-daily', '7 * * * *', 'select public.ops_daily()'); end if;
+  if exists (select 1 from pg_extension where extname = 'pg_cron') then perform cron.schedule('daytale-ops-daily', '7 * * * *', 'select public.ops_daily()');
+    -- 예약작업 실행 기록은 2주만 남겨요 (2026-10-16 앤드류 OK. 매분 도는 푸시 때문에 하루 1,400줄씩 쌓여요)
+    perform cron.schedule('daytale-cron-history-cleanup', '17 3 * * *', $c$delete from cron.job_run_details where end_time < now() - interval '14 days'$c$); end if;
 end $$;
 
 -- 대표 계정(24story@gmail.com)은 schema.sql의 owner_emails로 가입하는 순간 owner가 됩니다.

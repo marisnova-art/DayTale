@@ -453,3 +453,11 @@
 .ed .ed-info .pt { display: inline-flex; align-items: center; gap: 7px; font-style: normal; white-space: nowrap; min-width: 0; }
 .ed .ed-info .pl { min-width: 0; }
 .ed .ed-info .pl > span { overflow: hidden; text-overflow: ellipsis; max-width: 12em; }
+
+/* 기록 안 스티커 + 쓰면서 스티커 추천 칩 */
+.ed-body .stk { display: inline-block; vertical-align: -.28em; margin: 0 .06em; user-select: none; -webkit-user-select: none; }
+.ed-body .stk .st { width: 1.35em; height: 1.35em; margin: 0; vertical-align: top; }
+.ed-sug { position: fixed; z-index: 60; display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 14px 0 8px; border-radius: 19px; background: rgba(var(--srf),.96); color: var(--text); border: 1px solid rgba(var(--fg),.14); font-size: var(--fs-s); font-weight: 700; -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); animation: sugIn .16s ease-out; }
+.ed-sug .st { width: 26px; height: 26px; margin: 0; vertical-align: 0; }
+@keyframes sugIn { from { opacity: 0; transform: translateY(4px); } }
+@media (prefers-reduced-motion: reduce) { .ed-sug { animation: none; } }

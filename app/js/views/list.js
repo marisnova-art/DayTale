@@ -1,4 +1,5 @@
 /* 정리형 목록: 모든 기록, 종류별, 폴더, 폴더 없음, 할 일, 휴지통, 찾기 */
+import { hydrateStickers } from '../core/stickers.js';
 import { S, TYPES, displayTitle, folderList, live, patchEntry, purgeEntries, restoreEntry, trash, trashEntry } from '../data/store.js';
 import { TYPE_ICON } from '../ui/shell.js';
 import { fmtDate, fmtHM, fmtNum, fmtTime, t } from '../core/i18n.js';
@@ -235,6 +236,7 @@ function paintTrashPane(pane, id) {
   pane.innerHTML = `<div class="tpv"><div class="ed-top"><button class="ed-cancel" data-purge="${e.id}">${icon('trash-2', 18)}<span>${esc(t('list.purge'))}</span></button><span class="sp"></span><button class="ed-done" data-restore="${e.id}">${icon('undo-2', 18)}<span>${esc(t('list.restore'))}</span></button></div>
     <div class="ed"><div class="ed-info">${icon(TYPE_ICON[e.type] || 'file-text', 17)}<span>${esc(typeLabel(e.type))}</span><i>·</i><span>${esc(t('list.deletedOn', { date: fmtDate(e.deleted_at, { month: 'long', day: 'numeric' }) }))}</span><i>·</i><span>${esc(t('list.readOnly'))}</span></div>
     <div class="ed-body">${sanitizeHTML(e.content || '') || `<p>${esc(displayTitle(e, t('common.untitled')))}</p>`}</div></div></div>`;
+  hydrateStickers(pane);
 }
 /* 밀어서 삭제 (손가락). 조금 밀면 삭제 버튼이 열리고, 반 넘게 밀면 바로 휴지통으로 */
 function swipe(view) {

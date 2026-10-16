@@ -6,7 +6,7 @@ import { CFG } from '../core/config.js';
 import { fit as fitRow } from '../ui/fit.js';
 import { S, isEmpty, newEntry, onChange, patchEntry, purgeEntries, saveEntry, trashEntry, TYPES, addFolder, folderList } from '../data/store.js';
 import { htmlToText, sanitizeHTML } from '../core/sanitize.js';
-import { fmtDate, fmtHM, fmtRel, t } from '../core/i18n.js';
+import { fmtDate, fmtHM, fmtRel, getLang, t } from '../core/i18n.js';
 import { $, $$, debounce, esc, icon, todayKey } from '../core/utils.js';
 import { confirmDlg, promptDlg, toast } from '../ui/feedback.js';
 import { go } from '../ui/router.js';
@@ -15,6 +15,8 @@ import { typeLabel } from './pickers.js';
 import { Photos } from '../features/photos.js';
 import { FONTS, fontOf, useFont } from '../core/fonts.js';
 import { History, setBlock } from '../features/blocks.js';
+import { hydrateStickers, stickerStyle } from '../core/stickers.js';
+import { suggest } from '../core/sticker-words.js';
 
 /* 서식 버튼: [키, 아이콘, 이름]. 한 번 누르면 켜지고, 다시 누르면 꺼져요 */
 const STYLE = [['p', 'pilcrow', 'ed.text'], ['heading', 'type', 'ed.heading'], ['quote', 'text-quote', 'ed.quote']];
@@ -60,7 +62,7 @@ function render(view, r, opts = {}) {   // opts.pane: PC 나란히 보기의 오
   cur = { e, isNew, wasNew: isNew, el, ro, pan: null, saved: carried ? false : undefined, pane: opts.pane ? opts : null };
   if (!opts.pane) { document.documentElement.classList.add('ed-mode'); scrollTo(0, 0); }   // 휴대폰: 편집기 상자 안에서만 스크롤 (editor.css)
   if (!opts.pane && window.visualViewport) { const vv = window.visualViewport, k = () => requestAnimationFrame(keepCaret); vv.addEventListener('resize', k); cur.offVV = () => vv.removeEventListener('resize', k); }
-  el.body.innerHTML = bodyOf(e);
+  el.body.innerHTML = bodyOf(e); hydrateStickers(el.body);
   if (!ro && !el.body.firstElementChild) el.body.innerHTML = '<p><br></p>';   // 첫 줄부터 문단으로 (줄 모양 바꾸기가 고르게 돼요)
   // 열었을 때 모습: 아무것도 고치지 않았으면 저장하지 않고, 취소하면 이 모습으로 돌아가요
   cur.base = el.body.innerHTML; cur.orig = { title: e.title, content: e.content, text: e.text, type: e.type, folder_id: e.folder_id, meta: { ...(e.meta || {}) } };
@@ -68,6 +70,8 @@ function render(view, r, opts = {}) {   // opts.pane: PC 나란히 보기의 오
   const save = debounce(() => commit(), 600); cur.save = save;
   cur.hist = new History(el.body);
   el.body.addEventListener('input', ev => { cur.touched = true; shortcuts(ev); cur.hist.soon(); save(); paintState(); keepCaret(); });
+  // 쓰면서 스티커 추천: 마지막 낱말에 맞는 스티커가 있으면 커서 위에 작은 칩을 띄워요 (누르면 그 자리에 넣어요)
+  if (!ro) { el.body.addEventListener('input', sugSoon); el.body.addEventListener('compositionend', sugSoon); el.body.addEventListener('blur', () => setTimeout(hideSug, 150)); }
   el.body.addEventListener('keydown', onKey);
   el.body.addEventListener('focus', () => { document.execCommand('defaultParagraphSeparator', false, 'p'); closePan(); });
   el.body.addEventListener('click', onBodyClick);
@@ -121,6 +125,7 @@ async function commit() {
 }
 function leave() {
   if (!cur) return;
+  hideSug();
   cur.save?.flush(); closePan(); cur.offOut?.();
   document.removeEventListener('selectionchange', paintState);
   if (!cur.pane) document.documentElement.classList.remove('ed-mode');
@@ -380,6 +385,41 @@ async function more(v) {
 
 /* ---------- 본문 편집 도우미 ---------- */
 /* 쓰는 자리(커서)가 막대·판·키보드에 가리면 글 상자만 살짝 올려요 (휴대폰). 화면 전체는 움직이지 않아요 */
+/* ---------- 쓰면서 스티커 추천 ---------- */
+let sugT = 0, sugEl = null, sugAt = null;
+function sugSoon() { clearTimeout(sugT); sugT = setTimeout(sugCheck, 250); }
+function hideSug() { sugEl?.remove(); sugEl = null; sugAt = null; }
+function sugCheck() {
+  if (!cur || cur.ro || stickerStyle() === 'off') return hideSug();
+  const s = getSelection(); if (!s.rangeCount || !s.isCollapsed || !cur.el.body.contains(s.anchorNode) || s.anchorNode.nodeType !== 3) return hideSug();
+  const n = s.anchorNode, before = n.nodeValue.slice(0, s.anchorOffset);
+  const m = suggest(before, getLang());
+  if (!m || n.parentElement.closest('.stk') || n.nodeValue.slice(s.anchorOffset, s.anchorOffset + 1).match(/[\p{L}]/u)) return hideSug();
+  if (n.nextSibling?.classList?.contains('stk') && s.anchorOffset === n.nodeValue.length) return hideSug();   // 이미 넣었어요
+  const r = s.getRangeAt(0), rect = r.getClientRects()[0] || r.getBoundingClientRect();
+  if (!sugEl) {
+    sugEl = document.createElement('button'); sugEl.className = 'ed-sug'; sugEl.type = 'button';
+    sugEl.addEventListener('mousedown', ev => ev.preventDefault());   // 글 칸 포커스(키보드)를 지켜요
+    sugEl.addEventListener('touchstart', ev => { ev.preventDefault(); putSticker(); }, { passive: false });
+    sugEl.addEventListener('click', putSticker);
+    document.body.appendChild(sugEl);
+  }
+  sugAt = { node: n, off: s.anchorOffset, st: m.st };
+  sugEl.innerHTML = `${hydrateOne(m.st)}<span>${esc(t('ed.addSticker'))}</span>`;
+  const w = sugEl.offsetWidth || 120, x = Math.max(8, Math.min(innerWidth - w - 8, rect.left - w / 2));
+  sugEl.style.left = x + 'px'; sugEl.style.top = Math.max(8, rect.top - 46) + 'px';
+}
+const hydrateOne = st => { const d = document.createElement('span'); d.innerHTML = `<span class="stk" data-st="${st}"></span>`; hydrateStickers(d); return d.innerHTML; };
+function putSticker() {
+  if (!cur || !sugAt) return hideSug();
+  const { node, off, st } = sugAt; if (!node.isConnected) return hideSug();
+  cur.hist.snap();
+  const d = document.createElement('span'); d.innerHTML = `<span class="stk" data-st="${st}"></span>`; hydrateStickers(d); const sp = d.firstChild;
+  const r = document.createRange(); r.setStart(node, off); r.collapse(true); r.insertNode(sp);
+  const after = document.createRange(); after.setStartAfter(sp); after.collapse(true);
+  const sel = getSelection(); sel.removeAllRanges(); sel.addRange(after);
+  hideSug(); cur.touched = true; cur.save(); cur.hist.soon();
+}
 function keepCaret() {
   if (!cur || isPC() || cur.pane) return;
   const s = getSelection(); if (!s.rangeCount || !cur.el.body.contains(s.anchorNode)) return;

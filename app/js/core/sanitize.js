@@ -7,7 +7,7 @@ import { $$ } from './utils.js';
 const SAFE = {
   tags: new Set(['P','DIV','BR','B','STRONG','I','EM','U','S','STRIKE','DEL','SPAN','MARK','UL','OL','LI','BLOCKQUOTE','H2','H3','A','HR']),
   drop: new Set(['SCRIPT','STYLE','IFRAME','OBJECT','EMBED','LINK','META','TEMPLATE','SVG','MATH','IMG','VIDEO','AUDIO','CANVAS','FORM','INPUT','BUTTON','SELECT','TEXTAREA','NOSCRIPT','TITLE','HEAD','PICTURE','SOURCE','FRAME','FRAMESET','APPLET','BASE']),
-  cls: /^(todo|done|c-(gray|red|orange|amber|green|teal|blue|violet|pink)|hl-(yellow|orange|green|blue|pink|violet|red)|bg-(yellow|orange|green|blue|pink|violet)|fs-(s|l|xl)|ico)$/
+  cls: /^(todo|done|c-(gray|red|orange|amber|green|teal|blue|violet|pink)|hl-(yellow|orange|green|blue|pink|violet|red)|bg-(yellow|orange|green|blue|pink|violet)|fs-(s|l|xl)|ico|stk)$/
 };
 function sanitizeHTML(html) {
   const doc = new DOMParser().parseFromString(`<body>${html || ''}</body>`, 'text/html');
@@ -19,13 +19,17 @@ function sanitizeHTML(html) {
       if (SAFE.drop.has(tag)) { ch.remove(); return; }
       if (tag === 'H1' || tag === 'H4' || tag === 'H5' || tag === 'H6') { const h = doc.createElement(tag === 'H1' ? 'h2' : 'h3'); while (ch.firstChild) h.appendChild(ch.firstChild); ch.replaceWith(h); walk(h); return; }
       if (!SAFE.tags.has(tag)) { walk(ch); ch.replaceWith(...ch.childNodes); return; }
-      const ico = ch.getAttribute('data-ico');
+      const ico = ch.getAttribute('data-ico'), stk = ch.getAttribute('data-st');
       const classes = (ch.getAttribute('class') || '').split(/\s+/).filter(c => SAFE.cls.test(c));
       const href = tag === 'A' ? (ch.getAttribute('href') || '').trim() : '';
       [...ch.attributes].forEach(a => ch.removeAttribute(a.name));
       if (tag === 'A') {
         if (!/^https?:\/\//i.test(href)) { walk(ch); ch.replaceWith(...ch.childNodes); return; }
         ch.setAttribute('href', href); ch.setAttribute('target', '_blank'); ch.setAttribute('rel', 'noopener noreferrer nofollow');
+      }
+      if (tag === 'SPAN' && classes.includes('stk')) {   // 쓰면서 넣은 스티커: 이름만 남겨요 (그림은 화면에서 다시 그려요)
+        if (/^[a-z]{2,12}$/.test(stk || '')) { ch.textContent = ''; ch.setAttribute('class', 'stk'); ch.setAttribute('data-st', stk); } else ch.remove();
+        return;
       }
       if (tag === 'SPAN' && classes.includes('ico')) {
         if (ico && ICONS[ico]) { ch.textContent = ''; ch.setAttribute('class', 'ico'); ch.setAttribute('data-ico', ico); } else ch.remove();

@@ -15,4 +15,6 @@ const sticker = (name, st = style()) => st === 'off' ? '' : st === 'line' && KEP
   : FLUENT.includes(name) ? `<img class="st" src="./stickers/fluent/${name}.webp" alt="" aria-hidden="true" draggable="false">` : '';
 const reward = name => PIXEL[name] ? `<span class="px" style="--c:${PIXEL[name]};-webkit-mask-image:url(./stickers/pixel/${name}.svg);mask-image:url(./stickers/pixel/${name}.svg)" aria-hidden="true"></span>` : '';
 
-export { reward, sticker, style as stickerStyle };
+/* 기록 안 스티커(span.stk): 지금 고른 스타일로 그려요. '끄기'는 이야기에만 해당해서 기록에서는 볼드로 */
+const hydrateStickers = root => root.querySelectorAll('span.stk[data-st]').forEach(s => { const html = sticker(s.dataset.st, style() === 'off' ? 'bold' : style()); if (!html) { s.remove(); return; } s.setAttribute('contenteditable', 'false'); s.innerHTML = html; });
+export { KEPT, hydrateStickers, reward, sticker, style as stickerStyle };
