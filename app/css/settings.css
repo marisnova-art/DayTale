@@ -204,3 +204,10 @@
 .has-news .drawer .m.news::after { content: ''; width: 7px; height: 7px; border-radius: 4px; background: #FF7A59; margin-left: 8px; flex: none; }
 .has-news .mbar .menu-btn { position: relative; }
 .has-news .mbar .menu-btn::after { content: ''; position: absolute; top: calc(50% - 13px); left: calc(50% + 5px); width: 7px; height: 7px; border-radius: 4px; background: #FF7A59; box-shadow: 0 0 0 2px var(--sheet, #FFFFFF); }
+/* 점 색으로 구분: 내 알림(일정·할 일) = 파랑, 회사가 보낸 공지·소식 = 빨강. 막대·메뉴의 점은 조금 크게 */
+:root { --dot-me: #3D8BFF; --dot-co: #FF4D5E; }
+.ntc .nt.new .t::after, .ntc .nlegend i, .has-unread .bell::after, .has-unread .snav a[href$="/notify"] .stx b::after { background: var(--dot-me); }
+.ntc.news .nt.new .t::after, .has-news .drawer .m.news::after, .has-news .mbar .menu-btn::after { background: var(--dot-co); }
+.has-unread .mbar .bell::after, .has-news .mbar .menu-btn::after { width: 10px; height: 10px; border-radius: 5px; top: calc(50% - 15px); left: calc(50% + 4px); }
+.has-unread .pc-top .bell::after { width: 10px; height: 10px; border-radius: 5px; }
+.has-news .drawer .m.news::after { width: 10px; height: 10px; border-radius: 5px; }

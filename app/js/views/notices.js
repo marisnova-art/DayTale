@@ -124,7 +124,7 @@ function seenNews(ids) { const top = Math.max(Number(localStorage.getItem('dayta
 
 /* 공지·소식 화면 */
 async function renderNews(view) {
-  view.innerHTML = `<section class="lst ntc"><div class="lst-head"><a class="icon-btn" href="#/home" aria-label="${esc(t('ed.back'))}">${icon('chevron-left', 22)}</a><h1>${esc(t('nav.news'))}</h1></div><div class="body"></div><div style="height:120px"></div></section>`;
+  view.innerHTML = `<section class="lst ntc news"><div class="lst-head"><a class="icon-btn" href="#/home" aria-label="${esc(t('ed.back'))}">${icon('chevron-left', 22)}</a><h1>${esc(t('nav.news'))}</h1></div><div class="body"></div><div style="height:120px"></div></section>`;
   const list = (await news()).map(x => ({ ...x, tm: fmtRel(new Date(x.at).toISOString()) }));
   const body = view.querySelector('.body'); if (!body) return;
   body.innerHTML = list.length ? `<div class="card">${list.map(row).join('')}</div>`
