@@ -29,7 +29,7 @@ function frame() {
       <main id="view" class="view" tabindex="-1"></main>
     </div>
     <nav class="mbar glass" aria-label="${esc(t('nav.menu'))}">
-      <button class="icon-btn menu-btn" data-act="menu" aria-label="${esc(t('nav.menu'))}" aria-expanded="false">${icon('menu-alt', 22)}</button><span class="sep"></span>
+      <button class="icon-btn menu-btn" data-act="menu" aria-label="${esc(t('nav.menu'))}" aria-expanded="false">${icon('menu-alt', 26)}</button><span class="sep"></span>
       <a class="icon-btn tab" href="#/home" data-tab="/home" aria-label="${esc(t('nav.home'))}">${icon('home', 22)}</a>
       <a class="icon-btn tab" href="#/calendar" data-tab="/calendar" aria-label="${esc(t('nav.calendar'))}">${icon('calendar', 22)}</a>
       <a class="icon-btn tab" href="#/all" data-tab="/all" aria-label="${esc(t('nav.all'))}">${icon('layers', 22)}</a>
