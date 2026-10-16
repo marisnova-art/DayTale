@@ -134,7 +134,7 @@ const checkSoon = debounce(checkNotices, 3000);
 setInterval(() => { if (S.user && document.visibilityState === 'visible') checkNotices(); }, 5 * 60e3);   // 알림 시각이 지나면 점이 생겨요
 const reschedule = debounce(() => Reminders.schedule(), 800);
 function applyPrefs() {
-  const l = S.prefs.lang || detectLang(); if (l !== getLang()) { setLang(l); frame(); rerender(); }
+  const l = S.prefs.lang || detectLang(); if (l !== getLang()) { setLang(l); frame(); rerender(); if (S.user) loadPhrases().catch(() => {}); }   // 언어를 바꾸면 그 언어의 서버 문장도 바로 받아요
   document.documentElement.dataset.ui = uiStyle();
   const bg = S.prefs.bg in Backdrop.SOLID ? S.prefs.bg : 'grad', cur = Backdrop.now();   // 배경을 바꾸면 바로 칠해요
   if (bg !== (cur?.solid ? cur.name : 'grad')) Backdrop.apply(document.documentElement);
