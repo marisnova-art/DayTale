@@ -71,6 +71,9 @@ function render(view, r, opts = {}) {   // opts.pane: PC 나란히 보기의 오
   el.body.addEventListener('keydown', onKey);
   el.body.addEventListener('focus', () => { document.execCommand('defaultParagraphSeparator', false, 'p'); closePan(); });
   el.body.addEventListener('click', onBodyClick);
+  // 체크 상자: 누를 때 글 칸으로 들어가지 않게 막아요 (휴대폰에서 키보드·서식 막대·복사 메뉴가 떠서 체크를 방해했어요)
+  el.body.addEventListener('touchstart', ev => { const li = ckHit(ev.touches[0], ev.target); if (!li) return; ev.preventDefault(); tglTodo(li); }, { passive: false });
+  el.body.addEventListener('mousedown', ev => { if (ckHit(ev, ev.target)) ev.preventDefault(); });
   el.body.addEventListener('paste', onPaste);
   document.addEventListener('selectionchange', paintState);
   view.addEventListener('click', onAct);
@@ -433,10 +436,15 @@ function onKey(ev) {
 function onBodyClick(ev) {
   const a = ev.target.closest('a[href]');
   if (a) { if (ev.metaKey || ev.ctrlKey || cur.ro) { ev.preventDefault(); openUrl(a.getAttribute('href')); } else linkPop(a); return; }
-  const li = ev.target.closest('ul.todo > li'); if (!li || cur.ro) return;
-  const x = ev.clientX - li.getBoundingClientRect().left; if (x > 28) return;
-  li.classList.toggle('done'); cur.saved = false; cur.save();
+  const li = ckHit(ev, ev.target); if (li) tglTodo(li);
 }
+/* 체크 상자 자리(줄 맨 앞, 손가락이 닿기 쉽게 넉넉히)를 눌렀는지 */
+function ckHit(p, target) {
+  const li = target?.closest?.('ul.todo > li'); if (!li || !cur || cur.ro || !p) return null;
+  const r = li.getBoundingClientRect(), x = p.clientX - r.left, y = p.clientY - r.top;
+  return x >= -8 && x <= 36 && y <= 40 ? li : null;
+}
+function tglTodo(li) { li.classList.toggle('done'); cur.saved = false; cur.save(); }
 function onPaste(ev) {
   const html = ev.clipboardData.getData('text/html'); const text = ev.clipboardData.getData('text/plain');
   ev.preventDefault();

@@ -94,7 +94,7 @@
   .today-side .today .top { margin-top: 0; }
 }
 .today-side { display: none; }
-.wxcredit { margin: 18px 4px 0; font-size: var(--fs-s); color: rgba(245,243,239,.38); } .wxcredit a { text-decoration: underline; }
+.wxcredit { margin: 18px 4px 0; font-size: var(--fs-s); color: rgba(var(--fg),.45); } .wxcredit a { text-decoration: underline; }
 /* 회상 기록의 사진 (미리보기) */
 .story .recall-ph { display: flex; gap: 8px; margin: -6px 0 22px; }
 .story .recall-ph img { width: 92px; height: 92px; object-fit: cover; border-radius: 16px; background: var(--raised); display: block; }

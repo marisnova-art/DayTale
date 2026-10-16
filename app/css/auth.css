@@ -4,8 +4,8 @@
 .auth .brandrow .logo { width: 26px; height: 26px; border-radius: 8px; }
 .auth .brandrow span:last-child { font-size: var(--fs-s); font-weight: 700; color: var(--text); letter-spacing: -.01em; }
 .auth .hero { margin-top: 72px; }
-.auth .kicker { font-size: var(--fs-s); font-weight: 600; color: rgba(245,243,239,.8); letter-spacing: .01em; }
-.auth h1 { margin: 12px 0 0; font-size: var(--fs-xl); line-height: 1.28; font-weight: 500; letter-spacing: -.045em; color: rgba(245,243,239,.72); }
+.auth .kicker { font-size: var(--fs-s); font-weight: 600; color: rgba(var(--fg),.82); letter-spacing: .01em; }
+.auth h1 { margin: 12px 0 0; font-size: var(--fs-xl); line-height: 1.28; font-weight: 500; letter-spacing: -.045em; color: rgba(var(--fg),.74); }
 .auth h1 .hl { color: var(--text); font-weight: 600; }
 .auth h2 { margin: 0 0 6px; font-size: var(--fs-l); font-weight: 800; color: var(--text-2); letter-spacing: -.03em; }
 .auth form { margin-top: 40px; display: flex; flex-direction: column; }

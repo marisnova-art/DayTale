@@ -1,5 +1,5 @@
 /* 정리형 목록: 모든 기록, 종류별, 폴더, 폴더 없음, 할 일, 휴지통, 찾기 */
-import { S, TYPES, displayTitle, live, patchEntry, purgeEntries, restoreEntry, trash, trashEntry } from '../data/store.js';
+import { S, TYPES, displayTitle, folderList, live, patchEntry, purgeEntries, restoreEntry, trash, trashEntry } from '../data/store.js';
 import { TYPE_ICON } from '../ui/shell.js';
 import { fmtDate, fmtHM, fmtNum, fmtTime, t } from '../core/i18n.js';
 import { addDays, dayKey, debounce, esc, icon, nowISO, todayKey } from '../core/utils.js';
@@ -125,12 +125,17 @@ function paintBody(view, { mode, r, folder, q }) {
   // 종류 칩 (모든 기록·폴더에서)
   if (mode === 'all' || mode === 'folder' || mode === 'nofolder' || mode === 'fav') {
     const kinds = TYPES.filter(ty => list.some(e => e.type === ty));
+    // 모든 기록: 내가 만든 폴더도 칩으로 (종류 칩 뒤, 폴더 아이콘과 함께)
+    const fols = mode === 'all' ? folderList().filter(f => list.some(e => e.folder_id === f.id)) : [];
+    const chips = kinds.length + fols.length;
     const x = fl.querySelector('.fs')?.scrollLeft || 0;
-    fl.innerHTML = kinds.length > 1 ? '<div class="fs">' + [`<button class="${filter === 'all' ? 'on' : ''}" data-f="all">${esc(t('list.all'))}</button>`, ...kinds.map(ty => `<button class="${filter === ty ? 'on' : ''}" data-f="${ty}">${esc(typeLabel(ty))}</button>`)].join('') + '</div>' : '';
-    if (kinds.length > 1) fl.insertAdjacentHTML('afterbegin', `<button class="fa fl" data-fs="-1" tabindex="-1" aria-hidden="true">${icon('chevron-left', 18)}</button>`), fl.insertAdjacentHTML('beforeend', `<button class="fa fr" data-fs="1" tabindex="-1" aria-hidden="true">${icon('chevron-right', 18)}</button>`);
+    fl.innerHTML = chips > 1 ? '<div class="fs">' + [`<button class="${filter === 'all' ? 'on' : ''}" data-f="all">${esc(t('list.all'))}</button>`, ...kinds.map(ty => `<button class="${filter === ty ? 'on' : ''}" data-f="${ty}">${esc(typeLabel(ty))}</button>`),
+      ...fols.map(f => `<button class="fo${filter === 'f:' + f.id ? ' on' : ''}" data-f="f:${esc(f.id)}">${icon('folder', 15)}${esc(f.name)}</button>`)].join('') + '</div>' : '';
+    if (chips > 1) fl.insertAdjacentHTML('afterbegin', `<button class="fa fl" data-fs="-1" tabindex="-1" aria-hidden="true">${icon('chevron-left', 18)}</button>`), fl.insertAdjacentHTML('beforeend', `<button class="fa fr" data-fs="1" tabindex="-1" aria-hidden="true">${icon('chevron-right', 18)}</button>`);
     const fs = fl.querySelector('.fs');
     if (fs) { fs.scrollLeft = x; capsule(fs); }
-    if (filter !== 'all') list = list.filter(e => e.type === filter);
+    if (filter.startsWith('f:')) list = list.filter(e => e.folder_id === filter.slice(2));
+    else if (filter !== 'all') list = list.filter(e => e.type === filter);
   } else fl.innerHTML = '';
   const byNew = (a, b) => b.created_at.localeCompare(a.created_at);
   if (mode === 'todo') {
