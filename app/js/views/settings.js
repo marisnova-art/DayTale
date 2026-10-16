@@ -53,7 +53,7 @@ function planLine() {
 function altRows() {
   const al = Account.profile?.alts || [];
   return [0, 1].map(i => { const x = al[i] || {}, has = x.n || x.a;
-    const av = x.a ? `<span class="avatar m"><img src="${esc(x.a)}" alt=""></span>` : has ? `<span class="avatar m">${esc((x.n || '·').trim().charAt(0).toUpperCase())}</span>` : `<span class="avatar m add">${icon('plus', 18)}</span>`;
+    const av = x.a ? `<span class="avatar am"><img src="${esc(x.a)}" alt=""></span>` : has ? `<span class="avatar am">${esc((x.n || '·').trim().charAt(0).toUpperCase())}</span>` : `<span class="avatar am add">${icon('plus', 18)}</span>`;
     return `<button class="srow" data-a="alt" data-i="${i}">${av}<span class="stx"><b>${esc(x.n || (has ? Account.name({ base: true }) : t('set.altAdd')))}</b><small>${esc(t('set.altN', { n: i + 2 }))}</small></span>${icon('chevron-right', 18)}</button>`; }).join('');
 }
 
