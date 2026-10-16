@@ -1,6 +1,6 @@
 /* 토스트, 확인 대화상자, 아래 시트 */
 import { t } from '../core/i18n.js';
-import { $, esc, h, icon } from '../core/utils.js';
+import { $, dimBase, esc, h, icon } from '../core/utils.js';
 
 function toast(msg, { bad = false, action, onAction, ms = 3800 } = {}) {
   let box = $('.toasts'); if (!box) { box = h('<div class="toasts" role="status" aria-live="polite"></div>'); document.body.append(box); }
@@ -40,10 +40,10 @@ function openSheet(content, { label = '', onClose } = {}) {
   }
   sh.querySelector('.body').append(content);
   document.body.append(scrim, sh);
-  requestAnimationFrame(() => { scrim.classList.add('open'); sh.classList.add('open'); });
+  requestAnimationFrame(() => { scrim.classList.add('open'); sh.classList.add('open'); }); dimBase(true);
   const prev = document.activeElement;
   let shut = false;
-  const close = () => { if (shut) return; shut = true; scrim.classList.remove('open'); sh.classList.remove('open'); removeEventListener('keydown', onKey); removeEventListener('hashchange', close); setTimeout(() => { scrim.remove(); sh.remove(); }, 280); prev?.focus?.(); onClose?.(); };
+  const close = () => { if (shut) return; shut = true; dimBase(false); scrim.classList.remove('open'); sh.classList.remove('open'); removeEventListener('keydown', onKey); removeEventListener('hashchange', close); setTimeout(() => { scrim.remove(); sh.remove(); }, 280); prev?.focus?.(); onClose?.(); };
   const onKey = e => { if (e.key === 'Escape') close(); };
   addEventListener('keydown', onKey); scrim.onclick = close;
   addEventListener('hashchange', close);   // 다른 화면으로 가면 시트도 닫혀요 (남아서 누르기를 막지 않게)

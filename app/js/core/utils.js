@@ -37,4 +37,14 @@ const sunUp = (d = new Date(), lat, lon) => {
 };
 const h = (html) => { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; };
 
-export { $, $$, addDays, clamp, dayKey, daysBetween, debounce, esc, h, icon, ls, nowISO, pad, parseDay, seasonOf, slotOf, startOfWeek, sunUp, todayKey, uid };
+/* 메뉴·시트가 화면을 어둡게 덮을 때 문서 바탕색도 같이 어둡게 해요. 아이폰은 이 색으로 시계 줄(상태 표시줄)을 칠해서, 안 그러면 위쪽만 밝게 남아요 */
+let dimN = 0;
+function dimBase(on, a = .5) {
+  const r = document.documentElement;
+  dimN = Math.max(0, dimN + (on ? 1 : -1));
+  if (!dimN) { r.style.removeProperty('background-color'); return; }
+  if (!on || dimN > 1) return;
+  const m = getComputedStyle(r).backgroundColor.match(/[\d.]+/g);
+  if (m) r.style.backgroundColor = `rgb(${m.slice(0, 3).map(v => Math.round(v * (1 - a))).join(',')})`;
+}
+export { $, $$, addDays, clamp, dayKey, daysBetween, debounce, dimBase, esc, h, icon, ls, nowISO, pad, parseDay, seasonOf, slotOf, startOfWeek, sunUp, todayKey, uid };

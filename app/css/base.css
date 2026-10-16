@@ -76,5 +76,5 @@ svg.i { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: rou
 /* keep-all은 한국어 띄어쓰기용. 일본어는 띄어쓰기가 없어 문구 단위로 줄을 바꿔요 */
 :root:lang(ja) body { word-break: normal; line-break: strict; }
 @supports (word-break: auto-phrase) { :root:lang(ja) body { word-break: auto-phrase; } }
-/* 밝은 배경: 아이폰 홈 화면 앱은 위쪽 상태 표시줄 글자가 흰색이라 그 자리만 살짝 어둡게 */
-:root.bg-light body::before { content: ""; position: fixed; top: 0; left: 0; right: 0; height: var(--safe-t); z-index: 60; pointer-events: none; background: linear-gradient(rgba(0,0,0,.3), rgba(0,0,0,.12)); }
+/* 밝은 배경의 상태 표시줄: 예전엔 그 자리만 어둡게 덮었는데, 지금은 아이폰이 문서 바탕색(맨 위 색)을 보고 흐림과 글자색을 알아서 맞춰요.
+   덮는 층이 있으면 위에 다른 색 띠가 생겨서 없앴어요 (dev.139) */

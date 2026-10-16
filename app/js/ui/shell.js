@@ -4,7 +4,7 @@ import { S, TYPES, folderList, live, onChange } from '../data/store.js';
 import { saveState } from '../features/safe.js';
 import { brand } from '../core/config.js';
 import { getLang, t } from '../core/i18n.js';
-import { $, $$, dayKey, esc, icon, todayKey } from '../core/utils.js';
+import { $, $$, dayKey, dimBase, esc, icon, todayKey } from '../core/utils.js';
 import { go, now } from './router.js';
 
 const TYPE_ICON = { note: 'file-text', todo: 'check-square', event: 'calendar', idea: 'lightbulb', item: 'map-pin', personal: 'feather', scrap: 'bookmark' };
@@ -94,11 +94,11 @@ function trackKeyboard() {
 let pt = 0; const paintSoon = () => { clearTimeout(pt); pt = setTimeout(paint, 600); };
 const isPC = () => matchMedia('(min-width: 900px) and (min-height: 501px), (min-width: 900px) and (pointer: fine)').matches;
 function openMenu() {
-  paint(); document.documentElement.classList.add('menu-open');
+  paint(); if (!document.documentElement.classList.contains('menu-open')) dimBase(true); document.documentElement.classList.add('menu-open');
   $('.drawer').classList.add('open'); $('.scrim').classList.add('open'); $('.mbar')?.classList.add('away'); $('.menu-btn')?.setAttribute('aria-expanded', 'true');
   if (isPC()) setTimeout(() => $('.drawer .search input')?.focus({ preventScroll: true }), 260);   // 모바일은 키보드가 메뉴를 가리지 않게 자동으로 열지 않아요
 }
-function closeMenu() { document.documentElement.classList.remove('menu-open'); $('.drawer')?.classList.remove('open'); $('.scrim')?.classList.remove('open'); $('.mbar')?.classList.remove('away'); $('.menu-btn')?.setAttribute('aria-expanded', 'false'); }
+function closeMenu() { if (document.documentElement.classList.contains('menu-open')) dimBase(false); document.documentElement.classList.remove('menu-open'); $('.drawer')?.classList.remove('open'); $('.scrim')?.classList.remove('open'); $('.mbar')?.classList.remove('away'); $('.menu-btn')?.setAttribute('aria-expanded', 'false'); }
 
 function paint() {
   if (!$('.drawer')) return;

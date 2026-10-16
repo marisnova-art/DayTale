@@ -104,7 +104,7 @@ function paint(el, { bg, wide, ink, body, accent, theme, scrim, light = false })
   document.documentElement.style.setProperty('--bg-end', end);
   if (el === document.body || el === document.documentElement) {
     lastPaint = { bg, scrim }; const { low, lowEd, top, topEd } = setLow(bg, scrim);
-    ls.set('daytale.paint', { bg, scrim, end, low, lowEd, top, topEd });   // 다음에 열 때 로딩 화면부터 같은 배경으로 (js/early.js)
+    ls.set('daytale.paint', { bg, scrim, end, low, lowEd, top, topEd, light });   // 다음에 열 때 로딩 화면부터 같은 배경으로 (js/early.js)
   }
   el.style.setProperty('--accent', accent);
   el.style.setProperty('--ink', ink); el.style.setProperty('--ink-rgb', rgb(ink)); el.style.setProperty('--ink-body', body);

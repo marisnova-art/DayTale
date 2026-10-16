@@ -144,14 +144,16 @@ dialog.dlg .btn { height: 44px; }
 
 /* 처음 띄울 때 */
 /* 로고 로딩: 배경은 앱과 같은 그라데이션, 로고가 숨 쉬듯 커졌다 작아지고 아래 점 세 개가 차례로 빛나요 */
-#boot { position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; background: #16181C; background-image: linear-gradient(rgba(0,0,0,var(--scrim, 0)), rgba(0,0,0,var(--scrim, 0))), var(--bg-grad, linear-gradient(#16181C, #16181C)); transition: opacity .35s ease, visibility 0s .35s; }
+#boot { position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; background: var(--bg-top, #16181C); background-image: linear-gradient(rgba(0,0,0,var(--scrim, 0)), rgba(0,0,0,var(--scrim, 0))), var(--bg-grad, linear-gradient(#16181C, #16181C)); transition: opacity .35s ease, visibility 0s .35s; }
 /* 모바일: 로딩 화면도 앱 배경과 똑같이 화면 아래 끝(아이폰 홈 막대 자리)까지 덮어요. 사라질 때 아래에서 다른 배경이 비치지 않게 */
 @media (max-width: 899px) { #boot { bottom: auto; height: calc(100lvh + 160px); padding-bottom: 160px; background-size: 100% 100%; } }
 #boot > * { position: relative; }
 #boot.gone { opacity: 0; visibility: hidden; pointer-events: none; }
 #boot .logo { width: 52px; height: 52px; border-radius: 16px; animation: bootBreath 1.6s ease-in-out infinite; box-shadow: 0 10px 40px rgba(229,87,122,.35); }
 #boot .dots { display: flex; gap: 8px; }
-#boot .dots i { width: 6px; height: 6px; border-radius: 3px; background: rgba(255,255,255,.85); animation: bootDot 1.2s ease-in-out infinite; }
+#boot .dots i { width: 6px; height: 6px; border-radius: 3px; background: rgba(255,255,255,.85); }
+:root.bg-light #boot .dots i { background: rgba(0,0,0,.45); }
+#boot .dots i { animation: bootDot 1.2s ease-in-out infinite; }
 #boot .dots i:nth-child(2) { animation-delay: .15s; } #boot .dots i:nth-child(3) { animation-delay: .3s; }
 @keyframes bootBreath { 0%, 100% { transform: scale(.92); box-shadow: 0 6px 24px rgba(229,87,122,.25); } 50% { transform: scale(1.06); box-shadow: 0 14px 50px rgba(229,87,122,.5); } }
 @keyframes bootDot { 0%, 100% { opacity: .25; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-4px); } }
