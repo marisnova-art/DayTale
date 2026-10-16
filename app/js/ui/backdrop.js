@@ -65,14 +65,14 @@ const inkOf = p => lighten(p[3], .86);
 /* 화면 맨 아래 색: 아이폰 홈 화면 앱은 문서가 화면보다 짧을 때(쓰기 화면, 처음 로딩) 맨 아래 띠(홈 막대 자리)에
    배경 층을 그리지 않고 문서 바탕색만 칠해요. 그림은 안 되고 '색'만 되니, 배경 층의 그 자리 색을 계산해 바탕색으로 써요 */
 const hexRgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
-function lowColor(bg, scrim, { ed = false } = {}) {
+function lowColor(bg, scrim, { ed = false, top: atTop = false } = {}) {
   const W = innerWidth || 390, H = Math.max(innerHeight || 0, screen.height || 0) || 844;
   let c;
   const lin = String(bg).match(/linear-gradient\((-?[\d.]+)deg,([^()]*)\)\s*$/);
   if (lin) {
     const stops = [...lin[2].matchAll(/(#[0-9a-fA-F]{6})\s+([\d.]+)%/g)].map(m => [hexRgb(m[1]), +m[2] / 100]);
     const a = +lin[1] * Math.PI / 180, top = ed ? -.2 * H : 0, hb = ed ? H * 1.4 + 160 : H + 160;
-    const L = Math.abs(W * Math.sin(a)) + Math.abs(hb * Math.cos(a)), y = H - 17 - top;
+    const L = Math.abs(W * Math.sin(a)) + Math.abs(hb * Math.cos(a)), y = (atTop ? 20 : H - 17) - top;
     const t = Math.min(1, Math.max(0, (-(y - hb / 2) * Math.cos(a)) / L + .5));
     let i = stops.findIndex(s => s[1] >= t); if (i < 1) i = Math.max(1, i < 0 ? stops.length - 1 : 1);
     const [c0, p0] = stops[i - 1], [c1, p1] = stops[i], k = p1 > p0 ? Math.min(1, Math.max(0, (t - p0) / (p1 - p0))) : 1;
@@ -86,8 +86,10 @@ function lowColor(bg, scrim, { ed = false } = {}) {
 }
 function setLow(bg, scrim) {
   const r = document.documentElement.style, low = lowColor(bg, scrim), lowEd = lowColor(bg, scrim, { ed: true });
-  r.setProperty('--bg-low', low); r.setProperty('--bg-low-ed', lowEd);
-  return { low, lowEd };
+  // 맨 위 색: 아이폰은 문서 바탕색을 보고 시계 줄(상태 표시줄)의 흐림 색과 글자색을 정해요. 아래 색을 쓰면 위에 엉뚱한 밝은 띠가 생겨요
+  const top = lowColor(bg, scrim, { top: true }), topEd = lowColor(bg, scrim, { ed: true, top: true });
+  r.setProperty('--bg-low', low); r.setProperty('--bg-low-ed', lowEd); r.setProperty('--bg-top', top); r.setProperty('--bg-top-ed', topEd);
+  return { low, lowEd, top, topEd };
 }
 let lastPaint = null;
 addEventListener('resize', () => { if (lastPaint) setLow(lastPaint.bg, lastPaint.scrim); });
@@ -101,8 +103,8 @@ function paint(el, { bg, wide, ink, body, accent, theme, scrim, light = false })
   const end = (String(bg).match(/#[0-9a-fA-F]{6}/g) || ['#16181C']).pop();
   document.documentElement.style.setProperty('--bg-end', end);
   if (el === document.body || el === document.documentElement) {
-    lastPaint = { bg, scrim }; const { low, lowEd } = setLow(bg, scrim);
-    ls.set('daytale.paint', { bg, scrim, end, low, lowEd });   // 다음에 열 때 로딩 화면부터 같은 배경으로 (js/early.js)
+    lastPaint = { bg, scrim }; const { low, lowEd, top, topEd } = setLow(bg, scrim);
+    ls.set('daytale.paint', { bg, scrim, end, low, lowEd, top, topEd });   // 다음에 열 때 로딩 화면부터 같은 배경으로 (js/early.js)
   }
   el.style.setProperty('--accent', accent);
   el.style.setProperty('--ink', ink); el.style.setProperty('--ink-rgb', rgb(ink)); el.style.setProperty('--ink-body', body);

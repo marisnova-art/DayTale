@@ -206,7 +206,7 @@
   /* 혹시 화면 끝이 비쳐도 어둡게 덮인 배경과 같은 색이 보이게요 */
   /* 아이폰 홈 화면 앱은 쓰기 화면 맨 아래(홈 막대 자리)에 배경 층을 그리지 않고 문서 바탕을 보여 줘요.
      그래서 문서 바탕에도 배경 층과 똑같은 크기·위치로 같은 그라데이션을 깔아, 그 자리가 이어져 보이게 해요 */
-  :root.ed-mode:not([data-pat]) { background-color: var(--bg-low-ed, var(--bg-end, #16181C));
+  :root.ed-mode:not([data-pat]) { background-color: var(--bg-top-ed, var(--bg-low-ed, var(--bg-end, #16181C)));
     background-image: linear-gradient(rgba(var(--srf),.12), rgba(var(--srf),.12)), linear-gradient(rgba(0,0,0,var(--scrim)), rgba(0,0,0,var(--scrim))), var(--bg-grad);
     background-size: 100% calc(100lvh + 40vh + 160px); background-position: 0 -20vh; background-repeat: no-repeat; }
   /* 어둡게 덮는 층은 편집기 상자가 아니라 화면 배경 자체에 넣어요 (아이폰에서 아래쪽 끝이 잘려 원래 배경이 비치지 않게) */
