@@ -12,9 +12,14 @@ const PAL24 = [
 const rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)).join(',');
 const SOLIDS = [['#F3EADB', '#2A2018'], ['#CFE2C4', '#1E2A20'], ['#C9DDF4', '#13243A'], ['#D9A441', '#2A1E08'], ['#9A4530', '#FFF4EC'], ['#DE939C', '#2A1218'],
   ['#256662', '#F0FFFC'], ['#173832', '#E8F3EE'], ['#131B32', '#E6ECFF'], ['#3A2240', '#F7E9F3'], ['#1C1C1E', '#F2F0EC']];
+// 배경 이름: 고를 때 위 가운데에 "종류 · 이름"으로 잠깐 떠요 (언어마다 그 나라 말로, 18글자 안쪽)
+const G_NAMES = ['노을 핑크', '하늘 모래', '레몬 숲', '산호 바다', '새벽 바다', '귤빛 오후', '저녁 불꽃', '맑은 하늘', '여름 풀밭', '민트 호수', '가을 들판', '장밋빛 노을',
+  '석양', '베리 밤', '호박 등불', '라벤더 꿈', '복숭아 저녁', '여름 노을', '깊은 파랑', '오로라', '보랏빛 밤', '청록 숲', '안개 새벽', '모닥불'];
+const S_NAMES = ['크림', '연두', '하늘', '겨자', '벽돌', '장미', '청록', '숲', '밤하늘', '자두', '먹색'];
+export const KIND = { g: '그라데이션', s: '솔리드' };
 export const FREE = [
-  ...PAL24.map(([hot, warm, deep], i) => ({ id: 'g' + (i + 1), css: `linear-gradient(165deg,${warm} 0%,${hot} 52%,${deep} 100%)`, tone: hot, ink: '#fff', dim: ['all', rgb(deep), .3] })),
-  ...SOLIDS.map(([bg, ink], i) => ({ id: 's' + (i + 1), css: bg, tone: bg, ink, dim: ['all', '0,0,0', 0] })),
+  ...PAL24.map(([hot, warm, deep], i) => ({ id: 'g' + (i + 1), name: G_NAMES[i], kind: 'g', css: `linear-gradient(165deg,${warm} 0%,${hot} 52%,${deep} 100%)`, tone: hot, ink: '#fff', dim: ['all', rgb(deep), .3] })),
+  ...SOLIDS.map(([bg, ink], i) => ({ id: 's' + (i + 1), name: S_NAMES[i], kind: 's', css: bg, tone: bg, ink, dim: ['all', '0,0,0', 0] })),
 ];
 
 export const PAID = [

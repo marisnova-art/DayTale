@@ -2,7 +2,7 @@
 import { ic } from './icons.js';
 import * as S from './store.js';
 import { FORMATS, ORDER, blank, sampleCard, renderCard, fitCard, cardText, newSeed, placeObjects, dateChip, weekday, toneOf } from './formats.js';
-import { FREE, find as findBg, drawCode } from './bg.js';
+import { FREE, KIND, find as findBg, drawCode } from './bg.js';
 import { cardImages, saveImages, buildPages } from './export.js';
 import { clean, offsetsOf, rangeAt } from './rich.js';
 import { FONTS, fontCssOf } from './fonts.js';
@@ -258,7 +258,7 @@ function viewWrite({ fmt, id }) {
     <div class="tb g6">${T1.map(([k, m]) => `<button class="k t ${m}" data-t="${k}" aria-label="${k}">${ic(k)}</button>`).join('')}</div>
     <div class="st2 g6"></div>
     <div class="st3 g6">
-      <label class="wide w2 dt">${ic('date')}<span></span><input type="date" aria-label="날짜"></label>
+      <button class="wide w2 dt" aria-label="날짜">${ic('date')}<span></span></button>
       <label class="wide w3 pl">${ic('pin')}<input class="pi" maxlength="20" placeholder="장소" aria-label="장소" enterkeyhint="done"></label>
       <button class="k tl dp" aria-label="날짜 위치"></button><button class="k on pok" aria-label="장소 확인">${ic('check')}</button>
     </div>
@@ -346,14 +346,16 @@ function viewWrite({ fmt, id }) {
   stage.addEventListener('scroll', () => count(), { passive: true });
 
   /* 3줄: 날짜(누르면 달력) · 장소 · 날짜 위치(누를 때마다 위 → 아래 → 없음) */
-  const di = $('.st3 .dt input'), pi = $('.st3 .pi'), dpb = $('.st3 .dp');
+  const dtb = $('.st3 .dt'), pi = $('.st3 .pi'), dpb = $('.st3 .dp');
   const DP = { top: ['dtop', '날짜 위'], bottom: ['dbot', '날짜 아래'], none: ['doff', '날짜 없음'] };
   function paintMeta() {
     $('.st3 .dt span').textContent = dateChip(card.date);
     dpb.innerHTML = ic(DP[card.datePos || 'top'][0]); dpb.classList.toggle('off', !f.tools.dp);
-    di.value = card.date; pi.value = card.place || '';
+    pi.value = card.place || '';
   }
-  di.addEventListener('change', () => { if (!di.value) return; flush(); card.date = di.value; paintMeta(); push(); draw(); });
+  // 날짜: 아이폰 달력 대신 키보드 자리에 우리 달력 판 (어느 폰에서나 같은 모양)
+  dtb.addEventListener('pointerdown', e => e.preventDefault());
+  dtb.onclick = () => { flush(); if (st.panel === 'date') return closePanel(false); st.calM = card.date.slice(0, 7); openPanel('date'); };
   pi.addEventListener('input', () => { card.place = pi.value; draw(); pushLater(); });
   pi.addEventListener('keydown', e => { if (e.key === 'Enter') pi.blur(); });
   // 장소를 쓰는 동안: 다른 줄은 숨고 키보드 바로 위에 장소 줄 + 최근 장소 (아래 줄은 키보드에 가려지니까)
@@ -368,9 +370,13 @@ function viewWrite({ fmt, id }) {
       b.onclick = () => { pi.value = list[i]; card.place = list[i]; draw(); push(); pi.blur(); };
     });
   }
-  pi.addEventListener('focus', () => { wr.classList.add('plc'); paintRecent(); requestAnimationFrame(() => applySize(true)); });
+  // 아이폰은 키보드가 덮을 자리(맨 아래)에 있는 칸을 누르면 키보드를 다르게 알려 줘요. 그래서 장소 줄을 먼저 키보드 위 자리로 올리고 커서를 넣어요.
+  // 줄 높이는 글 쓸 때 잰 이 폰의 키보드 높이(--kbh)를 써요
+  const plOpen = () => { if (st.panel) closePanel(false); wr.classList.add('plc'); paintRecent(); applySize(true); };
+  $('.st3 .pl').addEventListener('pointerdown', e => { if (!wr.classList.contains('plc')) { e.preventDefault(); plOpen(); pi.focus({ preventScroll: true }); } });
+  pi.addEventListener('focus', () => { if (!wr.classList.contains('plc')) plOpen(); });
   pi.addEventListener('input', paintRecent);
-  pi.addEventListener('blur', () => { wr.classList.remove('plc'); flush(); setTimeout(() => { if (!document.activeElement?.matches?.('input, .body')) { scrollTo(0, 0); kb(); } }, 300); });
+  pi.addEventListener('blur', () => { wr.classList.remove('plc'); applySize(true); flush(); setTimeout(() => { if (!document.activeElement?.matches?.('input, .body')) { scrollTo(0, 0); kb(); } }, 300); });
   $('.st3 .pok').addEventListener('pointerdown', e => e.preventDefault());
   $('.st3 .pok').onclick = () => pi.blur();
   dpb.addEventListener('pointerdown', e => e.preventDefault());
@@ -380,12 +386,13 @@ function viewWrite({ fmt, id }) {
   });
 
   // 알림은 모두 위 가운데 상태 자리에 1초쯤 (글꼴 이름은 그 글꼴로). 어두운 위 줄이라 어떤 배경에서도 보여요
-  function pop(text, font) {
+  function pop(text, font, kind) {   // kind가 있으면 두 줄: 작은 회색 종류 + 이름
     const nm = $('.wr .stt'); clearTimeout(st.popT);
-    nm.textContent = text; nm.classList.add('ntc'); nm.style.fontFamily = font ? fontCssOf(font) : '';
+    if (kind) nm.innerHTML = `<small>${esc(kind)}</small>${esc(text)}`; else nm.textContent = text;
+    nm.classList.toggle('two', !!kind); nm.classList.add('ntc'); nm.style.fontFamily = font ? fontCssOf(font) : '';
     if (font) document.fonts?.load(`20px '${font.fam}'`, text);
     nm.classList.remove('flash'); void nm.offsetWidth; nm.classList.add('flash');
-    st.popT = setTimeout(() => { st.popT = 0; nm.classList.remove('ntc', 'flash'); nm.style.fontFamily = ''; count(); }, 1100);
+    st.popT = setTimeout(() => { st.popT = 0; nm.classList.remove('ntc', 'flash', 'two'); nm.style.fontFamily = ''; count(); }, 1200);
   }
 
   /* 카드 그리기. 글만 바뀌면 그 자리에서 바꾸고(키보드가 내려가지 않게), 장 수·배경·날짜 같은 틀이 바뀔 때만 새로 그려요 */
@@ -545,7 +552,7 @@ function viewWrite({ fmt, id }) {
         card.pages.splice(st.pg + 1, 0, ''); st.pg += 1; push(); draw(); scrollToPage(st.pg);
         if (st.panel) closePanel(false); caretEnd(st.pg); return;
       }
-      if (k === 'fmt' || k === 'bg') { st.tab = k; paintRow2(); return tools(); }
+      if (k === 'fmt' || k === 'bg') { if (k === 'fmt' && st.tab === 'fmt') st.fontRow = false; st.tab = k; paintRow2(); return tools(); }
       if (k === 'emo') return st.panel === k ? closePanel(true) : openPanel(k);
       pop('다음 단계에서 열려요');
     };
@@ -557,6 +564,7 @@ function viewWrite({ fmt, id }) {
   const AH = { l: ['c', '가운데'], c: ['r', '오른쪽'], r: ['l', '왼쪽'] }, AV = { m: ['b', '아래'], b: ['t', '위'], t: ['m', '가운데'] };
   function paintRow2() {
     if (st.tab === 'bg' && f.tools.bg) return paintBgRow();
+    if (st.fontRow && f.tools.font) return paintFontRow();
     const on = !!f.tools.style, a = card.align || { h: 'l', v: rich ? 'm' : 't' }, off = on ? '' : 'off', fOff = on && f.tools.font ? '' : 'off';
     row2.className = 'st2 g6';
     row2.innerHTML = `<button class="k ${fOff}" data-s="font" aria-label="글꼴">${ic('font')}</button><button class="k ${off}" data-s="size" aria-label="크기">${ic('size')}</button>
@@ -567,13 +575,25 @@ function viewWrite({ fmt, id }) {
         if (x.classList.contains('off')) return shake(x);
         flush();
         const k = x.dataset.s;
-        if (k === 'font') { const i = FONTS.findIndex(o => o.id === (card.font || 'serif')), nf = FONTS[(i + 1) % FONTS.length]; card.font = nf.id; push(); draw(); pop(nf.name, nf); }
+        if (k === 'font') { st.fontRow = true; return paintRow2(); }
         if (k === 'size') { const [n, t] = SZ[card.size || 'm']; card.size = n; push(); draw(); pop(t); }
         if (k === 'h') { const [n, t] = AH[a.h || 'l']; card.align = { ...a, h: n }; push(); draw(); pop(t); }
         if (k === 'v') { const [n, t] = AV[a.v || (rich ? 'm' : 't')]; card.align = { ...a, v: n }; push(); draw(); pop(t); }
         paintRow2();
       };
     });
+  }
+  // 글꼴 줄: 앞 칸(흰 글꼴 칸)을 누르면 서식 줄로. 나머지 5칸 자리에서 10개 글꼴이 옆으로 밀려요 (칸마다 그 글꼴로 쓴 "가")
+  function paintFontRow() {
+    const keep = $('.fst', row2)?.scrollLeft, cur = card.font || 'serif';
+    row2.className = 'st2 g6 fnr';
+    row2.innerHTML = `<button class="k on" data-x="back" aria-label="글꼴 닫기">${ic('font')}</button>
+      <div class="fst">${FONTS.map(o => `<button class="k fk ${o.id === cur ? 'sel' : ''}" data-f="${o.id}" aria-label="${o.name}" style="font-family:${fontCssOf(o).replace(/"/g, '&quot;')};font-size:${Math.round(22 * o.k)}px">가</button>`).join('')}<span class="end"></span></div>`;
+    const fs = $('.fst', row2), sel = $('.sel', fs);
+    if (keep != null) fs.scrollLeft = keep; else if (sel) fs.scrollLeft = Math.max(0, sel.offsetLeft - fs.offsetLeft - (sel.offsetWidth + 8) * 2);
+    $$('button', row2).forEach(x => x.addEventListener('pointerdown', e => e.preventDefault()));
+    $('[data-x=back]', row2).onclick = () => { st.fontRow = false; paintRow2(); };
+    $$('[data-f]', row2).forEach(x => x.onclick = () => { flush(); const o = FONTS.find(q => q.id === x.dataset.f); card.font = o.id; push(); draw(); paintFontRow(); pop(o.name, o); });
   }
   function paintBgRow() {
     const dim = card.bg.dim || 'dark', keep = $('.swp', row2)?.scrollLeft;
@@ -586,7 +606,7 @@ function viewWrite({ fmt, id }) {
     $$('button', row2).forEach(x => x.addEventListener('pointerdown', e => e.preventDefault()));
     $('[data-x=photo]', row2).onclick = () => pop('내 사진 배경은 사진 연결 후');
     $('[data-x=dim]', row2).onclick = () => { flush(); card.bg.dim = dim === 'light' ? 'dark' : 'light'; push(); draw(); paintBgRow(); pop(card.bg.dim === 'light' ? '밝게' : '어둡게'); };
-    $$('[data-b]', row2).forEach(t => t.onclick = () => { flush(); card.bg.id = t.dataset.b; if (!card.bg.seed) card.bg.seed = newSeed(); push(); draw(); paintBgRow(); });
+    $$('[data-b]', row2).forEach(t => t.onclick = () => { flush(); card.bg.id = t.dataset.b; if (!card.bg.seed) card.bg.seed = newSeed(); push(); draw(); paintBgRow(); const b = findBg(card.bg.id); pop(b.name, null, KIND[b.kind]); });
   }
 
   /* 이모티콘 판: 키보드 자리에 같은 높이로 열려요. 도구 줄은 제자리 */
@@ -594,12 +614,12 @@ function viewWrite({ fmt, id }) {
     const s = getSelection(), b = s.rangeCount && s.anchorNode && (s.anchorNode.nodeType === 1 ? s.anchorNode : s.anchorNode.parentElement)?.closest?.('.wr .body');
     if (b) st.sel = { i: pageOf(b), ab: offsetsOf(b, s.getRangeAt(0)) };
     st.panel = k; st.insR = null; clearTimeout(st.waitT); st.waitKb = false;
-    root.classList.add('pan'); applySize();
+    root.classList.add('pan'); wr.classList.toggle('dsel', k === 'date'); applySize();
     document.activeElement?.blur?.();
     paintPanel(); mode();
   }
   function closePanel(toKeyboard) {
-    st.panel = null; panel.innerHTML = '';
+    st.panel = null; panel.innerHTML = ''; wr.classList.remove('dsel');
     // 키보드가 다 올라올 때까지 빈 자리를 남겨 둬요 (도구 줄이 내려갔다 올라오지 않게)
     if (toKeyboard) { st.waitKb = true; st.waitT = setTimeout(endWait, 900); caretAtSel(); }
     else if (document.activeElement?.matches?.('.wr .body, .wr input')) { st.waitKb = true; st.waitT = setTimeout(endWait, 900); }
@@ -612,7 +632,22 @@ function viewWrite({ fmt, id }) {
     if (st.insR && b.contains(st.insR.startContainer)) { b.focus({ preventScroll: true }); const s = getSelection(); s.removeAllRanges(); s.addRange(st.insR); return; }   // 넣은 이모티콘 바로 뒤
     b.focus({ preventScroll: true }); setCaret(b, st.sel.ab);
   }
-  const paintPanel = () => panelEmo();
+  const paintPanel = () => st.panel === 'date' ? panelDate() : panelEmo();
+
+  // 날짜 판: 한 달 달력. 고른 날 = 흰 둥근 네모, 오늘 = 테두리, 앞으로 올 날은 흐리게(못 골라요)
+  function panelDate() {
+    const [y, m] = st.calM.split('-').map(Number), first = new Date(y, m - 1, 1), n = new Date(y, m, 0).getDate(), today = S.today();
+    const iso = d => `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const cells = [];
+    for (let i = 0; i < first.getDay(); i++) cells.push('<span></span>');
+    for (let d = 1; d <= n; d++) { const v = iso(d); cells.push(`<button class="d ${v === card.date ? 'sel' : ''} ${v === today ? 'today' : ''}" data-d="${v}" ${v > today ? 'disabled' : ''}>${d}</button>`); }
+    const canNext = iso(1) < today.slice(0, 7) + '-01';
+    panel.innerHTML = `<div class="cal"><div class="hd"><button class="mv" data-m="-1" aria-label="이전 달">${ic('back')}</button><b>${y}년 ${m}월</b><button class="mv nx" data-m="1" aria-label="다음 달" ${canNext ? '' : 'disabled'}>${ic('back')}</button></div>
+      <div class="g7">${'일월화수목금토'.split('').map(x => `<i>${x}</i>`).join('')}${cells.join('')}</div></div>`;
+    $$('button', panel).forEach(x => x.addEventListener('pointerdown', e => e.preventDefault()));
+    $$('[data-m]', panel).forEach(x => x.onclick = () => { const t = new Date(y, m - 1 + +x.dataset.m, 1); st.calM = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}`; panelDate(); });
+    $$('[data-d]', panel).forEach(x => x.onclick = () => { flush(); card.date = x.dataset.d; paintMeta(); push(); draw(); closePanel(false); });
+  }
 
   // 이모티콘: 우리 이모티콘 81개. 굵은(색) · 선(글자색). 고르면 커서 자리에 들어가고, 이어서 고르면 그 뒤에 차례로
   let emoV = S.pref('emoV', 'b');
