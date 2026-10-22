@@ -39,6 +39,9 @@ const P = {
   trash: '<path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13"/>',
   grid: '<rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/>',
   fold: '<path d="m7 15 5-5 5 5"/>',
+  dtop: '<path d="M4 4h16"/><path d="M12 20V9M8 13l4-4 4 4"/>',
+  dbot: '<path d="M4 20h16"/><path d="M12 4v11M8 11l4 4 4-4"/>',
+  doff: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16"/><path d="M3 3l18 18"/>',
   pin: '<path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
 };
 

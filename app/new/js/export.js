@@ -2,6 +2,7 @@
 // (쓰는 동안은 한 장의 긴 카드, 나누는 건 여기서만. 줄이 잘리지 않게 줄 단위로 나눠요)
 import { renderCard, fitCard, cardText } from './formats.js';
 import { drawCode } from './bg.js';
+import { ready } from './stickers.js';
 
 const cache = new Map();
 const toData = async url => {
@@ -11,18 +12,21 @@ const toData = async url => {
   cache.set(url, d); return d;
 };
 
-// 글꼴은 카드에 쓰인 글자가 든 조각만 넣어요 (고운바탕은 조각이 190개라서)
-let serifRules = null;
-async function fontCss(text) {
+// 글꼴은 카드에 쓰인 글자가 든 조각만 넣어요 (명조 · 손글씨는 조각이 많아서)
+const famRules = {};
+async function rulesOf(file, family) {
+  if (famRules[family]) return famRules[family];
+  const base = new URL(`../fonts/${file}`, location.href), src = await (await fetch(base)).text();
+  const re = new RegExp(`@font-face\\s*{[^}]*font-family:\\s*'${family}'[^}]*src:\\s*url\\(([^)]+)\\)[^}]*unicode-range:\\s*([^;]+);[^}]*}`, 'g');
+  return (famRules[family] = [...src.matchAll(re)].map(m => ({ url: new URL(m[1], base).href, ranges: m[2].split(',').map(x => x.trim().replace('U+', '').split('-').map(h => parseInt(h, 16))) })));
+}
+async function fontCss(text, font) {
   let css = `@font-face{font-family:'Pretendard Variable';font-weight:45 920;src:url(${await toData(new URL('../fonts/PretendardVariable.woff2', location.href).href)}) format('woff2');}`;
-  if (!serifRules) {
-    const src = await (await fetch(new URL('../fonts/serif.css', location.href))).text();
-    serifRules = [...src.matchAll(/@font-face\s*{[^}]*font-family:\s*'DT Gowun Batang'[^}]*src:\s*url\(([^)]+)\)[^}]*unicode-range:\s*([^;]+);[^}]*}/g)]
-      .map(m => ({ url: new URL(m[1], new URL('../fonts/serif.css', location.href)).href, ranges: m[2].split(',').map(s => s.trim().replace('U+', '').split('-').map(h => parseInt(h, 16))) }));
-  }
-  const cps = new Set([...text].map(ch => ch.codePointAt(0)));
-  const hit = serifRules.filter(r => r.ranges.some(([a, b = a]) => [...cps].some(c => c >= a && c <= b)));
-  for (const r of hit) css += `@font-face{font-family:'DT Gowun Batang';src:url(${await toData(r.url)}) format('woff2');}`;
+  const fam = font === 'hand' ? ['hand.css', 'DT Nanum Pen Script'] : font === 'sans' ? null : ['serif.css', 'DT Gowun Batang'];
+  if (!fam) return css;
+  const cps = [...new Set([...text].map(ch => ch.codePointAt(0)))];
+  const hit = (await rulesOf(...fam)).filter(r => r.ranges.some(([a, b = a]) => cps.some(c => c >= a && c <= b)));
+  for (const r of hit) css += `@font-face{font-family:'${fam[1]}';src:url(${await toData(r.url)}) format('woff2');}`;
   return css;
 }
 
@@ -95,7 +99,7 @@ async function textPages(c, W, ratio) {
   });
   // 장마다 따로 된 카드 틀에 넣고, 배경은 장마다 보이는 부분을 위 → 아래로 옮겨요
   const nodes = out.map((pg, i) => {
-    const wrap = document.createElement('div'); wrap.className = 'cd text one'; wrap.appendChild(pg); h.appendChild(wrap);
+    const wrap = document.createElement('div'); wrap.className = `cd text one f-${c.font || 'serif'}`; wrap.appendChild(pg); h.appendChild(wrap);
     const shift = out.length > 1 ? i / (out.length - 1) : .5;
     pg.querySelectorAll('.bgi').forEach(b => { if (b.style.backgroundImage) b.style.backgroundPosition = `50% ${Math.round(shift * 100)}%`; });
     pg.querySelectorAll('canvas.bgc').forEach(cv => { cv.width = Math.round(W * ratio); cv.height = Math.round(H * ratio); drawCode(cv, +cv.dataset.seed, shift); });
@@ -106,13 +110,16 @@ async function textPages(c, W, ratio) {
 }
 
 // 카드를 4:5 장들로. 돌려받은 h(화면 밖 상자)는 다 쓰고 지워야 해요
-export function buildPages(c, W, ratio = 1) { return c.fmt === 'rebus' ? rebusPages(c, W) : textPages(c, W, ratio); }
+export async function buildPages(c, W, ratio = 1) {
+  if (c.fmt !== 'rebus') { const d = document.createElement('div'); d.innerHTML = (c.pages || []).join(''); await ready(d); }   // 이모티콘 그림을 먼저 받아 둬요
+  return c.fmt === 'rebus' ? rebusPages(c, W) : textPages(c, W, ratio);
+}
 
 export async function cardImages(c) {
   const W = 1080, H = 1350;
   const { h, nodes } = await buildPages(c, W, 1);
   try {
-    const fontEmbedCSS = await fontCss(cardText(c) + '0123456789.·/ 일월화수목금토요');
+    const fontEmbedCSS = await fontCss(cardText(c) + '0123456789.·/ 일월화수목금토요', c.fmt === 'text' ? c.font || 'serif' : 'sans');
     const files = [];
     for (const [i, n] of nodes.entries()) {
       const url = await window.htmlToImage.toPng(n, { width: W, height: H, pixelRatio: 1, fontEmbedCSS, cacheBust: false });

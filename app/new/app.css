@@ -55,7 +55,14 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .cd .tx > * { flex-shrink: 0; }   /* 줄어들면 글이 날짜와 겹쳐요 */
 .cd .body b, .cd .body strong { font-weight: 700; }
 .cd .body mark { background: rgba(255,214,90,.45); color: inherit; padding: 0 .12em; border-radius: .12em; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
-.cd .body h2 { font-size: 1.32em; line-height: 1.4; font-weight: 700; margin: 0 0 .35em; }
+.cd .body h2 { font-size: 1.333em; line-height: 1.45; font-weight: 700; margin: 0 0 .3em; }   /* 큰 글자 8% */
+.cd .body h3 { font-size: .75em; line-height: 1.75; font-weight: 400; }                        /* 작은 글자 4.5% */
+.cd .body .stk { display: inline-block; width: 1.25em; height: 1.25em; vertical-align: -.25em; margin: 0 .06em; }
+.cd .body .stk svg { width: 100%; height: 100%; display: block; }
+/* 글꼴 (카드 전체): 명조(기본) · 고딕 · 손글씨 */
+.cd.f-sans .tx { font-family: 'Pretendard Variable', sans-serif; letter-spacing: -.01em; }
+.cd.f-hand .tx { font-family: 'DT Nanum Pen Script', cursive; line-height: 1.5; }
+.cd.f-sans .dt, .cd.f-hand .dt { font-family: 'Pretendard Variable', sans-serif; }
 .cd .body ul { padding-left: 1.1em; }
 .cd .body[contenteditable]:empty::before { content: attr(data-ph); opacity: .55; }
 /* 긴 장: 쓰는 동안 아래로 길어지고, 저장할 때 나뉠 자리에 점선 */
@@ -165,6 +172,7 @@ html.kb-open:not(.pan) .wr { top: var(--vvt, 0px); bottom: auto; height: var(--v
 .wr .chip input:not([type=date]) { background: none; border: 0; outline: none; color: #fff; font: 600 13px var(--ui); width: 64px; }
 .wr .chip input::placeholder { color: var(--mut); }
 .wr .chip.pl input { width: 88px; }
+.wr .chip.dp { padding: 0 7px; } .wr .chip.dp .ic { color: #d8d8dc; }
 .cnt { flex: none; padding-bottom: 12px; }
 .cnt { font-size: 12px; color: var(--mut); }
 
@@ -187,6 +195,10 @@ html.pan .wr .panel { display: grid; }
 .pb.on { background: #fff; color: var(--bg); }
 .pb.off { color: var(--off); }
 .pb .ic { width: 24px; height: 24px; }
+.pb .fz { font-weight: 700; line-height: 1; } .pb .fz.fl { font-size: 24px; } .pb .fz.fm { font-size: 17px; } .pb .fz.fs { font-size: 12px; }
+.pb .ff { font-size: 22px; line-height: 1; } .pb .ff.serif { font-family: 'DT Gowun Batang', serif; } .pb .ff.sans { font-family: 'Pretendard Variable', sans-serif; font-weight: 700; } .pb .ff.hand { font-family: 'DT Nanum Pen Script', cursive; font-size: 28px; }
+.pb .ei { width: 60%; height: 60%; object-fit: contain; display: block; }
+.pb .ei.ln { background: currentColor; -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; }
 .pb .tag { position: absolute; right: 4px; bottom: 3px; font-size: 9px; font-weight: 800; }
 .bgs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 4px; }
 .bgs .bt { aspect-ratio: 4 / 5; border-radius: 6px; position: relative; overflow: hidden; background-size: cover; background-position: center; }

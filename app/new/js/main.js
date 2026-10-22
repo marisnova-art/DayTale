@@ -4,7 +4,8 @@ import * as S from './store.js';
 import { FORMATS, ORDER, blank, sampleCard, renderCard, fitCard, cardText, newSeed, placeObjects, dateChip, weekday, toneOf } from './formats.js';
 import { FREE, PAID, find as findBg, drawCode } from './bg.js';
 import { cardImages, saveImages, buildPages } from './export.js';
-import { clean, offsetsOf, rangeAt, isOn, toggleInline, linesIn, toggleHead, toggleList } from './rich.js';
+import { clean, offsetsOf, rangeAt, isOn, toggleInline, linesIn, toLines, setSize, toggleList } from './rich.js';
+import { NAMES as STK, hydrate, preloadAll } from './stickers.js';
 
 const app = document.getElementById('app');
 const $ = (s, r = document) => r.querySelector(s);
@@ -43,6 +44,7 @@ function route() {
   if (r === 'write') return viewWrite({ fmt: a });
   if (r === 'edit') return viewWrite({ id: a });
   if (r === 'feed' || r === 'done') return viewFeed(a);
+  if (r === 'at') return viewFeed(a, true);
   return viewFeed();
 }
 window.addEventListener('hashchange', route);
@@ -62,7 +64,7 @@ function bindNav() {
 }
 
 // 피드: 위 줄은 흐림 없이 같이 스크롤돼요. 화면 가운데 카드만 움직이고, 그 카드 색이 바탕에 은은하게 번져요
-function viewFeed(fresh) {
+function viewFeed(fresh, quiet) {
   const mine = S.cards();
   app.innerHTML = `<div class="amb"></div><header class="ftop"><div class="logo">dayzine</div><button class="cb" data-a="bell" aria-label="알림">${ic('bell')}</button></header>
     <main class="feed"></main>${nav('home')}`;
@@ -92,14 +94,14 @@ function viewFeed(fresh) {
   cleanup = () => { removeEventListener('scroll', onScroll); document.removeEventListener('visibilitychange', onVis); closeFocus(true); };
   setTimeout(pickMid, 80);
 
-  // 방금 쓰거나 고친 카드: 그 자리로 가서 살짝 커지며 나와요 (주소는 홈으로 되돌려 둬요)
+  // 방금 쓰거나 고친 카드: 그 자리로 가서 살짝 커지며 나와요. 고치다 뒤로 오면 그 자리로만 (주소는 홈으로 되돌려 둬요)
   if (fresh) {
     history.replaceState(null, '', '#/');
     const it = $(`.feed .fi[data-id="${fresh}"]`);
     if (it) {
       const put = () => { if (it !== $('.feed .fi')) it.scrollIntoView({ block: 'center' }); };
       put(); setTimeout(put, 400);   // 긴 카드가 장으로 나뉜 뒤 한 번 더
-      it.classList.add('fresh'); setTimeout(() => it.classList.remove('fresh'), 1200);
+      if (!quiet) { it.classList.add('fresh'); setTimeout(() => it.classList.remove('fresh'), 1200); }
     }
   }
 }
@@ -245,7 +247,7 @@ function viewWrite({ fmt, id }) {
   app.innerHTML = `<div class="wr ${rich ? 'rich' : 'plain'}">
     <header class="top"><button class="cb" data-a="back" aria-label="뒤로">${ic('back')}</button><div class="nm">${f.name}</div><button class="cb w" data-a="ok" aria-label="완료">${ic('check')}</button></header>
     <div class="meta">
-      <label class="chip dt">${ic('date')}<span></span><input type="date" aria-label="날짜"></label>
+      <label class="chip dt">${ic('date')}<span></span><input type="date" aria-label="날짜"></label>${f.fmtTools.date ? '<button class="chip dp" aria-label="날짜 위치"></button>' : ''}
       <label class="chip pl">${ic('pin')}<input class="pi" maxlength="20" placeholder="장소" aria-label="장소"></label>
     </div>
     <section class="stage"></section>
@@ -286,13 +288,10 @@ function viewWrite({ fmt, id }) {
     root.classList.remove('wmode', 'kb-open', 'pan');
   };
 
-  /* 카드 크기는 두 가지뿐: 쓰는 중(키보드나 패널이 있을 때)엔 그 위 공간에, 보는 중엔 화면에 통째로 들어가게.
-     키보드 ↔ 패널을 오갈 때는 같은 크기라 움직이지 않아요 */
+  /* 카드 크기는 하나: 쓰는 동안에도 화면 폭(양옆 16)을 그대로 써요. 키보드에 가려지는 아래쪽은 커서를 따라 화면이 움직여요 */
   const sizes = { w: 0, v: 0 };
   function sizeCard() {
-    const W = wr.clientWidth, fixed = $('.top').offsetHeight + $('.meta').offsetHeight + $('.tb').offsetHeight + 20;
-    const fit = H => Math.floor(Math.max(160, Math.min(W - 32, H * .8)));
-    sizes.w = fit(innerHeight - fixed - kbh); sizes.v = fit(innerHeight - fixed);
+    sizes.w = sizes.v = Math.floor(Math.max(160, wr.clientWidth - 32));
     applySize(true);
   }
   function applySize(force) {
@@ -308,22 +307,26 @@ function viewWrite({ fmt, id }) {
   const push = () => { clearTimeout(st.timer); st.timer = 0; st.hist = st.hist.slice(0, st.hi + 1); st.hist.push(clone(card)); if (st.hist.length > 80) st.hist.shift(); st.hi = st.hist.length - 1; tools(); persist(); };
   const flush = () => { if (st.timer) push(); };   // 쓰던 글을 먼저 기록해 두고 바꿔요 (되돌리면 바로 앞 모습으로)
   const pushLater = () => { clearTimeout(st.timer); st.timer = setTimeout(push, 700); persist(); tools(); };
-  const hasText = () => cardText(card).trim().length > 0;
+  const hasText = () => cardText(card).trim().length > 0 || (rich && card.pages.some(h => h.includes('class="stk"')));   // 이모티콘만 있어도 쓴 거예요
   const count = () => { const n = `${cardText(card).replace(/\s/g, '').length}자`; $$('.wc', stage).forEach(x => x.textContent = n); };
 
   /* 정보 줄: 날짜(누르면 달력) · 장소. 모든 포맷 같아요 */
   const di = $('.meta .dt input'), pi = $('.meta .pi');
   function paintMeta() {
     $('.meta .dt span').textContent = dateChip(card.date);
+    if ($('.meta .dp')) $('.meta .dp').innerHTML = ic({ top: 'dtop', bottom: 'dbot', none: 'doff' }[card.datePos || 'top']);
     di.value = card.date; pi.value = card.place || '';
   }
   di.addEventListener('change', () => { if (!di.value) return; flush(); card.date = di.value; paintMeta(); push(); draw(); });
   pi.addEventListener('input', () => { card.place = pi.value; draw(); pushLater(); });
+  // 날짜 위치: 누를 때마다 위 → 아래 → 없음
+  $('.meta .dp')?.addEventListener('pointerdown', e => e.preventDefault());
+  $('.meta .dp')?.addEventListener('click', () => { flush(); card.datePos = { top: 'bottom', bottom: 'none', none: 'top' }[card.datePos || 'top']; paintMeta(); push(); draw(); });
   $$('.meta input').forEach(x => x.addEventListener('focus', () => { if (st.panel) closePanel(false); }));
 
   /* 카드 그리기. 글만 바뀌면 그 자리에서 바꾸고(키보드가 내려가지 않게), 장 수·배경·날짜 같은 틀이 바뀔 때만 새로 그려요 */
   let el = null, shape = '';
-  const shapeOf = () => JSON.stringify(rich ? [card.pages.length, card.bg, card.align, card.datePos, card.date, card.place] : [card.date, card.place]);
+  const shapeOf = () => JSON.stringify(rich ? [card.pages.length, card.bg, card.align, card.datePos, card.date, card.place, card.font] : [card.date, card.place]);
   const bodies = () => $$('.body', el);
   const pageOf = b => b.closest('.pg') ? +b.closest('.pg').dataset.i : 0;
   const caretIn = b => { const s = getSelection(); return s.rangeCount && b.contains(s.anchorNode) ? offsetsOf(b, s.getRangeAt(0)) : null; };
@@ -333,7 +336,7 @@ function viewWrite({ fmt, id }) {
     if (el && s === shape) {
       bodies().forEach((b, i) => {
         const want = rich ? card.pages[i] : card.html, at = caretIn(b);
-        if (clean(b.innerHTML) !== want) b.innerHTML = want;
+        if (clean(b.innerHTML) !== want) { b.innerHTML = want; hydrate(b); }
         if (!rich) placeObjects(b, card.seed);
         if (at && document.activeElement === b) setCaret(b, at);
       });
@@ -382,7 +385,7 @@ function viewWrite({ fmt, id }) {
   /* 입력: 모든 포맷이 카드 위 글(.body)에 바로 써요. 한글 조합 중에는 손대지 않아요 */
   function typed(b) {
     const i = pageOf(b); st.pg = i;
-    if (!b.textContent.trim() && b.innerHTML && !b.querySelector('li,h2')) b.innerHTML = '';   // 비우면 예시 글이 다시 보여요
+    if (!b.textContent.trim() && b.innerHTML && !b.querySelector('li,h2,h3,.stk')) b.innerHTML = '';   // 비우면 예시 글이 다시 보여요
     if (rich) card.pages[i] = clean(b.innerHTML);
     else {
       card.html = clean(b.innerHTML);
@@ -408,6 +411,8 @@ function viewWrite({ fmt, id }) {
   // 빈 장에서 지우기를 누르면 그 장을 없애고 앞 장 끝으로
   stage.addEventListener('keydown', e => {
     const b = e.target.closest?.('.body'); if (!b || e.key !== 'Backspace' || !rich) return;
+    const sel = getSelection(), n = sel.anchorNode, o = sel.anchorOffset;   // 이모티콘 뒤 보이지 않는 칸은 같이 지워서 한 번에 이모티콘이 지워지게
+    if (sel.isCollapsed && n?.nodeType === 3 && o > 0 && n.data[o - 1] === '\u200B') { n.deleteData(o - 1, 1); sel.collapse(n, o - 1); }
     const i = pageOf(b);
     if (i > 0 && !b.textContent) { e.preventDefault(); card.pages.splice(i, 1); st.pg = i - 1; push(); draw(); caretEnd(st.pg); }
   });
@@ -460,7 +465,7 @@ function viewWrite({ fmt, id }) {
         card.pages.splice(st.pg + 1, 0, ''); st.pg += 1; push(); draw(); scrollToPage(st.pg);
         if (st.panel) closePanel(false); caretEnd(st.pg); return;
       }
-      if (k === 'fmt' || k === 'bg') return st.panel === k ? closePanel(true) : openPanel(k);
+      if (k === 'fmt' || k === 'bg' || k === 'emo') return st.panel === k ? closePanel(true) : openPanel(k);
       soon();
     };
   });
@@ -469,7 +474,7 @@ function viewWrite({ fmt, id }) {
   function openPanel(k) {
     const s = getSelection(), b = s.rangeCount && s.anchorNode?.parentElement?.closest?.('.wr .body');
     if (b) st.sel = { i: pageOf(b), ab: offsetsOf(b, s.getRangeAt(0)) };
-    st.panel = k; clearTimeout(st.waitT); st.waitKb = false;
+    st.panel = k; st.insR = null; clearTimeout(st.waitT); st.waitKb = false;
     root.classList.add('pan'); applySize();
     document.activeElement?.blur?.();
     paintPanel(); tools();
@@ -484,25 +489,31 @@ function viewWrite({ fmt, id }) {
   function endWait() { clearTimeout(st.waitT); st.waitKb = false; if (!st.panel) root.classList.remove('pan'); applySize(); }
   function caretAtSel() {
     const b = st.sel && bodies()[st.sel.i]; if (!b) return caretEnd(st.pg);
+    if (st.insR && b.contains(st.insR.startContainer)) { b.focus({ preventScroll: true }); const s = getSelection(); s.removeAllRanges(); s.addRange(st.insR); return; }   // 넣은 이모티콘 바로 뒤
     b.focus({ preventScroll: true }); setCaret(b, st.sel.ab);
   }
-  const paintPanel = () => st.panel === 'fmt' ? panelFmt() : panelBg();
+  const paintPanel = () => st.panel === 'fmt' ? panelFmt() : st.panel === 'emo' ? panelEmo() : panelBg();
 
   // 서식: 모든 포맷 같은 6칸. 포맷이 안 쓰는 것은 어둡게(그림 문장은 강조 · 형광펜만)
+  // 1줄: 강조 · 형광펜 · 목록 · 큰 · 중간 · 작은 글자 / 2줄: 정렬 6 / 3줄: 글꼴 3 (명조 · 고딕 · 손글씨)
   function panelFmt() {
-    const ft = f.fmtTools, a = card.align || {}, dp = card.datePos || 'top';
-    const b = st.sel ? bodies()[st.sel.i] : null, r = b ? rangeAt(b, ...st.sel.ab) : null;
+    const ft = f.fmtTools, a = card.align || {};
+    const b = st.sel ? bodies()[st.sel.i] : null;
+    if (b) toLines(b);   // 첫 줄 글자도 줄로 묶어야 지금 크기가 보여요
+    const r = b ? rangeAt(b, ...st.sel.ab) : null;
     if (r) showRange(r);
-    const ls = r ? linesIn(b, r) : [];
+    const ls = r ? linesIn(b, r).filter(l => l.tagName !== 'LI') : [];
+    const lsAll = r ? linesIn(b, r) : [];
+    const sz = t => ls.length > 0 && ls.every(l => t === 'DIV' ? !/^H[23]$/.test(l.tagName) : l.tagName === t);
     const on = {
       bold: r && !r.collapsed && isOn(b, r, 'b,strong'), mark: r && !r.collapsed && isOn(b, r, 'mark'),
-      head: ls.length && ls.every(l => l.tagName === 'H2'), list: ls.length && ls.every(l => l.tagName === 'LI'),
-      date: dp !== 'none',
+      list: lsAll.length && lsAll.every(l => l.tagName === 'LI'), fl: sz('H2'), fm: sz('DIV') || (ft.size && b && !b.textContent.trim()), fs: sz('H3'),
     };
-    const btn = (k, isOn, off) => `<button class="pb ${isOn ? 'on' : ''} ${off ? 'off' : ''}" data-f="${k}">${ic(k)}</button>`;
-    panel.innerHTML = `<div class="pgrid">${['bold', 'mark', 'head', 'list', 'date'].map(k => btn(k, ft[k] && on[k], !ft[k])).join('')}</div>
-      <div class="pgrid">${['al', 'ac', 'ar'].map(k => btn(k, ft.align && a.h === k[1], !ft.align)).join('')}${['vt', 'vm', 'vb'].map(k => btn(k, ft.align && a.v === k[1], !ft.align)).join('')}</div>`;
-    if (ft.date) $('[data-f=date]', panel).insertAdjacentHTML('beforeend', `<span class="tag">${{ top: '위', bottom: '아래', none: '끔' }[dp]}</span>`);
+    const btn = (k, isOn, off, inner) => `<button class="pb ${isOn ? 'on' : ''} ${off ? 'off' : ''}" data-f="${k}">${inner || ic(k)}</button>`;
+    const fz = k => `<span class="fz ${k}">가</span>`;
+    panel.innerHTML = `<div class="pgrid">${['bold', 'mark', 'list'].map(k => btn(k, ft[k] && on[k], !ft[k])).join('')}${['fl', 'fm', 'fs'].map(k => btn(k, ft.size && on[k], !ft.size, fz(k))).join('')}</div>
+      <div class="pgrid">${['al', 'ac', 'ar'].map(k => btn(k, ft.align && a.h === k[1], !ft.align)).join('')}${['vt', 'vm', 'vb'].map(k => btn(k, ft.align && a.v === k[1], !ft.align)).join('')}</div>
+      ${ft.font ? `<div class="pgrid">${['serif', 'sans', 'hand'].map(k => btn('f-' + k, (card.font || 'serif') === k, false, `<span class="ff ${k}">가</span>`)).join('')}</div>` : ''}`;
     $$('.pb', panel).forEach(x => {
       x.addEventListener('pointerdown', e => e.preventDefault());
       x.onclick = () => {
@@ -511,16 +522,46 @@ function viewWrite({ fmt, id }) {
         flush();
         if (['al', 'ac', 'ar'].includes(k)) { card.align.h = k[1]; push(); draw(); return panelFmt(); }
         if (['vt', 'vm', 'vb'].includes(k)) { card.align.v = k[1]; push(); draw(); return panelFmt(); }
-        if (k === 'date') { card.datePos = { top: 'bottom', bottom: 'none', none: 'top' }[dp]; push(); draw(); return panelFmt(); }
+        if (k.startsWith('f-')) { card.font = k.slice(2); push(); draw(); return panelFmt(); }
         if (!b) return toast('쓸 곳을 먼저 눌러 주세요');
         if ((k === 'bold' || k === 'mark') && r.collapsed) return toast('바꿀 글자를 먼저 골라 주세요');
-        const ok = k === 'bold' ? toggleInline(b, r, 'b') : k === 'mark' ? toggleInline(b, r, 'mark') : k === 'head' ? toggleHead(b, r) : toggleList(b, r);
+        const ok = k === 'bold' ? toggleInline(b, r, 'b') : k === 'mark' ? toggleInline(b, r, 'mark') : k === 'list' ? toggleList(b, r)
+          : setSize(b, r, { fl: 'h2', fm: 'div', fs: 'h3' }[k]);
         if (!ok) return;
         if (rich) card.pages[st.sel.i] = clean(b.innerHTML); else { card.html = clean(b.innerHTML); placeObjects(b, card.seed); }
         fitCard(el, card); count(); push();
         panelFmt();
       };
     });
+  }
+
+  // 이모티콘: 우리 이모티콘 81개. 굵은(색) · 선(글자색). 고르면 커서 자리에 들어가고, 이어서 고르면 그 뒤에 차례로
+  let emoV = S.pref('emoV', 'b');
+  function panelEmo() {
+    preloadAll(emoV === 'l' ? 'l' : undefined);
+    const url = n => `../stickers/${emoV === 'l' ? 'line' : 'kept'}/${n}.svg`;
+    panel.innerHTML = `<div class="pgrid"><button class="pb ${emoV === 'b' ? 'on' : ''}" data-v="b"><img class="ei" src="../stickers/kept/smile.svg" alt=""></button>
+        <button class="pb ${emoV === 'l' ? 'on' : ''}" data-v="l"><span class="ei ln" style="-webkit-mask-image:url(../stickers/line/smile.svg);mask-image:url(../stickers/line/smile.svg)"></span></button></div>
+      <div class="pgrid emo">${STK.map(n => `<button class="pb" data-st="${n}">${emoV === 'l' ? `<span class="ei ln" style="-webkit-mask-image:url(${url(n)});mask-image:url(${url(n)})"></span>` : `<img class="ei" src="${url(n)}" alt="" loading="lazy">`}</button>`).join('')}</div>`;
+    $$('[data-v]', panel).forEach(x => { x.addEventListener('pointerdown', e => e.preventDefault()); x.onclick = () => { emoV = x.dataset.v; S.setPref('emoV', emoV); panelEmo(); }; });
+    $$('[data-st]', panel).forEach(x => { x.addEventListener('pointerdown', e => e.preventDefault()); x.onclick = () => insertSticker(x.dataset.st); });
+  }
+  function insertSticker(name) {
+    const i = st.sel ? st.sel.i : st.pg, b = bodies()[i]; if (!b) return;
+    flush();
+    let r = st.insR && b.contains(st.insR.startContainer) ? st.insR : st.sel ? rangeAt(b, ...st.sel.ab) : null;
+    if (!r) { r = document.createRange(); r.selectNodeContents(b); }
+    r.collapse(false);
+    const s = document.createElement('span'); s.className = 'stk'; s.dataset.st = name; if (emoV === 'l') s.dataset.v = 'l';
+    r.insertNode(s); hydrate(b);
+    // 커서는 이모티콘 뒤 글자 칸 안에 둬요. 그림 바로 옆(글자 칸 밖)에서 한글을 조합하면 글자가 두 번 찍혀요
+    let t = s.nextSibling;
+    if (!t || t.nodeType !== 3 || !t.length) { t = document.createTextNode('\u200B'); s.after(t); }
+    const after = document.createRange(); after.setStart(t, t.data[0] === '\u200B' ? 1 : 0); after.collapse(true); st.insR = after;
+    if (!st.sel) st.sel = { i, ab: [0, 0] };
+    card.pages[i] = clean(b.innerHTML);
+    el.classList.toggle('empty', !hasText()); fitCard(el, card); count(); push();
+    requestAnimationFrame(() => { const rc = s.getBoundingClientRect(), box = stage.getBoundingClientRect(); if (rc.bottom > box.bottom - 16) stage.scrollTop += rc.bottom - box.bottom + 24; else if (rc.top < box.top) stage.scrollTop -= box.top - rc.top + 16; });
   }
 
   function panelBg() {
@@ -548,7 +589,7 @@ function viewWrite({ fmt, id }) {
     clearTimeout(st.timer);
     if (isNew) { if (hasText()) S.saveDraft({ card }); else S.clearDraft(); }
     else if (hasText()) S.saveCard(card);
-    go('#/');
+    go(isNew ? '#/pick' : `#/at/${card.id}`);   // 바로 앞 화면으로: 새로 쓰기는 포맷 고르기, 고치기는 피드의 그 카드
   };
   $('[data-a=ok]').onclick = () => {
     if (!hasText()) return;

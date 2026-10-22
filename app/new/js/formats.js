@@ -1,6 +1,7 @@
 // 포맷 = 데이터 + 그리기. 카드는 가로 1080 기준으로 디자인하고 cqw 단위로 그려서, 화면 크기와 저장 이미지가 같은 모양이에요
 import { find as findBg, dimCss, drawCode } from './bg.js';
 import { rangeAt } from './rich.js';
+import { hydrate } from './stickers.js';
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const px = n => `${(n / 10.8).toFixed(3)}cqw`; // 1080 디자인 px → cqw
@@ -129,7 +130,7 @@ function bgLayer(c, page, pages) {
 
 function text(c, { edit = false } = {}) {
   const el = document.createElement('div');
-  el.className = 'cd text' + (edit ? ' edit' : '');
+  el.className = 'cd text' + (edit ? ' edit' : '') + ` f-${c.font || 'serif'}`;
   const pages = (c.pages?.length ? c.pages : ['']).map(h => soft(h, edit));
   const dp = c.datePos || 'top';
   const info = esc([dateLine(c.date), (c.place || '').trim()].filter(Boolean).join(' · '));
@@ -144,11 +145,12 @@ function text(c, { edit = false } = {}) {
         ${dp === 'bottom' && i === pages.length - 1 ? date : ''}
       </div></section>`;
   }).join('');
-  el.classList.toggle('empty', !pages.join('').replace(/<[^>]+>/g, '').trim());
+  el.classList.toggle('empty', !pages.join('').replace(/<[^>]+>/g, '').trim() && !pages.join('').includes('class="stk"'));
+  hydrate(el);
   return el;
 }
 
-// 글이 넘치면 글자를 조금씩 줄여요(최소 38). 그래도 넘치면 그 장이 아래로 길어지고(쓰는 동안 한 장),
+// 글이 넘치면 그 장이 아래로 길어지고(쓰는 동안 한 장),
 // 저장할 때 줄 단위로 여러 장으로 나눠요. 쓰는 화면에서는 나뉠 자리에 점선을 그어 둬요
 function fitText(el) {
   el.querySelectorAll('.pg').forEach(pg => {
@@ -157,8 +159,8 @@ function fitText(el) {
     // 가운데 정렬은 위로 넘친 부분이 재지지 않아서, 잴 때만 위에서부터 놓아요
     const jc = tx.style.justifyContent; tx.style.justifyContent = 'flex-start';
     const over = () => tx.scrollHeight > tx.clientHeight + 1;
-    let fs = 54; tx.style.fontSize = px(fs);
-    while (over() && fs > 38) { fs -= 2; tx.style.fontSize = px(fs); }
+    // 글자 크기는 고른 그대로(중간 = 카드 폭의 6%). 저절로 줄이지 않고, 넘치면 장이 길어져 저장할 때 나뉘어요
+    tx.style.fontSize = px(el.classList.contains('f-hand') ? 80 : 65);
     if (over()) pg.classList.add('long');
     tx.style.justifyContent = jc;
     if (pg.classList.contains('long') && el.classList.contains('edit')) {
@@ -185,8 +187,8 @@ export const FORMATS = {
   },
   text: {
     id: 'text', name: '글', info: '모든 길이 · 배경 고르기 · 무료', paid: false,
-    tools: { fmt: true, photo: false, emo: false, bg: true, page: true, shuf: 'code' },
-    fmtTools: { bold: true, mark: true, head: true, list: true, date: true, align: true },
+    tools: { fmt: true, photo: false, emo: true, bg: true, page: true, shuf: 'code' },
+    fmtTools: { bold: true, mark: true, list: true, size: true, align: true, font: true, date: true },
     sample: { pages: ['출근길에 버스를 한 대 놓쳤는데 덕분에 하늘을 오래 봤다. <b>오늘은 그걸로 됐다.</b>'], bg: { id: 'g1', dim: 'dark' } },
     render: text, fit: fitText,
   },
@@ -196,13 +198,14 @@ export const ORDER = ['rebus', 'text'];
 export function blank(fmt, date) {
   return fmt === 'rebus'
     ? { fmt, date, place: '', html: '', seed: newSeed() }
-    : { fmt, date, place: '', pages: [''], bg: { id: 'g1', dim: 'dark', seed: newSeed() }, align: { h: 'l', v: 'm' }, datePos: 'top' };
+    : { fmt, date, place: '', pages: [''], bg: { id: 'g1', dim: 'dark', seed: newSeed() }, align: { h: 'l', v: 'm' }, datePos: 'top', font: 'serif' };
 }
 export const sampleCard = (fmt, date) => ({ ...blank(fmt, date), ...structuredClone(FORMATS[fmt].sample), sample: true });
 
 export function renderCard(c, opt) { return FORMATS[c.fmt].render(c, opt || {}); }
 export function fitCard(el, c) { FORMATS[c.fmt].fit(el); }
-const plain = h => { const d = document.createElement('div'); d.innerHTML = h || ''; return d.textContent; };
+// 줄(div·h2·h3·li)과 <br>은 줄바꿈으로: 요약 글에서 줄끼리 붙지 않게
+const plain = h => { const d = document.createElement('div'); d.innerHTML = (h || '').replace(/<br\s*\/?>|<\/(div|h2|h3|li|p)>/gi, m => m + '\n'); return d.textContent; };
 export const cardText = c => c.fmt === 'rebus' ? plain(rebusHtmlOf(c)) : (c.pages || []).map(plain).join('\n');
 // 피드 바탕에 은은하게 번지는 색: 카드의 대표 색
 export function toneOf(c) {
