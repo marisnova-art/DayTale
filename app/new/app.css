@@ -88,51 +88,49 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .strip .th .lab { font-size: 11px; color: var(--mut); text-align: center; margin-top: 4px; }
 .go { height: 52px; border-radius: 999px; background: #fff; color: var(--bg); font-weight: 800; font-size: 16px; display: flex; align-items: center; justify-content: center; gap: 8px; }
 
-/* 쓰기: 화면은 움직이지 않고, 보이는 높이(키보드 위)를 미리보기 · 글 칸 · 도구 줄이 나눠 써요 */
-html.wmode, html.wmode body { overflow: hidden; height: 100%; }
-.wr { position: fixed; left: 0; right: 0; top: 0; height: 100dvh; max-width: 480px; margin: 0 auto; display: flex; flex-direction: column; background: var(--bg); }
-.wr .top { position: relative; flex: none; }
-.wr .pv { flex: 1 1 auto; min-height: 0; position: relative; display: flex; flex-direction: column; align-items: center; padding: 0 var(--gut) 8px; }
-.wr .pvb { flex: 1; min-height: 0; width: 100%; display: flex; justify-content: center; align-items: flex-start; overflow-y: auto; scrollbar-width: none; }
-.wr .pvb::-webkit-scrollbar { display: none; }
-.wr .pvb .cd { flex: none; }
-.wr .dots { flex: none; display: flex; gap: 6px; justify-content: center; height: 14px; align-items: center; }
-.wr .dots i { width: 6px; height: 6px; border-radius: 50%; background: #55555b; } .wr .dots i.on { background: #fff; }
-.wr .fw { flex: none; padding: 0 var(--gut) 8px; display: flex; flex-direction: column; min-height: 0; }
-.wr .meta { display: flex; justify-content: space-between; align-items: center; height: 26px; font-size: 12px; color: var(--mut); }
-.wr .ttl { background: none; border: 0; outline: none; color: #fff; font: 600 14px var(--ui); width: 60%; }
-.wr .ttl::placeholder { color: var(--off); }
-.wr .field { display: block; width: 100%; flex: 1; min-height: 0; background: var(--srf); border: 1px solid var(--line); border-radius: 14px; padding: 10px 14px; color: #fff; font: 500 17px/1.6 var(--ui); resize: none; outline: none; overflow-y: auto; -webkit-user-select: text; user-select: text; }
-.wr .field:empty::before { content: attr(data-ph); color: var(--off); }
-.wr .field b, .wr .field strong { font-weight: 800; }
-.wr .field mark { background: rgba(255,214,90,.35); color: #fff; border-radius: 3px; padding: 0 2px; }
-.wr .field h2 { font-size: 20px; font-weight: 800; margin: 2px 0; }
-.wr .field ul { padding-left: 20px; }
-/* 보기 상태(키보드·패널 없음): 미리보기가 크게, 글 칸은 한 줄 */
-.wr:not(.split) .field { height: 46px; flex: none; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--mut); }
-.wr:not(.split) .field * { display: inline; font-size: inherit; margin: 0; padding: 0; background: none; }
-.wr:not(.split) .meta .ttl { pointer-events: none; }
-/* 쓰는 중 / 패널: 미리보기는 작게(고정), 글 칸이 나머지 */
-.wr.split .pv { flex: 0 0 var(--pvh, 34%); }
-.wr.split .fw { flex: 1 1 auto; }
+/* 쓰기 (시안 write2): 위 줄 · 카드 · 도구 줄 · 키보드 자리. 키보드가 있을 때만 보이는 화면(--vvt · --vvh)에 맞춰요 (지금 앱 editor.css와 같은 방식) */
+html.wmode, html.wmode body { overflow: hidden; height: 100%; overscroll-behavior: none; }
+.wr { position: fixed; left: 0; right: 0; top: 0; bottom: 0; max-width: 480px; margin: 0 auto; display: flex; flex-direction: column; background: var(--bg); }
+html.kb-open:not(.pan) .wr { top: var(--vvt, 0px); bottom: auto; height: var(--vvh, 100dvh); }
+.wr .top { position: relative; flex: none; background: none; }
+.wr .stage { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; padding: 2px 0 16px; -webkit-overflow-scrolling: touch; }
+.wr .stage::-webkit-scrollbar { display: none; }
+/* 글: 장마다 같은 크기(--cw), 옆 장이 살짝 보여요 */
+.cd .pg { container-type: inline-size; }
+.wr .cd.text { width: 100%; border-radius: 0; gap: 12px; padding: 0 calc((100% - var(--cw)) / 2); scroll-snap-type: x mandatory; }
+.wr .cd.text .pg { flex: 0 0 var(--cw); border-radius: 8px; scroll-snap-align: center; }
+.wr .cd .body { -webkit-user-select: text; user-select: text; caret-color: currentColor; }
+.wr .cd .body:empty::before { content: attr(data-ph); opacity: .55; }
+.wr .cd .pg .wc { position: absolute; right: 4.5cqw; bottom: 3.8cqw; font: 600 2.8cqw/1 var(--ui); opacity: .75; pointer-events: none; }
+.wr .cd.rebus { width: var(--cw); margin: 0 auto; border-radius: 8px; }
+::highlight(dz-sel) { background-color: rgba(120,170,255,.45); }
+/* 그림 문장: 글은 아래 칸에 쓰고 카드에 바로 그림으로 */
+.wr .rin { flex: none; display: flex; align-items: flex-end; gap: 8px; padding: 6px var(--gut) 8px; }
+.wr .rin .field { flex: 1; min-height: 44px; max-height: 96px; background: var(--srf); border: 1px solid var(--line); border-radius: 14px; padding: 11px 14px; color: #fff; font: 500 16px/1.4 var(--ui); resize: none; outline: none; }
+.wr .rin .field::placeholder { color: var(--off); }
+.wr .rin .cnt { flex: none; padding-bottom: 12px; }
 .cnt { font-size: 12px; color: var(--mut); }
 
-.tb { flex: none; display: flex; align-items: center; gap: 2px; padding: 6px 10px; background: var(--srf); border-top: 1px solid var(--line); }
+/* 도구 줄: 키보드(또는 패널) 바로 위. 키보드가 없으면 화면 맨 아래 */
+.tb { flex: none; display: flex; align-items: center; justify-content: space-between; padding: 6px 14px; background: var(--bg); }
+html:not(.kb-open):not(.pan) .wr .tb { padding-bottom: calc(6px + var(--safe-b)); }
 .tb .t { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; color: #fff; }
 .tb .t.on { background: #fff; color: var(--bg); }
 .tb .t.off { color: var(--off); }
-.tb .sep { width: 1px; height: 22px; background: #3a3a3f; margin: 0 4px; }
+.tb .t.hint { box-shadow: inset 0 0 0 1.5px #fff; }
+.tb .sep { width: 1px; height: 22px; background: #3a3a3f; }
 .tb .t.shake { animation: shake .3s; }
 @keyframes shake { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
 
-.panel { flex: none; background: var(--srf); padding: 14px var(--gut) calc(18px + var(--safe-b)); display: grid; gap: 10px; align-content: start; }
+/* 패널 = 키보드 자리, 키보드와 같은 높이 */
+.wr .panel { display: none; flex: none; height: var(--kbh, 40vh); overflow-y: auto; background: var(--srf); padding: 16px var(--gut) calc(16px + var(--safe-b)); align-content: start; gap: 12px; }
+html.pan .wr .panel { display: grid; }
 .pgrid { display: grid; grid-template-columns: repeat(6, var(--btn)); gap: 10px; justify-content: space-between; }
-.pb { width: var(--btn); height: var(--btn); border-radius: 12px; background: var(--srf2); display: grid; place-items: center; color: #fff; }
+.pb { position: relative; width: var(--btn); height: var(--btn); border-radius: 12px; background: var(--srf2); display: grid; place-items: center; color: #fff; }
 .pb.on { background: #fff; color: var(--bg); }
 .pb.off { color: var(--off); }
-.pb { position: relative; }
 .pb .tag { position: absolute; right: 4px; bottom: 3px; font-size: 9px; font-weight: 800; }
-.bgs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; max-height: 190px; overflow-y: auto; padding: 4px; }
+.bgs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 4px; }
 .bgs .bt { aspect-ratio: 4 / 5; border-radius: 6px; position: relative; overflow: hidden; background-size: cover; background-position: center; }
 .bgs .bt.on { box-shadow: 0 0 0 2px var(--srf), 0 0 0 4px #fff; }
 .bgs .bt .ic { position: absolute; right: 4px; bottom: 4px; width: 14px; height: 14px; color: #fff; }
@@ -152,6 +150,5 @@ html.wmode, html.wmode body { overflow: hidden; height: 100%; }
 .sheet .it.red { color: #ff6b6b; }
 .toast { position: fixed; left: 50%; bottom: calc(96px + var(--safe-b)); transform: translateX(-50%); background: #fff; color: var(--bg); font-size: 14px; font-weight: 700; padding: 10px 16px; border-radius: 999px; z-index: 60; white-space: nowrap; }
 .busy { position: fixed; inset: 0; z-index: 70; background: rgba(0,0,0,.55); display: grid; place-items: center; font-weight: 700; }
-.panel[hidden] { display: none; }
-.wr .tb:nth-last-child(2):has(+ .panel[hidden]) { padding-bottom: calc(6px + var(--safe-b)); }
-.wr.split .tb { padding-bottom: 6px; }
+
+.cd .pg.over .tx { justify-content: flex-start !important; }   /* 넘치면 글 처음부터 보이게 */
