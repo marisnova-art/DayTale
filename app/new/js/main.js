@@ -53,7 +53,7 @@ function nav(on) {
   return `<nav class="nav">
     <button class="nb ${on === 'home' ? 'on' : ''}" data-n="home" aria-label="홈">${ic('home')}</button>
     <button class="nb" data-n="search" aria-label="검색">${ic('search')}</button>
-    <button class="nb wr" data-n="write" aria-label="쓰기">${ic('pen')}</button>
+    <button class="nb nw" data-n="write" aria-label="쓰기">${ic('pen')}</button>
     <button class="nb" data-n="shelf" aria-label="책장">${ic('shelf')}</button>
     <button class="nb" data-n="me" aria-label="프로필"><span class="av"></span></button></nav>`;
 }
@@ -64,8 +64,8 @@ function bindNav() {
 // 피드: 위 줄은 흐림 없이 같이 스크롤돼요. 화면 가운데 카드만 움직이고, 그 카드 색이 바탕에 은은하게 번져요
 function viewFeed() {
   const mine = S.cards();
-  app.innerHTML = `<div class="amb"></div><header class="ftop"><div class="logo">Dayzine.</div><button class="cb" data-a="bell" aria-label="알림">${ic('bell')}</button></header>
-    <main class="feed"></main><button class="foldb" hidden>${ic('fold')}<span>접기</span></button>${nav('home')}`;
+  app.innerHTML = `<div class="amb"></div><header class="ftop"><div class="logo">dayzine</div><button class="cb" data-a="bell" aria-label="알림">${ic('bell')}</button></header>
+    <main class="feed"></main>${nav('home')}`;
   bindNav(); $('[data-a=bell]').onclick = soon;
   const feed = $('.feed');
   // 내 카드는 날짜마다 작은 날짜 줄. 내 카드가 적으면 우리 카드(포맷 예시)를 아래에 2~3장
@@ -75,7 +75,6 @@ function viewFeed() {
     feed.appendChild(feedItem(c));
   });
   if (mine.length < 6) ORDER.forEach(f => feed.appendChild(feedItem(sampleCard(f, S.today()))));
-  feed.addEventListener('click', e => { if (!e.target.closest('.fx')) $$('.fi.sel').forEach(x => x.classList.remove('sel')); });
 
   // 가운데 카드 찾기: 그 카드만 재생 + 바탕 색
   const amb = $('.amb');
@@ -83,28 +82,19 @@ function viewFeed() {
   const pickMid = () => {
     raf = 0;
     const mid = innerHeight * .45; let best = null, bd = 1e9;
-    $$('.fi').forEach(it => { const r = it.querySelector('.fx').getBoundingClientRect(), d = Math.abs((r.top + r.bottom) / 2 - mid); if (d < bd) { bd = d; best = it; } });
+    $$('.feed .fi').forEach(it => { const r = it.querySelector('.fx').getBoundingClientRect(), d = Math.abs((r.top + r.bottom) / 2 - mid); if (d < bd) { bd = d; best = it; } });
     if (best === cur) return;
     cur?.classList.remove('play'); cur = best;
     if (!cur) return;
     cur.classList.add('play'); amb.style.backgroundColor = cur.dataset.tone;
     if (!cur.dataset.seen) { cur.dataset.seen = 1; cur.classList.add('intro'); setTimeout(() => cur?.classList.remove('intro'), 1800); }
   };
-  const onScroll = () => { if (!raf) raf = requestAnimationFrame(pickMid); updateFold(); };
+  const onScroll = () => { if (!raf) raf = requestAnimationFrame(pickMid); };
   addEventListener('scroll', onScroll, { passive: true });
   const onVis = () => document.body.classList.toggle('paused', document.hidden);
   document.addEventListener('visibilitychange', onVis);
-  cleanup = () => { removeEventListener('scroll', onScroll); document.removeEventListener('visibilitychange', onVis); };
+  cleanup = () => { removeEventListener('scroll', onScroll); document.removeEventListener('visibilitychange', onVis); closeFocus(true); };
   setTimeout(pickMid, 80);
-
-  // 펼친 카드가 화면에 있으면 흰 '접기'
-  const foldb = $('.foldb');
-  function updateFold() {
-    const it = $('.fi.open'); if (!it) return (foldb.hidden = true);
-    const r = it.getBoundingClientRect(); foldb.hidden = !(r.top < innerHeight - 120 && r.bottom > 160);
-  }
-  foldb.onclick = () => { const it = $('.fi.open'); if (!it) return; it._fold(); window.scrollTo({ top: scrollY + it.getBoundingClientRect().top - 80 }); updateFold(); };
-  feed._update = updateFold;
 }
 function dayLabel(d) {
   const t = S.today(), y = new Date(Date.now() - 864e5), ys = `${y.getFullYear()}-${String(y.getMonth() + 1).padStart(2, '0')}-${String(y.getDate()).padStart(2, '0')}`;
@@ -113,50 +103,75 @@ function dayLabel(d) {
   return dateChip(d).replace(' ', ' · ') + (d.slice(0, 4) !== t.slice(0, 4) ? ` · ${d.slice(0, 4)}` : '');
 }
 
-// 카드 한 장. 긴 카드는 첫 4:5만 + 1/N + 겹친 종이, 옆으로 밀면 다음 장.
-// 한 번 누르면 펼침(긴 카드) → 한 번 더 누르면 흰 테두리 + 연필(고치기). 짧은 카드는 바로 테두리 + 연필
+// 카드 한 장. 긴 카드는 4:5 장들을 옆으로 밀어 봐요. 누르면 그 카드만 화면 가득(다시 누르면 피드로).
+// 아래 줄: 책갈피 · 저장 · 쓰기 · 삭제 · 장 수(여러 장일 때)
 function feedItem(c) {
   const it = document.createElement('article'); it.className = 'fi'; it.dataset.tone = toneOf(c);
   const f = FORMATS[c.fmt];
-  it.innerHTML = `<div class="fx"><div class="view"></div><span class="pnb" hidden></span><button class="pen" aria-label="${c.sample ? '이 포맷으로 쓰기' : '고치기'}">${ic('pen')}</button></div>
+  it.innerHTML = `<div class="fx"><div class="view"></div></div>
     <div class="row">${c.sample
       ? `<div class="ours">${f.name}<i>NEW</i></div><button class="cb w" data-a="use" aria-label="이 포맷으로 쓰기">${ic('pen')}</button>`
-      : `<div class="l"><button class="cb ${c.mark ? 'on' : ''}" data-a="mark" aria-label="책갈피">${ic('bookmark')}</button></div><button class="cb" data-a="more" aria-label="더보기">${ic('more')}</button>`}</div>`;
-  const fx = $('.fx', it), view = $('.view', it), pnb = $('.pnb', it);
-  const full = () => { view.innerHTML = ''; mount(view, c); };
-  full();
-  let pages = null;
-  // 저장할 때와 같은 방식으로 장을 나눠서, 여러 장이면 옆으로 넘겨 보는 모양으로
+      : `<div class="l"><button class="cb ${c.mark ? 'on' : ''}" data-a="mark" aria-label="책갈피">${ic('bookmark')}</button><button class="cb" data-a="save" aria-label="사진에 저장">${ic('save')}</button><button class="cb" data-a="edit" aria-label="고치기">${ic('pen')}</button><button class="cb" data-a="del" aria-label="삭제">${ic('trash')}</button><span class="pc" hidden></span></div>`}</div>`;
+  const fx = $('.fx', it), view = $('.view', it), pc = $('.pc', it);
+  mount(view, c);
+  // 저장할 때와 같은 방식으로 장을 나눠서, 여러 장이면 옆으로 넘겨 보는 모양으로 (늘 첫 장부터)
   requestAnimationFrame(() => setTimeout(async () => {
     const W = view.clientWidth; if (!W) return;
     const { h, nodes } = await buildPages(c, W, Math.min(2, devicePixelRatio || 1));
     if (nodes.length > 1) {
-      pages = document.createElement('div'); pages.className = 'pgs'; pages.append(...nodes);
-      pages.addEventListener('scroll', () => { pnb.textContent = `${Math.round(pages.scrollLeft / pages.clientWidth) + 1}/${nodes.length}`; }, { passive: true });
-      pnb.textContent = `1/${nodes.length}`;
-      if (!it.classList.contains('open')) { view.innerHTML = ''; view.appendChild(pages); pnb.hidden = false; it.classList.add('multi'); }
+      const pages = document.createElement('div'); pages.className = 'pgs'; pages.append(...nodes);
+      const paint = () => { if (pc) pc.textContent = `${Math.round(pages.scrollLeft / pages.clientWidth) + 1}/${nodes.length}`; };
+      pages.addEventListener('scroll', paint, { passive: true });
+      view.innerHTML = ''; view.appendChild(pages); it.classList.add('multi');
+      pages.scrollLeft = 0; requestAnimationFrame(() => { pages.scrollLeft = 0; paint(); });
+      if (pc) { pc.hidden = false; paint(); }
     }
     h.remove();
   }, 40));
-  const select = on => { $$('.fi.sel').forEach(x => x !== it && x.classList.remove('sel')); it.classList.toggle('sel', on); };
-  it._fold = () => { it.classList.remove('open', 'sel'); if (pages) { view.innerHTML = ''; view.appendChild(pages); pnb.hidden = false; it.classList.add('multi'); } };
-  fx.addEventListener('click', e => {
-    if (e.target.closest('.pen')) return;
-    if (pages && !it.classList.contains('open')) {   // 펼치기: 한 장의 긴 카드
-      it.classList.add('open'); it.classList.remove('multi'); pnb.hidden = true; full(); select(false);
-      $('.feed')._update?.(); return;
-    }
-    select(!it.classList.contains('sel'));
+  fx.addEventListener('click', () => openFocus(it));
+  const on = (k, fn) => { const b = $(`[data-a=${k}]`, it); if (b) b.onclick = fn; };
+  on('use', () => go(`#/write/${c.fmt}`));
+  on('edit', () => go(`#/edit/${c.id}`));
+  on('save', () => exportCard(c));
+  on('mark', e => { c.mark = !c.mark; S.saveCard(c); e.currentTarget.classList.toggle('on', c.mark); toast(c.mark ? '책갈피에 넣었어요' : '책갈피에서 뺐어요'); });
+  on('del', () => {   // 바로 지우고, 잠깐 '되돌리기'를 보여 줘요
+    const prev = it.previousElementSibling, next = it.nextElementSibling;
+    S.removeCard(c.id); it.remove();
+    if (prev?.matches('h3.day') && (!next || next.matches('h3.day'))) prev.remove();
+    undoToast('삭제했어요', () => { S.saveCard(c); route(); });
   });
-  $('.pen', it).onclick = () => go(c.sample ? `#/write/${c.fmt}` : `#/edit/${c.id}`);
-  $('[data-a=use]', it) && ($('[data-a=use]', it).onclick = () => go(`#/write/${c.fmt}`));
-  $('[data-a=mark]', it) && ($('[data-a=mark]', it).onclick = e => { c.mark = !c.mark; S.saveCard(c); e.currentTarget.classList.toggle('on', c.mark); toast(c.mark ? '책갈피에 넣었어요' : '책갈피에서 뺐어요'); });
-  $('[data-a=more]', it) && ($('[data-a=more]', it).onclick = () => sheet([
-    { icon: 'save', label: '사진에 저장', run: () => exportCard(c) },
-    { icon: 'pen', label: '고치기', run: () => go(`#/edit/${c.id}`) },
-    { icon: 'trash', label: '삭제', red: true, run: () => { S.removeCard(c.id); it.remove(); toast('삭제했어요'); } },
-  ]));
   return it;
+}
+function undoToast(msg, undo) {
+  $$('.toast').forEach(t => t.remove());
+  const t = document.createElement('div'); t.className = 'toast ud'; t.innerHTML = `<span>${msg}</span><button>되돌리기</button>`;
+  $('button', t).onclick = () => { t.remove(); undo(); };
+  document.body.appendChild(t); setTimeout(() => t.remove(), 4000);
+}
+
+// 카드만 화면 가득: 그 자리에서 커지며 나오고(바탕은 어두워지며 위 줄 · 메뉴 · 다른 카드가 가려져요), 누르면 제자리로
+let focus = null;
+function openFocus(it) {
+  if (focus) return;
+  const fx = $('.fx', it), view = $('.view', it), r = view.getBoundingClientRect();
+  const k = Math.min(innerWidth, 480, innerHeight * .8 / (r.height / r.width)) / r.width;
+  const tx = (innerWidth - r.width * k) / 2 - r.left, ty = (innerHeight - r.height * k) / 2 - r.top;
+  const ov = document.createElement('div'); ov.className = 'fv';
+  const box = document.createElement('div'); box.className = 'fi play fvb';
+  box.style.cssText = `left:${r.left}px;top:${r.top}px;width:${r.width}px;`;
+  fx.style.height = r.height + 'px'; box.appendChild(view); ov.appendChild(box); document.body.appendChild(ov);
+  document.documentElement.classList.add('focus');
+  requestAnimationFrame(() => requestAnimationFrame(() => { ov.classList.add('in'); box.style.transform = `translate(${tx}px,${ty}px) scale(${k})`; }));
+  ov.addEventListener('click', () => closeFocus());
+  focus = { ov, box, fx, view };
+}
+function closeFocus(now) {
+  if (!focus || focus.closing) return;
+  const f = focus; f.closing = true;
+  const done = () => { f.fx.appendChild(f.view); f.fx.style.height = ''; f.ov.remove(); document.documentElement.classList.remove('focus'); focus = null; };
+  if (now) return done();
+  f.ov.classList.remove('in'); f.box.style.transform = '';
+  setTimeout(done, 380);
 }
 
 /* ── 포맷 고르기 ─────────────────────────────────────── */
@@ -205,7 +220,6 @@ function viewWrite({ fmt, id }) {
     <header class="top"><button class="cb" data-a="back" aria-label="뒤로">${ic('back')}</button><div class="nm">${f.name}</div><button class="cb w" data-a="ok" aria-label="완료">${ic('check')}</button></header>
     <div class="meta">
       <label class="chip dt">${ic('date')}<span></span><input type="date" aria-label="날짜"></label>
-      ${rich ? '' : `<label class="chip tt">${ic('fmt')}<input class="ti" maxlength="8" aria-label="제목"></label>`}
       <label class="chip pl">${ic('pin')}<input class="pi" maxlength="20" placeholder="장소" aria-label="장소"></label>
     </div>
     <section class="stage"></section>
@@ -265,26 +279,25 @@ function viewWrite({ fmt, id }) {
 
   // 기록: 셔플·배경·정렬은 바로, 글은 잠깐 멈췄을 때 한 칸씩
   const persist = () => { if (isNew) S.saveDraft({ card }); };
-  const push = () => { clearTimeout(st.timer); st.hist = st.hist.slice(0, st.hi + 1); st.hist.push(clone(card)); if (st.hist.length > 80) st.hist.shift(); st.hi = st.hist.length - 1; tools(); persist(); };
-  const pushLater = () => { clearTimeout(st.timer); st.timer = setTimeout(push, 700); persist(); };
+  const push = () => { clearTimeout(st.timer); st.timer = 0; st.hist = st.hist.slice(0, st.hi + 1); st.hist.push(clone(card)); if (st.hist.length > 80) st.hist.shift(); st.hi = st.hist.length - 1; tools(); persist(); };
+  const flush = () => { if (st.timer) push(); };   // 쓰던 글을 먼저 기록해 두고 바꿔요 (되돌리면 바로 앞 모습으로)
+  const pushLater = () => { clearTimeout(st.timer); st.timer = setTimeout(push, 700); persist(); tools(); };
   const hasText = () => cardText(card).trim().length > 0;
   const count = () => { const n = `${cardText(card).replace(/\s/g, '').length}자`; $$('.wc', stage).forEach(x => x.textContent = n); };
 
-  /* 정보 줄: 날짜(누르면 달력) · 제목(그림 문장, 비우면 요일) · 장소 */
-  const di = $('.meta .dt input'), ti = $('.meta .ti'), pi = $('.meta .pi');
+  /* 정보 줄: 날짜(누르면 달력) · 장소. 모든 포맷 같아요 */
+  const di = $('.meta .dt input'), pi = $('.meta .pi');
   function paintMeta() {
     $('.meta .dt span').textContent = dateChip(card.date);
     di.value = card.date; pi.value = card.place || '';
-    if (ti) { ti.value = card.title || ''; ti.placeholder = weekday(card.date); }
   }
-  di.addEventListener('change', () => { if (!di.value) return; card.date = di.value; paintMeta(); push(); draw(); });
-  ti?.addEventListener('input', () => { card.title = ti.value; draw(); pushLater(); });
+  di.addEventListener('change', () => { if (!di.value) return; flush(); card.date = di.value; paintMeta(); push(); draw(); });
   pi.addEventListener('input', () => { card.place = pi.value; draw(); pushLater(); });
   $$('.meta input').forEach(x => x.addEventListener('focus', () => { if (st.panel) closePanel(false); }));
 
   /* 카드 그리기. 글만 바뀌면 그 자리에서 바꾸고(키보드가 내려가지 않게), 장 수·배경·날짜 같은 틀이 바뀔 때만 새로 그려요 */
   let el = null, shape = '';
-  const shapeOf = () => JSON.stringify(rich ? [card.pages.length, card.bg, card.align, card.datePos, card.date, card.place] : [card.date, card.title, card.place]);
+  const shapeOf = () => JSON.stringify(rich ? [card.pages.length, card.bg, card.align, card.datePos, card.date, card.place] : [card.date, card.place]);
   const bodies = () => $$('.body', el);
   const pageOf = b => b.closest('.pg') ? +b.closest('.pg').dataset.i : 0;
   const caretIn = b => { const s = getSelection(); return s.rangeCount && b.contains(s.anchorNode) ? offsetsOf(b, s.getRangeAt(0)) : null; };
@@ -315,11 +328,24 @@ function viewWrite({ fmt, id }) {
   function keepCaret() {
     const s = getSelection(); if (!s.rangeCount || !el) return;
     const n = s.anchorNode; if (!n || !el.contains(n)) return;
-    const r = s.getRangeAt(0); let rect = r.getClientRects()[0] || r.getBoundingClientRect();
-    if (!rect || (!rect.height && !rect.top)) rect = (n.nodeType === 1 ? n : n.parentElement).getBoundingClientRect();
-    const box = stage.getBoundingClientRect(), gap = 24;
-    if (rect.bottom > box.bottom - gap) stage.scrollTop += rect.bottom - (box.bottom - gap);
+    const box = stage.getBoundingClientRect(), gap = 24, rect = caretRect(s.getRangeAt(0));
+    if (!rect) return;
+    let want = rect.bottom;
+    // 그림 문장: 마지막 줄을 쓰는 중이면 카드 아래(요일 · 날짜)까지 보이게
+    const body = (n.nodeType === 1 ? n : n.parentElement)?.closest('.body');
+    if (!rich && body && body.getBoundingClientRect().bottom - rect.bottom < rect.height * 1.5) want = Math.max(want, el.getBoundingClientRect().bottom - 8);
+    if (want > box.bottom - gap) stage.scrollTop += want - (box.bottom - gap);
     else if (rect.top < box.top + 8) stage.scrollTop -= (box.top + 8) - rect.top;
+  }
+  // 커서 위치. 그림 바로 뒤나 빈 줄처럼 위치가 안 나오는 곳은 옆 글자나 앞 그림으로 재요 (글은 건드리지 않아요)
+  function caretRect(r) {
+    const ok = x => x && (x.height || x.top) ? x : null;
+    let rc = ok(r.getClientRects()[0]); if (rc) return rc;
+    const c = r.startContainer, o = r.startOffset, q = document.createRange();
+    if (c.nodeType === 3 && o > 0) { q.setStart(c, o - 1); q.setEnd(c, o); const l = q.getClientRects(); if ((rc = ok(l[l.length - 1]))) return rc; }
+    if (c.nodeType === 3 && o < c.length) { q.setStart(c, o); q.setEnd(c, o + 1); if ((rc = ok(q.getClientRects()[0]))) return rc; }
+    const node = c.nodeType === 1 ? c.childNodes[o - 1] || c.childNodes[o] || c : c.parentElement;
+    return ok((node.nodeType === 1 ? node : node.parentElement).getBoundingClientRect());
   }
   function showRange(r) {   // 패널이 열린 동안 고른 글자를 보이게 칠해 둬요
     if (!window.Highlight || !CSS.highlights) return;
@@ -380,7 +406,7 @@ function viewWrite({ fmt, id }) {
   function tools() {
     $$('.tb .t').forEach(b => {
       const k = b.dataset.t;
-      if (k === 'undo') return b.classList.toggle('off', st.hi <= 0);
+      if (k === 'undo') return b.classList.toggle('off', st.hi <= 0 && !st.timer);
       if (k === 'redo') return b.classList.toggle('off', st.hi >= st.hist.length - 1);
       b.classList.toggle('off', !enabled(k)); b.classList.toggle('on', st.panel === k);
     });
@@ -394,8 +420,10 @@ function viewWrite({ fmt, id }) {
     b.onclick = () => {
       const k = b.dataset.t;
       if (b.classList.contains('off')) return shake(b);
+      flush();
       if (k === 'undo' || k === 'redo') {
-        clearTimeout(st.timer); st.hi += k === 'undo' ? -1 : 1;
+        if (k === 'undo' ? st.hi <= 0 : st.hi >= st.hist.length - 1) return;
+        st.hi += k === 'undo' ? -1 : 1;
         card = clone(st.hist[st.hi]); persist();
         if (rich) st.pg = Math.min(st.pg, card.pages.length - 1);
         const was = typingNow(); paintMeta(); draw(); if (was && !typingNow()) caretEnd(st.pg);
@@ -454,6 +482,7 @@ function viewWrite({ fmt, id }) {
       x.onclick = () => {
         const k = x.dataset.f;
         if (x.classList.contains('off')) return shake(x);
+        flush();
         if (['al', 'ac', 'ar'].includes(k)) { card.align.h = k[1]; push(); draw(); return panelFmt(); }
         if (['vt', 'vm', 'vb'].includes(k)) { card.align.v = k[1]; push(); draw(); return panelFmt(); }
         if (k === 'date') { card.datePos = { top: 'bottom', bottom: 'none', none: 'top' }[dp]; push(); draw(); return panelFmt(); }
@@ -481,11 +510,11 @@ function viewWrite({ fmt, id }) {
     $$('[data-tab]', panel).forEach(t => t.onclick = () => {
       if (t.dataset.tab === 'photo') return toast('내 사진 배경은 사진 연결 후 열려요');
       const L = t.dataset.tab === 'paid' ? PAID : FREE;
-      if ((t.dataset.tab === 'paid') !== isPaidId(card.bg.id)) { card.bg.id = L[0].id; push(); draw(); }
+      if ((t.dataset.tab === 'paid') !== isPaidId(card.bg.id)) { flush(); card.bg.id = L[0].id; push(); draw(); }
       panelBg();
     });
-    $$('[data-dim]', panel).forEach(t => t.onclick = () => { card.bg.dim = t.dataset.dim; push(); draw(); panelBg(); });
-    $$('[data-b]', panel).forEach(t => t.onclick = () => { card.bg.id = t.dataset.b; if (!card.bg.seed) card.bg.seed = newSeed(); push(); draw(); panelBg(); });
+    $$('[data-dim]', panel).forEach(t => t.onclick = () => { flush(); card.bg.dim = t.dataset.dim; push(); draw(); panelBg(); });
+    $$('[data-b]', panel).forEach(t => t.onclick = () => { flush(); card.bg.id = t.dataset.b; if (!card.bg.seed) card.bg.seed = newSeed(); push(); draw(); panelBg(); });
   }
   const isPaidId = x => PAID.some(b => b.id === x);
 

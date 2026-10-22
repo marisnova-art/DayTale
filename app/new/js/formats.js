@@ -84,11 +84,13 @@ export function placeObjects(root, seed) {
   return true;
 }
 
+// 쓰는 중 브라우저가 넣는 붙은 칸(&nbsp;)은 보여 줄 때 보통 칸으로 (줄이 자연스럽게 바뀌게)
+const soft = (h, edit) => edit ? h : h.replace(/&nbsp;/g, ' ');
 function rebus(c, { edit = false } = {}) {
   const el = document.createElement('div');
   el.className = 'cd rebus' + (edit ? ' edit' : '');
-  const html = rebusHtmlOf(c), empty = !html.replace(/<[^>]+>/g, '').trim();
-  const foot = [(c.title || '').trim() || weekday(c.date), dateChip(c.date).split(' ')[0], (c.place || '').trim()].filter(Boolean).map(esc).join(' · ');
+  const html = soft(rebusHtmlOf(c), edit), empty = !html.replace(/<[^>]+>/g, '').trim();
+  const foot = [weekday(c.date), dateChip(c.date).split(' ')[0], (c.place || '').trim()].filter(Boolean).map(esc).join(' · ');
   el.innerHTML = `<div class="rb body" ${edit ? 'contenteditable="true" spellcheck="false" autocapitalize="off"' : ''}>${empty && !edit ? '<span class="ph">오늘 있었던 일을 써 보세요.</span>' : html}</div>
     ${edit ? `<div class="rb exm">${FORMATS.rebus.sample.html}</div>` : ''}
     <div class="foot"><span>${foot}</span><span class="sig"></span></div>`;
@@ -123,7 +125,7 @@ function bgLayer(c, page, pages) {
 function text(c, { edit = false } = {}) {
   const el = document.createElement('div');
   el.className = 'cd text' + (edit ? ' edit' : '');
-  const pages = c.pages?.length ? c.pages : [''];
+  const pages = (c.pages?.length ? c.pages : ['']).map(h => soft(h, edit));
   const dp = c.datePos || 'top';
   const info = esc([dateLine(c.date), (c.place || '').trim()].filter(Boolean).join(' · '));
   const ex = FORMATS.text.sample.pages[0].replace(/<[^>]+>/g, '');
@@ -188,7 +190,7 @@ export const ORDER = ['rebus', 'text'];
 
 export function blank(fmt, date) {
   return fmt === 'rebus'
-    ? { fmt, date, title: '', place: '', html: '', seed: newSeed() }
+    ? { fmt, date, place: '', html: '', seed: newSeed() }
     : { fmt, date, place: '', pages: [''], bg: { id: 'g1', dim: 'dark', seed: newSeed() }, align: { h: 'l', v: 'm' }, datePos: 'top' };
 }
 export const sampleCard = (fmt, date) => ({ ...blank(fmt, date), ...structuredClone(FORMATS[fmt].sample), sample: true });
