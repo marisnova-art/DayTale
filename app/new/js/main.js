@@ -157,17 +157,20 @@ function feedItem(c) {
   on('edit', () => go(`#/edit/${c.id}`));
   on('save', () => exportCard(c));
   on('mark', e => { c.mark = !c.mark; S.saveCard(c); e.currentTarget.classList.toggle('on', c.mark); toast(c.mark ? '책갈피에 넣었어요' : '책갈피에서 뺐어요'); });
-  on('del', () => {   // 바로 지우고, 잠깐 '되돌리기'를 보여 줘요
+  on('del', async () => {   // 한 번 물어보고 지워요. 지운 카드는 휴지통에 30일
+    if (!(await ask('이 카드를 지울까요?', '삭제'))) return;
     S.removeCard(c.id); it.remove();
-    undoToast('삭제했어요', () => { S.saveCard(c); route(); });
   });
   return it;
 }
-function undoToast(msg, undo) {
-  $$('.toast').forEach(t => t.remove());
-  const t = document.createElement('div'); t.className = 'toast ud'; t.innerHTML = `<span>${msg}</span><button>되돌리기</button>`;
-  $('button', t).onclick = () => { t.remove(); undo(); };
-  document.body.appendChild(t); setTimeout(() => t.remove(), 4000);
+// 확인 창: 취소 · 빨간 버튼. 바깥을 누르면 취소
+function ask(msg, yes) {
+  return new Promise(done => {
+    const bg = document.createElement('div'); bg.className = 'ask-bg';
+    bg.innerHTML = `<div class="ask" role="alertdialog"><p>${msg}</p><div><button data-r="0">취소</button><button class="red" data-r="1">${yes}</button></div></div>`;
+    bg.addEventListener('click', e => { const b = e.target.closest('[data-r]'); if (b || e.target === bg) { bg.classList.add('out'); setTimeout(() => bg.remove(), 160); done(b?.dataset.r === '1'); } });
+    document.body.appendChild(bg);
+  });
 }
 
 // 크게 보기: 카드 전체를 나누지 않은 긴 한 장으로. 피드 카드 자리에서 커지며 나오고, 길면 위아래로 밀어 읽어요.
@@ -595,7 +598,10 @@ function viewWrite({ fmt, id }) {
     if (!hasText()) return;
     if (isNew) { card.id = S.uid(); card.created = new Date().toISOString(); S.clearDraft(); }
     delete card.sample; S.saveCard(card);
-    go(`#/feed/${card.id}`);
+    // 다 됐다는 표시: 가운데 큰 체크가 잠깐 떴다가 피드로
+    const ok = $('[data-a=ok]'); ok.disabled = true; document.activeElement?.blur?.();
+    const mk = document.createElement('div'); mk.className = 'okmark'; mk.innerHTML = `<span>${ic('check')}</span>`; document.body.appendChild(mk);
+    setTimeout(() => { mk.remove(); go(`#/feed/${card.id}`); }, 900);
   };
 
   paintMeta(); sizeCard(); draw(); kb();

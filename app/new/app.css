@@ -218,8 +218,21 @@ html.pan .wr .panel { display: grid; }
 .sheet .grab { width: 40px; height: 5px; border-radius: 3px; background: #3a3a3f; margin: 0 auto 10px; }
 .sheet .it { display: flex; gap: 12px; align-items: center; height: 52px; padding: 0 6px; font-size: 16px; font-weight: 600; border-radius: 12px; }
 .sheet .it.red { color: #ff6b6b; }
-.toast.ud { display: flex; gap: 14px; align-items: center; padding: 8px 8px 8px 16px; }
-.toast.ud button { background: var(--bg); color: #fff; font-size: 13px; font-weight: 800; padding: 6px 12px; border-radius: 999px; }
+/* 확인 창 (삭제) */
+.ask-bg { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 70; display: flex; align-items: center; justify-content: center; padding: 0 40px; animation: fade .16s; }
+.ask-bg.out { opacity: 0; transition: opacity .16s; }
+.ask { width: 100%; max-width: 300px; background: var(--srf); border-radius: 20px; padding: 26px 18px 18px; text-align: center; animation: popin .18s ease-out; }
+.ask p { font-size: 17px; font-weight: 700; margin-bottom: 22px; }
+.ask div { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.ask button { height: 48px; border-radius: 14px; background: var(--srf2); font-size: 16px; font-weight: 700; }
+.ask button.red { background: #ff5a5a; color: #fff; }
+/* 완료 표시: 가운데 큰 체크 */
+.okmark { position: fixed; inset: 0; z-index: 70; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.35); animation: fade .15s; pointer-events: all; }
+.okmark span { width: 96px; height: 96px; border-radius: 50%; background: #fff; color: var(--bg); display: flex; align-items: center; justify-content: center; animation: popin .28s cubic-bezier(.2,1.4,.4,1); }
+.okmark svg { width: 52px; height: 52px; stroke-width: 2.6; stroke-dasharray: 30; stroke-dashoffset: 30; animation: draw .32s .18s ease-out forwards; }
+@keyframes fade { from { opacity: 0; } }
+@keyframes popin { from { transform: scale(.6); opacity: 0; } }
+@keyframes draw { to { stroke-dashoffset: 0; } }
 .toast { position: fixed; left: 50%; bottom: calc(76px + var(--safe-b)); transform: translateX(-50%); background: #fff; color: var(--bg); font-size: 14px; font-weight: 700; padding: 10px 16px; border-radius: 999px; z-index: 60; white-space: nowrap; }
 .busy { position: fixed; inset: 0; z-index: 70; background: rgba(0,0,0,.55); display: grid; place-items: center; font-weight: 700; }
 
