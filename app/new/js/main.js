@@ -105,9 +105,11 @@ function feedItem(c) {
   const f = FORMATS[c.fmt];
   it.innerHTML = `<div class="cdate">${c.sample ? '예시' : dayLabel(c.date)}</div><div class="fx"><div class="view"></div></div>
     <div class="row">${c.sample
-      ? `<div class="ours">${f.name}<i>NEW</i></div><button class="cb w" data-a="use" aria-label="이 포맷으로 쓰기">${ic('pen')}</button>`
-      : `<div class="l"><button class="cb ${c.mark ? 'on' : ''}" data-a="mark" aria-label="책갈피">${ic('bookmark')}</button><button class="cb" data-a="save" aria-label="사진에 저장">${ic('save')}</button><button class="cb" data-a="edit" aria-label="고치기">${ic('pen')}</button><button class="cb" data-a="del" aria-label="삭제">${ic('trash')}</button><span class="pc" hidden></span></div>`}</div>`;
+      ? `<div class="ours">${f.name}<i>NEW</i></div><button class="cb" data-a="use" aria-label="이 포맷으로 쓰기">${ic('pen')}</button>`
+      : `<div class="l"><button class="cb ${c.mark ? 'on' : ''}" data-a="mark" aria-label="책갈피">${ic('bookmark')}</button><button class="cb" data-a="save" aria-label="사진에 저장">${ic('save')}</button><button class="cb" data-a="edit" aria-label="고치기">${ic('pen')}</button><button class="cb" data-a="del" aria-label="삭제">${ic('trash')}</button><span class="pc" hidden></span></div>`}</div>
+    <p class="ex"></p>`;
   const fx = $('.fx', it), view = $('.view', it), pc = $('.pc', it);
+  $('.ex', it).textContent = cardText(c).replace(/\s+/g, ' ').trim();   // 글 첫머리 한 줄 (길면 …)
   mount(view, c);
   // 저장할 때와 같은 방식으로 장을 나눠서, 여러 장이면 옆으로 넘겨 보는 모양으로 (늘 첫 장부터)
   requestAnimationFrame(() => setTimeout(async () => {
@@ -156,7 +158,7 @@ function openFocus(it) {
   const ov = document.createElement('div'); ov.className = 'fv';
   const box = document.createElement('div'); box.className = 'fi play fvb';
   box.style.cssText = `left:${r.left}px;top:${r.top}px;width:${r.width}px;`;
-  fx.style.height = r.height + 'px'; box.appendChild(view); ov.appendChild(box); document.body.appendChild(ov);
+  fx.style.height = r.height + 'px'; moveKeep(view, () => { box.appendChild(view); ov.appendChild(box); document.body.appendChild(ov); });
   // 뒤 피드는 그대로 두고(보던 자리 유지), 가득 화면에서 위아래로 끌어도 뒤가 움직이지 않게
   ov.addEventListener('touchmove', e => { if (!e.target.closest('.pgs')) e.preventDefault(); }, { passive: false });
   ov.addEventListener('wheel', e => e.preventDefault(), { passive: false });
@@ -164,10 +166,16 @@ function openFocus(it) {
   ov.addEventListener('click', () => closeFocus());
   focus = { ov, box, fx, view, y: scrollY };
 }
+// 옮겨도 보던 장 그대로 (옮기면 브라우저가 첫 장으로 되돌려요), 장 수도 다시 맞춰요
+function moveKeep(view, move) {
+  const pg = $('.pgs', view), x = pg?.scrollLeft || 0;
+  move();
+  if (pg) { pg.scrollLeft = x; pg.dispatchEvent(new Event('scroll')); }
+}
 function closeFocus(now) {
   if (!focus || focus.closing) return;
   const f = focus; f.closing = true;
-  const done = () => { f.fx.appendChild(f.view); f.fx.style.height = ''; f.ov.remove(); if (scrollY !== f.y) scrollTo(0, f.y); focus = null; };
+  const done = () => { moveKeep(f.view, () => f.fx.appendChild(f.view)); f.fx.style.height = ''; f.ov.remove(); if (scrollY !== f.y) scrollTo(0, f.y); focus = null; };
   if (now) return done();
   f.ov.classList.remove('in'); f.box.style.transform = '';
   setTimeout(done, 380);

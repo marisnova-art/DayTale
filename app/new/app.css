@@ -16,7 +16,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 
 /* 위 줄 */
 .top { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  padding: calc(var(--safe-t) + 10px) var(--gut) 10px; background: linear-gradient(var(--bg) 70%, rgba(20,20,22,0)); }
+  padding: calc(var(--safe-t) + 26px) var(--gut) 10px; background: linear-gradient(var(--bg) 70%, rgba(20,20,22,0)); }
 .top .nm { font-size: 15px; font-weight: 700; color: #cfcfd4; }
 .top .logo { font-size: 21px; font-weight: 800; letter-spacing: -.03em; }
 .cb { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: rgba(255,255,255,.08); position: relative; }
@@ -70,9 +70,9 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .cd.rebus.edit.empty::after { background: rgba(46,45,43,.12); color: #6b6862; bottom: auto; top: 3cqw; left: auto; right: 4cqw; transform: none; }
 
 /* 피드: 위 줄은 같이 스크롤(흐림 없음). 가운데 카드 색이 바탕에 번지고, 그 카드만 움직여요 */
-.amb { position: fixed; left: -30%; right: -30%; top: -10%; height: 85vh; z-index: -1; background-color: #333; opacity: .32; pointer-events: none;
+.amb { position: fixed; left: -30%; right: -30%; top: calc(var(--safe-t) + 90px); height: 80vh; z-index: -1; background-color: #333; opacity: .32; pointer-events: none;
   -webkit-mask-image: radial-gradient(closest-side, #000 0%, transparent 100%); mask-image: radial-gradient(closest-side, #000 0%, transparent 100%); transition: background-color 1.2s ease; }
-.ftop { display: flex; align-items: center; justify-content: space-between; padding: calc(var(--safe-t) + 14px) var(--gut) 20px; }
+.ftop { display: flex; align-items: center; justify-content: space-between; padding: calc(var(--safe-t) + 30px) var(--gut) 20px; }   /* 시계 줄 블러 아래 */
 .ftop .logo { font-size: 32px; font-weight: 800; letter-spacing: -.035em; line-height: 40px; }
 .feed { padding: 0 var(--gut) calc(120px + var(--safe-b)); display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; }
 .fi .cdate { font-size: 13px; font-weight: 700; color: var(--mut); letter-spacing: .02em; margin-bottom: -2px; }
@@ -89,17 +89,21 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .fi.multi .fx::before, .fi.multi .fx::after { content: ''; position: absolute; left: 8px; right: 8px; bottom: -5px; height: 5px; border-radius: 0 0 6px 6px; background: #3a3a3f; z-index: -1; }
 .fi.multi .fx::after { left: 16px; right: 16px; bottom: -9px; background: #2a2a2e; }
 .fi.multi .row { margin-top: 6px; }
-.fi .row { display: flex; align-items: center; justify-content: space-between; }
-.fi .row .l { display: flex; gap: 8px; align-items: center; }
-.fi .row .cb.on { background: #fff; color: var(--bg); }
-.fi .row .pc { font-size: 13px; font-weight: 800; color: var(--mut); margin-left: 4px; font-variant-numeric: tabular-nums; }
+.fi .row { display: flex; align-items: center; justify-content: space-between; margin: -4px -8px 0; }
+.fi .row .l { display: flex; gap: 4px; align-items: center; flex: 1; }
+/* 카드 아래 아이콘: 동그라미 없이 선 아이콘만. 책갈피가 켜지면 채워져요 */
+.fi .row .cb { background: none; width: 40px; height: 40px; }
+.fi .row .cb .ic { width: 24px; height: 24px; }
+.fi .row .cb.on .ic { fill: currentColor; }
+.fi .row .pc { font-size: 13px; font-weight: 800; color: var(--mut); margin: 0 8px 0 auto; font-variant-numeric: tabular-nums; }
+.fi .ex { font-size: 14px; line-height: 1.45; color: #a9a9b0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: -6px; }
 /* 카드만 화면 가득: 그 자리에서 커지며 나와요 */
 .fv { position: fixed; inset: 0; z-index: 100; background: rgba(12,12,13,0); transition: background-color .36s ease; cursor: pointer; }
 .fv.in { background: rgba(12,12,13,1); }
 .fvb { position: fixed; transform-origin: 0 0; transition: transform .38s cubic-bezier(.2,.8,.2,1); display: block; }
 .fvb .view { border-radius: 6px; overflow: hidden; }
 .fv.in .fvb .view, .fv.in .fvb .cd { border-radius: 0; }
-.fi .ours { display: flex; gap: 8px; align-items: center; font-size: 14px; font-weight: 800; }
+.fi .ours { padding-left: 8px; display: flex; gap: 8px; align-items: center; font-size: 14px; font-weight: 800; }
 .fi .ours i { font-style: normal; background: #fff; color: var(--bg); font-size: 10px; padding: 2px 6px; border-radius: 6px; }
 /* 모션: 가운데 카드만. 코드 배경은 천천히 흐르고, 그림 문장은 처음 볼 때 그림이 톡톡 나온 뒤 몇 개만 잔잔히 */
 .fi.play canvas.bgc { animation: drift 18s ease-in-out infinite alternate; }
@@ -113,10 +117,10 @@ body.paused .fi * { animation-play-state: paused !important; }
 @media (prefers-reduced-motion: reduce) { .fi * { animation: none !important; } .amb { transition: none; } }
 
 /* 하단 메뉴 */
-.nav { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + var(--safe-b)); z-index: 30; display: flex; gap: 6px; padding: 6px; background: #26262a; border-radius: 999px; align-items: center; }
+.nav { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(6px + var(--safe-b)); z-index: 30; display: flex; gap: 6px; padding: 4px; background: #26262a; border-radius: 999px; align-items: center; }
 .nb { width: 56px; height: 44px; border-radius: 999px; display: grid; place-items: center; color: var(--mut); }
 .nb.on { color: #fff; }
-.nb.nw { background: #fff; color: var(--bg); width: 52px; height: 52px; border-radius: 50%; }
+.nb.nw { background: #fff; color: var(--bg); width: 44px; height: 44px; border-radius: 50%; margin: 0 6px; }   /* 메뉴 바 52px */
 .av { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, #f4a3c4, #8a7cf0); }
 
 /* 포맷 고르기 */
@@ -205,6 +209,6 @@ html.pan .wr .panel { display: grid; }
 .sheet .it.red { color: #ff6b6b; }
 .toast.ud { display: flex; gap: 14px; align-items: center; padding: 8px 8px 8px 16px; }
 .toast.ud button { background: var(--bg); color: #fff; font-size: 13px; font-weight: 800; padding: 6px 12px; border-radius: 999px; }
-.toast { position: fixed; left: 50%; bottom: calc(96px + var(--safe-b)); transform: translateX(-50%); background: #fff; color: var(--bg); font-size: 14px; font-weight: 700; padding: 10px 16px; border-radius: 999px; z-index: 60; white-space: nowrap; }
+.toast { position: fixed; left: 50%; bottom: calc(76px + var(--safe-b)); transform: translateX(-50%); background: #fff; color: var(--bg); font-size: 14px; font-weight: 700; padding: 10px 16px; border-radius: 999px; z-index: 60; white-space: nowrap; }
 .busy { position: fixed; inset: 0; z-index: 70; background: rgba(0,0,0,.55); display: grid; place-items: center; font-weight: 700; }
 
