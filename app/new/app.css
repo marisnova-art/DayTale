@@ -88,17 +88,34 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .strip .th .lab { font-size: 11px; color: var(--mut); text-align: center; margin-top: 4px; }
 .go { height: 52px; border-radius: 999px; background: #fff; color: var(--bg); font-weight: 800; font-size: 16px; display: flex; align-items: center; justify-content: center; gap: 8px; }
 
-/* 쓰기 */
-.wr { height: 100dvh; display: flex; flex-direction: column; }
-.wr .stage { flex: 1; overflow-y: auto; padding: 4px var(--gut) 20px; -webkit-overflow-scrolling: touch; }
-.wr .stage .cd { margin: 0 auto; }
-.wr .field { display: block; width: 100%; margin-top: 14px; min-height: 120px; background: var(--srf); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; color: #fff; font: 500 17px/1.6 var(--ui); resize: none; outline: none; }
-.wr .meta { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 12px; color: var(--mut); }
+/* 쓰기: 화면은 움직이지 않고, 보이는 높이(키보드 위)를 미리보기 · 글 칸 · 도구 줄이 나눠 써요 */
+html.wmode, html.wmode body { overflow: hidden; height: 100%; }
+.wr { position: fixed; left: 0; right: 0; top: 0; height: 100dvh; max-width: 480px; margin: 0 auto; display: flex; flex-direction: column; background: var(--bg); }
+.wr .top { position: relative; flex: none; }
+.wr .pv { flex: 1 1 auto; min-height: 0; position: relative; display: flex; flex-direction: column; align-items: center; padding: 0 var(--gut) 8px; }
+.wr .pvb { flex: 1; min-height: 0; width: 100%; display: flex; justify-content: center; align-items: flex-start; overflow-y: auto; scrollbar-width: none; }
+.wr .pvb::-webkit-scrollbar { display: none; }
+.wr .pvb .cd { flex: none; }
+.wr .dots { flex: none; display: flex; gap: 6px; justify-content: center; height: 14px; align-items: center; }
+.wr .dots i { width: 6px; height: 6px; border-radius: 50%; background: #55555b; } .wr .dots i.on { background: #fff; }
+.wr .fw { flex: none; padding: 0 var(--gut) 8px; display: flex; flex-direction: column; min-height: 0; }
+.wr .meta { display: flex; justify-content: space-between; align-items: center; height: 26px; font-size: 12px; color: var(--mut); }
 .wr .ttl { background: none; border: 0; outline: none; color: #fff; font: 600 14px var(--ui); width: 60%; }
 .wr .ttl::placeholder { color: var(--off); }
-.wr .dots { display: flex; gap: 6px; justify-content: center; margin-top: 10px; }
-.wr .dots i { width: 6px; height: 6px; border-radius: 50%; background: #55555b; } .wr .dots i.on { background: #fff; }
-.cnt { text-align: right; font-size: 12px; color: var(--mut); margin-top: 6px; }
+.wr .field { display: block; width: 100%; flex: 1; min-height: 0; background: var(--srf); border: 1px solid var(--line); border-radius: 14px; padding: 10px 14px; color: #fff; font: 500 17px/1.6 var(--ui); resize: none; outline: none; overflow-y: auto; -webkit-user-select: text; user-select: text; }
+.wr .field:empty::before { content: attr(data-ph); color: var(--off); }
+.wr .field b, .wr .field strong { font-weight: 800; }
+.wr .field mark { background: rgba(255,214,90,.35); color: #fff; border-radius: 3px; padding: 0 2px; }
+.wr .field h2 { font-size: 20px; font-weight: 800; margin: 2px 0; }
+.wr .field ul { padding-left: 20px; }
+/* 보기 상태(키보드·패널 없음): 미리보기가 크게, 글 칸은 한 줄 */
+.wr:not(.split) .field { height: 46px; flex: none; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--mut); }
+.wr:not(.split) .field * { display: inline; font-size: inherit; margin: 0; padding: 0; background: none; }
+.wr:not(.split) .meta .ttl { pointer-events: none; }
+/* 쓰는 중 / 패널: 미리보기는 작게(고정), 글 칸이 나머지 */
+.wr.split .pv { flex: 0 0 var(--pvh, 34%); }
+.wr.split .fw { flex: 1 1 auto; }
+.cnt { font-size: 12px; color: var(--mut); }
 
 .tb { flex: none; display: flex; align-items: center; gap: 2px; padding: 6px 10px; background: var(--srf); border-top: 1px solid var(--line); }
 .tb .t { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; color: #fff; }
@@ -108,7 +125,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .tb .t.shake { animation: shake .3s; }
 @keyframes shake { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
 
-.panel { flex: none; background: var(--srf); padding: 14px var(--gut) calc(18px + var(--safe-b)); display: grid; gap: 10px; }
+.panel { flex: none; background: var(--srf); padding: 14px var(--gut) calc(18px + var(--safe-b)); display: grid; gap: 10px; align-content: start; }
 .pgrid { display: grid; grid-template-columns: repeat(6, var(--btn)); gap: 10px; justify-content: space-between; }
 .pb { width: var(--btn); height: var(--btn); border-radius: 12px; background: var(--srf2); display: grid; place-items: center; color: #fff; }
 .pb.on { background: #fff; color: var(--bg); }
@@ -135,3 +152,6 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .sheet .it.red { color: #ff6b6b; }
 .toast { position: fixed; left: 50%; bottom: calc(96px + var(--safe-b)); transform: translateX(-50%); background: #fff; color: var(--bg); font-size: 14px; font-weight: 700; padding: 10px 16px; border-radius: 999px; z-index: 60; white-space: nowrap; }
 .busy { position: fixed; inset: 0; z-index: 70; background: rgba(0,0,0,.55); display: grid; place-items: center; font-weight: 700; }
+.panel[hidden] { display: none; }
+.wr .tb:nth-last-child(2):has(+ .panel[hidden]) { padding-bottom: calc(6px + var(--safe-b)); }
+.wr.split .tb { padding-bottom: 6px; }

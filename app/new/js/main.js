@@ -144,203 +144,196 @@ function clean(html) {
 }
 
 function viewWrite({ fmt, id }) {
-  let isNew = !id, card;
+  const isNew = !id;
+  let card;
   if (id) card = S.card(id);
   else if (fmt === 'draft') card = S.draft()?.card;
   else card = blank(fmt, S.today());
   if (!card || !FORMATS[card.fmt]) return go('#/');
-  const f = FORMATS[card.fmt];
-  const st = { panel: null, hist: [clone(card)], hi: 0, timer: 0 };
+  const f = FORMATS[card.fmt], rich = card.fmt === 'text';
+  const st = { panel: null, hist: [clone(card)], hi: 0, timer: 0, pg: 0, typing: false };
 
+  document.documentElement.classList.add('wmode');
   app.innerHTML = `<div class="wr">
     <header class="top"><button class="cb" data-a="back" aria-label="뒤로">${ic('back')}</button><div class="nm">${f.name}</div><button class="cb w" data-a="ok" aria-label="완료">${ic('check')}</button></header>
-    <div class="stage"><div class="cbox"></div><div class="under"></div></div>
+    <section class="pv"><div class="pvb"></div><div class="dots"></div></section>
+    <section class="fw"><div class="meta">${rich ? '<span></span>' : '<input class="ttl" maxlength="12" placeholder="제목 (비우면 요일)">'}<span class="cnt"></span></div>
+      ${rich ? '<div class="field" contenteditable="true" spellcheck="false" data-ph="오늘 하루를 적어 보세요"></div>' : '<textarea class="field" placeholder="오늘 하루를 적어 보세요"></textarea>'}</section>
     <div class="tb">${['fmt', 'photo', 'emo', 'bg', 'page', 'shuf'].map(k => `<button class="t" data-t="${k}">${ic(k)}</button>`).join('')}<span class="sep"></span><button class="t" data-t="undo">${ic('undo')}</button><button class="t" data-t="redo">${ic('redo')}</button></div>
     <div class="panel" hidden></div></div>`;
-  const wr = $('.wr'), cbox = $('.cbox'), under = $('.under'), panel = $('.panel');
+  const wr = $('.wr'), pvb = $('.pvb'), dots = $('.pv .dots'), field = $('.field'), panel = $('.panel');
 
-  // iPhone 키보드: 보이는 화면 높이에 맞춰 도구 줄이 키보드 바로 위에 붙어요
+  // 보이는 높이(키보드 위)에 맞춰 고정. 화면 전체는 스크롤되지 않아요
   const vv = window.visualViewport;
-  const fitVV = () => { if (!vv) return; wr.style.height = vv.height + 'px'; wr.style.transform = `translateY(${vv.offsetTop}px)`; };
-  vv?.addEventListener('resize', fitVV); vv?.addEventListener('scroll', fitVV); fitVV();
-  wr.style.position = 'fixed'; wr.style.left = wr.style.right = '0'; wr.style.top = '0'; wr.style.maxWidth = '480px'; wr.style.margin = '0 auto';
-  cleanup = () => { vv?.removeEventListener('resize', fitVV); vv?.removeEventListener('scroll', fitVV); clearTimeout(st.timer); };
+  const fitVV = () => {
+    const h = vv ? vv.height : innerHeight, top = vv ? vv.offsetTop : 0;
+    wr.style.height = h + 'px'; wr.style.top = top + 'px';
+    wr.style.setProperty('--pvh', Math.round(Math.max(140, Math.min(h * .4, 320))) + 'px');
+    if (window.scrollY) window.scrollTo(0, 0);
+    requestAnimationFrame(size);
+  };
+  vv?.addEventListener('resize', fitVV); vv?.addEventListener('scroll', fitVV); addEventListener('resize', fitVV);
+  cleanup = () => {
+    vv?.removeEventListener('resize', fitVV); vv?.removeEventListener('scroll', fitVV); removeEventListener('resize', fitVV);
+    clearTimeout(st.timer); document.documentElement.classList.remove('wmode');
+  };
+
+  const setMode = () => { wr.classList.toggle('split', st.typing || !!st.panel); requestAnimationFrame(size); };
+  field.addEventListener('focus', () => { st.typing = true; if (st.panel) closePanel(); setMode(); });
+  field.addEventListener('blur', () => { st.typing = false; setMode(); });
+  $('.ttl') && $('.ttl').addEventListener('focus', () => { st.typing = true; if (st.panel) closePanel(); setMode(); });
+  $('.ttl') && $('.ttl').addEventListener('blur', () => { st.typing = false; setMode(); });
 
   // 기록: 셔플·배경·정렬은 바로, 글은 잠깐 멈췄을 때 한 칸씩
+  const persist = () => { if (isNew) S.saveDraft({ card }); };
   const push = () => { st.hist = st.hist.slice(0, st.hi + 1); st.hist.push(clone(card)); if (st.hist.length > 80) st.hist.shift(); st.hi = st.hist.length - 1; tools(); persist(); };
   const pushLater = () => { clearTimeout(st.timer); st.timer = setTimeout(push, 700); persist(); };
-  const persist = () => { if (isNew) S.saveDraft({ card }); };
   const hasText = () => cardText(card).trim().length > 0;
+  const count = () => { $('.cnt').textContent = `${cardText(card).replace(/\s/g, '').length}자`; };
 
+  // 미리보기: 남은 공간에 카드가 통째로 들어가게(4:5 기준). 긴 그림 문장은 쓰는 줄 근처를 보여 줘요
   let el = null;
-  function draw(focusPage) {
-    cbox.innerHTML = '';
-    el = mount(cbox, card, { edit: card.fmt === 'text' });
-    if (card.fmt === 'text') bindText(focusPage);
-    drawUnder(); tools();
-  }
-  function drawUnder() {
-    const n = cardText(card).replace(/\s/g, '').length;
-    if (card.fmt === 'rebus') {
-      if (!$('.field', under)) {
-        under.innerHTML = `<div class="meta"><input class="ttl" maxlength="12" placeholder="제목 (비우면 요일)"><span class="cnt"></span></div><textarea class="field" placeholder="오늘 하루를 적어 보세요"></textarea>`;
-        const ta = $('.field', under), tt = $('.ttl', under);
-        ta.value = card.text; tt.value = card.title || '';
-        const grow = () => { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; };
-        ta.oninput = () => { card.text = ta.value; redrawRebus(); pushLater(); grow(); };
-        tt.oninput = () => { card.title = tt.value; redrawRebus(); pushLater(); };
-        ta.onfocus = () => closePanel(true);
-        requestAnimationFrame(grow);
-      }
-      $('.cnt', under).textContent = `${n}자`;
-    } else {
-      const pages = card.pages.length;
-      under.innerHTML = `${pages > 1 ? `<div class="dots">${card.pages.map((_, i) => `<i data-i="${i}"></i>`).join('')}</div>` : ''}<div class="cnt">${n}자</div>`;
-      markDot();
+  function preview() {
+    const nel = renderCard(card); el ? el.replaceWith(nel) : pvb.appendChild(nel); el = nel;
+    size();
+    if (rich) {
+      el.addEventListener('scroll', () => {
+        const i = Math.round(el.scrollLeft / Math.max(1, el.clientWidth));
+        if (i !== st.pg) { st.pg = i; loadPage(); }
+        drawDots();
+      }, { passive: true });
+      el.scrollLeft = st.pg * el.clientWidth;
     }
+    drawDots(); count(); tools();
   }
-  function redrawRebus() {
-    const nel = renderCard(card); cbox.replaceChildren(nel); fitCard(nel, card); el = nel;
-    $('.cnt', under).textContent = `${cardText(card).replace(/\s/g, '').length}자`; tools();
+  function size() {
+    if (!el) return;
+    const w = pvb.clientWidth, h = pvb.clientHeight; if (!w || !h) return;
+    el.style.width = Math.floor(Math.min(w, h * .8)) + 'px';
+    fitCard(el, card);
+    if (rich) el.scrollLeft = st.pg * el.clientWidth;
+    if (!rich && st.typing) pvb.scrollTop = pvb.scrollHeight;
   }
-  function markDot() {
-    const sc = $('.cd.text', cbox); if (!sc) return;
-    const i = Math.round(sc.scrollLeft / Math.max(1, sc.clientWidth));
-    $$('.dots i', under).forEach((d, k) => d.classList.toggle('on', k === i));
+  function drawDots() {
+    const n = rich ? card.pages.length : 0;
+    dots.innerHTML = n > 1 ? card.pages.map((_, i) => `<i class="${i === st.pg ? 'on' : ''}"></i>`).join('') : '';
   }
-  function curPage() { const sc = $('.cd.text', cbox); return sc ? Math.round(sc.scrollLeft / Math.max(1, sc.clientWidth)) : 0; }
 
-  function bindText(focusPage) {
-    const sc = $('.cd.text', cbox);
-    sc.addEventListener('scroll', markDot, { passive: true });
-    $$('.body', sc).forEach((b, i) => {
-      b.addEventListener('input', () => {
-        card.pages[i] = clean(b.innerHTML);
-        fitCard(el, card); drawCount(); pushLater();
-      });
-      b.addEventListener('focus', () => closePanel(true));
-      b.addEventListener('paste', e => { e.preventDefault(); document.execCommand('insertText', false, e.clipboardData.getData('text/plain')); });
-    });
-    if (focusPage != null) {
-      requestAnimationFrame(() => {
-        sc.scrollTo({ left: focusPage * sc.clientWidth, behavior: 'smooth' });
-        const b = $$('.body', sc)[focusPage]; b?.focus();
-      });
-    }
+  // 글 칸
+  function loadPage() {
+    if (rich) { field.innerHTML = card.pages[st.pg] || ''; field.dataset.ph = st.pg ? `${st.pg + 1}장 · 이어서 써 보세요` : '오늘 하루를 적어 보세요'; }
+    else { field.value = card.text; $('.ttl').value = card.title || ''; }
   }
-  const drawCount = () => { const c = $('.cnt', under); if (c) c.textContent = `${cardText(card).replace(/\s/g, '').length}자`; };
+  field.addEventListener('input', () => {
+    if (rich) card.pages[st.pg] = clean(field.innerHTML); else card.text = field.value;
+    preview(); pushLater();
+  });
+  if (rich) field.addEventListener('paste', e => { e.preventDefault(); document.execCommand('insertText', false, e.clipboardData.getData('text/plain')); });
+  $('.ttl') && ($('.ttl').oninput = e => { card.title = e.target.value; preview(); pushLater(); });
 
   // 도구 줄: 포맷이 안 쓰는 도구는 어둡게, 누르면 살짝 흔들림
-  function enabled(k) {
-    const v = f.tools[k];
-    if (k === 'shuf' && v === 'code') return !!findBg(card.bg?.id).code;
-    return !!v;
-  }
+  const enabled = k => { const v = f.tools[k]; return k === 'shuf' && v === 'code' ? !!findBg(card.bg?.id).code : !!v; };
   function tools() {
     $$('.tb .t').forEach(b => {
       const k = b.dataset.t;
       if (k === 'undo') return b.classList.toggle('off', st.hi <= 0);
       if (k === 'redo') return b.classList.toggle('off', st.hi >= st.hist.length - 1);
-      b.classList.toggle('off', !enabled(k));
-      b.classList.toggle('on', st.panel === k);
+      b.classList.toggle('off', !enabled(k)); b.classList.toggle('on', st.panel === k);
     });
     $('[data-a=ok]').disabled = !hasText();
   }
+  const shake = b => { b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake'); };
 
   $$('.tb .t').forEach(b => {
     b.addEventListener('pointerdown', e => e.preventDefault());
     b.onclick = () => {
       const k = b.dataset.t;
-      if (b.classList.contains('off')) { b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake'); return; }
+      if (b.classList.contains('off')) return shake(b);
       if (k === 'undo' || k === 'redo') {
-        clearTimeout(st.timer);
-        st.hi += k === 'undo' ? -1 : 1;
+        clearTimeout(st.timer); st.hi += k === 'undo' ? -1 : 1;
         card = clone(st.hist[st.hi]); persist();
-        if (card.fmt === 'rebus') { const ta = $('.field', under); if (ta) { ta.value = card.text; $('.ttl', under).value = card.title || ''; } redrawRebus(); }
-        else draw();
-        return tools();
+        if (rich) st.pg = Math.min(st.pg, card.pages.length - 1);
+        loadPage(); preview(); if (st.panel) openPanel(st.panel); return;
       }
-      if (k === 'shuf') {
-        if (card.fmt === 'rebus') { card.seed = newSeed(); redrawRebus(); }
-        else { card.bg.seed = newSeed(); draw(); }
-        return push();
-      }
+      if (k === 'shuf') { if (rich) card.bg.seed = newSeed(); else card.seed = newSeed(); preview(); return push(); }
       if (k === 'page') {
-        card.pages.push(''); push(); draw(card.pages.length - 1); return;
+        if (rich) card.pages[st.pg] = clean(field.innerHTML);
+        card.pages.push(''); st.pg = card.pages.length - 1; push(); loadPage(); preview();
+        if (st.panel) closePanel(); field.focus(); return;
       }
-      if (k === 'fmt' || k === 'bg') return st.panel === k ? closePanel() : openPanel(k);
+      if (k === 'fmt' || k === 'bg') return st.panel === k ? closePanel(true) : openPanel(k);
       soon();
     };
   });
 
-  let savedRange = null;
+  // 패널은 키보드 자리에 열려요. 글 칸은 보이는 채로 두고, 고른 글자는 기억해 둬요
+  let saved = null;
   function openPanel(k) {
-    const sel = getSelection();
-    savedRange = sel.rangeCount && cbox.contains(sel.anchorNode) ? sel.getRangeAt(0).cloneRange() : null;
-    if (card.fmt === 'rebus') { const ta = $('.field', under); savedRange = ta ? [ta.selectionStart, ta.selectionEnd] : null; }
-    document.activeElement?.blur?.();
+    if (rich) { const s = getSelection(); saved = s.rangeCount && field.contains(s.anchorNode) ? s.getRangeAt(0).cloneRange() : saved; }
+    else saved = document.activeElement === field ? [field.selectionStart, field.selectionEnd] : saved;
     st.panel = k; panel.hidden = false;
+    document.activeElement?.blur?.();
+    st.typing = false;
     k === 'fmt' ? panelFmt() : panelBg();
-    tools();
+    setMode(); tools();
   }
-  function closePanel(keep) { if (!st.panel) return; st.panel = null; panel.hidden = true; panel.innerHTML = ''; if (!keep) tools(); else tools(); }
-
-  function restore() {
-    if (!savedRange || card.fmt === 'rebus') return false;
-    const s = getSelection(); s.removeAllRanges(); s.addRange(savedRange); return !savedRange.collapsed;
+  function closePanel(toKeyboard) {
+    st.panel = null; panel.hidden = true; panel.innerHTML = ''; setMode(); tools();
+    if (toKeyboard) field.focus();
   }
+  const restore = () => {
+    if (!saved || saved.collapsed) return false;
+    const s = getSelection(); s.removeAllRanges(); s.addRange(saved); return true;
+  };
 
   function panelFmt() {
     const ft = f.fmtTools, a = card.align || {}, dp = card.datePos || 'top';
-    const b = (k, icn, on, off) => `<button class="pb ${on ? 'on' : ''} ${off ? 'off' : ''}" data-f="${k}">${ic(icn)}</button>`;
-    panel.innerHTML = `<div class="pgrid">${b('bold', 'bold', 0, !ft.bold)}${b('mark', 'mark', 0, !ft.mark)}${b('head', 'head', 0, !ft.head)}${b('list', 'list', 0, !ft.list)}${b('date', 'date', dp !== 'none' && ft.date, !ft.date)}</div>
-      <div class="pgrid">${b('al', 'al', ft.align && a.h === 'l', !ft.align)}${b('ac', 'ac', ft.align && a.h === 'c', !ft.align)}${b('ar', 'ar', ft.align && a.h === 'r', !ft.align)}${b('vt', 'vt', ft.align && a.v === 't', !ft.align)}${b('vm', 'vm', ft.align && a.v === 'm', !ft.align)}${b('vb', 'vb', ft.align && a.v === 'b', !ft.align)}</div>`;
+    const b = (k, on, off) => `<button class="pb ${on ? 'on' : ''} ${off ? 'off' : ''}" data-f="${k}">${ic({ date: 'date' }[k] || k)}</button>`;
+    panel.innerHTML = `<div class="pgrid">${b('bold', 0, !ft.bold)}${b('mark', 0, !ft.mark)}${b('head', 0, !ft.head)}${b('list', 0, !ft.list)}${b('date', ft.date && dp !== 'none', !ft.date)}</div>
+      <div class="pgrid">${['al', 'ac', 'ar'].map(k => b(k, ft.align && a.h === k[1], !ft.align)).join('')}${['vt', 'vm', 'vb'].map(k => b(k, ft.align && a.v === k[1], !ft.align)).join('')}</div>`;
     if (ft.date) $('[data-f=date]', panel).insertAdjacentHTML('beforeend', `<span class="tag">${{ top: '위', bottom: '아래', none: '끔' }[dp]}</span>`);
     $$('.pb', panel).forEach(btn => {
       btn.addEventListener('pointerdown', e => e.preventDefault());
       btn.onclick = () => {
         const k = btn.dataset.f;
-        if (btn.classList.contains('off')) { btn.classList.remove('shake'); return; }
-        if (card.fmt === 'rebus' && k === 'bold') return rebusBold();
-        if (['al', 'ac', 'ar'].includes(k)) { card.align.h = k[1]; push(); draw(); return panelFmt(); }
-        if (['vt', 'vm', 'vb'].includes(k)) { card.align.v = k[1]; push(); draw(); return panelFmt(); }
-        if (k === 'date') { card.datePos = { top: 'bottom', bottom: 'none', none: 'top' }[dp]; push(); draw(); return panelFmt(); }
+        if (btn.classList.contains('off')) return shake(btn);
+        if (!rich && k === 'bold') return rebusBold();
+        if (['al', 'ac', 'ar'].includes(k)) { card.align.h = k[1]; push(); preview(); return panelFmt(); }
+        if (['vt', 'vm', 'vb'].includes(k)) { card.align.v = k[1]; push(); preview(); return panelFmt(); }
+        if (k === 'date') { card.datePos = { top: 'bottom', bottom: 'none', none: 'top' }[dp]; push(); preview(); return panelFmt(); }
         if (!restore()) return toast('바꿀 글자를 먼저 골라 주세요');
         if (k === 'bold') document.execCommand('bold');
         if (k === 'mark') toggleMark();
-        if (k === 'head') document.execCommand('formatBlock', false, /H2/.test(document.queryCommandValue('formatBlock').toUpperCase()) ? 'div' : 'h2');
+        if (k === 'head') document.execCommand('formatBlock', false, /h2/i.test(document.queryCommandValue('formatBlock')) ? 'div' : 'h2');
         if (k === 'list') document.execCommand('insertUnorderedList');
-        syncPages(); push();
-        const s = getSelection(); savedRange = s.rangeCount ? s.getRangeAt(0).cloneRange() : null;
+        const s = getSelection(); saved = s.rangeCount ? s.getRangeAt(0).cloneRange() : null;
+        document.activeElement?.blur?.();
+        card.pages[st.pg] = clean(field.innerHTML); preview(); push();
       };
     });
   }
   function toggleMark() {
     const s = getSelection(); if (!s.rangeCount) return;
-    const r = s.getRangeAt(0), host = r.commonAncestorContainer.nodeType === 1 ? r.commonAncestorContainer : r.commonAncestorContainer.parentNode;
+    const r = s.getRangeAt(0), n = r.commonAncestorContainer, host = n.nodeType === 1 ? n : n.parentNode;
     const m = host.closest('mark');
-    if (m) { m.replaceWith(...m.childNodes); return; }
+    if (m && field.contains(m)) { m.replaceWith(...m.childNodes); return; }
     const frag = r.extractContents(); frag.querySelectorAll?.('mark').forEach(x => x.replaceWith(...x.childNodes));
     const mk = document.createElement('mark'); mk.appendChild(frag); r.insertNode(mk);
     s.removeAllRanges(); const nr = document.createRange(); nr.selectNodeContents(mk); s.addRange(nr);
   }
-  function syncPages() { $$('.cd.text .body', cbox).forEach((b, i) => { card.pages[i] = clean(b.innerHTML); }); fitCard(el, card); drawCount(); }
   function rebusBold() {
-    const ta = $('.field', under); if (!ta || !savedRange) return;
-    let [a, z] = savedRange; if (a === z) return toast('강조할 글자를 먼저 골라 주세요');
-    const sel = ta.value.slice(a, z), rep = /^\*.*\*$/.test(sel) ? sel.slice(1, -1) : `*${sel}*`;
-    ta.setRangeText(rep, a, z, 'select'); card.text = ta.value; savedRange = [a, a + rep.length];
-    redrawRebus(); push();
+    if (!saved || saved[0] === saved[1]) return toast('강조할 글자를 먼저 골라 주세요');
+    const [a, z] = saved, sel = field.value.slice(a, z), rep = /^\*.*\*$/.test(sel) ? sel.slice(1, -1) : `*${sel}*`;
+    field.setRangeText(rep, a, z, 'select'); card.text = field.value; saved = [a, a + rep.length];
+    preview(); push();
   }
 
   function panelBg() {
-    const tab = isPaidId(card.bg.id) ? 'paid' : 'free', dim = card.bg.dim || 'dark';
-    const list = tab === 'paid' ? PAID : FREE;
+    const tab = isPaidId(card.bg.id) ? 'paid' : 'free', dim = card.bg.dim || 'dark', list = tab === 'paid' ? PAID : FREE;
     panel.innerHTML = `<div class="pgrid">
         <button class="pb ${tab === 'free' ? 'on' : ''}" data-tab="free">${ic('grad')}</button>
         <button class="pb ${tab === 'paid' ? 'on' : ''}" data-tab="paid">${ic('spark')}</button>
-        <button class="pb off" data-tab="photo">${ic('scene')}</button>
-        <span></span>
+        <button class="pb off" data-tab="photo">${ic('scene')}</button><span></span>
         <button class="pb ${dim === 'light' ? 'on' : ''}" data-dim="light">${ic('sun')}</button>
         <button class="pb ${dim === 'dark' ? 'on' : ''}" data-dim="dark">${ic('moon')}</button></div>
       <div class="bgs">${list.map(b => `<button class="bt ${b.id === card.bg.id ? 'on' : ''}" data-b="${b.id}" style="${b.css ? `background:${b.css}` : b.img ? `background-image:url(${b.img})` : ''}">${b.code ? '<canvas width="80" height="100"></canvas>' : ''}${tab === 'paid' ? ic('lock') : ''}</button>`).join('')}</div>`;
@@ -348,33 +341,34 @@ function viewWrite({ fmt, id }) {
     $$('[data-tab]', panel).forEach(t => t.onclick = () => {
       if (t.dataset.tab === 'photo') return toast('내 사진 배경은 사진 연결 후 열려요');
       const L = t.dataset.tab === 'paid' ? PAID : FREE;
-      if ((t.dataset.tab === 'paid') !== isPaidId(card.bg.id)) { card.bg.id = L[0].id; push(); draw(); }
+      if ((t.dataset.tab === 'paid') !== isPaidId(card.bg.id)) { card.bg.id = L[0].id; push(); preview(); }
       panelBg();
     });
-    $$('[data-dim]', panel).forEach(t => t.onclick = () => { card.bg.dim = t.dataset.dim; push(); draw(); panelBg(); });
-    $$('[data-b]', panel).forEach(t => t.onclick = () => { card.bg.id = t.dataset.b; if (!card.bg.seed) card.bg.seed = newSeed(); push(); draw(); panelBg(); });
+    $$('[data-dim]', panel).forEach(t => t.onclick = () => { card.bg.dim = t.dataset.dim; push(); preview(); panelBg(); });
+    $$('[data-b]', panel).forEach(t => t.onclick = () => { card.bg.id = t.dataset.b; if (!card.bg.seed) card.bg.seed = newSeed(); push(); preview(); panelBg(); });
   }
-  const isPaidId = idd => PAID.some(b => b.id === idd);
+  const isPaidId = x => PAID.some(b => b.id === x);
+
+  // 미리보기를 누르면: 쓰는 중이면 키보드를 내려 크게 보고, 보는 중이면 다시 쓰기
+  let wasSplit = false;
+  pvb.addEventListener('pointerdown', () => { wasSplit = wr.classList.contains('split'); });
+  pvb.addEventListener('click', () => { if (wasSplit) { document.activeElement?.blur?.(); if (st.panel) closePanel(); } else field.focus(); });
 
   $('[data-a=back]').onclick = () => {
     clearTimeout(st.timer);
-    if (card.fmt === 'text') syncPages();
     if (isNew) { if (hasText()) S.saveDraft({ card }); else S.clearDraft(); }
     else if (hasText()) S.saveCard(card);
-    history.length > 1 ? history.back() : go('#/');
+    go('#/');
   };
   $('[data-a=ok]').onclick = () => {
-    if (card.fmt === 'text') syncPages();
     if (!hasText()) return;
     if (isNew) { card.id = S.uid(); card.created = new Date().toISOString(); S.clearDraft(); }
-    delete card.sample;
-    S.saveCard(card);
+    delete card.sample; S.saveCard(card);
     go(`#/done/${card.id}`);
   };
 
-  draw(card.fmt === 'text' ? null : undefined);
-  if (card.fmt === 'rebus') requestAnimationFrame(() => $('.field', under)?.focus());
-  else requestAnimationFrame(() => { const b = $('.cd.text .body', cbox); if (b && !b.textContent) b.focus(); });
+  loadPage(); fitVV(); preview();
+  document.fonts?.ready.then(size);
 }
 
 /* ── 완료 ───────────────────────────────────────────── */
