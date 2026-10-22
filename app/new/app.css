@@ -74,9 +74,12 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   -webkit-mask-image: radial-gradient(closest-side, #000 0%, transparent 100%); mask-image: radial-gradient(closest-side, #000 0%, transparent 100%); transition: background-color 1.2s ease; }
 .ftop { display: flex; align-items: center; justify-content: space-between; padding: calc(var(--safe-t) + 14px) var(--gut) 20px; }
 .ftop .logo { font-size: 32px; font-weight: 800; letter-spacing: -.035em; line-height: 40px; }
-.feed { padding: 0 var(--gut) calc(120px + var(--safe-b)); display: grid; gap: 28px; }
+.feed { padding: 0 var(--gut) calc(120px + var(--safe-b)); display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; }
+.fi .cdate { font-size: 13px; font-weight: 700; color: var(--mut); letter-spacing: .02em; margin-bottom: -2px; }
+.fi .pgs.nosnap { scroll-snap-type: none; }
+.fi .pgs { overscroll-behavior-x: contain; }
 .day { font-size: 13px; font-weight: 700; color: var(--mut); margin: 6px 0 -16px; letter-spacing: .02em; }
-.fi { display: grid; gap: 10px; }
+.fi { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; min-width: 0; }   /* 옆 장들 때문에 넓어지지 않게 */
 .fi .fx { position: relative; cursor: pointer; border-radius: 6px; }
 .fi .view { position: relative; border-radius: 6px; overflow: hidden; }
 .fi .pgs { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
@@ -91,7 +94,6 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .fi .row .cb.on { background: #fff; color: var(--bg); }
 .fi .row .pc { font-size: 13px; font-weight: 800; color: var(--mut); margin-left: 4px; font-variant-numeric: tabular-nums; }
 /* 카드만 화면 가득: 그 자리에서 커지며 나와요 */
-html.focus, html.focus body { overflow: hidden; }
 .fv { position: fixed; inset: 0; z-index: 100; background: rgba(12,12,13,0); transition: background-color .36s ease; cursor: pointer; }
 .fv.in { background: rgba(12,12,13,1); }
 .fvb { position: fixed; transform-origin: 0 0; transition: transform .38s cubic-bezier(.2,.8,.2,1); display: block; }

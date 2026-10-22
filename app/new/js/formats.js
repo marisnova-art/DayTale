@@ -100,13 +100,18 @@ function rebus(c, { edit = false } = {}) {
   return el;
 }
 
-// 그림 문장 글자 크기: 한 장에 들어가면 140/116/100, 넘으면 84 고정(카드가 길어져요)
+// 그림 문장 글자 크기: 한 장에 들어가면 140/116/100, 넘으면 84 고정(카드가 길어져요).
+// 카드 높이는 글 높이를 직접 재서 정해요 (아이폰 브라우저는 4:5 상자가 글 따라 늘어나지 않아요)
 function fitRebus(el) {
   const p = el.querySelector('.rb'); if (!p) return;
   const W = el.clientWidth; if (!W) return;
   const ex = el.querySelector('.exm'); if (ex) ex.style.fontSize = px(116);
-  for (const fs of [140, 116, 100]) { p.style.fontSize = px(fs); if (el.offsetHeight <= W * 1.25 + 1) return; }
+  const H = W * 1.25, cs = getComputedStyle(p);
+  const need = () => p.offsetHeight + parseFloat(cs.marginTop) + parseFloat(cs.marginBottom);
+  el.style.height = H + 'px';
+  for (const fs of [140, 116, 100]) { p.style.fontSize = px(fs); if (need() <= H + 1) return; }
   p.style.fontSize = px(84);
+  el.style.height = Math.max(H, Math.ceil(need())) + 'px';
 }
 
 // ── 글포맷 ────────────────────────────────────────────────

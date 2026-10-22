@@ -67,8 +67,8 @@ async function rebusPages(c, W) {
   const p = el.querySelector('.rb'), avail = H - 72 * s - 170 * s;
   const st = starts(lines(p), avail);
   const nodes = st.map((off, i) => {
-    const pg = renderCard(c); pg.classList.add('paged'); pg.style.height = H + 'px';
-    h.appendChild(pg); fitCard(pg, c);
+    const pg = renderCard(c); pg.classList.add('paged');
+    h.appendChild(pg); fitCard(pg, c); pg.style.height = H + 'px';
     const rb = pg.querySelector('.rb'); rb.style.fontSize = p.style.fontSize;
     const box = document.createElement('div'); box.className = 'pgbox'; rb.replaceWith(box); box.appendChild(rb);
     clipTo(box, off, (st[i + 1] ? st[i + 1] - off : avail));
