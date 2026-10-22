@@ -42,7 +42,7 @@ function route() {
   if (r === 'pick') return viewPick();
   if (r === 'write') return viewWrite({ fmt: a });
   if (r === 'edit') return viewWrite({ id: a });
-  if (r === 'done') return viewDone(a);
+  if (r === 'feed' || r === 'done') return viewFeed(a);
   return viewFeed();
 }
 window.addEventListener('hashchange', route);
@@ -62,7 +62,7 @@ function bindNav() {
 }
 
 // 피드: 위 줄은 흐림 없이 같이 스크롤돼요. 화면 가운데 카드만 움직이고, 그 카드 색이 바탕에 은은하게 번져요
-function viewFeed() {
+function viewFeed(fresh) {
   const mine = S.cards();
   app.innerHTML = `<div class="amb"></div><header class="ftop"><div class="logo">dayzine</div><button class="cb" data-a="bell" aria-label="알림">${ic('bell')}</button></header>
     <main class="feed"></main>${nav('home')}`;
@@ -91,15 +91,28 @@ function viewFeed() {
   document.addEventListener('visibilitychange', onVis);
   cleanup = () => { removeEventListener('scroll', onScroll); document.removeEventListener('visibilitychange', onVis); closeFocus(true); };
   setTimeout(pickMid, 80);
+
+  // 방금 쓰거나 고친 카드: 그 자리로 가서 살짝 커지며 나와요 (주소는 홈으로 되돌려 둬요)
+  if (fresh) {
+    history.replaceState(null, '', '#/');
+    const it = $(`.feed .fi[data-id="${fresh}"]`);
+    if (it) {
+      const put = () => { if (it !== $('.feed .fi')) it.scrollIntoView({ block: 'center' }); };
+      put(); setTimeout(put, 400);   // 긴 카드가 장으로 나뉜 뒤 한 번 더
+      it.classList.add('fresh'); setTimeout(() => it.classList.remove('fresh'), 1200);
+    }
+  }
 }
-// 언제 썼는지 (인스타처럼): 오늘 · 어제 · N일 전 · 그 뒤엔 M월 D일
-function ago(d) {
-  const day = x => Math.floor(new Date(x + 'T00:00:00').getTime() / 864e5);
-  const n = day(S.today()) - day(d), [y, m, dd] = d.split('-').map(Number);
-  if (n <= 0) return '오늘';
-  if (n === 1) return '어제';
+// 쓴 때 (인스타처럼): 방금 · N분 전 · N시간 전 · 어제 · N일 전 · M월 D일 · YYYY년 M월 D일. 고쳐도 처음 쓴 때 그대로
+function ago(c) {
+  const t = new Date(c.created || c.date + 'T12:00:00'), now = new Date(), min = (now - t) / 6e4;
+  if (min < 1) return '방금';
+  if (min < 60) return `${Math.floor(min)}분 전`;
+  if (min < 1440) return `${Math.floor(min / 60)}시간 전`;
+  const day = x => Math.floor((x.getTime() - x.getTimezoneOffset() * 6e4) / 864e5), n = day(now) - day(t);
+  if (n <= 1) return '어제';
   if (n < 7) return `${n}일 전`;
-  return `${m}월 ${dd}일` + (y !== +S.today().slice(0, 4) ? `, ${y}` : '');
+  return (t.getFullYear() !== now.getFullYear() ? `${t.getFullYear()}년 ` : '') + `${t.getMonth() + 1}월 ${t.getDate()}일`;
 }
 
 // 카드를 저장할 때와 같은 4:5 장들로 나눠서, 여러 장이면 옆으로 넘겨 보는 모양으로 (늘 첫 장부터). onCount(지금 장, 모두)
@@ -125,13 +138,13 @@ function pageInto(view, c, onCount) {
 // 카드 한 장. 긴 카드는 4:5 장들을 옆으로 밀어 봐요. 누르면 그 카드 전체를 화면 가득(다시 누르면 피드로).
 // 아래: 책갈피 · 저장 · 쓰기 · 삭제 · 장 수(여러 장일 때) / 글 첫머리 한 줄 / 언제 썼는지
 function feedItem(c) {
-  const it = document.createElement('article'); it.className = 'fi'; it.dataset.tone = toneOf(c);
+  const it = document.createElement('article'); it.className = 'fi'; it.dataset.tone = toneOf(c); if (c.id) it.dataset.id = c.id;
   const f = FORMATS[c.fmt];
-  it.innerHTML = `<div class="fx"><div class="view"></div></div>
+  it.innerHTML = `${c.sample ? '' : `<p class="when">${ago(c)}</p>`}<div class="fx"><div class="view"></div></div>
     <div class="row">${c.sample
       ? `<div class="ours">${f.name}<i>NEW</i></div><button class="cb" data-a="use" aria-label="이 포맷으로 쓰기">${ic('pen')}</button>`
       : `<div class="l"><button class="cb ${c.mark ? 'on' : ''}" data-a="mark" aria-label="책갈피">${ic('bookmark')}</button><button class="cb" data-a="save" aria-label="사진에 저장">${ic('save')}</button><button class="cb" data-a="edit" aria-label="고치기">${ic('pen')}</button><button class="cb" data-a="del" aria-label="삭제">${ic('trash')}</button><span class="pc" hidden></span></div>`}</div>
-    <p class="ex"></p>${c.sample ? '' : `<p class="when">${ago(c.date)}</p>`}`;
+    <p class="ex"></p>`;
   const fx = $('.fx', it), view = $('.view', it), pc = $('.pc', it);
   $('.ex', it).textContent = cardText(c).replace(/\s+/g, ' ').trim();   // 글 첫머리 한 줄 (길면 …)
   mount(view, c);
@@ -541,29 +554,11 @@ function viewWrite({ fmt, id }) {
     if (!hasText()) return;
     if (isNew) { card.id = S.uid(); card.created = new Date().toISOString(); S.clearDraft(); }
     delete card.sample; S.saveCard(card);
-    go(`#/done/${card.id}`);
+    go(`#/feed/${card.id}`);
   };
 
   paintMeta(); sizeCard(); draw(); kb();
   document.fonts?.ready.then(() => el && fitCard(el, card));
-}
-
-/* ── 완료 ───────────────────────────────────────────── */
-function viewDone(id) {
-  const c = S.card(id); if (!c) return go('#/');
-  app.innerHTML = `<header class="top"><button class="cb" data-a="x" aria-label="닫기">${ic('close')}</button><button class="cb" data-a="edit" aria-label="고치기">${ic('pen')}</button></header>
-    <main class="done"><div class="cv"></div>
-    <div class="row"><button class="cb ${c.mark ? 'on' : ''}" data-a="mark" aria-label="책갈피">${ic('bookmark')}</button><button class="cb" data-a="book" aria-label="책에 넣기">${ic('shelf')}</button><span class="sp"></span></div>
-    <button class="go" data-a="save">${ic('save')}<span>사진에 저장</span></button><div class="ifo"></div></main>`;
-  // 저장될 사진과 똑같이: 4:5 장들, 여러 장이면 옆으로 넘겨 봐요
-  mount($('.cv'), c);
-  $('.ifo').textContent = '사진 1장 · 4:5';
-  pageInto($('.cv'), c, (i, n) => { $('.ifo').textContent = `사진 ${n}장 · 4:5 · ${i}/${n}`; });
-  $('[data-a=x]').onclick = () => go('#/');
-  $('[data-a=edit]').onclick = () => go(`#/edit/${c.id}`);
-  $('[data-a=book]').onclick = soon;
-  $('[data-a=mark]').onclick = e => { c.mark = !c.mark; S.saveCard(c); e.currentTarget.classList.toggle('on', c.mark); e.currentTarget.style.background = c.mark ? '#fff' : ''; e.currentTarget.style.color = c.mark ? '#141416' : ''; };
-  $('[data-a=save]').onclick = () => exportCard(c);
 }
 
 async function exportCard(c) {

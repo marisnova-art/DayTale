@@ -7,7 +7,7 @@ const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); retu
 export const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 export const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 
-export function cards() { return read(K_CARDS, []).sort((a, b) => (b.date + b.created).localeCompare(a.date + a.created)); }
+export function cards() { return read(K_CARDS, []).sort((a, b) => (b.created || b.date).localeCompare(a.created || a.date)); }   // 쓴 순서(최근이 위)
 export function card(id) { return read(K_CARDS, []).find(c => c.id === id) || null; }
 export function saveCard(c) {
   const all = read(K_CARDS, []), i = all.findIndex(x => x.id === c.id);
