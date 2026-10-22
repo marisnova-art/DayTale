@@ -130,16 +130,19 @@ function fitRebus(el) {
 }
 
 // ── 글포맷 ────────────────────────────────────────────────
+// 장마다 배경 · 글 위치를 따로 둘 수 있어요 (c.pst[i]). 없으면 카드 값 (글꼴 · 크기 · 날짜는 늘 카드 전체)
+export const pageBg = (c, i) => c.pst?.[i]?.bg || c.bg;
+export const pageAlign = (c, i) => c.pst?.[i]?.align || c.align || {};
 function bgLayer(c, page, pages) {
-  const b = findBg(c.bg?.id);
-  const { layer, ink } = dimCss(b, c.bg?.dim || 'dark');
+  const cb = pageBg(c, page), b = findBg(cb?.id);
+  const { layer, ink } = dimCss(b, cb?.dim || 'dark');
   const dim = layer;   // 그라데이션도 배경마다 정해 둔 딤을 깔아 글이 잘 읽혀요
   const shift = pages > 1 ? page / (pages - 1) : .5;
   let base = '';
   if (b.img) base = `<div class="bgi" style="background-image:url(${b.img});background-position:50% ${Math.round(shift * 100)}%"></div>`;
-  else if (b.code) base = `<canvas class="bgc" data-seed="${c.bg.seed || 1}" data-shift="${shift}"></canvas>`;
+  else if (b.code) base = `<canvas class="bgc" data-seed="${cb.seed || 1}" data-shift="${shift}"></canvas>`;
   else base = `<div class="bgi" style="background:${b.css}"></div>`;
-  return { html: base + `<div class="dimL" style="background:${dim}"></div>`, ink: (b.img || b.code || c.bg?.dim === 'light') ? ink : b.ink };
+  return { html: base + `<div class="dimL" style="background:${dim}"></div>`, ink: (b.img || b.code || cb?.dim === 'light') ? ink : b.ink };
 }
 
 function text(c, { edit = false } = {}) {
@@ -154,7 +157,7 @@ function text(c, { edit = false } = {}) {
     const { html, ink } = bgLayer(c, i, pages.length);
     const date = `<div class="dt" style="font-size:${{ s: 2.8, m: 3.4, l: 4.2 }[c.size] || 3.4}cqw;font-family:${serif ? fontCssOf(fo) : "'Pretendard Variable', sans-serif"}">${info}</div>`;   // 날짜 줄도 글자 크기를 따라가요 (작은 = 예전 크기)
     return `<section class="pg" data-i="${i}" style="color:${ink}">${html}
-      <div class="tx" data-k="${fo.k}" data-sz="${SIZES[c.size] || SIZES.m}" style="font-family:${fontCssOf(fo).replace(/"/g, '&quot;')};line-height:${fo.lh};letter-spacing:${fo.ls || 'normal'};justify-content:${{ t: 'flex-start', m: 'center', b: 'flex-end' }[c.align?.v || 'm']};text-align:${{ l: 'left', c: 'center', r: 'right' }[c.align?.h || 'l']}">
+      <div class="tx" data-k="${fo.k}" data-sz="${SIZES[c.size] || SIZES.m}" style="font-family:${fontCssOf(fo).replace(/"/g, '&quot;')};line-height:${fo.lh};letter-spacing:${fo.ls || 'normal'};justify-content:${{ t: 'flex-start', m: 'center', b: 'flex-end' }[pageAlign(c, i).v || 'm']};text-align:${{ l: 'left', c: 'center', r: 'right' }[pageAlign(c, i).h || 'l']}">
         ${dp === 'top' && i === 0 ? date : ''}
         <div class="body" ${edit ? 'contenteditable="true" spellcheck="false" autocapitalize="off"' : ''} data-ph="${i === 0 ? esc(ex) : '이어서 써 보세요'}">${h}</div>
         ${dp === 'bottom' && i === pages.length - 1 ? date : ''}

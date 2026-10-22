@@ -247,6 +247,14 @@ function viewWrite({ fmt, id }) {
   if (!rich && card.html == null) { card.html = renderCard(card).querySelector('.rb').innerHTML; card.html = clean(card.html); delete card.text; }
   const st = { panel: null, tab: 'fmt', hist: [clone(card)], hi: 0, timer: 0, pg: 0, sel: null, composing: false };
   const root = document.documentElement;
+  // 장마다 배경 · 글 위치 (글카드). ps() = 보고 있는 장의 값(없으면 카드 값으로 채워요). 첫 장 값은 card.bg · align에도 (피드 색 · 예전 카드)
+  const ps = (i = st.pg) => {
+    if (!rich) return card;
+    card.pst = card.pages.map((_, j) => card.pst?.[j] || { bg: clone(card.bg), align: clone(card.align || { h: 'l', v: 'm' }) });
+    return card.pst[i];
+  };
+  const syncFirst = () => { if (rich && card.pst?.[0]) { card.bg = clone(card.pst[0].bg); card.align = clone(card.pst[0].align); } };
+  const pgLab = () => rich && card.pages.length > 1 ? `${st.pg + 1}장` : null;   // 여러 장이면 몇째 장이 바뀌었는지
 
   root.classList.add('wmode');
   // 키보드를 내린 스타일 보기(큰 카드 + 3줄)와 키보드를 올린 쓰기 보기(1줄). 모든 줄은 같은 6칸(44px)이라 세로로 맞아요
@@ -397,7 +405,7 @@ function viewWrite({ fmt, id }) {
 
   /* 카드 그리기. 글만 바뀌면 그 자리에서 바꾸고(키보드가 내려가지 않게), 장 수·배경·날짜 같은 틀이 바뀔 때만 새로 그려요 */
   let el = null, shape = '';
-  const shapeOf = () => JSON.stringify(rich ? [card.pages.length, card.bg, card.align, card.datePos, card.date, card.place, card.font, card.size] : [card.date, card.place, card.size, card.align, card.datePos]);
+  const shapeOf = () => JSON.stringify(rich ? [card.pages.length, card.bg, card.align, card.pst, card.datePos, card.date, card.place, card.font, card.size] : [card.date, card.place, card.size, card.align, card.datePos]);
   const bodies = () => $$('.body', el);
   const pageOf = b => b.closest('.pg') ? +b.closest('.pg').dataset.i : 0;
   const caretIn = b => { const s = getSelection(); return s.rangeCount && b.contains(s.anchorNode) ? offsetsOf(b, s.getRangeAt(0)) : null; };
@@ -413,7 +421,7 @@ function viewWrite({ fmt, id }) {
       });
     } else {
       const nel = renderCard(card, { edit: true }); el ? el.replaceWith(nel) : stage.appendChild(nel); el = nel; shape = s;
-      if (rich) el.addEventListener('scroll', () => { const i = pageAtScroll(); if (i !== st.pg) { st.pg = i; count(); } }, { passive: true });
+      if (rich) el.addEventListener('scroll', () => { const i = pageAtScroll(); if (i !== st.pg) { st.pg = i; count(); paintRow2(); tools(); } }, { passive: true });   // 보는 장이 바뀌면 그 장의 배경 · 위치를 보여 줘요
     }
     el.classList.toggle('empty', !hasText());
     fitCard(el, card); tools();
@@ -480,7 +488,7 @@ function viewWrite({ fmt, id }) {
     const sel = getSelection(), n = sel.anchorNode, o = sel.anchorOffset;   // 이모티콘 뒤 보이지 않는 칸은 같이 지워서 한 번에 이모티콘이 지워지게
     if (sel.isCollapsed && n?.nodeType === 3 && o > 0 && n.data[o - 1] === '\u200B') { n.deleteData(o - 1, 1); sel.collapse(n, o - 1); }
     const i = pageOf(b);
-    if (i > 0 && !b.textContent) { e.preventDefault(); card.pages.splice(i, 1); st.pg = i - 1; push(); draw(); caretEnd(st.pg); }
+    if (i > 0 && !b.textContent) { e.preventDefault(); ps(); card.pages.splice(i, 1); card.pst.splice(i, 1); st.pg = i - 1; push(); draw(); caretEnd(st.pg); }
   });
   // 카드의 빈 곳을 눌러도 쓰기로 (글 끝에 커서). 다른 장을 누르면 그 장으로
   stage.addEventListener('click', e => {
@@ -510,7 +518,7 @@ function viewWrite({ fmt, id }) {
   const enabled = k => {
     if (k === 'kb' || k === 'undo' || k === 'redo') return true;
     if (k === 'fmt') return !!f.tools.style;
-    const v = f.tools[k]; return k === 'shuf' && v === 'code' ? !!findBg(card.bg?.id).code : !!v;
+    const v = f.tools[k]; return k === 'shuf' && v === 'code' ? !!findBg(ps().bg?.id).code : !!v;
   };
   function tools() {
     const typ = wr.classList.contains('typ');
@@ -544,9 +552,10 @@ function viewWrite({ fmt, id }) {
         const was = typingNow(); paintMeta(); draw(); if (was && !typingNow()) caretEnd(st.pg);
         paintRow2(); return;
       }
-      if (k === 'shuf') { if (rich) card.bg.seed = newSeed(); else card.seed = newSeed(); push(); draw(); paintRow2(); return; }
+      if (k === 'shuf') { if (rich) { ps().bg.seed = newSeed(); syncFirst(); } else card.seed = newSeed(); push(); draw(); paintRow2(); return; }   // 글카드: 보고 있는 장만
       if (k === 'page') {
-        card.pages.splice(st.pg + 1, 0, ''); st.pg += 1; push(); draw(); scrollToPage(st.pg);
+        ps(); card.pages.splice(st.pg + 1, 0, ''); card.pst.splice(st.pg + 1, 0, clone(card.pst[st.pg])); st.pg += 1;   // 새 장은 앞 장 배경 · 위치를 이어받아요
+        push(); draw(); scrollToPage(st.pg);
         if (st.panel) closePanel(false); caretEnd(st.pg); return;
       }
       if (k === 'fmt' || k === 'bg') { if (k === 'fmt' && st.tab === 'fmt') st.fontRow = false; st.tab = k; paintRow2(); return tools(); }
@@ -562,7 +571,7 @@ function viewWrite({ fmt, id }) {
   function paintRow2() {
     if (st.tab === 'bg' && f.tools.bg) return paintBgRow();
     if (st.fontRow && f.tools.font) return paintFontRow();
-    const on = !!f.tools.style, a = card.align || { h: 'l', v: rich ? 'm' : 't' }, off = on ? '' : 'off', fOff = on && f.tools.font ? '' : 'off';
+    const on = !!f.tools.style, a = ps().align || { h: 'l', v: rich ? 'm' : 't' }, off = on ? '' : 'off', fOff = on && f.tools.font ? '' : 'off';
     row2.className = 'st2 g6';
     row2.innerHTML = `<button class="k ${fOff}" data-s="font" aria-label="글꼴">${ic('font')}</button><button class="k ${off}" data-s="size" aria-label="크기">${ic('size')}</button>
       <button class="k ${off}" data-s="h" aria-label="좌우">${ic('a' + (a.h || 'l'))}</button><button class="k ${off}" data-s="v" aria-label="위아래">${ic('v' + (a.v || 'm'))}</button><span></span><span></span>`;
@@ -574,8 +583,8 @@ function viewWrite({ fmt, id }) {
         const k = x.dataset.s;
         if (k === 'font') { st.fontRow = true; return paintRow2(); }
         if (k === 'size') { const [n, t] = SZ[card.size || 'm']; card.size = n; push(); draw(); pop(t); }
-        if (k === 'h') { const [n, t] = AH[a.h || 'l']; card.align = { ...a, h: n }; push(); draw(); pop(t); }
-        if (k === 'v') { const [n, t] = AV[a.v || (rich ? 'm' : 't')]; card.align = { ...a, v: n }; push(); draw(); pop(t); }
+        if (k === 'h') { const [n, t] = AH[a.h || 'l']; ps().align = { ...a, h: n }; syncFirst(); push(); draw(); pop(t, null, pgLab()); }
+        if (k === 'v') { const [n, t] = AV[a.v || (rich ? 'm' : 't')]; ps().align = { ...a, v: n }; syncFirst(); push(); draw(); pop(t, null, pgLab()); }
         paintRow2();
       };
     });
@@ -599,17 +608,17 @@ function viewWrite({ fmt, id }) {
     $$('[data-f]', row2).forEach(x => x.onclick = () => pick(fontOf(x.dataset.f), true));
   }
   function paintBgRow() {
-    const dim = card.bg.dim || 'dark', keep = $('.swp', row2)?.scrollLeft;
+    const pb = ps().bg, dim = pb.dim || 'dark', keep = $('.swp', row2)?.scrollLeft;
     row2.className = 'st2 g6 bgr';
     row2.innerHTML = `<button class="k tl" data-x="photo" aria-label="내 사진">${ic('scene')}</button><button class="k tl" data-x="dim" aria-label="밝게 어둡게">${ic(dim === 'light' ? 'sun' : 'moon')}</button>
-      <div class="swp">${FREE.map(b => `<button class="k sw ${b.id === card.bg.id ? 'sel' : ''}" data-b="${b.id}" style="${b.css ? `background:${b.css}` : ''}">${b.code ? '<canvas width="88" height="88"></canvas>' : ''}</button>`).join('')}<span class="end"></span></div>`;
-    $$('canvas', row2).forEach(cv => drawCode(cv, card.bg.seed || 1, .5));
+      <div class="swp">${FREE.map(b => `<button class="k sw ${b.id === pb.id ? 'sel' : ''}" data-b="${b.id}" style="${b.css ? `background:${b.css}` : ''}">${b.code ? '<canvas width="88" height="88"></canvas>' : ''}</button>`).join('')}<span class="end"></span></div>`;
+    $$('canvas', row2).forEach(cv => drawCode(cv, pb.seed || 1, .5));
     const sw = $('.swp', row2), sel = $('.sel', sw);
     if (keep != null) sw.scrollLeft = keep; else if (sel) sw.scrollLeft = Math.max(0, sel.offsetLeft - sw.offsetLeft);
     $$('button', row2).forEach(x => x.addEventListener('pointerdown', e => e.preventDefault()));
     $('[data-x=photo]', row2).onclick = () => pop('내 사진 배경은 사진 연결 후');
-    $('[data-x=dim]', row2).onclick = () => { flush(); card.bg.dim = dim === 'light' ? 'dark' : 'light'; push(); draw(); paintBgRow(); pop(card.bg.dim === 'light' ? '밝게' : '어둡게'); };
-    $$('[data-b]', row2).forEach(t => t.onclick = () => { flush(); card.bg.id = t.dataset.b; if (!card.bg.seed) card.bg.seed = newSeed(); push(); draw(); paintBgRow(); const b = findBg(card.bg.id); pop(b.name, null, KIND[b.kind]); });
+    $('[data-x=dim]', row2).onclick = () => { flush(); pb.dim = dim === 'light' ? 'dark' : 'light'; syncFirst(); push(); draw(); paintBgRow(); pop(pb.dim === 'light' ? '밝게' : '어둡게', null, pgLab()); };
+    $$('[data-b]', row2).forEach(t => t.onclick = () => { flush(); pb.id = t.dataset.b; if (!pb.seed) pb.seed = newSeed(); syncFirst(); push(); draw(); paintBgRow(); const b = findBg(pb.id); pop(b.name, null, [pgLab(), KIND[b.kind]].filter(Boolean).join(' · ')); });
   }
 
   /* 이모티콘 판: 키보드 자리에 같은 높이로 열려요. 도구 줄은 제자리 */
