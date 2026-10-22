@@ -93,27 +93,31 @@ function rebus(c, { edit = false } = {}) {
   el.className = 'cd rebus' + (edit ? ' edit' : '');
   const html = soft(rebusHtmlOf(c), edit), empty = !html.replace(/<[^>]+>/g, '').trim();
   const foot = [weekday(c.date), dateChip(c.date).split(' ')[0], (c.place || '').trim()].filter(Boolean).map(esc).join(' · ');
-  el.innerHTML = `<div class="rb body" ${edit ? 'contenteditable="true" spellcheck="false" autocapitalize="off"' : ''}>${empty && !edit ? '<span class="ph">오늘 있었던 일을 써 보세요.</span>' : html}</div>
+  const a = c.align || {};
+  el.innerHTML = `<div class="rb body" data-sz="${RB_SIZES[c.size] || RB_SIZES.m}" data-v="${a.v || 't'}" style="text-align:${{ l: 'left', c: 'center', r: 'right' }[a.h || 'l']}" ${edit ? 'contenteditable="true" spellcheck="false" autocapitalize="off"' : ''}>${empty && !edit ? '<span class="ph">오늘 있었던 일을 써 보세요.</span>' : html}</div>
     ${edit ? `<div class="rb exm">${FORMATS.rebus.sample.html}</div>` : ''}
-    <div class="foot"><span>${foot}</span><span class="sig"></span></div>`;
+    <div class="foot" style="font-size:${{ s: 3.5, m: 3.889, l: 4.4 }[c.size] || 3.889}cqw"><span>${foot}</span><span class="sig"></span></div>`;
   placeObjects(el.querySelector('.rb'), c.seed);
   if (edit) placeObjects(el.querySelector('.exm'), FORMATS.rebus.sample.seed);
   el.classList.toggle('empty', empty);
   return el;
 }
 
-// 그림 문장 글자 크기: 한 장에 들어가면 140/116/100, 넘으면 84 고정(카드가 길어져요).
+// 그림 문장 글자 크기: 고른 크기 그대로(큰 140 · 중간 116 · 작은 96, 1080 기준). 저절로 줄이지 않아서 쓰는 동안 줄이 흔들리지 않아요.
+// 넘치면 카드가 아래로 길어지고 저장할 때 장으로 나뉘어요. 한 장에 들어가면 위 · 가운데 · 아래 자리에 놓아요.
 // 카드 높이는 글 높이를 직접 재서 정해요 (아이폰 브라우저는 4:5 상자가 글 따라 늘어나지 않아요)
+const RB_SIZES = { l: 140, m: 116, s: 96 };
 function fitRebus(el) {
   const p = el.querySelector('.rb'); if (!p) return;
   const W = el.clientWidth; if (!W) return;
   const ex = el.querySelector('.exm'); if (ex) ex.style.fontSize = px(116);
-  const H = W * 1.25, cs = getComputedStyle(p);
-  const need = () => p.offsetHeight + parseFloat(cs.marginTop) + parseFloat(cs.marginBottom);
+  const H = W * 1.25;
+  p.style.marginTop = ''; p.style.fontSize = px(+p.dataset.sz || 116);
   el.style.height = H + 'px';
-  for (const fs of [140, 116, 100]) { p.style.fontSize = px(fs); if (need() <= H + 1) return; }
-  p.style.fontSize = px(84);
-  el.style.height = Math.max(H, Math.ceil(need())) + 'px';
+  const cs = getComputedStyle(p), top = parseFloat(cs.marginTop), need = p.offsetHeight + top + parseFloat(cs.marginBottom);
+  if (need > H + 1) { el.style.height = Math.ceil(need) + 'px'; return; }
+  const v = p.dataset.v || 't';
+  if (v !== 't') p.style.marginTop = (top + (H - need) * (v === 'b' ? 1 : .5)) + 'px';
 }
 
 // ── 글포맷 ────────────────────────────────────────────────
@@ -139,7 +143,7 @@ function text(c, { edit = false } = {}) {
   const ex = FORMATS.text.sample.pages[0].replace(/<[^>]+>/g, '');
   el.innerHTML = pages.map((h, i) => {
     const { html, ink } = bgLayer(c, i, pages.length);
-    const date = `<div class="dt" style="font-family:${serif ? fontCssOf(fo) : "'Pretendard Variable', sans-serif"}">${info}</div>`;
+    const date = `<div class="dt" style="font-size:${{ s: 2.8, m: 3.4, l: 4.2 }[c.size] || 3.4}cqw;font-family:${serif ? fontCssOf(fo) : "'Pretendard Variable', sans-serif"}">${info}</div>`;   // 날짜 줄도 글자 크기를 따라가요 (작은 = 예전 크기)
     return `<section class="pg" data-i="${i}" style="color:${ink}">${html}
       <div class="tx" data-k="${fo.k}" data-sz="${SIZES[c.size] || SIZES.m}" style="font-family:${fontCssOf(fo).replace(/"/g, '&quot;')};line-height:${fo.lh};letter-spacing:${fo.ls || 'normal'};justify-content:${{ t: 'flex-start', m: 'center', b: 'flex-end' }[c.align?.v || 'm']};text-align:${{ l: 'left', c: 'center', r: 'right' }[c.align?.h || 'l']}">
         ${dp === 'top' && i === 0 ? date : ''}
@@ -183,13 +187,13 @@ export const FORMATS = {
   rebus: {
     id: 'rebus', name: '그림 문장', info: '짧은 글 · 사진 없음 · 사계절', paid: true,
     // 쓰기 화면 도구: style = 서식 줄(글꼴·크기·좌우·위아래), bg = 배경 줄, dp = 날짜 위치. 디자인 포맷은 모양이 정해져 있어 대부분 꺼요
-    tools: { photo: false, emo: false, page: false, shuf: true, style: false, bg: false, dp: false },
+    tools: { photo: false, emo: false, page: false, shuf: true, style: true, font: false, bg: false, dp: false },
     sample: { html: '친구랑 통화를 <b>오래</b> 했다. 별일 없는 이야기에 <mark>웃음</mark>이 많은 밤.', seed: 7 },
     render: rebus, fit: fitRebus,
   },
   text: {
     id: 'text', name: '글', info: '모든 길이 · 배경 고르기 · 무료', paid: false,
-    tools: { photo: false, emo: true, page: true, shuf: 'code', style: true, bg: true, dp: true },
+    tools: { photo: false, emo: true, page: true, shuf: 'code', style: true, font: true, bg: true, dp: true },
     sample: { pages: ['출근길에 버스를 한 대 놓쳤는데 덕분에 하늘을 오래 봤다. 오늘은 그걸로 됐다.'], bg: { id: 'g1', dim: 'dark' } },
     render: text, fit: fitText,
   },
@@ -198,7 +202,7 @@ export const ORDER = ['rebus', 'text'];
 
 export function blank(fmt, date) {
   return fmt === 'rebus'
-    ? { fmt, date, place: '', html: '', seed: newSeed() }
+    ? { fmt, date, place: '', html: '', seed: newSeed(), size: 'm', align: { h: 'l', v: 't' } }
     : { fmt, date, place: '', pages: [''], bg: { id: 'g1', dim: 'dark', seed: newSeed() }, align: { h: 'l', v: 'm' }, datePos: 'top', font: 'serif', size: 'm' };
 }
 export const sampleCard = (fmt, date) => ({ ...blank(fmt, date), ...structuredClone(FORMATS[fmt].sample), sample: true });

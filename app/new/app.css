@@ -147,49 +147,61 @@ html.wmode, html.wmode body { overflow: hidden; height: 100%; overscroll-behavio
 .wr { position: fixed; left: 0; right: 0; top: 0; bottom: 0; max-width: 480px; margin: 0 auto; display: flex; flex-direction: column; background: var(--bg); }
 html.kb-open:not(.pan) .wr { top: var(--vvt, 0px); bottom: auto; height: var(--vvh, 100dvh); }
 .wr .top { position: relative; flex: none; background: none; }
-.wr .stage { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; padding: 2px 0 16px; -webkit-overflow-scrolling: touch; }
+/* 카드 창: 늘 한 장(4:5) 크기, 남는 높이 가운데. 공간이 모자라면 창만 줄어요. 긴 글은 창 안에서만 스크롤, 서식 줄과는 16px 이상 */
+.wr .area { flex: 1 1 auto; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 4px 16px 16px; }
+.wr .stage { width: var(--cw); height: min(calc(var(--cw) * 1.25), 100%); flex: none; border-radius: 8px; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.wr.typ .area, .wr.plc .area { align-items: flex-start; padding-bottom: 8px; }
+.wr.typ .stage { height: 100%; }
 .wr .stage::-webkit-scrollbar { display: none; }
 /* 글: 장마다 같은 크기(--cw), 옆 장이 살짝 보여요 */
 .cd .pg { container-type: inline-size; }
-.wr .cd.text { width: 100%; border-radius: 0; gap: 12px; align-items: flex-start; padding: 0 calc((100% - var(--cw)) / 2); scroll-snap-type: x mandatory; }
+.wr .cd.text { width: 100%; border-radius: 0; gap: 12px; align-items: flex-start; scroll-snap-type: x mandatory; }
 .wr .cd.text .pg { flex: 0 0 var(--cw); border-radius: 8px; scroll-snap-align: center; }
 .wr .cd .body { -webkit-user-select: text; user-select: text; caret-color: currentColor; }
 .wr .cd .body:empty::before { content: attr(data-ph); opacity: .55; }
 .wr .cd.rebus { width: var(--cw); margin: 0 auto; border-radius: 8px; }
 /* 6칸 줄 (시안 C3): 모든 칸 44×44, 아이콘 24px, 줄끼리 세로로 맞아요. 간격 --g6은 화면 폭에 맞춰 JS가 정해요 */
-.wr .stt { font: 700 14px var(--ui); color: #d8d8dc; white-space: nowrap; }
-.g6 { flex: none; display: grid; grid-template-columns: repeat(6, 44px); column-gap: var(--g6, 18px); justify-content: center; padding: 4px 16px; background: var(--bg); }
-.g6 .k { position: relative; width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; color: #fff; }
+/* 위 가운데 상태(장 · 글자 수). 알림도 여기에 잠깐 (.ntc) */
+.wr .stt { font: 700 14px var(--ui); color: #d8d8dc; white-space: nowrap; max-width: calc(100% - 120px); overflow: hidden; text-overflow: ellipsis; }
+.wr .stt.ntc { color: #fff; } .wr .stt.ntc[style*=font-family] { font-size: 20px; font-weight: 400; }
+.wr .stt.flash { animation: fade .18s; }
+/* 6칸 줄 (시안 C4): 모든 칸 = 옅은 타일, 간격 8px, 칸은 화면 폭에 맞춰 정사각형. 줄끼리 세로로 맞아요 */
+.g6 { flex: none; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; padding: 0 16px 8px; background: var(--bg); }
+.g6 .k { position: relative; aspect-ratio: 1; border-radius: 12px; background: var(--srf); display: grid; place-items: center; color: #fff; }
 .g6 .k .ic { width: 24px; height: 24px; }
 .g6 .k.on { background: #fff; color: var(--bg); }
-.g6 .k.tl { background: var(--srf); }
 .g6 .k.off { color: var(--off); }
 .g6 .k.shake { animation: shake .3s; }
-.st2 { padding-top: 6px; }
+.wr .tb { padding-top: 0; }
 /* 배경 줄: 앞 2칸 고정, 나머지 4칸 자리에서 색 칸이 옆으로 밀려요(한 칸씩 멈춤, 오른쪽 끝은 흐리게). 고른 표시는 칸 안쪽에 */
-.st2.bgr .swp { grid-column: 3 / span 4; display: flex; gap: var(--g6, 18px); overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; -webkit-mask-image: linear-gradient(90deg, #000 78%, transparent); mask-image: linear-gradient(90deg, #000 78%, transparent); }
+.st2.bgr .swp { grid-column: 3 / span 4; display: flex; gap: 8px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; -webkit-mask-image: linear-gradient(90deg, #000 78%, transparent); mask-image: linear-gradient(90deg, #000 78%, transparent); }
 .st2.bgr .swp::-webkit-scrollbar { display: none; }
-.st2.bgr .sw { flex: none; scroll-snap-align: start; overflow: hidden; background-size: cover; }
+.st2.bgr .sw { flex: 0 0 calc((100% - 24px) / 4); scroll-snap-align: start; overflow: hidden; background-size: cover; }
 .st2.bgr .sw canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 .st2.bgr .sw.sel::after { content: ''; position: absolute; inset: 3px; border-radius: 9px; box-shadow: inset 0 0 0 2px #fff, 0 0 0 1px rgba(0,0,0,.25); }
-.st2.bgr .end { flex: none; width: 44px; }
+.st2.bgr .end { flex: 0 0 calc((100% - 24px) / 4 * 2); }
 /* 3줄: 날짜(2칸) · 장소(3칸) · 날짜 위치(1칸) */
-.st3 { padding-top: 6px; padding-bottom: 6px; }
-.st3 .wide { position: relative; height: 44px; border-radius: 12px; background: var(--srf); display: flex; align-items: center; gap: 6px; padding: 0 12px; color: #fff; font: 600 14px var(--ui); min-width: 0; }
+.st3 .wide { position: relative; border-radius: 12px; background: var(--srf); display: flex; align-items: center; gap: 6px; padding: 0 12px; color: #fff; font: 600 14px var(--ui); min-width: 0; }
 .st3 .w2 { grid-column: span 2; } .st3 .w3 { grid-column: span 3; }
 .st3 .wide .ic { width: 20px; height: 20px; color: var(--mut); flex: none; }
-.st3 .dt span { white-space: nowrap; }
+.st3 .dt span { white-space: nowrap; overflow: hidden; }
 .st3 .dt input { position: absolute; inset: 0; opacity: 0; width: 100%; }
 .st3 .pl input { flex: 1; min-width: 0; background: none; border: 0; outline: none; color: #fff; font: 600 16px var(--ui); }
 .st3 .pl input::placeholder { color: var(--mut); }
+.st3 .pok { display: none; }
+.recent { display: none; }
+/* 장소 쓰는 중(.plc): 키보드 바로 위에 장소 줄 + 최근 장소만 */
+.wr.plc .tb, .wr.plc .st2, .wr.plc .st3 .dt, .wr.plc .st3 .dp { display: none; }
+.wr.plc .st3 .pl { grid-column: span 5; box-shadow: inset 0 0 0 1.5px #fff; }
+.wr.plc .st3 .pok { display: grid; }
+.wr.plc .recent { display: flex; flex: none; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 0 16px 10px; }
+.wr.plc .recent.none { display: none; }
+.recent::-webkit-scrollbar { display: none; }
+.chip2 { flex: none; height: 36px; padding: 0 14px; border-radius: 999px; background: var(--srf2); display: flex; align-items: center; font: 600 14px var(--ui); color: #fff; white-space: nowrap; }
 /* 쓰기 보기(.typ)에는 1줄만: 스타일 칸은 숨겨요 */
 .wr:not(.typ) .tb .w, .wr.typ .tb .s { display: none; }
 .wr.typ .st2, .wr.typ .st3 { display: none; }
-html:not(.kb-open):not(.pan) .wr:not(.typ) .st3, html:not(.kb-open):not(.pan) .wr.typ .tb { padding-bottom: calc(6px + var(--safe-b)); }
-/* 바꾼 값 잠깐 보이기 */
-.wpop { position: absolute; left: 50%; transform: translate(-50%, -50%); z-index: 5; background: rgba(255,255,255,.95); color: var(--bg); padding: 8px 18px; border-radius: 999px; font: 700 15px var(--ui); white-space: nowrap; pointer-events: none; animation: wpop 1.1s ease forwards; }
-.wpop.ff { font-size: 20px; font-weight: 400; }
-@keyframes wpop { 0% { opacity: 0; } 12% { opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; } }
+html:not(.kb-open):not(.pan) .wr:not(.typ) .st3, html:not(.kb-open):not(.pan) .wr.typ .tb { padding-bottom: max(8px, var(--safe-b)); }   /* 맨 아래 줄은 홈 막대 바로 위 */
 .cnt { flex: none; padding-bottom: 12px; }
 .cnt { font-size: 12px; color: var(--mut); }
 

@@ -12,6 +12,7 @@ const app = document.getElementById('app');
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const clone = o => JSON.parse(JSON.stringify(o));
+const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 function toast(msg) {
   $$('.toast').forEach(t => t.remove());
@@ -253,14 +254,15 @@ function viewWrite({ fmt, id }) {
   const T1 = [['kb', ''], ['fmt', 's'], ['bg', 's'], ['shuf', 's'], ['emo', 'w'], ['page', 'w'], ['photo', 'w'], ['undo', ''], ['redo', '']];
   app.innerHTML = `<div class="wr ${rich ? 'rich' : 'plain'}">
     <header class="top"><button class="cb" data-a="back" aria-label="뒤로">${ic('back')}</button><div class="nm stt"></div><button class="cb w" data-a="ok" aria-label="완료">${ic('check')}</button></header>
-    <section class="stage"></section>
+    <div class="area"><section class="stage"></section></div>
     <div class="tb g6">${T1.map(([k, m]) => `<button class="k t ${m}" data-t="${k}" aria-label="${k}">${ic(k)}</button>`).join('')}</div>
     <div class="st2 g6"></div>
     <div class="st3 g6">
       <label class="wide w2 dt">${ic('date')}<span></span><input type="date" aria-label="날짜"></label>
-      <label class="wide w3 pl">${ic('pin')}<input class="pi" maxlength="20" placeholder="장소" aria-label="장소"></label>
-      <button class="k tl dp" aria-label="날짜 위치"></button>
+      <label class="wide w3 pl">${ic('pin')}<input class="pi" maxlength="20" placeholder="장소" aria-label="장소" enterkeyhint="done"></label>
+      <button class="k tl dp" aria-label="날짜 위치"></button><button class="k on pok" aria-label="장소 확인">${ic('check')}</button>
     </div>
+    <div class="recent"></div>
     <div class="panel"></div></div>`;
   const wr = $('.wr'), stage = $('.stage'), panel = $('.panel');
 
@@ -298,19 +300,22 @@ function viewWrite({ fmt, id }) {
     gone = true; cancelAnimationFrame(raf);
     vv?.removeEventListener('resize', soonKb); vv?.removeEventListener('scroll', soonKb);
     removeEventListener('focusout', remeasure); removeEventListener('resize', onResize);
-    clearTimeout(st.timer); clearTimeout(st.waitT);
+    clearTimeout(st.timer); clearTimeout(st.waitT); clearTimeout(st.popT);
     root.classList.remove('wmode', 'kb-open', 'pan');
   };
 
   /* 카드 크기는 하나: 쓰는 동안에도 화면 폭(양옆 16)을 그대로 써요. 키보드에 가려지는 아래쪽은 커서를 따라 화면이 움직여요 */
   const sizes = { w: 0, v: 0 };
   function sizeCard() {
-    sizes.w = sizes.v = Math.floor(Math.max(160, wr.clientWidth - 32));
-    wr.style.setProperty('--g6', Math.max(4, (wr.clientWidth - 32 - 6 * 44) / 5) + 'px');   // 6칸 사이 간격 (배경 칸 줄도 같은 간격으로 밀려요)
+    // 쓰기 보기 = 화면 폭(양옆 16). 스타일 보기 = 카드 한 장(4:5)이 다 보이는 크기 (작은 폰에서는 조금 좁아져요)
+    const area = $('.area'), styleView = !wr.classList.contains('typ') && !wr.classList.contains('plc') && !root.classList.contains('kb-open');
+    sizes.w = Math.floor(Math.max(160, wr.clientWidth - 32));
+    if (styleView && area.clientHeight) sizes.v = Math.min(sizes.w, Math.floor((area.clientHeight - 20) / 1.25));
+    else if (!sizes.v) sizes.v = sizes.w;
     applySize(true);
   }
   function applySize(force) {
-    const writing = root.classList.contains('kb-open') || root.classList.contains('pan');
+    const writing = wr.classList.contains('typ') || wr.classList.contains('plc') || root.classList.contains('kb-open') || root.classList.contains('pan');
     const cw = writing ? sizes.w : sizes.v;
     if (!force && wr.style.getPropertyValue('--cw') === cw + 'px') return;
     wr.style.setProperty('--cw', cw + 'px');
@@ -326,6 +331,7 @@ function viewWrite({ fmt, id }) {
   // 위 가운데: 지금 장 / 저장될 장 수 · 글자 수. 긴 장은 점선마다 한 장으로 세요(저장할 때 그렇게 나뉘어요)
   function count() {
     const n = `${cardText(card).replace(/\s/g, '').length}자`, nm = $('.wr .stt');
+    if (st.popT || !nm) return;   // 알림이 떠 있는 동안은 그대로
     if (!hasText()) return (nm.textContent = '');
     if (!rich || !el) return (nm.textContent = n);
     const box = stage.getBoundingClientRect(), mid = box.top + Math.min(box.height, el.getBoundingClientRect().height) / 2;
@@ -350,25 +356,41 @@ function viewWrite({ fmt, id }) {
   di.addEventListener('change', () => { if (!di.value) return; flush(); card.date = di.value; paintMeta(); push(); draw(); });
   pi.addEventListener('input', () => { card.place = pi.value; draw(); pushLater(); });
   pi.addEventListener('keydown', e => { if (e.key === 'Enter') pi.blur(); });
+  // 장소를 쓰는 동안: 다른 줄은 숨고 키보드 바로 위에 장소 줄 + 최근 장소 (아래 줄은 키보드에 가려지니까)
+  const recent = $('.recent');
+  function paintRecent() {
+    const q = pi.value.trim(), all = S.pref('places', []);
+    const list = all.filter(x => x !== q && (!q || x.includes(q))).slice(0, 10);
+    recent.innerHTML = list.map(x => `<button class="chip2">${esc(x)}</button>`).join('');
+    recent.classList.toggle('none', !list.length);
+    $$('button', recent).forEach((b, i) => {
+      b.addEventListener('pointerdown', e => e.preventDefault());
+      b.onclick = () => { pi.value = list[i]; card.place = list[i]; draw(); push(); pi.blur(); };
+    });
+  }
+  pi.addEventListener('focus', () => { wr.classList.add('plc'); paintRecent(); requestAnimationFrame(() => applySize(true)); });
+  pi.addEventListener('input', paintRecent);
+  pi.addEventListener('blur', () => { wr.classList.remove('plc'); flush(); setTimeout(() => { if (!document.activeElement?.matches?.('input, .body')) { scrollTo(0, 0); kb(); } }, 300); });
+  $('.st3 .pok').addEventListener('pointerdown', e => e.preventDefault());
+  $('.st3 .pok').onclick = () => pi.blur();
   dpb.addEventListener('pointerdown', e => e.preventDefault());
   dpb.addEventListener('click', () => {
     if (!f.tools.dp) return shake(dpb);
     flush(); card.datePos = { top: 'bottom', bottom: 'none', none: 'top' }[card.datePos || 'top']; paintMeta(); push(); draw(); pop(DP[card.datePos][1]);
   });
 
-  // 바꾼 값을 카드 위에 1초쯤 띄워요 (글꼴 이름은 그 글꼴로)
+  // 알림은 모두 위 가운데 상태 자리에 1초쯤 (글꼴 이름은 그 글꼴로). 어두운 위 줄이라 어떤 배경에서도 보여요
   function pop(text, font) {
-    $$('.wpop', wr).forEach(x => x.remove());
-    const p = document.createElement('div'); p.className = 'wpop'; p.textContent = text;
-    if (font) { p.style.fontFamily = fontCssOf(font); p.classList.add('ff'); document.fonts?.load(`20px '${font.fam}'`, text); }
-    const b = stage.getBoundingClientRect(), w = wr.getBoundingClientRect();
-    p.style.top = (b.top - w.top + Math.min(b.height, el ? el.getBoundingClientRect().height : b.height) / 2) + 'px';
-    wr.appendChild(p); setTimeout(() => p.remove(), 1100);
+    const nm = $('.wr .stt'); clearTimeout(st.popT);
+    nm.textContent = text; nm.classList.add('ntc'); nm.style.fontFamily = font ? fontCssOf(font) : '';
+    if (font) document.fonts?.load(`20px '${font.fam}'`, text);
+    nm.classList.remove('flash'); void nm.offsetWidth; nm.classList.add('flash');
+    st.popT = setTimeout(() => { st.popT = 0; nm.classList.remove('ntc', 'flash'); nm.style.fontFamily = ''; count(); }, 1100);
   }
 
   /* 카드 그리기. 글만 바뀌면 그 자리에서 바꾸고(키보드가 내려가지 않게), 장 수·배경·날짜 같은 틀이 바뀔 때만 새로 그려요 */
   let el = null, shape = '';
-  const shapeOf = () => JSON.stringify(rich ? [card.pages.length, card.bg, card.align, card.datePos, card.date, card.place, card.font, card.size] : [card.date, card.place]);
+  const shapeOf = () => JSON.stringify(rich ? [card.pages.length, card.bg, card.align, card.datePos, card.date, card.place, card.font, card.size] : [card.date, card.place, card.size, card.align]);
   const bodies = () => $$('.body', el);
   const pageOf = b => b.closest('.pg') ? +b.closest('.pg').dataset.i : 0;
   const caretIn = b => { const s = getSelection(); return s.rangeCount && b.contains(s.anchorNode) ? offsetsOf(b, s.getRangeAt(0)) : null; };
@@ -476,7 +498,7 @@ function viewWrite({ fmt, id }) {
   const typingNow = () => !!document.activeElement?.closest?.('.wr .body');
   function mode() {
     const w = typingNow() || st.panel === 'emo' || !!st.waitKb;
-    if (wr.classList.contains('typ') !== w) { wr.classList.toggle('typ', w); requestAnimationFrame(() => { count(); keepCaret(); }); }
+    if (wr.classList.contains('typ') !== w) { wr.classList.toggle('typ', w); applySize(); requestAnimationFrame(() => { count(); keepCaret(); }); }
     tools();
   }
 
@@ -525,7 +547,7 @@ function viewWrite({ fmt, id }) {
       }
       if (k === 'fmt' || k === 'bg') { st.tab = k; paintRow2(); return tools(); }
       if (k === 'emo') return st.panel === k ? closePanel(true) : openPanel(k);
-      soon();
+      pop('다음 단계에서 열려요');
     };
   });
 
@@ -535,20 +557,20 @@ function viewWrite({ fmt, id }) {
   const AH = { l: ['c', '가운데'], c: ['r', '오른쪽'], r: ['l', '왼쪽'] }, AV = { m: ['b', '아래'], b: ['t', '위'], t: ['m', '가운데'] };
   function paintRow2() {
     if (st.tab === 'bg' && f.tools.bg) return paintBgRow();
-    const on = !!f.tools.style, a = card.align || { h: 'l', v: 'm' }, off = on ? '' : 'off';
+    const on = !!f.tools.style, a = card.align || { h: 'l', v: rich ? 'm' : 't' }, off = on ? '' : 'off', fOff = on && f.tools.font ? '' : 'off';
     row2.className = 'st2 g6';
-    row2.innerHTML = `<button class="k ${off}" data-s="font" aria-label="글꼴">${ic('font')}</button><button class="k ${off}" data-s="size" aria-label="크기">${ic('size')}</button>
+    row2.innerHTML = `<button class="k ${fOff}" data-s="font" aria-label="글꼴">${ic('font')}</button><button class="k ${off}" data-s="size" aria-label="크기">${ic('size')}</button>
       <button class="k ${off}" data-s="h" aria-label="좌우">${ic('a' + (a.h || 'l'))}</button><button class="k ${off}" data-s="v" aria-label="위아래">${ic('v' + (a.v || 'm'))}</button><span></span><span></span>`;
     $$('.k', row2).forEach(x => {
       x.addEventListener('pointerdown', e => e.preventDefault());
       x.onclick = () => {
-        if (!on) return shake(x);
+        if (x.classList.contains('off')) return shake(x);
         flush();
         const k = x.dataset.s;
         if (k === 'font') { const i = FONTS.findIndex(o => o.id === (card.font || 'serif')), nf = FONTS[(i + 1) % FONTS.length]; card.font = nf.id; push(); draw(); pop(nf.name, nf); }
         if (k === 'size') { const [n, t] = SZ[card.size || 'm']; card.size = n; push(); draw(); pop(t); }
         if (k === 'h') { const [n, t] = AH[a.h || 'l']; card.align = { ...a, h: n }; push(); draw(); pop(t); }
-        if (k === 'v') { const [n, t] = AV[a.v || 'm']; card.align = { ...a, v: n }; push(); draw(); pop(t); }
+        if (k === 'v') { const [n, t] = AV[a.v || (rich ? 'm' : 't')]; card.align = { ...a, v: n }; push(); draw(); pop(t); }
         paintRow2();
       };
     });
@@ -562,7 +584,7 @@ function viewWrite({ fmt, id }) {
     const sw = $('.swp', row2), sel = $('.sel', sw);
     if (keep != null) sw.scrollLeft = keep; else if (sel) sw.scrollLeft = Math.max(0, sel.offsetLeft - sw.offsetLeft);
     $$('button', row2).forEach(x => x.addEventListener('pointerdown', e => e.preventDefault()));
-    $('[data-x=photo]', row2).onclick = () => toast('내 사진 배경은 사진 연결 후 열려요');
+    $('[data-x=photo]', row2).onclick = () => pop('내 사진 배경은 사진 연결 후');
     $('[data-x=dim]', row2).onclick = () => { flush(); card.bg.dim = dim === 'light' ? 'dark' : 'light'; push(); draw(); paintBgRow(); pop(card.bg.dim === 'light' ? '밝게' : '어둡게'); };
     $$('[data-b]', row2).forEach(t => t.onclick = () => { flush(); card.bg.id = t.dataset.b; if (!card.bg.seed) card.bg.seed = newSeed(); push(); draw(); paintBgRow(); });
   }
@@ -632,13 +654,15 @@ function viewWrite({ fmt, id }) {
     if (!hasText()) return;
     if (isNew) { card.id = S.uid(); card.created = new Date().toISOString(); S.clearDraft(); }
     delete card.sample; S.saveCard(card);
+    const pl = (card.place || '').trim();   // 최근 장소 (장소 칸에서 다시 고를 수 있게)
+    if (pl) S.setPref('places', [pl, ...S.pref('places', []).filter(x => x !== pl)].slice(0, 20));
     // 다 됐다는 표시: 가운데 큰 체크가 잠깐 떴다가 피드로
     const ok = $('[data-a=ok]'); ok.disabled = true; document.activeElement?.blur?.();
     const mk = document.createElement('div'); mk.className = 'okmark'; mk.innerHTML = `<span>${ic('check')}</span>`; document.body.appendChild(mk);
     setTimeout(() => { mk.remove(); go(`#/feed/${card.id}`); }, 900);
   };
 
-  paintMeta(); sizeCard(); draw(); paintRow2(); mode(); kb();
+  paintMeta(); paintRow2(); mode(); sizeCard(); draw(); kb();
   document.fonts?.ready.then(() => el && fitCard(el, card));
 }
 
