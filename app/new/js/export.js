@@ -72,7 +72,6 @@ async function rebusPages(c, W) {
     const rb = pg.querySelector('.rb'); rb.style.fontSize = p.style.fontSize;
     const box = document.createElement('div'); box.className = 'pgbox'; rb.replaceWith(box); box.appendChild(rb);
     clipTo(box, off, (st[i + 1] ? st[i + 1] - off : avail));
-    pg.insertAdjacentHTML('beforeend', `<div class="pn">${i + 1}/${st.length}</div>`);
     return pg;
   });
   el.remove();
@@ -100,7 +99,6 @@ async function textPages(c, W, ratio) {
     const shift = out.length > 1 ? i / (out.length - 1) : .5;
     pg.querySelectorAll('.bgi').forEach(b => { if (b.style.backgroundImage) b.style.backgroundPosition = `50% ${Math.round(shift * 100)}%`; });
     pg.querySelectorAll('canvas.bgc').forEach(cv => { cv.width = Math.round(W * ratio); cv.height = Math.round(H * ratio); drawCode(cv, +cv.dataset.seed, shift); });
-    if (out.length > 1) pg.insertAdjacentHTML('beforeend', `<div class="pn">${i + 1}/${out.length}</div>`);
     return wrap;
   });
   el.remove();

@@ -42,7 +42,6 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .cd.rebus .pgbox { margin: 6.667cqw 5.185cqw 0 5.926cqw; }
 .cd.rebus .pgbox .rb { margin: 0; }
 .cd .clip { overflow: hidden; flex: none; }
-.cd .pn { position: absolute; right: 5.185cqw; top: 3.7cqw; font-size: 2.8cqw; font-weight: 800; color: #B9B5AC; }
 
 .cd.text { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
 .cd.text::-webkit-scrollbar { display: none; }
@@ -75,7 +74,6 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .ftop { display: flex; align-items: center; justify-content: space-between; padding: calc(var(--safe-t) + 30px) var(--gut) 20px; }   /* 시계 줄 블러 아래 */
 .ftop .logo { font-size: 32px; font-weight: 800; letter-spacing: -.035em; line-height: 40px; }
 .feed { padding: 0 var(--gut) calc(120px + var(--safe-b)); display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; }
-.fi .cdate { font-size: 13px; font-weight: 700; color: var(--mut); letter-spacing: .02em; margin-bottom: -2px; }
 .fi .pgs.nosnap { scroll-snap-type: none; }
 .fi .pgs { overscroll-behavior-x: contain; }
 .day { font-size: 13px; font-weight: 700; color: var(--mut); margin: 6px 0 -16px; letter-spacing: .02em; }
@@ -85,10 +83,6 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .fi .pgs { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
 .fi .pgs::-webkit-scrollbar { display: none; }
 .fi .pgs > * { flex: 0 0 100%; scroll-snap-align: start; border-radius: 0; }
-/* 여러 장: 아래 겹친 종이 가장자리 */
-.fi.multi .fx::before, .fi.multi .fx::after { content: ''; position: absolute; left: 8px; right: 8px; bottom: -5px; height: 5px; border-radius: 0 0 6px 6px; background: #3a3a3f; z-index: -1; }
-.fi.multi .fx::after { left: 16px; right: 16px; bottom: -9px; background: #2a2a2e; }
-.fi.multi .row { margin-top: 6px; }
 .fi .row { display: flex; align-items: center; justify-content: space-between; margin: -4px -8px 0; }
 .fi .row .l { display: flex; gap: 4px; align-items: center; flex: 1; }
 /* 카드 아래 아이콘: 동그라미 없이 선 아이콘만. 책갈피가 켜지면 채워져요 */
@@ -96,13 +90,16 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .fi .row .cb .ic { width: 24px; height: 24px; }
 .fi .row .cb.on .ic { fill: currentColor; }
 .fi .row .pc { font-size: 13px; font-weight: 800; color: var(--mut); margin: 0 8px 0 auto; font-variant-numeric: tabular-nums; }
-.fi .ex { font-size: 14px; line-height: 1.45; color: #a9a9b0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: -6px; }
+.fi .when { font-size: 13px; color: var(--mut); margin-top: -8px; }
+.fi .ex { font-size: 16px; line-height: 1.45; color: #c9c9cf; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: -6px; }
 /* 카드만 화면 가득: 그 자리에서 커지며 나와요 */
 .fv { position: fixed; inset: 0; z-index: 100; background: rgba(12,12,13,0); transition: background-color .36s ease; cursor: pointer; }
 .fv.in { background: rgba(12,12,13,1); }
-.fvb { position: fixed; transform-origin: 0 0; transition: transform .38s cubic-bezier(.2,.8,.2,1); display: block; }
-.fvb .view { border-radius: 6px; overflow: hidden; }
-.fv.in .fvb .view, .fv.in .fvb .cd { border-radius: 0; }
+.fvs { position: absolute; inset: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.fvs::-webkit-scrollbar { display: none; }
+.fvb { width: min(100%, 480px); margin: 0 auto calc(var(--safe-b) + 24px); transform-origin: 0 0; transition: transform .38s cubic-bezier(.2,.8,.2,1); display: block; }
+.fvb .cd { border-radius: 6px; transition: border-radius .38s; }
+.fv.in .fvb .cd { border-radius: 0; }
 .fi .ours { padding-left: 8px; display: flex; gap: 8px; align-items: center; font-size: 14px; font-weight: 800; }
 .fi .ours i { font-style: normal; background: #fff; color: var(--bg); font-size: 10px; padding: 2px 6px; border-radius: 6px; }
 /* 모션: 가운데 카드만. 코드 배경은 천천히 흐르고, 그림 문장은 처음 볼 때 그림이 톡톡 나온 뒤 몇 개만 잔잔히 */
@@ -124,7 +121,7 @@ body.paused .fi * { animation-play-state: paused !important; }
 .av { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, #f4a3c4, #8a7cf0); }
 
 /* 포맷 고르기 */
-.pick { padding: 0 var(--gut) calc(30px + var(--safe-b)); display: grid; gap: 14px; }
+.pick { padding: 0 var(--gut) calc(30px + var(--safe-b)); display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
 .pick .big { width: min(100%, 52vh * .8); margin: 0 auto; }
 .pick .nm { display: flex; align-items: center; gap: 8px; font-size: 20px; font-weight: 800; }
 .pick .nm i { font-style: normal; background: #fff; color: var(--bg); font-size: 10px; padding: 2px 6px; border-radius: 6px; }
@@ -196,7 +193,7 @@ html.pan .wr .panel { display: grid; }
 .bgs canvas { width: 100%; height: 100%; display: block; }
 
 /* 완료 */
-.done { padding: 0 var(--gut) calc(30px + var(--safe-b)); display: grid; gap: 14px; }
+.done { padding: 0 var(--gut) calc(30px + var(--safe-b)); display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
 .done .row { display: flex; align-items: center; gap: 8px; }
 .done .row .sp { flex: 1; }
 .done .ifo { font-size: 13px; color: var(--mut); }
@@ -212,3 +209,8 @@ html.pan .wr .panel { display: grid; }
 .toast { position: fixed; left: 50%; bottom: calc(76px + var(--safe-b)); transform: translateX(-50%); background: #fff; color: var(--bg); font-size: 14px; font-weight: 700; padding: 10px 16px; border-radius: 999px; z-index: 60; white-space: nowrap; }
 .busy { position: fixed; inset: 0; z-index: 70; background: rgba(0,0,0,.55); display: grid; place-items: center; font-weight: 700; }
 
+.done .cv { position: relative; border-radius: 6px; overflow: hidden; }
+.done .cv .pgs { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; }
+.done .cv .pgs.nosnap { scroll-snap-type: none; }
+.done .cv .pgs::-webkit-scrollbar { display: none; }
+.done .cv .pgs > * { flex: 0 0 100%; scroll-snap-align: start; border-radius: 0; }

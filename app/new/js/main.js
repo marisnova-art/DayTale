@@ -92,26 +92,18 @@ function viewFeed() {
   cleanup = () => { removeEventListener('scroll', onScroll); document.removeEventListener('visibilitychange', onVis); closeFocus(true); };
   setTimeout(pickMid, 80);
 }
-function dayLabel(d) {
-  const t = S.today(), y = new Date(Date.now() - 864e5), ys = `${y.getFullYear()}-${String(y.getMonth() + 1).padStart(2, '0')}-${String(y.getDate()).padStart(2, '0')}`;
-  const base = dateChip(d) + (d.slice(0, 4) !== t.slice(0, 4) ? ` · ${d.slice(0, 4)}` : '');
-  return d === t ? `오늘 · ${base}` : d === ys ? `어제 · ${base}` : base;
+// 언제 썼는지 (인스타처럼): 오늘 · 어제 · N일 전 · 그 뒤엔 M월 D일
+function ago(d) {
+  const day = x => Math.floor(new Date(x + 'T00:00:00').getTime() / 864e5);
+  const n = day(S.today()) - day(d), [y, m, dd] = d.split('-').map(Number);
+  if (n <= 0) return '오늘';
+  if (n === 1) return '어제';
+  if (n < 7) return `${n}일 전`;
+  return `${m}월 ${dd}일` + (y !== +S.today().slice(0, 4) ? `, ${y}` : '');
 }
 
-// 카드 한 장. 긴 카드는 4:5 장들을 옆으로 밀어 봐요. 누르면 그 카드만 화면 가득(다시 누르면 피드로).
-// 아래 줄: 책갈피 · 저장 · 쓰기 · 삭제 · 장 수(여러 장일 때)
-function feedItem(c) {
-  const it = document.createElement('article'); it.className = 'fi'; it.dataset.tone = toneOf(c);
-  const f = FORMATS[c.fmt];
-  it.innerHTML = `<div class="cdate">${c.sample ? '예시' : dayLabel(c.date)}</div><div class="fx"><div class="view"></div></div>
-    <div class="row">${c.sample
-      ? `<div class="ours">${f.name}<i>NEW</i></div><button class="cb" data-a="use" aria-label="이 포맷으로 쓰기">${ic('pen')}</button>`
-      : `<div class="l"><button class="cb ${c.mark ? 'on' : ''}" data-a="mark" aria-label="책갈피">${ic('bookmark')}</button><button class="cb" data-a="save" aria-label="사진에 저장">${ic('save')}</button><button class="cb" data-a="edit" aria-label="고치기">${ic('pen')}</button><button class="cb" data-a="del" aria-label="삭제">${ic('trash')}</button><span class="pc" hidden></span></div>`}</div>
-    <p class="ex"></p>`;
-  const fx = $('.fx', it), view = $('.view', it), pc = $('.pc', it);
-  $('.ex', it).textContent = cardText(c).replace(/\s+/g, ' ').trim();   // 글 첫머리 한 줄 (길면 …)
-  mount(view, c);
-  // 저장할 때와 같은 방식으로 장을 나눠서, 여러 장이면 옆으로 넘겨 보는 모양으로 (늘 첫 장부터)
+// 카드를 저장할 때와 같은 4:5 장들로 나눠서, 여러 장이면 옆으로 넘겨 보는 모양으로 (늘 첫 장부터). onCount(지금 장, 모두)
+function pageInto(view, c, onCount) {
   requestAnimationFrame(() => setTimeout(async () => {
     const W = view.clientWidth; if (!W) return;
     const { h, nodes } = await buildPages(c, W, Math.min(2, devicePixelRatio || 1));
@@ -120,16 +112,31 @@ function feedItem(c) {
       const pages = document.createElement('div'); pages.className = 'pgs nosnap'; pages.append(...nodes);
       const snapOn = () => pages.classList.remove('nosnap');
       pages.addEventListener('touchstart', snapOn, { once: true, passive: true }); pages.addEventListener('pointerdown', snapOn, { once: true });
-      const paint = () => { if (pc) pc.textContent = `${Math.round(pages.scrollLeft / pages.clientWidth) + 1}/${nodes.length}`; };
+      const paint = () => onCount(Math.round(pages.scrollLeft / pages.clientWidth) + 1, nodes.length);
       pages.addEventListener('scroll', paint, { passive: true });
-      view.innerHTML = ''; view.appendChild(pages); it.classList.add('multi');
+      view.innerHTML = ''; view.appendChild(pages);
       const first = () => { if (pages.classList.contains('nosnap')) { pages.scrollLeft = 0; paint(); } };
       first(); requestAnimationFrame(first); [150, 500, 1200].forEach(ms => setTimeout(first, ms));
-      if (pc) { pc.hidden = false; paint(); }
     }
     h.remove();
   }, 40));
-  fx.addEventListener('click', () => openFocus(it));
+}
+
+// 카드 한 장. 긴 카드는 4:5 장들을 옆으로 밀어 봐요. 누르면 그 카드 전체를 화면 가득(다시 누르면 피드로).
+// 아래: 책갈피 · 저장 · 쓰기 · 삭제 · 장 수(여러 장일 때) / 글 첫머리 한 줄 / 언제 썼는지
+function feedItem(c) {
+  const it = document.createElement('article'); it.className = 'fi'; it.dataset.tone = toneOf(c);
+  const f = FORMATS[c.fmt];
+  it.innerHTML = `<div class="fx"><div class="view"></div></div>
+    <div class="row">${c.sample
+      ? `<div class="ours">${f.name}<i>NEW</i></div><button class="cb" data-a="use" aria-label="이 포맷으로 쓰기">${ic('pen')}</button>`
+      : `<div class="l"><button class="cb ${c.mark ? 'on' : ''}" data-a="mark" aria-label="책갈피">${ic('bookmark')}</button><button class="cb" data-a="save" aria-label="사진에 저장">${ic('save')}</button><button class="cb" data-a="edit" aria-label="고치기">${ic('pen')}</button><button class="cb" data-a="del" aria-label="삭제">${ic('trash')}</button><span class="pc" hidden></span></div>`}</div>
+    <p class="ex"></p>${c.sample ? '' : `<p class="when">${ago(c.date)}</p>`}`;
+  const fx = $('.fx', it), view = $('.view', it), pc = $('.pc', it);
+  $('.ex', it).textContent = cardText(c).replace(/\s+/g, ' ').trim();   // 글 첫머리 한 줄 (길면 …)
+  mount(view, c);
+  pageInto(view, c, (i, n) => { if (pc) { pc.hidden = false; pc.textContent = `${i}/${n}`; } });
+  fx.addEventListener('click', () => openFocus(it, c));
   const on = (k, fn) => { const b = $(`[data-a=${k}]`, it); if (b) b.onclick = fn; };
   on('use', () => go(`#/write/${c.fmt}`));
   on('edit', () => go(`#/edit/${c.id}`));
@@ -148,36 +155,35 @@ function undoToast(msg, undo) {
   document.body.appendChild(t); setTimeout(() => t.remove(), 4000);
 }
 
-// 카드만 화면 가득: 그 자리에서 커지며 나오고(바탕은 어두워지며 위 줄 · 메뉴 · 다른 카드가 가려져요), 누르면 제자리로
+// 크게 보기: 카드 전체를 나누지 않은 긴 한 장으로. 피드 카드 자리에서 커지며 나오고, 길면 위아래로 밀어 읽어요.
+// 짧으면 화면 가운데. 누르면 제자리로 줄어들며 피드로
 let focus = null;
-function openFocus(it) {
+function openFocus(it, c) {
   if (focus) return;
-  const fx = $('.fx', it), view = $('.view', it), r = view.getBoundingClientRect();
-  const k = Math.min(innerWidth, 480, innerHeight * .8 / (r.height / r.width)) / r.width;
-  const tx = (innerWidth - r.width * k) / 2 - r.left, ty = (innerHeight - r.height * k) / 2 - r.top;
+  const view = $('.view', it), r = view.getBoundingClientRect();
   const ov = document.createElement('div'); ov.className = 'fv';
-  const box = document.createElement('div'); box.className = 'fi play fvb';
-  box.style.cssText = `left:${r.left}px;top:${r.top}px;width:${r.width}px;`;
-  fx.style.height = r.height + 'px'; moveKeep(view, () => { box.appendChild(view); ov.appendChild(box); document.body.appendChild(ov); });
-  // 뒤 피드는 그대로 두고(보던 자리 유지), 가득 화면에서 위아래로 끌어도 뒤가 움직이지 않게
-  ov.addEventListener('touchmove', e => { if (!e.target.closest('.pgs')) e.preventDefault(); }, { passive: false });
-  ov.addEventListener('wheel', e => e.preventDefault(), { passive: false });
-  requestAnimationFrame(() => requestAnimationFrame(() => { ov.classList.add('in'); box.style.transform = `translate(${tx}px,${ty}px) scale(${k})`; }));
+  ov.innerHTML = '<div class="fvs"><div class="fi play fvb"></div></div>';
+  const sc = $('.fvs', ov), box = $('.fvb', ov);
+  document.body.appendChild(ov);
+  const el = renderCard(c); box.appendChild(el); fitCard(el, c);
+  const T = box.clientWidth, H = box.offsetHeight;
+  // 짧으면 가운데, 길면 시계 줄 아래부터
+  const top = Math.max((innerHeight - H) / 2, (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--safe-t')) || 0) + 16);
+  box.style.marginTop = top + 'px';
+  const from = () => { const b = box.getBoundingClientRect(), k = r.width / T; return `translate(${r.left - b.left}px,${r.top - b.top}px) scale(${k})`; };
+  box.style.transition = 'none'; box.style.transform = from(); view.style.visibility = 'hidden';
+  // 뒤 피드는 그대로(보던 자리 유지)
+  ov.addEventListener('wheel', e => { if (sc.scrollHeight <= sc.clientHeight) e.preventDefault(); }, { passive: false });
+  requestAnimationFrame(() => requestAnimationFrame(() => { box.style.transition = ''; ov.classList.add('in'); box.style.transform = ''; }));
   ov.addEventListener('click', () => closeFocus());
-  focus = { ov, box, fx, view, y: scrollY };
-}
-// 옮겨도 보던 장 그대로 (옮기면 브라우저가 첫 장으로 되돌려요), 장 수도 다시 맞춰요
-function moveKeep(view, move) {
-  const pg = $('.pgs', view), x = pg?.scrollLeft || 0;
-  move();
-  if (pg) { pg.scrollLeft = x; pg.dispatchEvent(new Event('scroll')); }
+  focus = { ov, box, view, from, y: scrollY };
 }
 function closeFocus(now) {
   if (!focus || focus.closing) return;
   const f = focus; f.closing = true;
-  const done = () => { moveKeep(f.view, () => f.fx.appendChild(f.view)); f.fx.style.height = ''; f.ov.remove(); if (scrollY !== f.y) scrollTo(0, f.y); focus = null; };
+  const done = () => { f.view.style.visibility = ''; f.ov.remove(); if (scrollY !== f.y) scrollTo(0, f.y); focus = null; };
   if (now) return done();
-  f.ov.classList.remove('in'); f.box.style.transform = '';
+  f.ov.classList.remove('in'); f.box.style.transform = f.from();
   setTimeout(done, 380);
 }
 
@@ -549,9 +555,10 @@ function viewDone(id) {
     <main class="done"><div class="cv"></div>
     <div class="row"><button class="cb ${c.mark ? 'on' : ''}" data-a="mark" aria-label="책갈피">${ic('bookmark')}</button><button class="cb" data-a="book" aria-label="책에 넣기">${ic('shelf')}</button><span class="sp"></span></div>
     <button class="go" data-a="save">${ic('save')}<span>사진에 저장</span></button><div class="ifo"></div></main>`;
+  // 저장될 사진과 똑같이: 4:5 장들, 여러 장이면 옆으로 넘겨 봐요
   mount($('.cv'), c);
-  const n = c.fmt === 'text' ? c.pages.length : null;
-  $('.ifo').textContent = n ? `사진 ${n}장 · 4:5` : '4:5 · 길면 여러 장으로 나눠 저장해요';
+  $('.ifo').textContent = '사진 1장 · 4:5';
+  pageInto($('.cv'), c, (i, n) => { $('.ifo').textContent = `사진 ${n}장 · 4:5 · ${i}/${n}`; });
   $('[data-a=x]').onclick = () => go('#/');
   $('[data-a=edit]').onclick = () => go(`#/edit/${c.id}`);
   $('[data-a=book]').onclick = soon;
