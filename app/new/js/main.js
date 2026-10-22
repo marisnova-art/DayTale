@@ -5,7 +5,7 @@ import { FORMATS, ORDER, blank, sampleCard, renderCard, fitCard, cardText, newSe
 import { FREE, KIND, find as findBg, drawCode } from './bg.js';
 import { cardImages, saveImages, buildPages } from './export.js';
 import { clean, offsetsOf, rangeAt } from './rich.js';
-import { FONTS, fontCssOf } from './fonts.js';
+import { FONTS, fontOf, fontCssOf } from './fonts.js';
 import { NAMES as STK, hydrate, preloadAll } from './stickers.js';
 
 const app = document.getElementById('app');
@@ -241,7 +241,7 @@ function viewWrite({ fmt, id }) {
   let card;
   if (id) card = S.card(id);
   else if (fmt === 'draft') card = S.draft()?.card;
-  else card = blank(fmt, S.today());
+  else { card = blank(fmt, S.today()); if (card.fmt === 'text') card.font = fontOf(S.pref('font', card.font)).id; }   // 새 카드는 마지막에 쓴 글꼴로
   if (!card || !FORMATS[card.fmt]) return go('#/');
   const f = FORMATS[card.fmt], rich = card.fmt === 'text';
   if (!rich && card.html == null) { card.html = renderCard(card).querySelector('.rb').innerHTML; card.html = clean(card.html); delete card.text; }
@@ -389,10 +389,10 @@ function viewWrite({ fmt, id }) {
   function pop(text, font, kind) {   // kind가 있으면 두 줄: 작은 회색 종류 + 이름
     const nm = $('.wr .stt'); clearTimeout(st.popT);
     if (kind) nm.innerHTML = `<small>${esc(kind)}</small>${esc(text)}`; else nm.textContent = text;
-    nm.classList.toggle('two', !!kind); nm.classList.add('ntc'); nm.style.fontFamily = font ? fontCssOf(font) : '';
+    nm.classList.toggle('two', !!kind); nm.classList.add('ntc'); nm.style.fontFamily = font ? fontCssOf(font) : ''; nm.style.fontSize = font ? Math.round(20 * font.k) + 'px' : '';
     if (font) document.fonts?.load(`20px '${font.fam}'`, text);
     nm.classList.remove('flash'); void nm.offsetWidth; nm.classList.add('flash');
-    st.popT = setTimeout(() => { st.popT = 0; nm.classList.remove('ntc', 'flash', 'two'); nm.style.fontFamily = ''; count(); }, 1200);
+    st.popT = setTimeout(() => { st.popT = 0; nm.classList.remove('ntc', 'flash', 'two'); nm.style.fontFamily = nm.style.fontSize = ''; count(); }, 1200);
   }
 
   /* 카드 그리기. 글만 바뀌면 그 자리에서 바꾸고(키보드가 내려가지 않게), 장 수·배경·날짜 같은 틀이 바뀔 때만 새로 그려요 */
@@ -581,16 +581,22 @@ function viewWrite({ fmt, id }) {
     });
   }
   // 글꼴 줄: 앞 칸(흰 글꼴 칸)을 누르면 서식 줄로. 나머지 5칸 자리에서 10개 글꼴이 옆으로 밀려요 (칸마다 그 글꼴로 쓴 "가")
+  // 글꼴 줄: 1칸 = 글꼴 단추(누를 때마다 다음 글꼴), 2~6칸 = 이름 줄(이름 하나가 2칸, 그 글꼴로). 지금 글꼴이 맨 앞, 밀어 보고 이름을 눌러 바로 골라요
   function paintFontRow() {
-    const keep = $('.fst', row2)?.scrollLeft, cur = card.font || 'serif';
+    const cur = fontOf(card.font).id;
     row2.className = 'st2 g6 fnr';
-    row2.innerHTML = `<button class="k on" data-x="back" aria-label="글꼴 닫기">${ic('font')}</button>
-      <div class="fst">${FONTS.map(o => `<button class="k fk ${o.id === cur ? 'sel' : ''}" data-f="${o.id}" aria-label="${o.name}" style="font-family:${fontCssOf(o).replace(/"/g, '&quot;')};font-size:${Math.round(22 * o.k)}px">가</button>`).join('')}<span class="end"></span></div>`;
-    const fs = $('.fst', row2), sel = $('.sel', fs);
-    if (keep != null) fs.scrollLeft = keep; else if (sel) fs.scrollLeft = Math.max(0, sel.offsetLeft - fs.offsetLeft - (sel.offsetWidth + 8) * 2);
+    row2.innerHTML = `<button class="k on" data-x="next" aria-label="다음 글꼴">${ic('font')}</button>
+      <div class="fst">${FONTS.map(o => `<button class="fn ${o.id === cur ? 'sel' : ''}" data-f="${o.id}" style="font-family:${fontCssOf(o).replace(/"/g, '&quot;')};font-size:${Math.round(19 * o.k)}px">${o.name}</button>`).join('')}<span class="end"></span></div>`;
+    const fs = $('.fst', row2);
+    const toCur = smooth => { const s = $('.sel', fs); if (s) fs.scrollTo({ left: s.offsetLeft - fs.firstElementChild.offsetLeft, behavior: smooth ? 'smooth' : 'instant' }); };
+    const pick = (o, smooth) => {
+      flush(); card.font = o.id; push(); draw(); pop(o.name, o, o.grp);
+      $$('.fn', fs).forEach(x => x.classList.toggle('sel', x.dataset.f === o.id)); toCur(smooth);
+    };
+    toCur(false);
     $$('button', row2).forEach(x => x.addEventListener('pointerdown', e => e.preventDefault()));
-    $('[data-x=back]', row2).onclick = () => { st.fontRow = false; paintRow2(); };
-    $$('[data-f]', row2).forEach(x => x.onclick = () => { flush(); const o = FONTS.find(q => q.id === x.dataset.f); card.font = o.id; push(); draw(); paintFontRow(); pop(o.name, o); });
+    $('[data-x=next]', row2).onclick = () => { const i = (FONTS.findIndex(o => o.id === fontOf(card.font).id) + 1) % FONTS.length; pick(FONTS[i], i > 0); };   // 끝에서 처음으로 돌아갈 땐 바로
+    $$('[data-f]', row2).forEach(x => x.onclick = () => pick(fontOf(x.dataset.f), true));
   }
   function paintBgRow() {
     const dim = card.bg.dim || 'dark', keep = $('.swp', row2)?.scrollLeft;
@@ -688,6 +694,7 @@ function viewWrite({ fmt, id }) {
     delete card.sample; S.saveCard(card);
     const pl = (card.place || '').trim();   // 최근 장소 (장소 칸에서 다시 고를 수 있게)
     if (pl) S.setPref('places', [pl, ...S.pref('places', []).filter(x => x !== pl)].slice(0, 20));
+    if (card.fmt === 'text') S.setPref('font', card.font);   // 다음 새 카드는 이 글꼴로 시작
     // 다 됐다는 표시: 가운데 큰 체크가 잠깐 떴다가 피드로
     const ok = $('[data-a=ok]'); ok.disabled = true; document.activeElement?.blur?.();
     const mk = document.createElement('div'); mk.className = 'okmark'; mk.innerHTML = `<span>${ic('check')}</span>`; document.body.appendChild(mk);

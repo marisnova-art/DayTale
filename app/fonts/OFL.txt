@@ -5,6 +5,13 @@ Writing fonts used by Daytale (self-hosted copies of the Google Fonts web files)
 - Caveat — Copyright 2014 The Caveat Project Authors (https://github.com/googlefonts/caveat)
 - Nanum Pen Script — Copyright 2010 NAVER Corporation (https://hangeul.naver.com)
 - Klee One — Copyright 2020 The Klee Project Authors (https://github.com/fontworks-fonts/Klee)
+- Nanum Myeongjo, Nanum Brush Script — Copyright 2010 NAVER Corporation (https://hangeul.naver.com)
+- Gowun Dodum — Copyright 2021 The Gowun Dodum Project Authors (https://github.com/yangheeryu/Gowun-Dodum)
+- Do Hyeon, Jua, Black Han Sans, Yeon Sung, Song Myung, Poor Story, Single Day, Gaegu, Hi Melody, Gamja Flower — Copyright Woowahan Brothers, JIKJI SOFT, Rixfont, YoonDesign and the respective Project Authors (via Google Fonts)
+- Hahmlet — Copyright 2021 The Hahmlet Project Authors (https://github.com/hyper-type/hahmlet)
+- Diphylleia — Copyright 2023 The Diphylleia Project Authors
+- Dongle — Copyright 2021 The Dongle Project Authors (https://github.com/yangheeryu/Dongle)
+- Galmuri — Copyright 2019 Lee Minseo (https://github.com/quiple/galmuri)
 
 These Font Softwares are licensed under the SIL Open Font License, Version 1.1.
 This license is copied below, and is also available with a FAQ at:

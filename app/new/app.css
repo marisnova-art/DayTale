@@ -170,7 +170,7 @@ html:not(.kb-open) .wr.plc { bottom: var(--kbh, 40vh); }   /* 장소 줄: 아이
 .wr .stt { font: 700 14px var(--ui); color: #d8d8dc; white-space: nowrap; max-width: calc(100% - 120px); overflow: hidden; text-overflow: ellipsis; }
 .wr .stt.ntc { color: #fff; }
 .wr .stt.two { display: flex; flex-direction: column; align-items: center; line-height: 1.2; white-space: normal; text-align: center; }
-.wr .stt.two small { font-size: 11px; font-weight: 600; color: var(--mut); } .wr .stt.ntc[style*=font-family] { font-size: 20px; font-weight: 400; }
+.wr .stt.two small { font: 600 11px var(--ui); color: var(--mut); } .wr .stt.ntc[style*=font-family] { font-size: 20px; font-weight: 400; }
 .wr .stt.flash { animation: fade .18s; }
 /* 6칸 줄 (시안 C4): 모든 칸 = 옅은 타일, 간격 8px, 칸은 화면 폭에 맞춰 정사각형. 줄끼리 세로로 맞아요 */
 .g6 { flex: none; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; padding: 0 16px 8px; background: var(--bg); }
@@ -187,11 +187,11 @@ html:not(.kb-open) .wr.plc { bottom: var(--kbh, 40vh); }   /* 장소 줄: 아이
 .st2.bgr .sw canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 .st2.bgr .sw.sel::after { content: ''; position: absolute; inset: 3px; border-radius: 9px; box-shadow: inset 0 0 0 2px #fff, 0 0 0 1px rgba(0,0,0,.25); }
 .st2.bgr .end { flex: 0 0 calc((100% - 24px) / 4 * 2); }
-.st2.fnr .fst { grid-column: 2 / span 5; display: flex; gap: 8px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; -webkit-mask-image: linear-gradient(90deg, #000 82%, transparent); mask-image: linear-gradient(90deg, #000 82%, transparent); }
+.st2.fnr .fst { grid-column: 2 / span 5; display: flex; gap: 8px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; -webkit-mask-image: linear-gradient(90deg, #000 78%, transparent); mask-image: linear-gradient(90deg, #000 78%, transparent); }
 .st2.fnr .fst::-webkit-scrollbar { display: none; }
-.st2.fnr .fk { flex: 0 0 calc((100% - 32px) / 5); scroll-snap-align: start; line-height: 1; font-weight: 400; }
-.st2.fnr .fk.sel::after { content: ''; position: absolute; inset: 3px; border-radius: 9px; box-shadow: inset 0 0 0 2px #fff; }
-.st2.fnr .end { flex: 0 0 calc((100% - 32px) / 5 * 3); }
+.st2.fnr .fn { --it: calc((100% - 32px) / 5 * 2 + 8px); flex: 0 0 var(--it); scroll-snap-align: start; border: 0; border-radius: 12px; background: var(--srf); color: #fff; position: relative; display: grid; place-items: center; white-space: nowrap; overflow: hidden; line-height: 1; font-weight: 400; padding: 0 6px; }   /* 이름 하나 = 2칸 */
+.st2.fnr .fn.sel::after { content: ''; position: absolute; inset: 3px; border-radius: 9px; box-shadow: inset 0 0 0 2px #fff; }
+.st2.fnr .end { flex: 0 0 calc((100% - 32px) / 5 * 3 + 16px); }   /* 마지막 글꼴도 맨 앞까지 밀 수 있게 */
 /* 3줄: 날짜(2칸) · 장소(3칸) · 날짜 위치(1칸) */
 .st3 .wide { position: relative; border-radius: 12px; background: var(--srf); display: flex; align-items: center; gap: 6px; padding: 0 12px; color: #fff; font: 600 14px var(--ui); min-width: 0; }
 .st3 .w2 { grid-column: span 2; } .st3 .w3 { grid-column: span 3; }
