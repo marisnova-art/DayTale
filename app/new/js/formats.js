@@ -167,6 +167,27 @@ function text(c, { edit = false } = {}) {
 
 // 글이 넘치면 그 장이 아래로 길어지고(쓰는 동안 한 장),
 // 저장할 때 줄 단위로 여러 장으로 나눠요. 쓰는 화면에서는 나뉠 자리에 점선을 그어 둬요
+// 글이 놓인 줄들(위 · 아래 위치). 글자 · 그림 · 날짜 줄을 모아 겹치는 것끼리 한 줄로
+export function lines(root) {
+  const top = root.getBoundingClientRect().top, boxes = [];
+  const add = r => { if (r.height > 1) boxes.push([r.top - top, r.bottom - top]); };
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT); let n;
+  while ((n = w.nextNode())) { if (!n.data.trim()) continue; const r = document.createRange(); r.selectNodeContents(n); [...r.getClientRects()].forEach(add); }
+  root.querySelectorAll('.o svg, .dt').forEach(e => add(e.getBoundingClientRect()));
+  boxes.sort((a, b) => a[0] - b[0]);
+  const out = [];
+  for (const [t, b] of boxes) {
+    const l = out[out.length - 1];
+    if (l && t < l[1] - (b - t) * .5) l[1] = Math.max(l[1], b); else out.push([t, b]);
+  }
+  return out;
+}
+// 줄들을 한 장 높이(avail)에 맞게 나눈 시작 위치들
+export function starts(ls, avail) {
+  const s = [0]; let base = 0;
+  for (const [t, b] of ls) if (b - base > avail && t > base) { base = t; s.push(t); }
+  return s;
+}
 function fitText(el) {
   el.querySelectorAll('.pg').forEach(pg => {
     const tx = pg.querySelector('.tx'); if (!tx) return;
@@ -178,9 +199,10 @@ function fitText(el) {
     tx.style.fontSize = px((+tx.dataset.sz || 65) * (+tx.dataset.k || 1));
     if (over()) pg.classList.add('long');
     tx.style.justifyContent = jc;
+    // 쓰는 화면: 저장할 때 나뉠 자리(줄 사이)에 점선. 저장과 같은 방법으로 재서 장 수가 같아요
     if (pg.classList.contains('long') && el.classList.contains('edit')) {
-      const h = pg.offsetWidth * 1.25, n = Math.ceil(pg.offsetHeight / h - .02);
-      for (let k = 1; k < n; k++) pg.insertAdjacentHTML('beforeend', `<div class="brk" style="top:${(k * 100 / n).toFixed(2)}%"><span>${k + 1}</span></div>`);
+      const pad = parseFloat(getComputedStyle(tx).paddingTop), st = starts(lines(tx).map(([t, b]) => [t - pad, b - pad]), pg.offsetWidth * 1.25 - 2 * pad);
+      st.slice(1).forEach((off, k) => pg.insertAdjacentHTML('beforeend', `<div class="brk" style="top:${(pad + off - 4).toFixed(1)}px"><span>${k + 2}</span></div>`));
     }
   });
   el.querySelectorAll('canvas.bgc').forEach(cv => {

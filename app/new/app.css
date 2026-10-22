@@ -110,6 +110,8 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .fvb { width: min(100%, 480px); margin: 0 auto calc(var(--safe-b) + 24px); transform-origin: 0 0; transition: transform .38s cubic-bezier(.2,.8,.2,1); display: block; }
 .fvb .cd { border-radius: 6px; transition: border-radius .38s; }
 .fv.in .fvb .cd { border-radius: 0; }
+.fvb .cd.text { display: block; overflow: visible; }   /* 크게 보기: 새 장까지 위에서 아래로 이어서 */
+.fvb .cd.text .pg + .pg::before { content: ''; position: absolute; z-index: 3; top: 0; left: 7.4cqw; right: 7.4cqw; height: 1px; background: currentColor; opacity: .35; }   /* 장이 바뀌는 자리 */
 .fi .ours { padding-left: 8px; display: flex; gap: 8px; align-items: center; font-size: 14px; font-weight: 800; }
 .fi .ours i { font-style: normal; background: #fff; color: var(--bg); font-size: 10px; padding: 2px 6px; border-radius: 6px; }
 /* 모션: 가운데 카드만. 코드 배경은 천천히 흐르고, 그림 문장은 처음 볼 때 그림이 톡톡 나온 뒤 몇 개만 잔잔히 */

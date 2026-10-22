@@ -1,6 +1,6 @@
 // 카드 → 4:5 장들. 저장할 땐 1080×1350 이미지로, 피드에선 같은 장을 화면 폭으로 그려서 옆으로 넘겨 봐요
 // (쓰는 동안은 한 장의 긴 카드, 나누는 건 여기서만. 줄이 잘리지 않게 줄 단위로 나눠요)
-import { renderCard, fitCard, cardText, RB_M } from './formats.js';
+import { renderCard, fitCard, cardText, RB_M, lines, starts } from './formats.js';
 import { drawCode } from './bg.js';
 import { ready } from './stickers.js';
 import { fontOf } from './fonts.js';
@@ -38,27 +38,6 @@ function host(W) {
   document.body.appendChild(h); return h;
 }
 
-// 글이 놓인 줄들(위 · 아래 위치). 글자 · 그림 · 날짜 줄을 모아 겹치는 것끼리 한 줄로
-function lines(root) {
-  const top = root.getBoundingClientRect().top, boxes = [];
-  const add = r => { if (r.height > 1) boxes.push([r.top - top, r.bottom - top]); };
-  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT); let n;
-  while ((n = w.nextNode())) { if (!n.data.trim()) continue; const r = document.createRange(); r.selectNodeContents(n); [...r.getClientRects()].forEach(add); }
-  root.querySelectorAll('.o svg, .dt').forEach(e => add(e.getBoundingClientRect()));
-  boxes.sort((a, b) => a[0] - b[0]);
-  const out = [];
-  for (const [t, b] of boxes) {
-    const l = out[out.length - 1];
-    if (l && t < l[1] - (b - t) * .5) l[1] = Math.max(l[1], b); else out.push([t, b]);
-  }
-  return out;
-}
-// 줄들을 한 장 높이(avail)에 맞게 나눈 시작 위치들
-function starts(ls, avail) {
-  const s = [0]; let base = 0;
-  for (const [t, b] of ls) if (b - base > avail && t > base) { base = t; s.push(t); }
-  return s;
-}
 // 내용을 off부터 h만큼만 보이게 감싸요
 function clipTo(box, off, h) {
   const clip = document.createElement('div'); clip.className = 'clip'; clip.style.height = h + 'px';
@@ -85,7 +64,9 @@ async function rebusPages(c, W) {
 }
 
 async function textPages(c, W, ratio) {
-  const H = Math.round(W * 1.25), h = host(W), el = renderCard(c); h.appendChild(el); fitCard(el, c);
+  const H = Math.round(W * 1.25), h = host(W), el = renderCard(c);
+  el.style.alignItems = 'flex-start';   // 장마다 제 길이로 재요 (가장 긴 장 높이로 늘어나면 덜 긴 장이 안 넘친다고 잘못 재요)
+  h.appendChild(el); fitCard(el, c);
   await document.fonts.ready; fitCard(el, c);
   const out = [];
   [...el.querySelectorAll('.pg')].forEach(pg => {
