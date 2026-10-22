@@ -37,8 +37,12 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .cd.rebus .exm { display: none; position: absolute; top: 0; left: 0; right: 0; opacity: .3; pointer-events: none; }
 .cd.rebus.edit.empty .exm { display: block; }
 .cd.rebus.edit .rb { min-height: 1.4em; position: relative; z-index: 1; }
+.cd.rebus.edit .exm { position: absolute; z-index: 0; min-height: 0; }   /* 예시 글은 커서 줄과 같은 자리에 겹쳐요 */
 .cd.rebus .foot { position: absolute; left: 5.926cqw; right: 5.185cqw; bottom: 5.926cqw; display: flex; justify-content: space-between; font-size: 3.889cqw; font-weight: 900; line-height: 1; color: #6C4BD8; }   /* 왼쪽 요일 · 날짜(· 장소), 오른쪽 서명 */
 .cd.rebus.paged { aspect-ratio: auto; }
+.cd.rebus[data-dp=top] .foot { bottom: auto; top: 5.926cqw; }   /* 날짜 위 */
+.cd.rebus[data-dp=none] .foot { display: none; }
+.wr .cd.rebus .rb { transition: margin-top .25s ease; }          /* 키보드를 내리면 고른 자리로 부드럽게 */
 .cd.rebus .pgbox { margin: 6.667cqw 5.185cqw 0 5.926cqw; }
 .cd.rebus .pgbox .rb { margin: 0; }
 .cd .clip { overflow: hidden; flex: none; }

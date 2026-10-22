@@ -347,10 +347,10 @@ function viewWrite({ fmt, id }) {
 
   /* 3줄: 날짜(누르면 달력) · 장소 · 날짜 위치(누를 때마다 위 → 아래 → 없음) */
   const dtb = $('.st3 .dt'), pi = $('.st3 .pi'), dpb = $('.st3 .dp');
-  const DP = { top: ['dtop', '날짜 위'], bottom: ['dbot', '날짜 아래'], none: ['doff', '날짜 없음'] };
+  const DP = { top: ['dtop', '날짜 위'], bottom: ['dbot', '날짜 아래'], none: ['doff', '날짜 없음'] }, dpDef = rich ? 'top' : 'bottom';
   function paintMeta() {
     $('.st3 .dt span').textContent = dateChip(card.date);
-    dpb.innerHTML = ic(DP[card.datePos || 'top'][0]); dpb.classList.toggle('off', !f.tools.dp);
+    dpb.innerHTML = ic(DP[card.datePos || dpDef][0]); dpb.classList.toggle('off', !f.tools.dp);
     pi.value = card.place || '';
   }
   // 날짜: 아이폰 달력 대신 키보드 자리에 우리 달력 판 (어느 폰에서나 같은 모양)
@@ -382,7 +382,7 @@ function viewWrite({ fmt, id }) {
   dpb.addEventListener('pointerdown', e => e.preventDefault());
   dpb.addEventListener('click', () => {
     if (!f.tools.dp) return shake(dpb);
-    flush(); card.datePos = { top: 'bottom', bottom: 'none', none: 'top' }[card.datePos || 'top']; paintMeta(); push(); draw(); pop(DP[card.datePos][1]);
+    flush(); card.datePos = rich ? { top: 'bottom', bottom: 'none', none: 'top' }[card.datePos || dpDef] : { bottom: 'top', top: 'none', none: 'bottom' }[card.datePos || dpDef]; paintMeta(); push(); draw(); pop(DP[card.datePos][1]);   // 그림 문장은 아래 → 위 → 없음
   });
 
   // 알림은 모두 위 가운데 상태 자리에 1초쯤 (글꼴 이름은 그 글꼴로). 어두운 위 줄이라 어떤 배경에서도 보여요
@@ -397,7 +397,7 @@ function viewWrite({ fmt, id }) {
 
   /* 카드 그리기. 글만 바뀌면 그 자리에서 바꾸고(키보드가 내려가지 않게), 장 수·배경·날짜 같은 틀이 바뀔 때만 새로 그려요 */
   let el = null, shape = '';
-  const shapeOf = () => JSON.stringify(rich ? [card.pages.length, card.bg, card.align, card.datePos, card.date, card.place, card.font, card.size] : [card.date, card.place, card.size, card.align]);
+  const shapeOf = () => JSON.stringify(rich ? [card.pages.length, card.bg, card.align, card.datePos, card.date, card.place, card.font, card.size] : [card.date, card.place, card.size, card.align, card.datePos]);
   const bodies = () => $$('.body', el);
   const pageOf = b => b.closest('.pg') ? +b.closest('.pg').dataset.i : 0;
   const caretIn = b => { const s = getSelection(); return s.rangeCount && b.contains(s.anchorNode) ? offsetsOf(b, s.getRangeAt(0)) : null; };
@@ -431,10 +431,7 @@ function viewWrite({ fmt, id }) {
     const n = s.anchorNode; if (!n || !el.contains(n)) return;
     const box = stage.getBoundingClientRect(), gap = 24, rect = caretRect(s.getRangeAt(0));
     if (!rect) return;
-    let want = rect.bottom;
-    // 그림 문장: 마지막 줄을 쓰는 중이면 카드 아래(요일 · 날짜)까지 보이게
-    const body = (n.nodeType === 1 ? n : n.parentElement)?.closest('.body');
-    if (!rich && body && body.getBoundingClientRect().bottom - rect.bottom < rect.height * 1.5) want = Math.max(want, el.getBoundingClientRect().bottom - 8);
+    const want = rect.bottom;
     if (want > box.bottom - gap) stage.scrollTop += want - (box.bottom - gap);
     else if (rect.top < box.top + 8) stage.scrollTop -= (box.top + 8) - rect.top;
   }
@@ -505,7 +502,7 @@ function viewWrite({ fmt, id }) {
   const typingNow = () => !!document.activeElement?.closest?.('.wr .body');
   function mode() {
     const w = typingNow() || st.panel === 'emo' || !!st.waitKb;
-    if (wr.classList.contains('typ') !== w) { wr.classList.toggle('typ', w); applySize(); requestAnimationFrame(() => { count(); keepCaret(); }); }
+    if (wr.classList.contains('typ') !== w) { wr.classList.toggle('typ', w); applySize(); if (el && !rich) fitCard(el, card); requestAnimationFrame(() => { count(); keepCaret(); }); }
     tools();
   }
 

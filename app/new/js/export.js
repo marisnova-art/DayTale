@@ -1,6 +1,6 @@
 // 카드 → 4:5 장들. 저장할 땐 1080×1350 이미지로, 피드에선 같은 장을 화면 폭으로 그려서 옆으로 넘겨 봐요
 // (쓰는 동안은 한 장의 긴 카드, 나누는 건 여기서만. 줄이 잘리지 않게 줄 단위로 나눠요)
-import { renderCard, fitCard, cardText } from './formats.js';
+import { renderCard, fitCard, cardText, RB_M } from './formats.js';
 import { drawCode } from './bg.js';
 import { ready } from './stickers.js';
 import { fontOf } from './fonts.js';
@@ -70,13 +70,13 @@ async function rebusPages(c, W) {
   const H = Math.round(W * 1.25), s = W / 1080, h = host(W), el = renderCard(c); h.appendChild(el); fitCard(el, c);
   await document.fonts.ready; fitCard(el, c);
   if (el.offsetHeight <= H + 1) { el.style.height = H + 'px'; return { h, nodes: [el] }; }
-  const p = el.querySelector('.rb'), avail = H - 72 * s - 170 * s;
+  const [mt, mb] = RB_M[el.dataset.dp] || RB_M.bottom, p = el.querySelector('.rb'), avail = H - (mt + mb) * s;
   const st = starts(lines(p), avail);
   const nodes = st.map((off, i) => {
     const pg = renderCard(c); pg.classList.add('paged');
     h.appendChild(pg); fitCard(pg, c); pg.style.height = H + 'px';
     const rb = pg.querySelector('.rb'); rb.style.fontSize = p.style.fontSize;
-    const box = document.createElement('div'); box.className = 'pgbox'; rb.replaceWith(box); box.appendChild(rb);
+    const box = document.createElement('div'); box.className = 'pgbox'; box.style.marginTop = mt * s + 'px'; rb.replaceWith(box); box.appendChild(rb); rb.style.margin = '0';
     clipTo(box, off, (st[i + 1] ? st[i + 1] - off : avail));
     return pg;
   });
