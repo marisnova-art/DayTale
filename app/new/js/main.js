@@ -1,9 +1,10 @@
 // 갖고 싶은 하루 · 모바일 1차: 피드 → 포맷 고르기 → 쓰기 → 완료·저장
 import { ic } from './icons.js';
 import * as S from './store.js';
-import { FORMATS, ORDER, blank, sampleCard, renderCard, fitCard, cardText, newSeed } from './formats.js';
+import { FORMATS, ORDER, blank, sampleCard, renderCard, fitCard, cardText, newSeed, placeObjects, dateChip, weekday, toneOf } from './formats.js';
 import { FREE, PAID, find as findBg, drawCode } from './bg.js';
-import { cardImages, saveImages } from './export.js';
+import { cardImages, saveImages, buildPages } from './export.js';
+import { clean, offsetsOf, rangeAt, isOn, toggleInline, linesIn, toggleHead, toggleList } from './rich.js';
 
 const app = document.getElementById('app');
 const $ = (s, r = document) => r.querySelector(s);
@@ -60,37 +61,94 @@ function bindNav() {
   $$('.nb').forEach(b => b.onclick = () => ({ home: () => window.scrollTo({ top: 0, behavior: 'smooth' }), write: () => go('#/pick') }[b.dataset.n] || soon)());
 }
 
+// 피드: 위 줄은 흐림 없이 같이 스크롤돼요. 화면 가운데 카드만 움직이고, 그 카드 색이 바탕에 은은하게 번져요
 function viewFeed() {
   const mine = S.cards();
-  app.innerHTML = `<header class="top"><div class="logo">Dayzine.</div><button class="cb" data-a="bell" aria-label="알림">${ic('bell')}</button></header>
-    <main class="feed"></main>${nav('home')}`;
+  app.innerHTML = `<div class="amb"></div><header class="ftop"><div class="logo">Dayzine.</div><button class="cb" data-a="bell" aria-label="알림">${ic('bell')}</button></header>
+    <main class="feed"></main><button class="foldb" hidden>${ic('fold')}<span>접기</span></button>${nav('home')}`;
   bindNav(); $('[data-a=bell]').onclick = soon;
   const feed = $('.feed');
-  // 내 카드가 적으면 우리 카드(포맷 예시)를 아래에 2~3장 섞어요
-  const ours = mine.length < 6 ? ORDER.map(f => sampleCard(f, S.today())) : [];
-  [...mine, ...ours].forEach(c => feed.appendChild(feedItem(c)));
+  // 내 카드는 날짜마다 작은 날짜 줄. 내 카드가 적으면 우리 카드(포맷 예시)를 아래에 2~3장
+  let last = '';
+  mine.forEach(c => {
+    if (c.date !== last) { last = c.date; feed.insertAdjacentHTML('beforeend', `<h3 class="day">${dayLabel(c.date)}</h3>`); }
+    feed.appendChild(feedItem(c));
+  });
+  if (mine.length < 6) ORDER.forEach(f => feed.appendChild(feedItem(sampleCard(f, S.today()))));
+  feed.addEventListener('click', e => { if (!e.target.closest('.fx')) $$('.fi.sel').forEach(x => x.classList.remove('sel')); });
+
+  // 가운데 카드 찾기: 그 카드만 재생 + 바탕 색
+  const amb = $('.amb');
+  let raf = 0, cur = null;
+  const pickMid = () => {
+    raf = 0;
+    const mid = innerHeight * .45; let best = null, bd = 1e9;
+    $$('.fi').forEach(it => { const r = it.querySelector('.fx').getBoundingClientRect(), d = Math.abs((r.top + r.bottom) / 2 - mid); if (d < bd) { bd = d; best = it; } });
+    if (best === cur) return;
+    cur?.classList.remove('play'); cur = best;
+    if (!cur) return;
+    cur.classList.add('play'); amb.style.backgroundColor = cur.dataset.tone;
+    if (!cur.dataset.seen) { cur.dataset.seen = 1; cur.classList.add('intro'); setTimeout(() => cur?.classList.remove('intro'), 1800); }
+  };
+  const onScroll = () => { if (!raf) raf = requestAnimationFrame(pickMid); updateFold(); };
+  addEventListener('scroll', onScroll, { passive: true });
+  const onVis = () => document.body.classList.toggle('paused', document.hidden);
+  document.addEventListener('visibilitychange', onVis);
+  cleanup = () => { removeEventListener('scroll', onScroll); document.removeEventListener('visibilitychange', onVis); };
+  setTimeout(pickMid, 80);
+
+  // 펼친 카드가 화면에 있으면 흰 '접기'
+  const foldb = $('.foldb');
+  function updateFold() {
+    const it = $('.fi.open'); if (!it) return (foldb.hidden = true);
+    const r = it.getBoundingClientRect(); foldb.hidden = !(r.top < innerHeight - 120 && r.bottom > 160);
+  }
+  foldb.onclick = () => { const it = $('.fi.open'); if (!it) return; it._fold(); window.scrollTo({ top: scrollY + it.getBoundingClientRect().top - 80 }); updateFold(); };
+  feed._update = updateFold;
+}
+function dayLabel(d) {
+  const t = S.today(), y = new Date(Date.now() - 864e5), ys = `${y.getFullYear()}-${String(y.getMonth() + 1).padStart(2, '0')}-${String(y.getDate()).padStart(2, '0')}`;
+  if (d === t) return '오늘';
+  if (d === ys) return '어제';
+  return dateChip(d).replace(' ', ' · ') + (d.slice(0, 4) !== t.slice(0, 4) ? ` · ${d.slice(0, 4)}` : '');
 }
 
+// 카드 한 장. 긴 카드는 첫 4:5만 + 1/N + 겹친 종이, 옆으로 밀면 다음 장.
+// 한 번 누르면 펼침(긴 카드) → 한 번 더 누르면 흰 테두리 + 연필(고치기). 짧은 카드는 바로 테두리 + 연필
 function feedItem(c) {
-  const it = document.createElement('article'); it.className = 'fi';
+  const it = document.createElement('article'); it.className = 'fi'; it.dataset.tone = toneOf(c);
   const f = FORMATS[c.fmt];
-  it.innerHTML = `<div class="fx"><div class="clipc"></div></div>
+  it.innerHTML = `<div class="fx"><div class="view"></div><span class="pnb" hidden></span><button class="pen" aria-label="${c.sample ? '이 포맷으로 쓰기' : '고치기'}">${ic('pen')}</button></div>
     <div class="row">${c.sample
       ? `<div class="ours">${f.name}<i>NEW</i></div><button class="cb w" data-a="use" aria-label="이 포맷으로 쓰기">${ic('pen')}</button>`
       : `<div class="l"><button class="cb ${c.mark ? 'on' : ''}" data-a="mark" aria-label="책갈피">${ic('bookmark')}</button></div><button class="cb" data-a="more" aria-label="더보기">${ic('more')}</button>`}</div>`;
-  const clip = $('.clipc', it), el = mount(clip, c);
-  // 긴 그림 문장: 첫 4:5만 보이고, 한 번 누르면 펼쳐요
-  requestAnimationFrame(() => setTimeout(() => {
-    if (c.fmt === 'rebus' && el.offsetHeight > el.offsetWidth * 1.25 + 2) {
-      clip.classList.add('col');
-      clip.insertAdjacentHTML('beforeend', `<div class="more1">펼치기</div>`);
+  const fx = $('.fx', it), view = $('.view', it), pnb = $('.pnb', it);
+  const full = () => { view.innerHTML = ''; mount(view, c); };
+  full();
+  let pages = null;
+  // 저장할 때와 같은 방식으로 장을 나눠서, 여러 장이면 옆으로 넘겨 보는 모양으로
+  requestAnimationFrame(() => setTimeout(async () => {
+    const W = view.clientWidth; if (!W) return;
+    const { h, nodes } = await buildPages(c, W, Math.min(2, devicePixelRatio || 1));
+    if (nodes.length > 1) {
+      pages = document.createElement('div'); pages.className = 'pgs'; pages.append(...nodes);
+      pages.addEventListener('scroll', () => { pnb.textContent = `${Math.round(pages.scrollLeft / pages.clientWidth) + 1}/${nodes.length}`; }, { passive: true });
+      pnb.textContent = `1/${nodes.length}`;
+      if (!it.classList.contains('open')) { view.innerHTML = ''; view.appendChild(pages); pnb.hidden = false; it.classList.add('multi'); }
     }
-  }, 60));
-  $('.fx', it).onclick = () => {
-    if (clip.classList.contains('col')) { clip.classList.remove('col'); $('.more1', clip)?.remove(); return; }
-    if (c.sample) return go(`#/write/${c.fmt}`);
-    go(`#/done/${c.id}`);
-  };
+    h.remove();
+  }, 40));
+  const select = on => { $$('.fi.sel').forEach(x => x !== it && x.classList.remove('sel')); it.classList.toggle('sel', on); };
+  it._fold = () => { it.classList.remove('open', 'sel'); if (pages) { view.innerHTML = ''; view.appendChild(pages); pnb.hidden = false; it.classList.add('multi'); } };
+  fx.addEventListener('click', e => {
+    if (e.target.closest('.pen')) return;
+    if (pages && !it.classList.contains('open')) {   // 펼치기: 한 장의 긴 카드
+      it.classList.add('open'); it.classList.remove('multi'); pnb.hidden = true; full(); select(false);
+      $('.feed')._update?.(); return;
+    }
+    select(!it.classList.contains('sel'));
+  });
+  $('.pen', it).onclick = () => go(c.sample ? `#/write/${c.fmt}` : `#/edit/${c.id}`);
   $('[data-a=use]', it) && ($('[data-a=use]', it).onclick = () => go(`#/write/${c.fmt}`));
   $('[data-a=mark]', it) && ($('[data-a=mark]', it).onclick = e => { c.mark = !c.mark; S.saveCard(c); e.currentTarget.classList.toggle('on', c.mark); toast(c.mark ? '책갈피에 넣었어요' : '책갈피에서 뺐어요'); });
   $('[data-a=more]', it) && ($('[data-a=more]', it).onclick = () => sheet([
@@ -127,104 +185,9 @@ function viewPick() {
 }
 
 /* ── 쓰기 ───────────────────────────────────────────── */
-// 시안(write2) 그대로: 위 줄 · 카드(글은 카드 위에 바로 써요) · 도구 줄 · 키보드 자리(키보드 또는 패널)
+// 시안(write2) 그대로: 위 줄 · 날짜·제목·장소 · 카드(모든 포맷 카드 위에 바로 써요) · 도구 줄 · 키보드 자리(키보드 또는 패널)
 // 키보드 처리는 지금 앱(shell.js trackKeyboard · editor.css)에서 아이폰으로 검증한 방식을 그대로 써요:
-// 키보드가 있을 때만 보이는 화면(--vvt · --vvh)에 맞춰 고정하고, 카드 크기는 바뀌지 않아요(안에서만 스크롤)
-const ALLOWED = new Set(['B', 'STRONG', 'MARK', 'H2', 'UL', 'LI', 'BR', 'DIV', 'P']);
-function clean(html) {
-  const t = document.createElement('div'); t.innerHTML = html;
-  const walk = n => [...n.childNodes].forEach(ch => {
-    if (ch.nodeType === 1) {
-      walk(ch);
-      if (ch.tagName === 'SPAN' && /background/.test(ch.getAttribute('style') || '')) { const m = document.createElement('mark'); m.append(...ch.childNodes); ch.replaceWith(m); return; }
-      if (ch.tagName === 'SPAN' && /font-weight:\s*(bold|[6-9]00)/.test(ch.getAttribute('style') || '')) { const b = document.createElement('b'); b.append(...ch.childNodes); ch.replaceWith(b); return; }
-      if (!ALLOWED.has(ch.tagName)) { ch.replaceWith(...ch.childNodes); return; }
-      [...ch.attributes].forEach(a => ch.removeAttribute(a.name));
-    } else if (ch.nodeType !== 3) ch.remove();
-  });
-  walk(t);
-  return t.innerHTML.replace(/^(<br>)+$/, '').replace(/​/g, '');
-}
-
-// 서식은 키보드를 내린 채로 바꿔요. 고른 글자는 '본문 처음부터 몇 번째 글자'로 기억해 두고, 바꾼 뒤 다시 찾아요
-function offsetsOf(root, r) {
-  const pre = document.createRange(); pre.selectNodeContents(root); pre.setEnd(r.startContainer, r.startOffset);
-  const a = pre.toString().length; return [a, a + r.toString().length];
-}
-function rangeAt(root, a, b) {
-  const r = document.createRange(), w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-  let n, pos = 0, started = false;
-  while ((n = w.nextNode())) {
-    if (!started && a <= pos + n.length) { r.setStart(n, a - pos); started = true; }
-    if (started && b <= pos + n.length) { r.setEnd(n, b - pos); return r; }
-    pos += n.length;
-  }
-  r.selectNodeContents(root); if (!started) r.collapse(false);
-  return r;
-}
-function textBits(root, r) {
-  const out = [], w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT); let n;
-  while ((n = w.nextNode())) {
-    if (!r.intersectsNode(n)) continue;
-    const s = n === r.startContainer ? r.startOffset : 0, e = n === r.endContainer ? r.endOffset : n.length;
-    if (e > s) out.push([n, s, e]);
-  }
-  return out;
-}
-const inside = (root, n, tag) => { const t = n.parentElement?.closest(tag); return t && root.contains(t) ? t : null; };
-const isOn = (root, r, tag) => { const bits = textBits(root, r); return bits.length > 0 && bits.every(([n]) => inside(root, n, tag)); };
-// 강조 · 형광펜: 고른 글자를 글자 칸마다 감싸요 (줄을 넘어 골라도 줄이 깨지지 않게)
-function toggleInline(root, r, tag) {
-  const bits = textBits(root, r); if (!bits.length) return false;
-  if (bits.every(([n]) => inside(root, n, tag))) new Set(bits.map(([n]) => inside(root, n, tag))).forEach(t => t.replaceWith(...t.childNodes));
-  else for (const [n, s, e] of bits) {
-    if (inside(root, n, tag)) continue;
-    let t = n; if (s) t = t.splitText(s); if (e - s < t.length) t.splitText(e - s);
-    const w = document.createElement(tag); t.replaceWith(w); w.appendChild(t);
-  }
-  root.normalize(); return true;
-}
-// 제목 · 목록은 줄 단위. 먼저 본문 맨 위 칸을 모두 줄(div · h2 · ul)로 맞춰요
-const retag = (el, tag) => { const n = document.createElement(tag); n.append(...el.childNodes); el.replaceWith(n); return n; };
-function toLines(root) {
-  let run = null;
-  [...root.childNodes].forEach(n => {
-    if (n.nodeType === 1 && /^(DIV|P|H2|UL)$/.test(n.tagName)) { run = null; if (n.tagName === 'P') retag(n, 'div'); return; }
-    if (n.nodeType === 1 && n.tagName === 'BR') { if (run) n.remove(); else { const d = document.createElement('div'); n.replaceWith(d); d.appendChild(n); } run = null; return; }
-    if (!run) { run = document.createElement('div'); n.before(run); }
-    run.appendChild(n);
-  });
-}
-function linesIn(root, r) {
-  const out = [];
-  [...root.children].forEach(b => {
-    if (b.tagName === 'UL') [...b.children].forEach(li => { if (r.intersectsNode(li)) out.push(li); });
-    else if (r.intersectsNode(b)) out.push(b);
-  });
-  return out;
-}
-function unlist(li) {
-  const ul = li.parentNode, after = [...ul.children].slice([...ul.children].indexOf(li) + 1);
-  const d = retag(li, 'div'); ul.after(d);
-  if (after.length) { const u2 = document.createElement('ul'); u2.append(...after); d.after(u2); }
-  if (!ul.children.length) ul.remove();
-  return d;
-}
-function toggleHead(root, r) {
-  toLines(root); let ls = linesIn(root, r); if (!ls.length) return false;
-  const all = ls.every(l => l.tagName === 'H2');
-  ls.map(l => l.tagName === 'LI' ? unlist(l) : l).forEach(l => retag(l, all ? 'div' : 'h2'));
-  return true;
-}
-function toggleList(root, r) {
-  toLines(root); let ls = linesIn(root, r); if (!ls.length) return false;
-  if (ls.every(l => l.tagName === 'LI')) { ls.forEach(unlist); return true; }
-  ls = ls.map(l => l.tagName === 'LI' ? unlist(l) : l);
-  const ul = document.createElement('ul'); ls[0].before(ul);
-  ls.forEach(l => ul.appendChild(retag(l, 'li')));
-  return true;
-}
-
+// 키보드가 있을 때만 보이는 화면(--vvt · --vvh)에 맞춰 고정. 카드는 키보드 위 공간에 통째로 들어가는 크기로 한 번 정하고 바꾸지 않아요
 function viewWrite({ fmt, id }) {
   const isNew = !id;
   let card;
@@ -233,38 +196,48 @@ function viewWrite({ fmt, id }) {
   else card = blank(fmt, S.today());
   if (!card || !FORMATS[card.fmt]) return go('#/');
   const f = FORMATS[card.fmt], rich = card.fmt === 'text';
-  const st = { panel: null, hist: [clone(card)], hi: 0, timer: 0, pg: 0, sel: null, full: false };
+  if (!rich && card.html == null) { card.html = renderCard(card).querySelector('.rb').innerHTML; card.html = clean(card.html); delete card.text; }
+  const st = { panel: null, hist: [clone(card)], hi: 0, timer: 0, pg: 0, sel: null, composing: false };
   const root = document.documentElement;
 
   root.classList.add('wmode');
   app.innerHTML = `<div class="wr ${rich ? 'rich' : 'plain'}">
     <header class="top"><button class="cb" data-a="back" aria-label="뒤로">${ic('back')}</button><div class="nm">${f.name}</div><button class="cb w" data-a="ok" aria-label="완료">${ic('check')}</button></header>
+    <div class="meta">
+      <label class="chip dt">${ic('date')}<span></span><input type="date" aria-label="날짜"></label>
+      ${rich ? '' : `<label class="chip tt">${ic('fmt')}<input class="ti" maxlength="8" aria-label="제목"></label>`}
+      <label class="chip pl">${ic('pin')}<input class="pi" maxlength="20" placeholder="장소" aria-label="장소"></label>
+    </div>
     <section class="stage"></section>
-    ${rich ? '' : '<div class="rin"><textarea class="field" rows="1" placeholder="오늘 하루를 적어 보세요"></textarea><span class="cnt"></span></div>'}
     <div class="tb">${['fmt', 'photo', 'emo', 'bg', 'page', 'shuf'].map(k => `<button class="t" data-t="${k}">${ic(k)}</button>`).join('')}<span class="sep"></span><button class="t" data-t="undo">${ic('undo')}</button><button class="t" data-t="redo">${ic('redo')}</button></div>
     <div class="panel"></div></div>`;
-  const wr = $('.wr'), stage = $('.stage'), panel = $('.panel'), field = $('.rin .field');
+  const wr = $('.wr'), stage = $('.stage'), panel = $('.panel');
 
   /* 키보드: shell.js trackKeyboard와 같은 계산. 키보드 높이는 기억해 두고 패널도 같은 높이로 열어요 */
   const vv = window.visualViewport;
-  let raf = 0;
+  let raf = 0, kbh = S.pref('kbh', 0), measured = !!kbh;
+  if (!kbh) kbh = Math.round(innerHeight * .42);
+  root.style.setProperty('--kbh', kbh + 'px');
   const kb = () => {
     raf = 0; if (!vv) return;
     const h = Math.max(0, Math.round(innerHeight - vv.height - vv.offsetTop)), open = h > 80;
     root.style.setProperty('--vvh', Math.round(vv.height) + 'px'); root.style.setProperty('--vvt', Math.round(vv.offsetTop) + 'px');
     root.classList.toggle('kb-open', open);
-    if (open && h > 160 && Math.abs(h - kbh) > 4) { kbh = h; S.setPref('kbh', h); root.style.setProperty('--kbh', h + 'px'); }
+    if (open && h > 160 && Math.abs(h - kbh) > 4) {
+      kbh = h; S.setPref('kbh', h); root.style.setProperty('--kbh', h + 'px');
+      if (!measured) sizeCard();   // 이 휴대폰에서 처음 잰 키보드: 카드 크기를 한 번만 다시 맞춰요
+      measured = true;
+    }
     if (open && st.waitKb) endWait();
     if (!open && (scrollY || vv.offsetTop)) scrollTo(0, 0);   // 아이폰이 키보드를 내린 뒤 화면을 밀어 둔 채로 두지 않게
-    keepCaret();
+    applySize(); keepCaret();
   };
   const soonKb = () => { if (!raf) raf = requestAnimationFrame(kb); };
   const remeasure = () => [250, 600, 1200].forEach(ms => setTimeout(kb, ms));
-  let kbh = S.pref('kbh', Math.round(innerHeight * .42));
-  root.style.setProperty('--kbh', kbh + 'px');
   vv?.addEventListener('resize', soonKb); vv?.addEventListener('scroll', soonKb);
   addEventListener('focusout', remeasure);
-  const onResize = () => { sizeCard(); soonKb(); };
+  let lastW = innerWidth;
+  const onResize = () => { if (innerWidth !== lastW) { lastW = innerWidth; sizeCard(); } soonKb(); };   // 돌렸을 때만 다시 재요
   addEventListener('resize', onResize);
   cleanup = () => {
     vv?.removeEventListener('resize', soonKb); vv?.removeEventListener('scroll', soonKb);
@@ -273,12 +246,21 @@ function viewWrite({ fmt, id }) {
     root.classList.remove('wmode', 'kb-open', 'pan');
   };
 
-  /* 카드 크기: 키보드가 올라와도 그대로(흔들리지 않게). 옆 장이 살짝 보이게 양옆을 남겨요 */
+  /* 카드 크기는 두 가지뿐: 쓰는 중(키보드나 패널이 있을 때)엔 그 위 공간에, 보는 중엔 화면에 통째로 들어가게.
+     키보드 ↔ 패널을 오갈 때는 같은 크기라 움직이지 않아요 */
+  const sizes = { w: 0, v: 0 };
   function sizeCard() {
-    const W = wr.clientWidth, H = innerHeight - $('.top').offsetHeight - $('.tb').offsetHeight - (field ? 64 : 0) - 28;
-    const cw = Math.floor(Math.min(W - 64, H * .8));
+    const W = wr.clientWidth, fixed = $('.top').offsetHeight + $('.meta').offsetHeight + $('.tb').offsetHeight + 20;
+    const fit = H => Math.floor(Math.max(160, Math.min(W - 32, H * .8)));
+    sizes.w = fit(innerHeight - fixed - kbh); sizes.v = fit(innerHeight - fixed);
+    applySize(true);
+  }
+  function applySize(force) {
+    const writing = root.classList.contains('kb-open') || root.classList.contains('pan');
+    const cw = writing ? sizes.w : sizes.v;
+    if (!force && wr.style.getPropertyValue('--cw') === cw + 'px') return;
     wr.style.setProperty('--cw', cw + 'px');
-    if (el) { fitCard(el, card); scrollToPage(st.pg, false); }
+    if (el) { fitCard(el, card); scrollToPage(st.pg, false); requestAnimationFrame(keepCaret); }
   }
 
   // 기록: 셔플·배경·정렬은 바로, 글은 잠깐 멈췄을 때 한 칸씩
@@ -286,45 +268,53 @@ function viewWrite({ fmt, id }) {
   const push = () => { clearTimeout(st.timer); st.hist = st.hist.slice(0, st.hi + 1); st.hist.push(clone(card)); if (st.hist.length > 80) st.hist.shift(); st.hi = st.hist.length - 1; tools(); persist(); };
   const pushLater = () => { clearTimeout(st.timer); st.timer = setTimeout(push, 700); persist(); };
   const hasText = () => cardText(card).trim().length > 0;
-  const count = () => {
-    const n = `${cardText(card).replace(/\s/g, '').length}자`;
-    $$('.wc', stage).forEach(x => x.textContent = n); if (field) $('.rin .cnt').textContent = n;
-  };
+  const count = () => { const n = `${cardText(card).replace(/\s/g, '').length}자`; $$('.wc', stage).forEach(x => x.textContent = n); };
 
-  /* 카드 그리기. 글만 바뀌면 그 자리에서 바꾸고(키보드가 내려가지 않게), 장 수·배경·정렬이 바뀔 때만 새로 그려요 */
+  /* 정보 줄: 날짜(누르면 달력) · 제목(그림 문장, 비우면 요일) · 장소 */
+  const di = $('.meta .dt input'), ti = $('.meta .ti'), pi = $('.meta .pi');
+  function paintMeta() {
+    $('.meta .dt span').textContent = dateChip(card.date);
+    di.value = card.date; pi.value = card.place || '';
+    if (ti) { ti.value = card.title || ''; ti.placeholder = weekday(card.date); }
+  }
+  di.addEventListener('change', () => { if (!di.value) return; card.date = di.value; paintMeta(); push(); draw(); });
+  ti?.addEventListener('input', () => { card.title = ti.value; draw(); pushLater(); });
+  pi.addEventListener('input', () => { card.place = pi.value; draw(); pushLater(); });
+  $$('.meta input').forEach(x => x.addEventListener('focus', () => { if (st.panel) closePanel(false); }));
+
+  /* 카드 그리기. 글만 바뀌면 그 자리에서 바꾸고(키보드가 내려가지 않게), 장 수·배경·날짜 같은 틀이 바뀔 때만 새로 그려요 */
   let el = null, shape = '';
-  const shapeOf = () => rich ? JSON.stringify([card.pages.length, card.bg, card.align, card.datePos]) : card.text + card.seed;
+  const shapeOf = () => JSON.stringify(rich ? [card.pages.length, card.bg, card.align, card.datePos, card.date, card.place] : [card.date, card.title, card.place]);
   const bodies = () => $$('.body', el);
+  const pageOf = b => b.closest('.pg') ? +b.closest('.pg').dataset.i : 0;
+  const caretIn = b => { const s = getSelection(); return s.rangeCount && b.contains(s.anchorNode) ? offsetsOf(b, s.getRangeAt(0)) : null; };
+  const setCaret = (b, ab) => { const s = getSelection(); s.removeAllRanges(); s.addRange(rangeAt(b, ...ab)); };
   function draw() {
     const s = shapeOf();
-    if (el && rich && s === shape) {
-      bodies().forEach((b, i) => { if (b.innerHTML !== card.pages[i]) b.innerHTML = card.pages[i]; });
+    if (el && s === shape) {
+      bodies().forEach((b, i) => {
+        const want = rich ? card.pages[i] : card.html, at = caretIn(b);
+        if (clean(b.innerHTML) !== want) b.innerHTML = want;
+        if (!rich) placeObjects(b, card.seed);
+        if (at && document.activeElement === b) setCaret(b, at);
+      });
     } else {
-      const nel = renderCard(card, { edit: rich }); el ? el.replaceWith(nel) : stage.appendChild(nel); el = nel; shape = s;
-      if (rich) {
-        $$('.pg', el).forEach(pg => pg.insertAdjacentHTML('beforeend', '<span class="wc"></span>'));
-        el.addEventListener('scroll', () => { const i = pageAtScroll(); if (i !== st.pg) st.pg = i; }, { passive: true });
-      }
+      const nel = renderCard(card, { edit: true }); el ? el.replaceWith(nel) : stage.appendChild(nel); el = nel; shape = s;
+      (rich ? $$('.pg', el) : [el]).forEach(x => x.insertAdjacentHTML('beforeend', '<span class="wc"></span>'));
+      if (rich) el.addEventListener('scroll', () => { const i = pageAtScroll(); if (i !== st.pg) st.pg = i; }, { passive: true });
     }
-    fitCard(el, card); count(); tools(); overCheck();
-    if (rich) scrollToPage(st.pg, false); else stage.scrollTop = stage.scrollHeight;
+    el.classList.toggle('empty', !hasText());
+    fitCard(el, card); count(); tools();
+    if (rich) scrollToPage(st.pg, false);
   }
   const step = () => el.querySelector('.pg') ? el.querySelector('.pg').offsetWidth + 12 : 1;
   const pageAtScroll = () => Math.max(0, Math.min(card.pages.length - 1, Math.round(el.scrollLeft / step())));
   function scrollToPage(i, smooth = true) { if (rich && el) el.scrollTo({ left: i * step(), behavior: smooth ? 'smooth' : 'instant' }); }
-  let warned = false;
-  function overCheck() {
-    if (!rich) return;
-    const over = $$('.pg', el).some(p => p.classList.contains('over'));
-    $('[data-t=page]').classList.toggle('hint', over);
-    if (over && !warned) { warned = true; toast('이 장이 가득 찼어요 · 새 장을 눌러 이어 써요'); }
-    if (!over) warned = false;
-  }
 
-  // 커서가 늘 보이게: 카드가 보이는 칸보다 크면 칸 안에서만 스크롤 (editor.js keepCaret과 같은 방식)
+  // 커서가 늘 보이게: 긴 글로 카드가 길어지면 칸 안에서만 스크롤 (editor.js keepCaret과 같은 방식)
   function keepCaret() {
-    const s = getSelection(); if (!s.rangeCount) return;
-    const n = s.anchorNode; if (!n || !(rich ? el?.contains(n) : false)) return;
+    const s = getSelection(); if (!s.rangeCount || !el) return;
+    const n = s.anchorNode; if (!n || !el.contains(n)) return;
     const r = s.getRangeAt(0); let rect = r.getClientRects()[0] || r.getBoundingClientRect();
     if (!rect || (!rect.height && !rect.top)) rect = (n.nodeType === 1 ? n : n.parentElement).getBoundingClientRect();
     const box = stage.getBoundingClientRect(), gap = 24;
@@ -337,42 +327,47 @@ function viewWrite({ fmt, id }) {
     CSS.highlights.set('dz-sel', new Highlight(r));
   }
 
-  /* 입력 */
-  if (rich) {
-    stage.addEventListener('input', e => {
-      const b = e.target.closest?.('.body'); if (!b) return;
-      const i = +b.closest('.pg').dataset.i; st.pg = i;
-      card.pages[i] = clean(b.innerHTML);
-      if (!b.textContent && b.innerHTML) b.innerHTML = '';   // 비우면 안내 글이 다시 보여요
-      fitCard(el, card); count(); tools(); overCheck(); pushLater(); requestAnimationFrame(keepCaret);
-    });
-    stage.addEventListener('focusin', e => {
-      const b = e.target.closest?.('.body'); if (!b) return;
-      st.pg = +b.closest('.pg').dataset.i;
-      if (st.panel) closePanel(false);
-    });
-    stage.addEventListener('paste', e => { if (!e.target.closest?.('.body')) return; e.preventDefault(); document.execCommand('insertText', false, e.clipboardData.getData('text/plain')); });
-    // 빈 장에서 지우기를 누르면 그 장을 없애고 앞 장 끝으로
-    stage.addEventListener('keydown', e => {
-      const b = e.target.closest?.('.body'); if (!b || e.key !== 'Backspace') return;
-      const i = +b.closest('.pg').dataset.i;
-      if (i > 0 && !b.textContent) { e.preventDefault(); card.pages.splice(i, 1); st.pg = i - 1; push(); draw(); caretEnd(st.pg); }
-    });
-    // 카드의 빈 곳을 눌러도 쓰기로 (글 끝에 커서). 다른 장을 누르면 그 장으로
-    stage.addEventListener('click', e => {
-      if (e.target.closest('.body')) return;
-      const pg = e.target.closest('.pg'); if (!pg) return;
-      const i = +pg.dataset.i; if (i !== st.pg) { st.pg = i; scrollToPage(i); }
-      caretEnd(i);
-    });
-  } else {
-    field.addEventListener('input', () => {
-      card.text = field.value; field.style.height = 'auto'; field.style.height = Math.min(field.scrollHeight, 96) + 'px';
-      draw(); pushLater();
-    });
-    field.addEventListener('focus', () => { if (st.panel) closePanel(false); });
-    stage.addEventListener('click', () => field.focus());
+  /* 입력: 모든 포맷이 카드 위 글(.body)에 바로 써요. 한글 조합 중에는 손대지 않아요 */
+  function typed(b) {
+    const i = pageOf(b); st.pg = i;
+    if (!b.textContent.trim() && b.innerHTML && !b.querySelector('li,h2')) b.innerHTML = '';   // 비우면 예시 글이 다시 보여요
+    if (rich) card.pages[i] = clean(b.innerHTML);
+    else {
+      card.html = clean(b.innerHTML);
+      const at = caretIn(b);
+      if (placeObjects(b, card.seed) && at) setCaret(b, at);   // 단어를 다 쓰고 띄어 쓰면 그림이 붙어요
+    }
+    el.classList.toggle('empty', !hasText());
+    fitCard(el, card); count(); tools(); pushLater(); requestAnimationFrame(keepCaret);
   }
+  stage.addEventListener('compositionstart', () => { st.composing = true; });
+  stage.addEventListener('compositionend', e => { st.composing = false; const b = e.target.closest?.('.body'); if (b) typed(b); });
+  stage.addEventListener('input', e => {
+    const b = e.target.closest?.('.body'); if (!b) return;
+    if (e.isComposing || st.composing) { el.classList.remove('empty'); fitCard(el, card); requestAnimationFrame(keepCaret); return; }
+    typed(b);
+  });
+  stage.addEventListener('focusin', e => {
+    const b = e.target.closest?.('.body'); if (!b) return;
+    st.pg = pageOf(b);
+    if (st.panel) closePanel(false);
+  });
+  stage.addEventListener('paste', e => { if (!e.target.closest?.('.body')) return; e.preventDefault(); document.execCommand('insertText', false, e.clipboardData.getData('text/plain')); });
+  // 빈 장에서 지우기를 누르면 그 장을 없애고 앞 장 끝으로
+  stage.addEventListener('keydown', e => {
+    const b = e.target.closest?.('.body'); if (!b || e.key !== 'Backspace' || !rich) return;
+    const i = pageOf(b);
+    if (i > 0 && !b.textContent) { e.preventDefault(); card.pages.splice(i, 1); st.pg = i - 1; push(); draw(); caretEnd(st.pg); }
+  });
+  // 카드의 빈 곳을 눌러도 쓰기로 (글 끝에 커서). 다른 장을 누르면 그 장으로
+  stage.addEventListener('click', e => {
+    if (e.target.closest('.body')) return;
+    const pg = e.target.closest('.pg');
+    if (!rich) return e.target.closest('.cd') && caretEnd(0);
+    if (!pg) return;
+    const i = +pg.dataset.i; if (i !== st.pg) { st.pg = i; scrollToPage(i); }
+    caretEnd(i);
+  });
   function caretEnd(i) {
     const b = bodies()[i]; if (!b) return;
     b.focus({ preventScroll: true });
@@ -380,7 +375,7 @@ function viewWrite({ fmt, id }) {
     const s = getSelection(); s.removeAllRanges(); s.addRange(r);
   }
 
-  /* 도구 줄: 포맷이 안 쓰는 도구는 어둡게, 누르면 살짝 흔들림 */
+  /* 도구 줄: 모든 포맷 같은 줄. 포맷이 안 쓰는 도구는 어둡게, 누르면 살짝 흔들림 */
   const enabled = k => { const v = f.tools[k]; return k === 'shuf' && v === 'code' ? !!findBg(card.bg?.id).code : !!v; };
   function tools() {
     $$('.tb .t').forEach(b => {
@@ -392,7 +387,7 @@ function viewWrite({ fmt, id }) {
     $('[data-a=ok]').disabled = !hasText();
   }
   const shake = b => { b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake'); };
-  const typingNow = () => rich ? !!document.activeElement?.closest?.('.wr .body') : document.activeElement === field;
+  const typingNow = () => !!document.activeElement?.closest?.('.wr .body');
 
   $$('.tb .t').forEach(b => {
     b.addEventListener('pointerdown', e => e.preventDefault());   // 눌러도 키보드 · 고른 글자가 그대로
@@ -402,11 +397,11 @@ function viewWrite({ fmt, id }) {
       if (k === 'undo' || k === 'redo') {
         clearTimeout(st.timer); st.hi += k === 'undo' ? -1 : 1;
         card = clone(st.hist[st.hi]); persist();
-        if (rich) st.pg = Math.min(st.pg, card.pages.length - 1); else field.value = card.text;
-        const was = typingNow(); draw(); if (was && rich && !document.activeElement?.closest?.('.body')) caretEnd(st.pg);
+        if (rich) st.pg = Math.min(st.pg, card.pages.length - 1);
+        const was = typingNow(); paintMeta(); draw(); if (was && !typingNow()) caretEnd(st.pg);
         if (st.panel) paintPanel(); return;
       }
-      if (k === 'shuf') { card.bg.seed = newSeed(); push(); draw(); if (st.panel) paintPanel(); return; }
+      if (k === 'shuf') { if (rich) card.bg.seed = newSeed(); else card.seed = newSeed(); push(); draw(); if (st.panel) paintPanel(); return; }
       if (k === 'page') {
         card.pages.splice(st.pg + 1, 0, ''); st.pg += 1; push(); draw(); scrollToPage(st.pg);
         if (st.panel) closePanel(false); caretEnd(st.pg); return;
@@ -418,38 +413,36 @@ function viewWrite({ fmt, id }) {
 
   /* 패널: 키보드 자리에 같은 높이로 열려요. 도구 줄은 제자리 */
   function openPanel(k) {
-    const s = getSelection();
-    if (rich) {
-      const b = s.rangeCount && s.anchorNode?.parentElement?.closest('.wr .body');
-      if (b) { const i = +b.closest('.pg').dataset.i; st.sel = { i, ab: offsetsOf(b, s.getRangeAt(0)) }; }
-    } else if (document.activeElement === field) st.sel = { ab: [field.selectionStart, field.selectionEnd] };
+    const s = getSelection(), b = s.rangeCount && s.anchorNode?.parentElement?.closest?.('.wr .body');
+    if (b) st.sel = { i: pageOf(b), ab: offsetsOf(b, s.getRangeAt(0)) };
     st.panel = k; clearTimeout(st.waitT); st.waitKb = false;
-    root.classList.add('pan');
+    root.classList.add('pan'); applySize();
     document.activeElement?.blur?.();
     paintPanel(); tools();
   }
   function closePanel(toKeyboard) {
     st.panel = null; panel.innerHTML = ''; CSS.highlights?.delete('dz-sel'); tools();
     // 키보드가 다 올라올 때까지 빈 자리를 남겨 둬요 (도구 줄이 내려갔다 올라오지 않게)
-    if (toKeyboard) { st.waitKb = true; st.waitT = setTimeout(endWait, 900); rich ? caretAtSel() : field.focus(); }
-    else if (typingNow() || !rich) { st.waitKb = true; st.waitT = setTimeout(endWait, 900); }
+    if (toKeyboard) { st.waitKb = true; st.waitT = setTimeout(endWait, 900); caretAtSel(); }
+    else if (document.activeElement?.matches?.('.wr .body, .wr .meta input')) { st.waitKb = true; st.waitT = setTimeout(endWait, 900); }
     else endWait();
   }
-  function endWait() { clearTimeout(st.waitT); st.waitKb = false; if (!st.panel) root.classList.remove('pan'); }
+  function endWait() { clearTimeout(st.waitT); st.waitKb = false; if (!st.panel) root.classList.remove('pan'); applySize(); }
   function caretAtSel() {
-    if (!st.sel) return caretEnd(st.pg);
-    const b = bodies()[st.sel.i]; if (!b) return caretEnd(st.pg);
-    b.focus({ preventScroll: true }); const s = getSelection(); s.removeAllRanges(); s.addRange(rangeAt(b, ...st.sel.ab));
+    const b = st.sel && bodies()[st.sel.i]; if (!b) return caretEnd(st.pg);
+    b.focus({ preventScroll: true }); setCaret(b, st.sel.ab);
   }
   const paintPanel = () => st.panel === 'fmt' ? panelFmt() : panelBg();
 
+  // 서식: 모든 포맷 같은 6칸. 포맷이 안 쓰는 것은 어둡게(그림 문장은 강조 · 형광펜만)
   function panelFmt() {
     const ft = f.fmtTools, a = card.align || {}, dp = card.datePos || 'top';
-    const b = rich && st.sel ? bodies()[st.sel.i] : null, r = b ? rangeAt(b, ...st.sel.ab) : null;
+    const b = st.sel ? bodies()[st.sel.i] : null, r = b ? rangeAt(b, ...st.sel.ab) : null;
     if (r) showRange(r);
+    const ls = r ? linesIn(b, r) : [];
     const on = {
       bold: r && !r.collapsed && isOn(b, r, 'b,strong'), mark: r && !r.collapsed && isOn(b, r, 'mark'),
-      head: r && linesIn(b, r).length && linesIn(b, r).every(l => l.tagName === 'H2'), list: r && linesIn(b, r).length && linesIn(b, r).every(l => l.tagName === 'LI'),
+      head: ls.length && ls.every(l => l.tagName === 'H2'), list: ls.length && ls.every(l => l.tagName === 'LI'),
       date: dp !== 'none',
     };
     const btn = (k, isOn, off) => `<button class="pb ${isOn ? 'on' : ''} ${off ? 'off' : ''}" data-f="${k}">${ic(k)}</button>`;
@@ -464,22 +457,15 @@ function viewWrite({ fmt, id }) {
         if (['al', 'ac', 'ar'].includes(k)) { card.align.h = k[1]; push(); draw(); return panelFmt(); }
         if (['vt', 'vm', 'vb'].includes(k)) { card.align.v = k[1]; push(); draw(); return panelFmt(); }
         if (k === 'date') { card.datePos = { top: 'bottom', bottom: 'none', none: 'top' }[dp]; push(); draw(); return panelFmt(); }
-        if (!rich) return rebusBold();
         if (!b) return toast('쓸 곳을 먼저 눌러 주세요');
         if ((k === 'bold' || k === 'mark') && r.collapsed) return toast('바꿀 글자를 먼저 골라 주세요');
         const ok = k === 'bold' ? toggleInline(b, r, 'b') : k === 'mark' ? toggleInline(b, r, 'mark') : k === 'head' ? toggleHead(b, r) : toggleList(b, r);
         if (!ok) return;
-        card.pages[st.sel.i] = clean(b.innerHTML); fitCard(el, card); count(); overCheck(); push();
+        if (rich) card.pages[st.sel.i] = clean(b.innerHTML); else { card.html = clean(b.innerHTML); placeObjects(b, card.seed); }
+        fitCard(el, card); count(); push();
         panelFmt();
       };
     });
-  }
-  function rebusBold() {
-    const s = st.sel?.ab;
-    if (!s || s[0] === s[1]) return toast('강조할 글자를 먼저 골라 주세요');
-    const [a, z] = s, sel = field.value.slice(a, z), rep = /^\*.*\*$/.test(sel) ? sel.slice(1, -1) : `*${sel}*`;
-    field.setRangeText(rep, a, z, 'select'); card.text = field.value; st.sel.ab = [a, a + rep.length];
-    draw(); push();
   }
 
   function panelBg() {
@@ -516,8 +502,7 @@ function viewWrite({ fmt, id }) {
     go(`#/done/${card.id}`);
   };
 
-  if (field) field.value = card.text;
-  sizeCard(); draw(); kb();
+  paintMeta(); sizeCard(); draw(); kb();
   document.fonts?.ready.then(() => el && fitCard(el, card));
 }
 

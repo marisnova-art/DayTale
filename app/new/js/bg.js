@@ -1,24 +1,26 @@
 // 글포맷 배경: 무료(그라데이션·단색) / 유료 '배경'(작품 이미지·코드 배경). 딤은 배경마다 우리가 정해 둬요
 // dim: [방식 all|center|bottom, 어두운 딤 색, 세기], ink = 딤 없이 쓰는 글색
+// 무료 그라데이션 24개: 지금 앱 배경 24종의 색(시간대 4 × 6)을 카드용으로 밝게 옮겼어요. 단색 11개는 지금 앱 단색 그대로
+const PAL24 = [
+  ['#E86AA0', '#FFB59A', '#55559A'], ['#7FA6E0', '#F3D3A8', '#4E7A8A'], ['#EAA83A', '#FFE08A', '#4F8268'], ['#F06A5A', '#FFB27A', '#3E6A7A'],
+  ['#3FA0D8', '#A8E6D8', '#2E6A70'], ['#EE7A4A', '#FFC48A', '#5E6A60'], ['#E0402A', '#F08A3E', '#2F5E5A'], ['#4A8EF0', '#A6D6FF', '#2F5C88'],
+  ['#5DBE6A', '#D8E87A', '#2E6A50'], ['#3ED0B0', '#C2F2D8', '#2A6670'], ['#D9A050', '#F5D8A0', '#5E5A50'], ['#F05A6A', '#FFA080', '#3A5A9A'],
+  ['#E8452A', '#FF9A3A', '#6A2E5A'], ['#C83A7A', '#F08AA0', '#4A2E7A'], ['#E86A1A', '#FFB040', '#7A3A2A'], ['#9A6AF0', '#F0A0C8', '#3E3A8A'],
+  ['#D8506A', '#F0C090', '#5A3A50'], ['#F0503A', '#F09060', '#1E5A6A'], ['#2A5AD0', '#5AA0F0', '#1A3A6A'], ['#2AD08A', '#7AE0F0', '#3A2A7A'],
+  ['#6A3AE0', '#B07AF0', '#2A2A6A'], ['#1A8A8A', '#5AC0B0', '#1A3A50'], ['#6A7AB0', '#C8D0E8', '#3A4460'], ['#C0401A', '#E8803A', '#3A2A3A'],
+];
+const rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)).join(',');
+const SOLIDS = [['#F3EADB', '#2A2018'], ['#CFE2C4', '#1E2A20'], ['#C9DDF4', '#13243A'], ['#D9A441', '#2A1E08'], ['#9A4530', '#FFF4EC'], ['#DE939C', '#2A1218'],
+  ['#256662', '#F0FFFC'], ['#173832', '#E8F3EE'], ['#131B32', '#E6ECFF'], ['#3A2240', '#F7E9F3'], ['#1C1C1E', '#F2F0EC']];
 export const FREE = [
-  { id: 'g1', css: 'linear-gradient(160deg,#f6a5c0 0%,#b48cf2 48%,#6a7ff0 100%)', ink: '#fff', dim: ['all', '40,16,70', .22] },
-  { id: 'g2', css: 'linear-gradient(160deg,#ffd29d 0%,#f17a7a 100%)', ink: '#fff', dim: ['all', '90,30,30', .2] },
-  { id: 'g3', css: 'linear-gradient(160deg,#a8e6cf 0%,#3d84a8 100%)', ink: '#fff', dim: ['all', '10,40,60', .22] },
-  { id: 'g4', css: 'linear-gradient(160deg,#fbc2eb 0%,#a6c1ee 100%)', ink: '#2a2440', dim: ['all', '40,30,80', .25] },
-  { id: 'g5', css: 'linear-gradient(160deg,#2b2d5e 0%,#7a4f9e 100%)', ink: '#fff', dim: ['all', '10,10,30', .2] },
-  { id: 'g6', css: 'linear-gradient(170deg,#ffecd2 0%,#fcb69f 100%)', ink: '#4a2a1e', dim: ['all', '80,40,20', .25] },
-  { id: 'g7', css: 'linear-gradient(160deg,#0f3d3e 0%,#c9a96e 100%)', ink: '#fff', dim: ['all', '5,25,25', .25] },
-  { id: 'g8', css: 'linear-gradient(160deg,#1d2b4f 0%,#5c3b6e 60%,#e0807a 100%)', ink: '#fff', dim: ['all', '10,10,30', .2] },
-  { id: 's1', css: '#E8DCC8', ink: '#2E2A24', dim: ['all', '40,30,20', .2] },
-  { id: 's2', css: '#2E3B33', ink: '#F1EADB', dim: ['all', '0,0,0', .2] },
-  { id: 's3', css: '#F2E1E4', ink: '#3A2A2E', dim: ['all', '60,30,40', .2] },
-  { id: 's4', css: '#1C1C1F', ink: '#EDEBE6', dim: ['all', '0,0,0', .2] },
+  ...PAL24.map(([hot, warm, deep], i) => ({ id: 'g' + (i + 1), css: `linear-gradient(165deg,${warm} 0%,${hot} 52%,${deep} 100%)`, tone: hot, ink: '#fff', dim: ['all', rgb(deep), .3] })),
+  ...SOLIDS.map(([bg, ink], i) => ({ id: 's' + (i + 1), css: bg, tone: bg, ink, dim: ['all', '0,0,0', 0] })),
 ];
 
 export const PAID = [
-  { id: 'haze', img: './bg/haze.webp', ink: '#F3ECE0', dim: ['all', '10,30,22', .55] },
-  { id: 'stars', img: './bg/stars.webp', ink: '#F3E6C8', dim: ['center', '0,0,0', .55] },
-  { id: 'bands', code: 'bands', ink: '#fff', dim: ['center', '40,16,70', .55] },
+  { id: 'haze', img: './bg/haze.webp', tone: '#2f6b55', ink: '#F3ECE0', dim: ['all', '10,30,22', .55] },
+  { id: 'stars', img: './bg/stars.webp', tone: '#3a3f7a', ink: '#F3E6C8', dim: ['center', '0,0,0', .55] },
+  { id: 'bands', code: 'bands', tone: '#a35cff', ink: '#fff', dim: ['center', '40,16,70', .55] },
 ];
 
 export const find = id => FREE.find(b => b.id === id) || PAID.find(b => b.id === id) || FREE[0];

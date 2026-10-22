@@ -27,14 +27,21 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 /* 카드 공통: 가로 1080 디자인을 cqw로 */
 .cd { container-type: inline-size; width: 100%; position: relative; border-radius: 6px; overflow: hidden; }
 .cd.rebus { aspect-ratio: 4 / 5; overflow: clip; background: #F3F1EC; color: #2E2D2B; display: flow-root; font-family: 'Pretendard Variable', sans-serif; }
-.cd.rebus .rb { margin: 6.667cqw 5.185cqw 15.74cqw 5.926cqw; font-size: 7.778cqw; font-weight: 800; line-height: 1.34; letter-spacing: -.03em; overflow-wrap: break-word; }
+.cd.rebus .rb { outline: none; margin: 6.667cqw 5.185cqw 15.74cqw 5.926cqw; font-size: 7.778cqw; font-weight: 800; line-height: 1.34; letter-spacing: -.03em; overflow-wrap: break-word; }
 .cd.rebus .rb .ph { color: #B9B5AC; }
 .cd.rebus svg.i { height: .9em; vertical-align: -.1em; margin: 0 .06em; }
-.cd.rebus .k { color: #6C4BD8; } .cd.rebus .k2 { color: #F2622E; }
-.cd.rebus .foot { position: absolute; left: 5.926cqw; right: 5.185cqw; bottom: 5.926cqw; display: flex; justify-content: space-between; font-size: 3.889cqw; font-weight: 900; line-height: 1; color: #6C4BD8; }
+.cd.rebus .rb b, .cd.rebus .rb strong { color: #6C4BD8; font-weight: inherit; }   /* 강조 = 보라 */
+.cd.rebus .rb mark { background: none; color: #F2622E; padding: 0; }                /* 형광펜 = 주황 */
+.cd.rebus .o { display: inline; }
+.cd.rebus .o svg.i { margin: 0 .12em; }
+.cd.rebus .exm { display: none; position: absolute; top: 0; left: 0; right: 0; opacity: .3; pointer-events: none; }
+.cd.rebus.edit.empty .exm { display: block; }
+.cd.rebus.edit .rb { min-height: 1.4em; position: relative; z-index: 1; }
+.cd.rebus .foot { position: absolute; left: 5.926cqw; right: 5.185cqw; bottom: 5.926cqw; display: flex; justify-content: space-between; font-size: 3.889cqw; font-weight: 900; line-height: 1; color: #6C4BD8; }   /* 왼쪽 요일 · 날짜(· 장소), 오른쪽 서명 */
 .cd.rebus.paged { aspect-ratio: auto; }
-.cd.rebus .clip { margin: 6.667cqw 5.185cqw 0 5.926cqw; overflow: hidden; }
-.cd.rebus .clip .rb { margin: 0; }
+.cd.rebus .pgbox { margin: 6.667cqw 5.185cqw 0 5.926cqw; }
+.cd.rebus .pgbox .rb { margin: 0; }
+.cd .clip { overflow: hidden; flex: none; }
 .cd .pn { position: absolute; right: 5.185cqw; top: 3.7cqw; font-size: 2.8cqw; font-weight: 800; color: #B9B5AC; }
 
 .cd.text { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
@@ -46,27 +53,61 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .cd .dt { font-family: 'Pretendard Variable', sans-serif; font-size: 2.8cqw; letter-spacing: .1em; opacity: .85; margin-bottom: 1.6em; line-height: 1.2; }
 .cd .body + .dt { margin: 1.6em 0 0; }
 .cd .body { outline: none; min-height: 1.75em; }
+.cd .tx > * { flex-shrink: 0; }   /* 줄어들면 글이 날짜와 겹쳐요 */
 .cd .body b, .cd .body strong { font-weight: 700; }
 .cd .body mark { background: rgba(255,214,90,.45); color: inherit; padding: 0 .12em; border-radius: .12em; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
 .cd .body h2 { font-size: 1.32em; line-height: 1.4; font-weight: 700; margin: 0 0 .35em; }
 .cd .body ul { padding-left: 1.1em; }
 .cd .body[contenteditable]:empty::before { content: attr(data-ph); opacity: .55; }
-.cd .pg.over::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 2.5cqw; background: linear-gradient(transparent, rgba(255,77,77,.6)); }
+/* 긴 장: 쓰는 동안 아래로 길어지고, 저장할 때 나뉠 자리에 점선 */
+.cd .pg.long { aspect-ratio: auto; min-height: 125cqw; }
+.cd .pg.long .tx { position: relative; inset: auto; min-height: 125cqw; justify-content: flex-start !important; }
+.cd .brk { position: absolute; left: 0; right: 0; border-top: 1.5px dashed currentColor; opacity: .45; pointer-events: none; }
+.cd .brk span { position: absolute; right: 3cqw; top: .8cqw; font: 700 2.6cqw/1 var(--ui); }
+.cd.text.one { display: block; overflow: hidden; border-radius: 0; }
+/* 예시: 아직 아무것도 안 썼을 때 흐린 예시 글 + '예시' 표시 */
+.cd.edit.empty .pg[data-i="0"]::after, .cd.rebus.edit.empty::after { content: '예시'; position: absolute; left: 50%; transform: translateX(-50%); bottom: 2.6cqw; font: 700 2.8cqw/1 var(--ui); padding: 1cqw 2.4cqw; border-radius: 99px; background: rgba(0,0,0,.28); color: #fff; pointer-events: none; }
+.cd.rebus.edit.empty::after { background: rgba(46,45,43,.12); color: #6b6862; bottom: auto; top: 3cqw; left: auto; right: 4cqw; transform: none; }
 
-/* 피드 */
+/* 피드: 위 줄은 같이 스크롤(흐림 없음). 가운데 카드 색이 바탕에 번지고, 그 카드만 움직여요 */
+.amb { position: fixed; left: -30%; right: -30%; top: -10%; height: 85vh; z-index: -1; background-color: #333; opacity: .32; pointer-events: none;
+  -webkit-mask-image: radial-gradient(closest-side, #000 0%, transparent 100%); mask-image: radial-gradient(closest-side, #000 0%, transparent 100%); transition: background-color 1.2s ease; }
+.ftop { display: flex; align-items: center; justify-content: space-between; padding: calc(var(--safe-t) + 14px) var(--gut) 20px; }
+.ftop .logo { font-size: 27px; font-weight: 800; letter-spacing: -.035em; line-height: 40px; }
 .feed { padding: 0 var(--gut) calc(120px + var(--safe-b)); display: grid; gap: 28px; }
+.day { font-size: 13px; font-weight: 700; color: var(--mut); margin: 6px 0 -16px; letter-spacing: .02em; }
 .fi { display: grid; gap: 10px; }
-.fi .fx { position: relative; cursor: pointer; }
-.fi .clipc { position: relative; overflow: hidden; border-radius: 6px; }
-.fi .clipc.col { aspect-ratio: 4 / 5; }
-.fi .clipc.col::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 22%; background: linear-gradient(transparent, rgba(243,241,236,.95)); }
-.fi .more1 { position: absolute; right: 10px; top: 10px; z-index: 2; background: rgba(35,34,31,.75); color: #fff; font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 999px; }
+.fi .fx { position: relative; cursor: pointer; border-radius: 6px; }
+.fi .view { position: relative; border-radius: 6px; overflow: hidden; }
+.fi .pgs { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+.fi .pgs::-webkit-scrollbar { display: none; }
+.fi .pgs > * { flex: 0 0 100%; scroll-snap-align: start; border-radius: 0; }
+/* 여러 장: 1/N + 아래 겹친 종이 가장자리 */
+.fi .pnb { position: absolute; right: 10px; top: 10px; z-index: 3; background: rgba(20,20,22,.6); color: #fff; font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 999px; pointer-events: none; }
+.fi.multi .fx::before, .fi.multi .fx::after { content: ''; position: absolute; left: 8px; right: 8px; bottom: -5px; height: 5px; border-radius: 0 0 6px 6px; background: #3a3a3f; z-index: -1; }
+.fi.multi .fx::after { left: 16px; right: 16px; bottom: -9px; background: #2a2a2e; }
+.fi.multi .row { margin-top: 6px; }
+/* 고르기: 흰 테두리 + 연필 */
+.fi .pen { position: absolute; right: 10px; bottom: 10px; z-index: 4; width: 44px; height: 44px; border-radius: 50%; background: #fff; color: var(--bg); display: none; place-items: center; box-shadow: 0 4px 14px rgba(0,0,0,.35); }
+.fi.sel .fx { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px #fff; }
+.fi.sel .pen { display: grid; }
+.foldb { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(92px + var(--safe-b)); z-index: 25; display: flex; gap: 6px; align-items: center; background: #fff; color: var(--bg); font-weight: 800; font-size: 14px; padding: 10px 16px 10px 12px; border-radius: 999px; box-shadow: 0 6px 18px rgba(0,0,0,.35); }
+.foldb[hidden] { display: none; }
 .fi .row { display: flex; align-items: center; justify-content: space-between; }
 .fi .row .l { display: flex; gap: 8px; align-items: center; }
 .fi .row .cb.on { background: #fff; color: var(--bg); }
 .fi .ours { display: flex; gap: 8px; align-items: center; font-size: 14px; font-weight: 800; }
 .fi .ours i { font-style: normal; background: #fff; color: var(--bg); font-size: 10px; padding: 2px 6px; border-radius: 6px; }
-.fold { position: sticky; bottom: calc(100px + var(--safe-b)); margin: -60px auto 0; z-index: 5; display: flex; gap: 6px; align-items: center; background: #fff; color: var(--bg); font-weight: 800; font-size: 14px; padding: 10px 16px 10px 12px; border-radius: 999px; width: max-content; }
+/* 모션: 가운데 카드만. 코드 배경은 천천히 흐르고, 그림 문장은 처음 볼 때 그림이 톡톡 나온 뒤 몇 개만 잔잔히 */
+.fi.play canvas.bgc { animation: drift 18s ease-in-out infinite alternate; }
+@keyframes drift { from { transform: scale(1.14) translate(-3%, -3%); } to { transform: scale(1.14) translate(3%, 3%); } }
+.fi.intro .cd.rebus .o svg { animation: pop .7s cubic-bezier(.2, 1.5, .4, 1) both; }
+.fi.intro .cd.rebus .o:nth-of-type(2n) svg { animation-delay: .15s; } .fi.intro .cd.rebus .o:nth-of-type(3n) svg { animation-delay: .3s; }
+@keyframes pop { from { transform: scale(.3); opacity: 0; } }
+.fi.play:not(.intro) .cd.rebus .o:nth-of-type(3n+1) svg { animation: bob 3s ease-in-out infinite; }
+@keyframes bob { 50% { transform: translateY(-.08em) rotate(-3deg); } }
+body.paused .fi * { animation-play-state: paused !important; }
+@media (prefers-reduced-motion: reduce) { .fi * { animation: none !important; } .amb { transition: none; } }
 
 /* 하단 메뉴 */
 .nav { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + var(--safe-b)); z-index: 30; display: flex; gap: 6px; padding: 6px; background: #26262a; border-radius: 999px; align-items: center; }
@@ -97,18 +138,24 @@ html.kb-open:not(.pan) .wr { top: var(--vvt, 0px); bottom: auto; height: var(--v
 .wr .stage::-webkit-scrollbar { display: none; }
 /* 글: 장마다 같은 크기(--cw), 옆 장이 살짝 보여요 */
 .cd .pg { container-type: inline-size; }
-.wr .cd.text { width: 100%; border-radius: 0; gap: 12px; padding: 0 calc((100% - var(--cw)) / 2); scroll-snap-type: x mandatory; }
+.wr .cd.text { width: 100%; border-radius: 0; gap: 12px; align-items: flex-start; padding: 0 calc((100% - var(--cw)) / 2); scroll-snap-type: x mandatory; }
 .wr .cd.text .pg { flex: 0 0 var(--cw); border-radius: 8px; scroll-snap-align: center; }
 .wr .cd .body { -webkit-user-select: text; user-select: text; caret-color: currentColor; }
 .wr .cd .body:empty::before { content: attr(data-ph); opacity: .55; }
 .wr .cd .pg .wc { position: absolute; right: 4.5cqw; bottom: 3.8cqw; font: 600 2.8cqw/1 var(--ui); opacity: .75; pointer-events: none; }
 .wr .cd.rebus { width: var(--cw); margin: 0 auto; border-radius: 8px; }
+.wr .cd.rebus .wc { position: absolute; right: 5.185cqw; top: 2.4cqw; font: 600 2.8cqw/1 var(--ui); color: #B9B5AC; }
 ::highlight(dz-sel) { background-color: rgba(120,170,255,.45); }
-/* 그림 문장: 글은 아래 칸에 쓰고 카드에 바로 그림으로 */
-.wr .rin { flex: none; display: flex; align-items: flex-end; gap: 8px; padding: 6px var(--gut) 8px; }
-.wr .rin .field { flex: 1; min-height: 44px; max-height: 96px; background: var(--srf); border: 1px solid var(--line); border-radius: 14px; padding: 11px 14px; color: #fff; font: 500 16px/1.4 var(--ui); resize: none; outline: none; }
-.wr .rin .field::placeholder { color: var(--off); }
-.wr .rin .cnt { flex: none; padding-bottom: 12px; }
+/* 정보 줄: 날짜 · 제목 · 장소 (작은 칩, 누르면 바로 고침) */
+.wr .meta { flex: none; display: flex; justify-content: center; gap: 6px; padding: 0 var(--gut) 8px; overflow-x: auto; scrollbar-width: none; }
+.wr .meta::-webkit-scrollbar { display: none; }
+.wr .chip { position: relative; display: flex; align-items: center; gap: 5px; height: 28px; padding: 0 10px 0 8px; border-radius: 999px; background: var(--srf); color: #d8d8dc; font: 600 13px var(--ui); flex: none; }
+.wr .chip .ic { width: 16px; height: 16px; color: var(--mut); }
+.wr .chip.dt input { position: absolute; inset: 0; opacity: 0; width: 100%; }
+.wr .chip input:not([type=date]) { background: none; border: 0; outline: none; color: #fff; font: 600 13px var(--ui); width: 64px; }
+.wr .chip input::placeholder { color: var(--mut); }
+.wr .chip.pl input { width: 88px; }
+.cnt { flex: none; padding-bottom: 12px; }
 .cnt { font-size: 12px; color: var(--mut); }
 
 /* 도구 줄: 키보드(또는 패널) 바로 위. 키보드가 없으면 화면 맨 아래 */
@@ -152,4 +199,3 @@ html.pan .wr .panel { display: grid; }
 .toast { position: fixed; left: 50%; bottom: calc(96px + var(--safe-b)); transform: translateX(-50%); background: #fff; color: var(--bg); font-size: 14px; font-weight: 700; padding: 10px 16px; border-radius: 999px; z-index: 60; white-space: nowrap; }
 .busy { position: fixed; inset: 0; z-index: 70; background: rgba(0,0,0,.55); display: grid; place-items: center; font-weight: 700; }
 
-.cd .pg.over .tx { justify-content: flex-start !important; }   /* 넘치면 글 처음부터 보이게 */
