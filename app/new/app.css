@@ -123,12 +123,13 @@ html:not(.kb-open):not(.pan) .wr .tb { padding-bottom: calc(6px + var(--safe-b))
 @keyframes shake { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
 
 /* 패널 = 키보드 자리, 키보드와 같은 높이 */
-.wr .panel { display: none; flex: none; height: var(--kbh, 40vh); overflow-y: auto; background: var(--srf); padding: 16px var(--gut) calc(16px + var(--safe-b)); align-content: start; gap: 12px; }
+.wr .panel { display: none; flex: none; height: var(--kbh, 40vh); overflow-y: auto; background: var(--srf); padding: 16px var(--gut) calc(16px + var(--safe-b)); align-content: start; gap: 8px; }
 html.pan .wr .panel { display: grid; }
-.pgrid { display: grid; grid-template-columns: repeat(6, var(--btn)); gap: 10px; justify-content: space-between; }
-.pb { position: relative; width: var(--btn); height: var(--btn); border-radius: 12px; background: var(--srf2); display: grid; place-items: center; color: #fff; }
+.pgrid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }   /* 6칸이 가로를 꽉 채워요 (간격 8px 고정, 단추는 정사각형) */
+.pb { position: relative; width: 100%; aspect-ratio: 1; border-radius: 12px; background: var(--srf2); display: grid; place-items: center; color: #fff; }
 .pb.on { background: #fff; color: var(--bg); }
 .pb.off { color: var(--off); }
+.pb .ic { width: 24px; height: 24px; }
 .pb .tag { position: absolute; right: 4px; bottom: 3px; font-size: 9px; font-weight: 800; }
 .bgs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 4px; }
 .bgs .bt { aspect-ratio: 4 / 5; border-radius: 6px; position: relative; overflow: hidden; background-size: cover; background-position: center; }
