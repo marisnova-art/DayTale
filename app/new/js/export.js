@@ -3,6 +3,7 @@
 import { renderCard, fitCard, cardText } from './formats.js';
 import { drawCode } from './bg.js';
 import { ready } from './stickers.js';
+import { fontOf } from './fonts.js';
 
 const cache = new Map();
 const toData = async url => {
@@ -22,8 +23,9 @@ async function rulesOf(file, family) {
 }
 async function fontCss(text, font) {
   let css = `@font-face{font-family:'Pretendard Variable';font-weight:45 920;src:url(${await toData(new URL('../fonts/PretendardVariable.woff2', location.href).href)}) format('woff2');}`;
-  const fam = font === 'hand' ? ['hand.css', 'DT Nanum Pen Script'] : font === 'sans' ? null : ['serif.css', 'DT Gowun Batang'];
-  if (!fam) return css;
+  const fo = fontOf(font);
+  if (!fo.file) return css;   // 프리텐다드는 위에서 넣었어요
+  const fam = [fo.file, fo.fam];
   const cps = [...new Set([...text].map(ch => ch.codePointAt(0)))];
   const hit = (await rulesOf(...fam)).filter(r => r.ranges.some(([a, b = a]) => cps.some(c => c >= a && c <= b)));
   for (const r of hit) css += `@font-face{font-family:'${fam[1]}';src:url(${await toData(r.url)}) format('woff2');}`;
@@ -99,7 +101,7 @@ async function textPages(c, W, ratio) {
   });
   // 장마다 따로 된 카드 틀에 넣고, 배경은 장마다 보이는 부분을 위 → 아래로 옮겨요
   const nodes = out.map((pg, i) => {
-    const wrap = document.createElement('div'); wrap.className = `cd text one f-${c.font || 'serif'}`; wrap.appendChild(pg); h.appendChild(wrap);
+    const wrap = document.createElement('div'); wrap.className = 'cd text one'; wrap.appendChild(pg); h.appendChild(wrap);
     const shift = out.length > 1 ? i / (out.length - 1) : .5;
     pg.querySelectorAll('.bgi').forEach(b => { if (b.style.backgroundImage) b.style.backgroundPosition = `50% ${Math.round(shift * 100)}%`; });
     pg.querySelectorAll('canvas.bgc').forEach(cv => { cv.width = Math.round(W * ratio); cv.height = Math.round(H * ratio); drawCode(cv, +cv.dataset.seed, shift); });

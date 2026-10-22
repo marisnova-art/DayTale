@@ -42,6 +42,9 @@ const P = {
   dtop: '<path d="M4 4h16"/><path d="M12 20V9M8 13l4-4 4 4"/>',
   dbot: '<path d="M4 20h16"/><path d="M12 4v11M8 11l4 4 4-4"/>',
   doff: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16"/><path d="M3 3l18 18"/>',
+  kb: '<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/>',
+  font: '<path d="M3 19 8.5 5h1L15 19"/><path d="M5.3 14h7.4"/><path d="M15.5 20.5 21 15l-2-2-5.5 5.5-.5 2.5z"/>',
+  size: '<path d="M3 6h11M8.5 6v13"/><path d="M14 12h7M17.5 12v7"/>',
   pin: '<path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
 };
 

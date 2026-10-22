@@ -96,3 +96,8 @@ INCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL
 DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
 OTHER DEALINGS IN THE FONT SOFTWARE.
+- Nanum Myeongjo — Copyright 2010 NAVER Corporation (https://fonts.google.com/specimen/Nanum+Myeongjo)
+- Gowun Dodum — Copyright 2021 The Gowun Dodum Project Authors (https://github.com/yangheeryu/Gowun-Dodum)
+- Do Hyeon — Copyright 2017 Woowa Brothers Corp. (https://fonts.google.com/specimen/Do+Hyeon)
+- Gaegu — Copyright 2017 JIKJI SOFT (https://fonts.google.com/specimen/Gaegu)
+- Hi Melody — Copyright 2017 YoonDesign Inc. (https://fonts.google.com/specimen/Hi+Melody)

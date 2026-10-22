@@ -2,6 +2,7 @@
 import { find as findBg, dimCss, drawCode } from './bg.js';
 import { rangeAt } from './rich.js';
 import { hydrate } from './stickers.js';
+import { fontOf, fontCssOf, SIZES } from './fonts.js';
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const px = n => `${(n / 10.8).toFixed(3)}cqw`; // 1080 디자인 px → cqw
@@ -130,16 +131,17 @@ function bgLayer(c, page, pages) {
 
 function text(c, { edit = false } = {}) {
   const el = document.createElement('div');
-  el.className = 'cd text' + (edit ? ' edit' : '') + ` f-${c.font || 'serif'}`;
+  el.className = 'cd text' + (edit ? ' edit' : '');
+  const fo = fontOf(c.font), serif = fo.gen === 'serif';
   const pages = (c.pages?.length ? c.pages : ['']).map(h => soft(h, edit));
   const dp = c.datePos || 'top';
   const info = esc([dateLine(c.date), (c.place || '').trim()].filter(Boolean).join(' · '));
   const ex = FORMATS.text.sample.pages[0].replace(/<[^>]+>/g, '');
   el.innerHTML = pages.map((h, i) => {
     const { html, ink } = bgLayer(c, i, pages.length);
-    const date = `<div class="dt">${info}</div>`;
+    const date = `<div class="dt" style="font-family:${serif ? fontCssOf(fo) : "'Pretendard Variable', sans-serif"}">${info}</div>`;
     return `<section class="pg" data-i="${i}" style="color:${ink}">${html}
-      <div class="tx" style="justify-content:${{ t: 'flex-start', m: 'center', b: 'flex-end' }[c.align?.v || 'm']};text-align:${{ l: 'left', c: 'center', r: 'right' }[c.align?.h || 'l']}">
+      <div class="tx" data-k="${fo.k}" data-sz="${SIZES[c.size] || SIZES.m}" style="font-family:${fontCssOf(fo).replace(/"/g, '&quot;')};line-height:${fo.lh};letter-spacing:${fo.ls || 'normal'};justify-content:${{ t: 'flex-start', m: 'center', b: 'flex-end' }[c.align?.v || 'm']};text-align:${{ l: 'left', c: 'center', r: 'right' }[c.align?.h || 'l']}">
         ${dp === 'top' && i === 0 ? date : ''}
         <div class="body" ${edit ? 'contenteditable="true" spellcheck="false" autocapitalize="off"' : ''} data-ph="${i === 0 ? esc(ex) : '이어서 써 보세요'}">${h}</div>
         ${dp === 'bottom' && i === pages.length - 1 ? date : ''}
@@ -160,7 +162,7 @@ function fitText(el) {
     const jc = tx.style.justifyContent; tx.style.justifyContent = 'flex-start';
     const over = () => tx.scrollHeight > tx.clientHeight + 1;
     // 글자 크기는 고른 그대로(중간 = 카드 폭의 6%). 저절로 줄이지 않고, 넘치면 장이 길어져 저장할 때 나뉘어요
-    tx.style.fontSize = px(el.classList.contains('f-hand') ? 80 : 65);
+    tx.style.fontSize = px((+tx.dataset.sz || 65) * (+tx.dataset.k || 1));
     if (over()) pg.classList.add('long');
     tx.style.justifyContent = jc;
     if (pg.classList.contains('long') && el.classList.contains('edit')) {
@@ -180,16 +182,15 @@ function fitText(el) {
 export const FORMATS = {
   rebus: {
     id: 'rebus', name: '그림 문장', info: '짧은 글 · 사진 없음 · 사계절', paid: true,
-    tools: { fmt: true, photo: false, emo: false, bg: false, page: false, shuf: true },
-    fmtTools: { bold: true, mark: true },   // 강조 = 보라, 형광펜 = 주황 (모양은 포맷이 정해요)
+    // 쓰기 화면 도구: style = 서식 줄(글꼴·크기·좌우·위아래), bg = 배경 줄, dp = 날짜 위치. 디자인 포맷은 모양이 정해져 있어 대부분 꺼요
+    tools: { photo: false, emo: false, page: false, shuf: true, style: false, bg: false, dp: false },
     sample: { html: '친구랑 통화를 <b>오래</b> 했다. 별일 없는 이야기에 <mark>웃음</mark>이 많은 밤.', seed: 7 },
     render: rebus, fit: fitRebus,
   },
   text: {
     id: 'text', name: '글', info: '모든 길이 · 배경 고르기 · 무료', paid: false,
-    tools: { fmt: true, photo: false, emo: true, bg: true, page: true, shuf: 'code' },
-    fmtTools: { bold: true, mark: true, list: true, size: true, align: true, font: true, date: true },
-    sample: { pages: ['출근길에 버스를 한 대 놓쳤는데 덕분에 하늘을 오래 봤다. <b>오늘은 그걸로 됐다.</b>'], bg: { id: 'g1', dim: 'dark' } },
+    tools: { photo: false, emo: true, page: true, shuf: 'code', style: true, bg: true, dp: true },
+    sample: { pages: ['출근길에 버스를 한 대 놓쳤는데 덕분에 하늘을 오래 봤다. 오늘은 그걸로 됐다.'], bg: { id: 'g1', dim: 'dark' } },
     render: text, fit: fitText,
   },
 };
@@ -198,7 +199,7 @@ export const ORDER = ['rebus', 'text'];
 export function blank(fmt, date) {
   return fmt === 'rebus'
     ? { fmt, date, place: '', html: '', seed: newSeed() }
-    : { fmt, date, place: '', pages: [''], bg: { id: 'g1', dim: 'dark', seed: newSeed() }, align: { h: 'l', v: 'm' }, datePos: 'top', font: 'serif' };
+    : { fmt, date, place: '', pages: [''], bg: { id: 'g1', dim: 'dark', seed: newSeed() }, align: { h: 'l', v: 'm' }, datePos: 'top', font: 'serif', size: 'm' };
 }
 export const sampleCard = (fmt, date) => ({ ...blank(fmt, date), ...structuredClone(FORMATS[fmt].sample), sample: true });
 

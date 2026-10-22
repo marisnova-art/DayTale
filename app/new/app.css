@@ -60,9 +60,6 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .cd .body .stk { display: inline-block; width: 1.25em; height: 1.25em; vertical-align: -.25em; margin: 0 .06em; }
 .cd .body .stk svg { width: 100%; height: 100%; display: block; }
 /* 글꼴 (카드 전체): 명조(기본) · 고딕 · 손글씨 */
-.cd.f-sans .tx { font-family: 'Pretendard Variable', sans-serif; letter-spacing: -.01em; }
-.cd.f-hand .tx { font-family: 'DT Nanum Pen Script', cursive; line-height: 1.5; }
-.cd.f-sans .dt, .cd.f-hand .dt { font-family: 'Pretendard Variable', sans-serif; }
 .cd .body ul { padding-left: 1.1em; }
 .cd .body[contenteditable]:empty::before { content: attr(data-ph); opacity: .55; }
 /* 긴 장: 쓰는 동안 아래로 길어지고, 저장할 때 나뉠 자리에 점선 */
@@ -158,33 +155,45 @@ html.kb-open:not(.pan) .wr { top: var(--vvt, 0px); bottom: auto; height: var(--v
 .wr .cd.text .pg { flex: 0 0 var(--cw); border-radius: 8px; scroll-snap-align: center; }
 .wr .cd .body { -webkit-user-select: text; user-select: text; caret-color: currentColor; }
 .wr .cd .body:empty::before { content: attr(data-ph); opacity: .55; }
-.wr .cd .pg .wc { position: absolute; right: 4.5cqw; bottom: 3.8cqw; font: 600 2.8cqw/1 var(--ui); opacity: .75; pointer-events: none; }
 .wr .cd.rebus { width: var(--cw); margin: 0 auto; border-radius: 8px; }
-.wr .cd.empty .wc { display: none; }
-.wr .cd.rebus .wc { position: absolute; right: 5.185cqw; top: 2.4cqw; font: 600 2.8cqw/1 var(--ui); color: #B9B5AC; }
-::highlight(dz-sel) { background-color: rgba(120,170,255,.45); }
-/* 정보 줄: 날짜 · 제목 · 장소 (작은 칩, 누르면 바로 고침) */
-.wr .meta { flex: none; display: flex; justify-content: center; gap: 6px; padding: 0 var(--gut) 8px; overflow-x: auto; scrollbar-width: none; }
-.wr .meta::-webkit-scrollbar { display: none; }
-.wr .chip { position: relative; display: flex; align-items: center; gap: 5px; height: 28px; padding: 0 10px 0 8px; border-radius: 999px; background: var(--srf); color: #d8d8dc; font: 600 13px var(--ui); flex: none; }
-.wr .chip .ic { width: 16px; height: 16px; color: var(--mut); }
-.wr .chip.dt input { position: absolute; inset: 0; opacity: 0; width: 100%; }
-.wr .chip input:not([type=date]) { background: none; border: 0; outline: none; color: #fff; font: 600 13px var(--ui); width: 64px; }
-.wr .chip input::placeholder { color: var(--mut); }
-.wr .chip.pl input { width: 88px; }
-.wr .chip.dp { padding: 0 7px; } .wr .chip.dp .ic { color: #d8d8dc; }
+/* 6칸 줄 (시안 C3): 모든 칸 44×44, 아이콘 24px, 줄끼리 세로로 맞아요. 간격 --g6은 화면 폭에 맞춰 JS가 정해요 */
+.wr .stt { font: 700 14px var(--ui); color: #d8d8dc; white-space: nowrap; }
+.g6 { flex: none; display: grid; grid-template-columns: repeat(6, 44px); column-gap: var(--g6, 18px); justify-content: center; padding: 4px 16px; background: var(--bg); }
+.g6 .k { position: relative; width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; color: #fff; }
+.g6 .k .ic { width: 24px; height: 24px; }
+.g6 .k.on { background: #fff; color: var(--bg); }
+.g6 .k.tl { background: var(--srf); }
+.g6 .k.off { color: var(--off); }
+.g6 .k.shake { animation: shake .3s; }
+.st2 { padding-top: 6px; }
+/* 배경 줄: 앞 2칸 고정, 나머지 4칸 자리에서 색 칸이 옆으로 밀려요(한 칸씩 멈춤, 오른쪽 끝은 흐리게). 고른 표시는 칸 안쪽에 */
+.st2.bgr .swp { grid-column: 3 / span 4; display: flex; gap: var(--g6, 18px); overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; -webkit-mask-image: linear-gradient(90deg, #000 78%, transparent); mask-image: linear-gradient(90deg, #000 78%, transparent); }
+.st2.bgr .swp::-webkit-scrollbar { display: none; }
+.st2.bgr .sw { flex: none; scroll-snap-align: start; overflow: hidden; background-size: cover; }
+.st2.bgr .sw canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.st2.bgr .sw.sel::after { content: ''; position: absolute; inset: 3px; border-radius: 9px; box-shadow: inset 0 0 0 2px #fff, 0 0 0 1px rgba(0,0,0,.25); }
+.st2.bgr .end { flex: none; width: 44px; }
+/* 3줄: 날짜(2칸) · 장소(3칸) · 날짜 위치(1칸) */
+.st3 { padding-top: 6px; padding-bottom: 6px; }
+.st3 .wide { position: relative; height: 44px; border-radius: 12px; background: var(--srf); display: flex; align-items: center; gap: 6px; padding: 0 12px; color: #fff; font: 600 14px var(--ui); min-width: 0; }
+.st3 .w2 { grid-column: span 2; } .st3 .w3 { grid-column: span 3; }
+.st3 .wide .ic { width: 20px; height: 20px; color: var(--mut); flex: none; }
+.st3 .dt span { white-space: nowrap; }
+.st3 .dt input { position: absolute; inset: 0; opacity: 0; width: 100%; }
+.st3 .pl input { flex: 1; min-width: 0; background: none; border: 0; outline: none; color: #fff; font: 600 16px var(--ui); }
+.st3 .pl input::placeholder { color: var(--mut); }
+/* 쓰기 보기(.typ)에는 1줄만: 스타일 칸은 숨겨요 */
+.wr:not(.typ) .tb .w, .wr.typ .tb .s { display: none; }
+.wr.typ .st2, .wr.typ .st3 { display: none; }
+html:not(.kb-open):not(.pan) .wr:not(.typ) .st3, html:not(.kb-open):not(.pan) .wr.typ .tb { padding-bottom: calc(6px + var(--safe-b)); }
+/* 바꾼 값 잠깐 보이기 */
+.wpop { position: absolute; left: 50%; transform: translate(-50%, -50%); z-index: 5; background: rgba(255,255,255,.95); color: var(--bg); padding: 8px 18px; border-radius: 999px; font: 700 15px var(--ui); white-space: nowrap; pointer-events: none; animation: wpop 1.1s ease forwards; }
+.wpop.ff { font-size: 20px; font-weight: 400; }
+@keyframes wpop { 0% { opacity: 0; } 12% { opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; } }
 .cnt { flex: none; padding-bottom: 12px; }
 .cnt { font-size: 12px; color: var(--mut); }
 
-/* 도구 줄: 키보드(또는 패널) 바로 위. 키보드가 없으면 화면 맨 아래 */
-.tb { flex: none; display: flex; align-items: center; justify-content: space-between; padding: 6px 14px; background: var(--bg); }
-html:not(.kb-open):not(.pan) .wr .tb { padding-bottom: calc(6px + var(--safe-b)); }
-.tb .t { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; color: #fff; }
-.tb .t.on { background: #fff; color: var(--bg); }
-.tb .t.off { color: var(--off); }
-.tb .t.hint { box-shadow: inset 0 0 0 1.5px #fff; }
-.tb .sep { width: 1px; height: 22px; background: #3a3a3f; }
-.tb .t.shake { animation: shake .3s; }
+/* 도구 줄(.tb)은 위 6칸 줄. 키보드(또는 패널) 바로 위 */
 @keyframes shake { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
 
 /* 패널 = 키보드 자리, 키보드와 같은 높이 */
@@ -195,16 +204,8 @@ html.pan .wr .panel { display: grid; }
 .pb.on { background: #fff; color: var(--bg); }
 .pb.off { color: var(--off); }
 .pb .ic { width: 24px; height: 24px; }
-.pb .fz { font-weight: 700; line-height: 1; } .pb .fz.fl { font-size: 24px; } .pb .fz.fm { font-size: 17px; } .pb .fz.fs { font-size: 12px; }
-.pb .ff { font-size: 22px; line-height: 1; } .pb .ff.serif { font-family: 'DT Gowun Batang', serif; } .pb .ff.sans { font-family: 'Pretendard Variable', sans-serif; font-weight: 700; } .pb .ff.hand { font-family: 'DT Nanum Pen Script', cursive; font-size: 28px; }
 .pb .ei { width: 60%; height: 60%; object-fit: contain; display: block; }
 .pb .ei.ln { background: currentColor; -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; }
-.pb .tag { position: absolute; right: 4px; bottom: 3px; font-size: 9px; font-weight: 800; }
-.bgs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 4px; }
-.bgs .bt { aspect-ratio: 4 / 5; border-radius: 6px; position: relative; overflow: hidden; background-size: cover; background-position: center; }
-.bgs .bt.on { box-shadow: 0 0 0 2px var(--srf), 0 0 0 4px #fff; }
-.bgs .bt .ic { position: absolute; right: 4px; bottom: 4px; width: 14px; height: 14px; color: #fff; }
-.bgs canvas { width: 100%; height: 100%; display: block; }
 
 /* 완료 */
 .done { padding: 0 var(--gut) calc(30px + var(--safe-b)); display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
