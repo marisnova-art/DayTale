@@ -258,16 +258,17 @@ function viewWrite({ fmt, id }) {
   const pgLab = () => rich && card.pages.length > 1 ? `${st.pg + 1}장` : null;   // 여러 장이면 몇째 장이 바뀌었는지
 
   root.classList.add('wmode');
-  // 키보드를 내린 스타일 보기(큰 카드 + 3줄)와 키보드를 올린 쓰기 보기(1줄). 모든 줄은 같은 6칸(44px)이라 세로로 맞아요
-  // 1줄 스타일: 키보드 · 서식 · 배경 · 셔플 · 되돌리기 · 다시하기 / 쓰기: 키보드 · 이모티콘 · 새 장 · 사진 · 되돌리기 · 다시하기
-  const T1 = [['kb', ''], ['fmt', 's'], ['bg', 's'], ['shuf', 's'], ['emo', 'w'], ['page', 'w'], ['photo', 'w'], ['undo', ''], ['redo', '']];
+  // 키보드를 내린 스타일 보기(큰 카드 + 3줄)와 키보드를 올린 쓰기 보기(1줄). 모든 줄은 같은 7칸이라 세로로 맞아요 (늘어도 최대 8칸)
+  // 1줄 = 탭: 스타일 키보드 · 서식 · 글꼴 · 배경 · 셔플 · 되돌리기 · 다시하기 / 쓰기: 키보드 · 이모티콘 · 새 장 · 사진 · (빈칸) · 되돌리기 · 다시하기
+  // 2줄 = 고른 탭의 선택지 (서식: 크기 · 좌우 · 위아래 / 글꼴: ‹ › + 이름 / 배경: 사진 · 밝게어둡게 + 색)
+  const T1 = [['kb', ''], ['fmt', 's'], ['font', 's'], ['bg', 's'], ['shuf', 's'], ['emo', 'w'], ['page', 'w'], ['photo', 'w'], ['', 'w'], ['undo', ''], ['redo', '']];
   app.innerHTML = `<div class="wr ${rich ? 'rich' : 'plain'}">
     <header class="top"><button class="cb" data-a="back" aria-label="뒤로">${ic('back')}</button><div class="nm stt"></div><button class="cb w" data-a="ok" aria-label="완료">${ic('check')}</button></header>
     <div class="area"><section class="stage"></section></div>
-    <div class="tb g6">${T1.map(([k, m]) => `<button class="k t ${m}" data-t="${k}" aria-label="${k}">${ic(k)}</button>`).join('')}</div>
+    <div class="tb g6">${T1.map(([k, m]) => k ? `<button class="k t ${m}" data-t="${k}" aria-label="${k}">${ic(k)}</button>` : `<span class="${m}"></span>`).join('')}</div>
     <div class="st2 g6"></div>
     <div class="st3 g6">
-      <button class="wide w2 dt" aria-label="날짜">${ic('date')}<span></span></button>
+      <button class="wide w3 dt" aria-label="날짜">${ic('date')}<span></span></button>
       <label class="wide w3 pl">${ic('pin')}<input class="pi" maxlength="20" placeholder="장소" aria-label="장소" enterkeyhint="done"></label>
       <button class="k tl dp" aria-label="날짜 위치"></button><button class="k on pok" aria-label="장소 확인">${ic('check')}</button>
     </div>
@@ -519,6 +520,7 @@ function viewWrite({ fmt, id }) {
   const enabled = k => {
     if (k === 'kb' || k === 'undo' || k === 'redo') return true;
     if (k === 'fmt') return !!f.tools.style;
+    if (k === 'font') return !!(f.tools.style && f.tools.font);
     const v = f.tools[k]; return k === 'shuf' && v === 'code' ? !!findBg(ps().bg?.id).code : !!v;
   };
   function tools() {
@@ -528,7 +530,7 @@ function viewWrite({ fmt, id }) {
       if (k === 'undo') return b.classList.toggle('off', st.hi <= 0 && !st.timer);
       if (k === 'redo') return b.classList.toggle('off', st.hi >= st.hist.length - 1);
       b.classList.toggle('off', !enabled(k));
-      b.classList.toggle('on', k === 'kb' ? typ && !st.panel : k === 'fmt' || k === 'bg' ? st.tab === k && enabled(k) : st.panel === k);
+      b.classList.toggle('on', k === 'kb' ? typ && !st.panel : k === 'fmt' || k === 'font' || k === 'bg' ? st.tab === k && enabled(k) : st.panel === k);
     });
     $('[data-a=ok]').disabled = !hasText();
   }
@@ -559,7 +561,7 @@ function viewWrite({ fmt, id }) {
         push(); draw(); scrollToPage(st.pg);
         if (st.panel) closePanel(false); caretEnd(st.pg); return;
       }
-      if (k === 'fmt' || k === 'bg') { if (k === 'fmt' && st.tab === 'fmt') st.fontRow = false; st.tab = k; paintRow2(); return tools(); }
+      if (k === 'fmt' || k === 'font' || k === 'bg') { st.tab = k; paintRow2(); return tools(); }
       if (k === 'emo') return st.panel === k ? closePanel(true) : openPanel(k);
       pop('다음 단계에서 열려요');
     };
@@ -571,18 +573,17 @@ function viewWrite({ fmt, id }) {
   const AH = { l: ['c', '가운데'], c: ['r', '오른쪽'], r: ['l', '왼쪽'] }, AV = { m: ['b', '아래'], b: ['t', '위'], t: ['m', '가운데'] };
   function paintRow2() {
     if (st.tab === 'bg' && f.tools.bg) return paintBgRow();
-    if (st.fontRow && f.tools.font) return paintFontRow();
+    if (st.tab === 'font' && f.tools.font) return paintFontRow();
     const on = !!f.tools.style, a = ps().align || { h: 'l', v: rich ? 'm' : 't' }, off = on ? '' : 'off', fOff = on && f.tools.font ? '' : 'off';
     row2.className = 'st2 g6';
-    row2.innerHTML = `<button class="k ${fOff}" data-s="font" aria-label="글꼴">${ic('font')}</button><button class="k ${off}" data-s="size" aria-label="크기">${ic('size')}</button>
-      <button class="k ${off}" data-s="h" aria-label="좌우">${ic('a' + (a.h || 'l'))}</button><button class="k ${off}" data-s="v" aria-label="위아래">${ic('v' + (a.v || 'm'))}</button><span></span><span></span>`;
+    row2.innerHTML = `<button class="k ${off}" data-s="size" aria-label="크기">${ic('size')}</button>
+      <button class="k ${off}" data-s="h" aria-label="좌우">${ic('a' + (a.h || 'l'))}</button><button class="k ${off}" data-s="v" aria-label="위아래">${ic('v' + (a.v || 'm'))}</button><span></span><span></span><span></span><span></span>`;
     $$('.k', row2).forEach(x => {
       x.addEventListener('pointerdown', e => e.preventDefault());
       x.onclick = () => {
         if (x.classList.contains('off')) return shake(x);
         flush();
         const k = x.dataset.s;
-        if (k === 'font') { st.fontRow = true; return paintRow2(); }
         if (k === 'size') { const [n, t] = SZ[card.size || 'm']; card.size = n; push(); draw(); pop(t); }
         if (k === 'h') { const [n, t] = AH[a.h || 'l']; ps().align = { ...a, h: n }; syncFirst(); push(); draw(); pop(t, null, pgLab()); }
         if (k === 'v') { const [n, t] = AV[a.v || (rich ? 'm' : 't')]; ps().align = { ...a, v: n }; syncFirst(); push(); draw(); pop(t, null, pgLab()); }
@@ -590,14 +591,16 @@ function viewWrite({ fmt, id }) {
       };
     });
   }
-  // 글꼴 줄: 앞 칸(흰 글꼴 칸)을 누르면 서식 줄로. 나머지 5칸 자리에서 10개 글꼴이 옆으로 밀려요 (칸마다 그 글꼴로 쓴 "가")
-  // 글꼴 줄: 1칸 = 글꼴 단추(누를 때마다 다음 글꼴), 2~6칸 = 이름 줄(이름 하나가 2칸, 그 글꼴로). 지금 글꼴이 맨 앞, 밀어 보고 이름을 눌러 바로 골라요
+  // 글꼴 줄: 1 · 2칸 = 이전 · 다음 글꼴(끝에서는 처음으로), 3~7칸 = 이름 줄(이름 하나가 2칸, 그 글꼴로). 지금 글꼴이 맨 앞, 밀어 보고 이름을 눌러 바로 골라요
   function paintFontRow() {
     const cur = fontOf(card.font).id;
     row2.className = 'st2 g6 fnr';
-    row2.innerHTML = `<button class="k on" data-x="next" aria-label="다음 글꼴">${ic('font')}</button>
-      <div class="fst">${FONTS.map(o => `<button class="fn ${o.id === cur ? 'sel' : ''}" data-f="${o.id}" style="font-family:${fontCssOf(o).replace(/"/g, '&quot;')};font-size:${Math.round(19 * o.k)}px">${o.name}</button>`).join('')}<span class="end"></span></div>`;
+    row2.innerHTML = `<button class="k" data-x="prev" aria-label="이전 글꼴">${ic('prev')}</button><button class="k" data-x="next" aria-label="다음 글꼴">${ic('next')}</button>
+      <div class="fst">${FONTS.map(o => `<button class="fn ${o.id === cur ? 'sel' : ''}" data-f="${o.id}" style="font-family:${fontCssOf(o).replace(/"/g, '&quot;')};font-size:${Math.round(19 * o.k)}px" data-fz="${Math.round(19 * o.k)}"><span>${o.name}</span></button>`).join('')}<span class="end"></span></div>`;
     const fs = $('.fst', row2);
+    // 긴 이름은 칸에 맞게 글자를 줄여요 (글꼴 파일이 늦게 와도 한 번 더)
+    const fitNames = () => $$('.fn', fs).forEach(x => { const sp = x.firstElementChild, room = x.clientWidth - 12, base = +x.dataset.fz; x.style.fontSize = base + 'px'; if (sp.offsetWidth > room) x.style.fontSize = Math.floor(base * room / sp.offsetWidth) + 'px'; });
+    fitNames(); document.fonts?.ready.then(fitNames);
     const toCur = smooth => { const s = $('.sel', fs); if (s) fs.scrollTo({ left: s.offsetLeft - fs.firstElementChild.offsetLeft, behavior: smooth ? 'smooth' : 'instant' }); };
     const pick = (o, smooth) => {
       flush(); card.font = o.id; push(); draw(); pop(o.name, o, o.grp);
@@ -605,7 +608,8 @@ function viewWrite({ fmt, id }) {
     };
     toCur(false);
     $$('button', row2).forEach(x => x.addEventListener('pointerdown', e => e.preventDefault()));
-    $('[data-x=next]', row2).onclick = () => { const i = (FONTS.findIndex(o => o.id === fontOf(card.font).id) + 1) % FONTS.length; pick(FONTS[i], i > 0); };   // 끝에서 처음으로 돌아갈 땐 바로
+    const step = d => { const c = FONTS.findIndex(o => o.id === fontOf(card.font).id), i = (c + d + FONTS.length) % FONTS.length; pick(FONTS[i], Math.abs(i - c) === 1); };   // 끝에서 처음으로(처음에서 끝으로) 돌아갈 땐 바로
+    $('[data-x=prev]', row2).onclick = () => step(-1); $('[data-x=next]', row2).onclick = () => step(1);
     $$('[data-f]', row2).forEach(x => x.onclick = () => pick(fontOf(x.dataset.f), true));
   }
   function paintBgRow() {

@@ -1,6 +1,8 @@
 // 임시 아이콘 (24×24, 선 두께 2). 앤드류 아이콘 세트가 오면 이 파일만 바꿔요
 const P = {
   back: '<path d="m15 18-6-6 6-6"/>',
+  prev: '<path d="m15 18-6-6 6-6"/>',
+  next: '<path d="m9 18 6-6-6-6"/>',
   close: '<path d="M6 6l12 12M18 6 6 18"/>',
   check: '<path d="M20 6 9 17l-5-5"/>',
   fmt: '<path d="M4 7V5h16v2"/><path d="M12 5v14"/><path d="M9 19h6"/>',

@@ -167,35 +167,35 @@ html:not(.kb-open) .wr.plc { bottom: var(--kbh, 40vh); }   /* 장소 줄: 아이
 .wr .cd .body { -webkit-user-select: text; user-select: text; caret-color: currentColor; }
 .wr .cd .body:empty::before { content: attr(data-ph); opacity: .55; }
 .wr .cd.rebus { width: var(--cw); margin: 0 auto; border-radius: 8px; }
-/* 6칸 줄 (시안 C3): 모든 칸 44×44, 아이콘 24px, 줄끼리 세로로 맞아요. 간격 --g6은 화면 폭에 맞춰 JS가 정해요 */
+
 /* 위 가운데 상태(장 · 글자 수). 알림도 여기에 잠깐 (.ntc) */
 .wr .stt { font: 700 14px var(--ui); color: #d8d8dc; white-space: nowrap; max-width: calc(100% - 120px); overflow: hidden; text-overflow: ellipsis; }
 .wr .stt.ntc { color: #fff; }
 .wr .stt.two { display: flex; flex-direction: column; align-items: center; line-height: 1.2; white-space: normal; text-align: center; }
 .wr .stt.two small { font: 600 11px var(--ui); color: var(--mut); } .wr .stt.ntc[style*=font-family] { font-size: 20px; font-weight: 400; }
 .wr .stt.flash { animation: fade .18s; }
-/* 6칸 줄 (시안 C4): 모든 칸 = 옅은 타일, 간격 8px, 칸은 화면 폭에 맞춰 정사각형. 줄끼리 세로로 맞아요 */
-.g6 { flex: none; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; padding: 0 16px 8px; background: var(--bg); }
+/* 7칸 줄 (탭 모듈, 최대 8칸): 모든 칸 = 옅은 타일, 간격 6px, 칸은 화면 폭에 맞춰 정사각형. 줄끼리 세로로 맞아요 */
+.g6 { flex: none; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; padding: 0 16px 8px; background: var(--bg); }
 .g6 .k { position: relative; aspect-ratio: 1; border-radius: 12px; background: var(--srf); display: grid; place-items: center; color: #fff; }
-.g6 .k .ic { width: 24px; height: 24px; }
+.g6 .k .ic { width: 22px; height: 22px; }
 .g6 .k.on { background: #fff; color: var(--bg); }
 .g6 .k.off { color: var(--off); }
 .g6 .k.shake { animation: shake .3s; }
 .wr .tb { padding-top: 0; }
 /* 배경 줄: 앞 2칸 고정, 나머지 4칸 자리에서 색 칸이 옆으로 밀려요(한 칸씩 멈춤, 오른쪽 끝은 흐리게). 고른 표시는 칸 안쪽에 */
-.st2.bgr .swp { grid-column: 3 / span 4; display: flex; gap: 8px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; -webkit-mask-image: linear-gradient(90deg, #000 78%, transparent); mask-image: linear-gradient(90deg, #000 78%, transparent); }
+.st2.bgr .swp { grid-column: 3 / span 5; display: flex; gap: 6px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; -webkit-mask-image: linear-gradient(90deg, #000 78%, transparent); mask-image: linear-gradient(90deg, #000 78%, transparent); }
 .st2.bgr .swp::-webkit-scrollbar { display: none; }
-.st2.bgr .sw { flex: 0 0 calc((100% - 24px) / 4); scroll-snap-align: start; overflow: hidden; background-size: cover; }
+.st2.bgr .sw { flex: 0 0 calc((100% - 24px) / 5); scroll-snap-align: start; overflow: hidden; background-size: cover; }
 .st2.bgr .sw canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 .st2.bgr .sw.sel::after { content: ''; position: absolute; inset: 3px; border-radius: 9px; box-shadow: inset 0 0 0 2px #fff, 0 0 0 1px rgba(0,0,0,.25); }
 .st2.bgr .phb { background-size: cover; background-position: center; overflow: hidden; }
 .st2.bgr .phb.sel::after { content: ''; position: absolute; inset: 3px; border-radius: 9px; box-shadow: inset 0 0 0 2px #fff, 0 0 0 1px rgba(0,0,0,.25); }
-.st2.bgr .end { flex: 0 0 calc((100% - 24px) / 4 * 2); }
-.st2.fnr .fst { grid-column: 2 / span 5; display: flex; gap: 8px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; -webkit-mask-image: linear-gradient(90deg, #000 78%, transparent); mask-image: linear-gradient(90deg, #000 78%, transparent); }
+.st2.bgr .end { flex: 0 0 calc((100% - 24px) / 5 * 3 + 12px); }
+.st2.fnr .fst { grid-column: 3 / span 5; display: flex; gap: 6px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; -webkit-mask-image: linear-gradient(90deg, #000 78%, transparent); mask-image: linear-gradient(90deg, #000 78%, transparent); }
 .st2.fnr .fst::-webkit-scrollbar { display: none; }
-.st2.fnr .fn { --it: calc((100% - 32px) / 5 * 2 + 8px); flex: 0 0 var(--it); scroll-snap-align: start; border: 0; border-radius: 12px; background: var(--srf); color: #fff; position: relative; display: grid; place-items: center; white-space: nowrap; overflow: hidden; line-height: 1; font-weight: 400; padding: 0 6px; }   /* 이름 하나 = 2칸 */
+.st2.fnr .fn { --it: calc((100% - 24px) / 5 * 2 + 6px); flex: 0 0 var(--it); scroll-snap-align: start; border: 0; border-radius: 12px; background: var(--srf); color: #fff; position: relative; display: grid; place-items: center; white-space: nowrap; overflow: hidden; line-height: 1; font-weight: 400; padding: 0 6px; }   /* 이름 하나 = 2칸 */
 .st2.fnr .fn.sel::after { content: ''; position: absolute; inset: 3px; border-radius: 9px; box-shadow: inset 0 0 0 2px #fff; }
-.st2.fnr .end { flex: 0 0 calc((100% - 32px) / 5 * 3 + 16px); }   /* 마지막 글꼴도 맨 앞까지 밀 수 있게 */
+.st2.fnr .end { flex: 0 0 calc((100% - 24px) / 5 * 3 + 12px); }   /* 마지막 글꼴도 맨 앞까지 밀 수 있게 */
 /* 3줄: 날짜(2칸) · 장소(3칸) · 날짜 위치(1칸) */
 .st3 .wide { position: relative; border-radius: 12px; background: var(--srf); display: flex; align-items: center; gap: 6px; padding: 0 12px; color: #fff; font: 600 14px var(--ui); min-width: 0; }
 .st3 .w2 { grid-column: span 2; } .st3 .w3 { grid-column: span 3; }
@@ -221,7 +221,7 @@ html:not(.kb-open) .wr.plc { bottom: var(--kbh, 40vh); }   /* 장소 줄: 아이
 .recent { display: none; }
 /* 장소 쓰는 중(.plc): 키보드 바로 위에 장소 줄 + 최근 장소만 */
 .wr.plc .tb, .wr.plc .st2, .wr.plc .st3 .dt, .wr.plc .st3 .dp { display: none; }
-.wr.plc .st3 .pl { grid-column: span 5; box-shadow: inset 0 0 0 1.5px #fff; }
+.wr.plc .st3 .pl { grid-column: span 6; box-shadow: inset 0 0 0 1.5px #fff; }
 .wr.plc .st3 .pok { display: grid; }
 .wr.plc .recent { display: flex; flex: none; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 0 16px 10px; }
 .wr.plc .recent.none { display: none; }
@@ -234,7 +234,7 @@ html:not(.kb-open):not(.pan) .wr:not(.typ) .st3, html:not(.kb-open):not(.pan) .w
 .cnt { flex: none; padding-bottom: 12px; }
 .cnt { font-size: 12px; color: var(--mut); }
 
-/* 도구 줄(.tb)은 위 6칸 줄. 키보드(또는 패널) 바로 위 */
+/* 도구 줄(.tb)은 위 7칸 줄. 키보드(또는 패널) 바로 위 */
 @keyframes shake { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
 
 /* 패널 = 키보드 자리, 키보드와 같은 높이 */
