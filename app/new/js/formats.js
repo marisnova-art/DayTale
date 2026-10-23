@@ -231,7 +231,7 @@ function fitText(el) {
   });
   el.querySelectorAll('canvas.bgc').forEach(cv => {
     const w = cv.clientWidth; if (!w) return;
-    const k = Math.min(2, window.devicePixelRatio || 1), W = Math.round(w * k), H = Math.min(Math.round(cv.clientHeight * k) || Math.round(W * 1.25), Math.round(W * 16 / 9));
+    const k = Math.min(3, window.devicePixelRatio || 1), W = Math.round(w * k), H = Math.min(Math.round(cv.clientHeight * k) || Math.round(W * 1.25), Math.round(W * 16 / 9));
     const key = [cv.dataset.seed, cv.dataset.shift, H, cv.dataset.gr].join();
     if (cv.width === W && cv.dataset.done === key) return;
     cv.width = W; cv.height = H; drawCode(cv, +cv.dataset.seed, +cv.dataset.shift); cv.dataset.done = key;

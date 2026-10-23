@@ -138,7 +138,7 @@ function cpu(cv, P, off, full, t) {
   const mc = mid.getContext('2d'); mc.imageSmoothingQuality = 'high'; mc.drawImage(sm, 0, 0, mid.width, mid.height);
   const c = cv.getContext('2d'); c.imageSmoothingQuality = 'high'; c.drawImage(mid, 0, 0, W, H);
 }
-export function drawCode(cv, seed, shift = 0, t = 0, grainAmt = cv.dataset.gr === '0' ? .01 : .05) {   // 노이즈 끄면 맑게(.01은 색 줄 생김만 막는 정도)
+export function drawCode(cv, seed, shift = 0, t = 0, grainAmt = cv.dataset.gr === '0' ? .01 : .09) {   // 노이즈 끄면 맑게(.01은 색 줄 생김만 막는 정도)
   const W = cv.width, H = cv.height; if (!W || !H) return;
   const P = auroraOf(seed), full = W * 16 / 9, off = Math.max(0, full - H) * shift;
   const R = gl();
