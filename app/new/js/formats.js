@@ -273,7 +273,7 @@ export const FORMATS = {
   photo: {
     id: 'photo', name: '포토', info: '내 사진 · 필터 20개 · 장마다 다른 사진', paid: true, rich: true,
     tools: { photo: true, emo: true, page: true, shuf: false, filter: true, style: true, font: true, bg: 'photo', dp: true },
-    sample: { pages: ['바다 앞에 앉아 해가 지는 걸 끝까지 봤다. 오늘은 이걸로 됐다.'], bg: { id: 'photo', src: 'bg/photo-sample.webp', w: 1080, h: 1350, dim: 'dark', tone: '#3a3550' }, filter: 'film', align: { h: 'l', v: 'b' } },
+    sample: { pages: ['퇴근 전에 옥상에 올라가 구름이 노을빛으로 물드는 걸 끝까지 봤다.'], bg: { id: 'photo', src: 'bg/photo-sample.webp', w: 1080, h: 1350, dim: 'dark', tone: '#5b7fae' }, filter: 'none', align: { h: 'l', v: 't' } },
     render: text, fit: fitText,
   },
 };
