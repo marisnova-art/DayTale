@@ -94,11 +94,11 @@ function viewFeed(fresh, quiet) {
   addEventListener('scroll', onScroll, { passive: true });
   const onVis = () => document.body.classList.toggle('paused', document.hidden);
   document.addEventListener('visibilitychange', onVis);
-  // 아트 배경은 가운데 카드(와 크게 보기)만 그림 자체가 흘러요: 띠마다 제 속도로 옆으로, 색은 옆 색으로 천천히 (초당 30장)
-  let anim = 0, last = 0; const t0 = performance.now(), still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // 아트 배경은 가운데 카드만 그림 자체가 흘러요: 빛줄기가 천천히 일렁이고 색이 줄기를 따라 흘러요 (그래픽 칩으로 화면 속도대로)
+  let anim = 0; const t0 = performance.now(), still = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const tick = now => {
     anim = requestAnimationFrame(tick);
-    if (document.hidden || now - last < 33) return; last = now;
+    if (document.hidden) return;
     $$('.fi.play canvas.bgc').forEach(cv => cv.width && drawCode(cv, +cv.dataset.seed, +cv.dataset.shift || 0, (now - t0) / 1000 + .01));
   };
   if (!still) anim = requestAnimationFrame(tick);

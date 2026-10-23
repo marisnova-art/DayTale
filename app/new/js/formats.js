@@ -252,10 +252,10 @@ export const FORMATS = {
     sample: { pages: ['출근길에 버스를 한 대 놓쳤는데 덕분에 하늘을 오래 봤다. 오늘은 그걸로 됐다.'], bg: { id: 'g1', dim: 'dark' } },
     render: text, fit: fitText, rich: true,
   },
-  // 아트 포맷 #1: 앤드류 작품(번지는 색 띠)을 코드로. 그림이 작품이라 글꼴 · 배경은 정해 두고, 셔플로 새 그림
+  // 아트 포맷 #1: 앤드류 작품(세로 오로라 빛줄기)을 코드로. 그림이 작품이라 배경은 정해 두고 셔플로 새 그림, 글꼴은 고를 수 있어요
   art: {
     id: 'art', name: '번지는 빛', info: '아트 · 셔플할 때마다 새 그림 · 흐르는 빛', paid: true, rich: true,
-    tools: { photo: false, emo: false, page: true, shuf: true, style: true, font: false, bg: false, dp: true },
+    tools: { photo: false, emo: false, page: true, shuf: true, style: true, font: true, bg: false, dp: true },
     sample: { pages: ['창밖 불빛이 번져 보이는 밤. 오늘 하루도 천천히 흘러갔다.'], bg: { id: 'bands', dim: 'dark', seed: 11 } },
     render: text, fit: fitText,
   },

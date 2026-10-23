@@ -47,45 +47,105 @@ export function dimCss(b, mode) {
 function rng(s) { return () => { s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 const PAL = ['#3fd35a', '#ff4d6d', '#ff6ad5', '#8a5cff', '#e8d84a', '#ff8a3d', '#6ec8ff', '#c9a8ff', '#ff3fa0', '#4b6bff'];
 
-// 번지는 빛 (앤드류 작품 → 코드): 가로로 번지는 색 띠들. 띠마다 제 속도로 옆으로 흐르고 색이 옆 색으로 천천히 바뀌어요.
-// 작게(폭 64) 부드러운 띠를 그린 뒤 키워서 번지게 해요 (캔버스 블러 없이 → 아이폰에서도 같은 모양, 매 장면 그려도 가벼움)
-// t = 초(0이면 멈춘 그림). shift(0~1) = 9:16 원본에서 장마다 보이는 부분이 아래로 옮겨가요
-const mix = (a, b, k) => { const p = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)); const x = p(a), y = p(b); return `rgb(${x.map((v, i) => Math.round(v + (y[i] - v) * k)).join(',')})`; };
-const bandCache = new Map();
-function bandsOf(seed) {
-  if (bandCache.has(seed)) return bandCache.get(seed);
-  const r = rng(seed), n = 16 + Math.floor(r() * 6), out = [];
-  for (let i = 0; i < n; i++) out.push({
-    y: (i + r() * .8) / n, x: r(), rx: .35 + r() * .75, ry: .025 + r() * .045, a: .75 + r() * .25,
-    c1: Math.floor(r() * PAL.length), c2: Math.floor(r() * PAL.length), ph: r() * 6.28,
-    v: (r() < .5 ? -1 : 1) * (.006 + r() * .016),   // 1초에 폭의 0.6~2.2%
-  });
-  bandCache.set(seed, out); return out;
+// 번지는 빛 (앤드류 작품 → 코드): 세로 오로라 · 프리즘. 빛줄기 6~9개가 위에서 아래로 흐르고, 가운데는 하얗게, 가장자리는 무지개색으로 갈라져요.
+// 그래픽 칩(WebGL)이 점마다 계산해서 원래 해상도로 선명하고, 화면 속도대로 매끄럽게 움직여요. 셰이더가 하나라 모든 카드가 같이 써요
+// (그린 뒤 카드의 캔버스로 옮겨 그려요). WebGL이 없는 기기는 같은 계산을 작게 해서 키워 그려요.
+// 9:16 원본에서 카드(4:5)만큼 잘라 보여 주고, shift(0~1)로 장마다 아래로 옮겨가요. t = 초(0이면 멈춘 그림)
+const MAXR = 9;
+const paramCache = new Map();
+function auroraOf(seed) {
+  if (paramCache.has(seed)) return paramCache.get(seed);
+  const r = rng(seed), n = 6 + Math.floor(r() * 4), R = [];
+  for (let i = 0; i < n; i++) R.push([
+    (i + .5) / n + (r() - .5) * .5 / n,   // 가로 자리 (고르게 펼치고 조금씩 어긋나게)
+    .05 + r() * .06,                       // 굵기
+    .02 + r() * .045,                      // 휘는 정도
+    .5 + r() * 1.1,                        // 휘는 횟수
+    r() * 6.283,                           // 시작 위상
+    r(),                                   // 색 시작(무지개 위치)
+    (.18 + r() * .3) * (r() < .5 ? -1 : 1),   // 일렁이는 속도
+    .55 + r() * .45,                       // 밝기
+  ]);
+  const p = { n, R, base: r() };
+  paramCache.set(seed, p); return p;
 }
-const small = document.createElement('canvas');
-export function drawCode(cv, seed, shift = 0, t = 0) {
-  const W = cv.width, H = cv.height, c = cv.getContext('2d');
-  const w = 64, full = Math.round(w * 16 / 9), h = Math.max(1, Math.round(w * H / W)), off = (full - h) * shift;
-  small.width = w; small.height = h;
-  const s = small.getContext('2d');
-  s.fillStyle = '#c48bff'; s.fillRect(0, 0, w, h);
-  for (const b of bandsOf(seed)) {
-    const y = b.y * full - off, ry = b.ry * full * 2.2, rx = b.rx * w;
-    if (y < -ry || y > h + ry) continue;
-    const k = (Math.sin(t * .16 + b.ph) + 1) / 2, col = t ? mix(PAL[b.c1], PAL[b.c2], k * .8) : PAL[b.c1];
-    const x0 = ((b.x + b.v * t) % 1 + 1) % 1 * w;
-    for (const x of [x0 - w - rx, x0, x0 + w + rx]) {   // 옆으로 흘러 나간 띠는 반대쪽에서 들어와요
-      s.save(); s.translate(x, y); s.scale(rx, ry);
-      const g = s.createRadialGradient(0, 0, 0, 0, 0, 1); g.addColorStop(0, col); g.addColorStop(.55, col); g.addColorStop(1, 'rgba(0,0,0,0)');
-      s.globalAlpha = b.a; s.fillStyle = g; s.beginPath(); s.arc(0, 0, 1, 0, 7); s.fill(); s.restore();
-    }
+const GLSL = `precision highp float;
+uniform vec2 uRes; uniform float uFull, uOff, uT, uBase; uniform int uN; uniform float uR[${MAXR * 8}];
+vec3 hue(float h) { return clamp(abs(mod(h * 6. + vec3(0., 4., 2.), 6.) - 3.) - 1., 0., 1.); }
+float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+void main() {
+  vec2 f = vec2(gl_FragCoord.x, uRes.y - gl_FragCoord.y);
+  float x = f.x / uRes.x, y = (f.y + uOff) / uFull;
+  vec3 top = mix(vec3(.16, .10, .26), vec3(.12, .14, .30), uBase), bot = mix(vec3(.02, .13, .09), vec3(.03, .07, .16), uBase);
+  vec3 c = vec3(0.);
+  for (int i = 0; i < ${MAXR}; i++) {
+    if (i >= uN) break;
+    float x0 = uR[i * 8], w = uR[i * 8 + 1], amp = uR[i * 8 + 2], fr = uR[i * 8 + 3], ph = uR[i * 8 + 4], h0 = uR[i * 8 + 5], sp = uR[i * 8 + 6], br = uR[i * 8 + 7];
+    float cx = x0 + amp * sin(y * fr * 6.283 + ph + uT * sp) + .015 * sin(y * 9. + ph * 2. + uT * sp * 1.7);
+    float d = (x - cx) / w;
+    float glow = exp(-d * d * 1.6), core = exp(-d * d * 14.);
+    float along = .55 + .45 * sin(y * 2.4 + ph * 3. - uT * .22 * sign(sp));   // 줄기를 따라 밝아졌다 흐려졌다
+    vec3 pr = hue(h0 + d * .18 + y * .35 - uT * .025);                     // 프리즘: 가장자리로 갈수록 색이 갈라지고, 색이 줄기를 따라 흘러요
+    c += (pr * glow * .85 + vec3(1.) * core * .55) * along * br;
   }
-  s.globalAlpha = 1;
-  c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high';
-  c.drawImage(small, 0, 0, W, H);
-  if (t) return;
-  // 멈춘 그림(저장 · 쓰기 화면)에만 옅은 그레인
-  const d = c.getImageData(0, 0, W, H), p = d.data, r = rng(seed ^ 7);
-  for (let i = 0; i < p.length; i += 4) { const g = (r() - .5) * 12; p[i] += g; p[i + 1] += g; p[i + 2] += g; }
-  c.putImageData(d, 0, 0);
+  vec3 col = mix(top, bot, smoothstep(.15, 1., y)) + (1. - exp(-c * 1.15));
+  // 필름 입자: 그림에 붙어 있어 반짝이지 않아요. 어두운 곳에서 더 보이고 하얀 빛 가운데는 거의 안 보여요. 입자 크기는 카드 폭에 맞춰서 저장 이미지도 같은 느낌
+  vec2 g = floor(f / max(1., uRes.x / 600.));
+  float n = (hash(g) + hash(g + 17.31) - 1.), lum = dot(col, vec3(.3, .55, .15));
+  col += n * .085 * (1. - smoothstep(.2, .95, lum));
+  gl_FragColor = vec4(col, 1.);
+}`;
+let G = null;
+function gl() {
+  if (G !== null) return G;
+  G = false;
+  try {
+    const cv = document.createElement('canvas'), g = cv.getContext('webgl', { premultipliedAlpha: false, antialias: false });
+    if (!g) return G;
+    const sh = (type, src) => { const o = g.createShader(type); g.shaderSource(o, src); g.compileShader(o); if (!g.getShaderParameter(o, g.COMPILE_STATUS)) throw new Error(g.getShaderInfoLog(o)); return o; };
+    const pr = g.createProgram();
+    g.attachShader(pr, sh(g.VERTEX_SHADER, 'attribute vec2 a; void main() { gl_Position = vec4(a, 0., 1.); }'));
+    g.attachShader(pr, sh(g.FRAGMENT_SHADER, GLSL)); g.linkProgram(pr); g.useProgram(pr);
+    const buf = g.createBuffer(); g.bindBuffer(g.ARRAY_BUFFER, buf); g.bufferData(g.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), g.STATIC_DRAW);
+    const a = g.getAttribLocation(pr, 'a'); g.enableVertexAttribArray(a); g.vertexAttribPointer(a, 2, g.FLOAT, false, 0, 0);
+    const u = {}; ['uRes', 'uFull', 'uOff', 'uT', 'uBase', 'uN', 'uR'].forEach(k => { u[k] = g.getUniformLocation(pr, k); });
+    G = { cv, g, u };
+  } catch (e) { console.warn('aurora gl', e); G = false; }
+  return G;
+}
+// WebGL이 없을 때: 같은 계산을 작게(폭 96) 해서 두 번에 나눠 키워요
+const hueJS = h => [0, 4, 2].map(o => Math.min(1, Math.max(0, Math.abs(((h * 6 + o) % 6 + 6) % 6 - 3) - 1)));
+function cpu(cv, P, off, full, t) {
+  const W = cv.width, H = cv.height, w = 96, h = Math.max(1, Math.round(w * H / W)), k = w / W;
+  const sm = document.createElement('canvas'); sm.width = w; sm.height = h;
+  const sc = sm.getContext('2d'), im = sc.createImageData(w, h), px = im.data;
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+    const x = i / w, y = (j / k + off) / full, top = [.16, .10, .26], bot = [.02, .13, .09], m = Math.min(1, Math.max(0, (y - .15) / .85)), mm = m * m * (3 - 2 * m);
+    const c = [0, 0, 0];
+    for (const [x0, wd, amp, fr, ph, h0, sp, br] of P.R) {
+      const cx = x0 + amp * Math.sin(y * fr * 6.283 + ph + t * sp) + .015 * Math.sin(y * 9 + ph * 2 + t * sp * 1.7), d = (x - cx) / wd;
+      const glow = Math.exp(-d * d * 1.6), core = Math.exp(-d * d * 14), along = .55 + .45 * Math.sin(y * 2.4 + ph * 3 - t * .22 * Math.sign(sp)), pr = hueJS(h0 + d * .18 + y * .35 - t * .025);
+      for (let q = 0; q < 3; q++) c[q] += (pr[q] * glow * .85 + core * .55) * along * br;
+    }
+    const o = (j * w + i) * 4;
+    for (let q = 0; q < 3; q++) px[o + q] = 255 * (top[q] + (bot[q] - top[q]) * mm + 1 - Math.exp(-c[q] * 1.15));
+    px[o + 3] = 255;
+  }
+  sc.putImageData(im, 0, 0);
+  const mid = document.createElement('canvas'); mid.width = w * 3; mid.height = h * 3;
+  const mc = mid.getContext('2d'); mc.imageSmoothingQuality = 'high'; mc.drawImage(sm, 0, 0, mid.width, mid.height);
+  const c = cv.getContext('2d'); c.imageSmoothingQuality = 'high'; c.drawImage(mid, 0, 0, W, H);
+}
+export function drawCode(cv, seed, shift = 0, t = 0) {
+  const W = cv.width, H = cv.height; if (!W || !H) return;
+  const P = auroraOf(seed), full = W * 16 / 9, off = Math.max(0, full - H) * shift;
+  const R = gl();
+  if (!R) return cpu(cv, P, off, full, t);
+  const { cv: gc, g, u } = R;
+  if (gc.width !== W || gc.height !== H) { gc.width = W; gc.height = H; }
+  g.viewport(0, 0, W, H);
+  const arr = new Float32Array(MAXR * 8); P.R.forEach((r, i) => arr.set(r, i * 8));
+  g.uniform2f(u.uRes, W, H); g.uniform1f(u.uFull, full); g.uniform1f(u.uOff, off); g.uniform1f(u.uT, t); g.uniform1f(u.uBase, P.base); g.uniform1i(u.uN, P.n); g.uniform1fv(u.uR, arr);
+  g.drawArrays(g.TRIANGLES, 0, 3);
+  const c = cv.getContext('2d'); c.drawImage(gc, 0, 0);
 }
