@@ -114,14 +114,27 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .fvb .cd.text .pg + .pg::before { content: ''; position: absolute; z-index: 3; top: 0; left: 7.4cqw; right: 7.4cqw; height: 1px; background: currentColor; opacity: .16; }   /* 장이 바뀌는 자리 (옅게) */
 .fi .ours { padding-left: 8px; display: flex; gap: 8px; align-items: center; font-size: 14px; font-weight: 800; }
 .fi .ours i { font-style: normal; background: #fff; color: var(--bg); font-size: 10px; padding: 2px 6px; border-radius: 6px; }
-/* 모션: 가운데 카드만. 코드 배경은 천천히 흐르고, 그림 문장은 처음 볼 때 그림이 톡톡 나온 뒤 몇 개만 잔잔히 */
-.fi.play canvas.bgc { animation: drift 18s ease-in-out infinite alternate; }
-@keyframes drift { from { transform: scale(1.14) translate(-3%, -3%); } to { transform: scale(1.14) translate(3%, 3%); } }
+/* 모션: 가운데 카드만. 아트 배경은 JS가 그림 자체를 흘려요(main.js). 그림 문장은 처음 볼 때 그림이 톡톡 나온 뒤, 그림마다 제 모양대로 잔잔히 */
 .fi.intro .cd.rebus .o svg { animation: pop .7s cubic-bezier(.2, 1.5, .4, 1) both; }
 .fi.intro .cd.rebus .o:nth-of-type(2n) svg { animation-delay: .15s; } .fi.intro .cd.rebus .o:nth-of-type(3n) svg { animation-delay: .3s; }
 @keyframes pop { from { transform: scale(.3); opacity: 0; } }
-.fi.play:not(.intro) .cd.rebus .o:nth-of-type(3n+1) svg { animation: bob 3s ease-in-out infinite; }
-@keyframes bob { 50% { transform: translateY(-.08em) rotate(-3deg); } }
+.cd.rebus .o svg * { transform-box: fill-box; transform-origin: center; }
+.fi.play:not(.intro) .cd.rebus .o[data-m=sway] svg > :is(path, g):last-child { animation: sway 3.2s ease-in-out infinite alternate; }
+.fi.play:not(.intro) .cd.rebus .o[data-m=dash] svg [stroke-dasharray] { animation: dash 2.4s linear infinite; }
+.fi.play:not(.intro) .cd.rebus .o[data-k="17"] svg [stroke-dasharray] { animation-name: dash2; }
+.fi.play:not(.intro) .cd.rebus .o[data-m=tw] svg :is(circle, rect, path):not(:only-child) { animation: tw 3.6s ease-in-out infinite; }
+.fi.play:not(.intro) .cd.rebus .o[data-m=tw] svg :nth-child(3n+2) { animation-delay: -1.2s; } .fi.play:not(.intro) .cd.rebus .o[data-m=tw] svg :nth-child(3n) { animation-delay: -2.4s; }
+.fi.play:not(.intro) .cd.rebus .o[data-m=spin] svg { animation: spin 16s linear infinite; }
+.fi.play:not(.intro) .cd.rebus .o[data-m=pulse] svg > :is(circle, path) { animation: pulse 3.6s ease-in-out infinite; }
+.fi.play:not(.intro) .cd.rebus .o[data-m=pulse] svg > :nth-child(2) { animation-delay: -1.2s; }
+.fi.play:not(.intro) .cd.rebus .o[data-m=rise] svg > :is(rect, path) { transform-origin: bottom; animation: rise 3.6s ease-in-out infinite; }
+.fi.play:not(.intro) .cd.rebus .o[data-m=rise] svg > :nth-child(2n) { animation-delay: -1.2s; } .fi.play:not(.intro) .cd.rebus .o[data-m=rise] svg > :nth-child(3n) { animation-delay: -2.4s; }
+@keyframes sway { from { transform: translateX(-3px); } to { transform: translateX(3px); } }
+@keyframes dash { to { stroke-dashoffset: -36; } } @keyframes dash2 { to { stroke-dashoffset: -64; } }
+@keyframes tw { 50% { opacity: .35; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse { 50% { transform: scale(.86); } }
+@keyframes rise { 50% { transform: scaleY(.72); } }
 body.paused .fi * { animation-play-state: paused !important; }
 @media (prefers-reduced-motion: reduce) { .fi * { animation: none !important; } .amb { transition: none; } }
 

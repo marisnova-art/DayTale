@@ -85,7 +85,7 @@ async function textPages(c, W, ratio) {
     const wrap = document.createElement('div'); wrap.className = 'cd text one'; wrap.appendChild(pg); h.appendChild(wrap);
     const shift = out.length > 1 ? i / (out.length - 1) : .5;
     pg.querySelectorAll('.bgi:not(.ph)').forEach(b => { if (b.style.backgroundImage) b.style.backgroundPosition = `50% ${Math.round(shift * 100)}%`; });
-    pg.querySelectorAll('canvas.bgc').forEach(cv => { cv.width = Math.round(W * ratio); cv.height = Math.round(H * ratio); drawCode(cv, +cv.dataset.seed, shift); });
+    pg.querySelectorAll('canvas.bgc').forEach(cv => { cv.width = Math.round(W * ratio); cv.height = Math.round(H * ratio); cv.dataset.shift = shift; drawCode(cv, +cv.dataset.seed, shift); });
     return wrap;
   });
   el.remove();
@@ -102,7 +102,7 @@ export async function cardImages(c) {
   const W = 1080, H = 1350;
   const { h, nodes } = await buildPages(c, W, 1);
   try {
-    const fontEmbedCSS = await fontCss(cardText(c) + (c.place || '') + '0123456789.·/ 일월화수목금토요', c.fmt === 'text' ? c.font || 'serif' : 'sans');
+    const fontEmbedCSS = await fontCss(cardText(c) + (c.place || '') + '0123456789.·/ 일월화수목금토요', c.fmt !== 'rebus' ? c.font || 'serif' : 'sans');
     const files = [];
     for (const [i, n] of nodes.entries()) {
       const url = await window.htmlToImage.toPng(n, { width: W, height: H, pixelRatio: 1, fontEmbedCSS, cacheBust: false });

@@ -54,6 +54,11 @@ const OBJ = [
   sv(170, `<path d="M4 40c10 0 14-24 26-24s8 24 0 24 2-24 14-24 8 24 0 24 2-24 14-24 8 24 0 24 2-24 14-24 8 24 0 24 2-24 14-24 8 24 0 24 12 0 22 0" fill="none" stroke="${V}" stroke-width="5" stroke-linecap="round"/>`),
 ];
 
+// 그림마다 제 모양대로 움직여요 (피드 가운데 카드만): sway 물결 · 선이 옆으로 살랑, dash 점선이 흘러감, tw 조각이 하나씩 반짝,
+// spin 제자리에서 천천히 돎, pulse 숨 쉬듯, rise 막대 · 계단이 차례로 차오름. 그림 자리는 그대로
+const MOTION = ['sway', 'tw', 'sway', 'tw', 'sway', 'dash', 'tw', 'tw', 'sway', 'pulse', 'tw', 'tw', 'sway', 'tw', 'tw',
+  'rise', 'sway', 'dash', 'spin', 'tw', 'sway', 'tw', 'tw', 'tw', 'spin', 'sway', 'spin', 'sway', 'rise'];
+
 // 예전 카드(*강조* 글)는 서식 글로 바꿔서 읽어요
 const toHtml = t => esc(t || '').replace(/\*(.+?)\*/g, '<b>$1</b>');
 const rebusHtmlOf = c => c.html ?? toHtml(c.text);
@@ -81,7 +86,7 @@ export function placeObjects(root, seed) {
   have.forEach(o => o.remove()); root.normalize();
   for (let i = want.length - 1; i >= 0; i--) {
     const [pos, k] = want[i], s = document.createElement('span');
-    s.className = 'o'; s.contentEditable = 'false'; s.dataset.k = k; s.innerHTML = OBJ[k];
+    s.className = 'o'; s.contentEditable = 'false'; s.dataset.k = k; s.dataset.m = MOTION[k] || 'tw'; s.innerHTML = OBJ[k];
     const r = rangeAt(root, pos, pos); r.collapse(true); r.insertNode(s);
   }
   return true;
@@ -100,6 +105,7 @@ function rebus(c, { edit = false } = {}) {
     ${edit ? `<div class="rb exm" style="${ta}">${FORMATS.rebus.sample.html}</div>` : ''}
     <div class="foot" style="font-size:${{ s: 3.5, m: 3.889, l: 4.4 }[c.size] || 3.889}cqw"><span>${foot}</span><span class="sig"></span></div>`;
   placeObjects(el.querySelector('.rb'), c.seed);
+  el.querySelectorAll('.o').forEach(o => { o.dataset.m = MOTION[o.dataset.k] || 'tw'; });   // 예전에 저장된 그림도 움직임 종류를 붙여요
   if (edit) placeObjects(el.querySelector('.exm'), FORMATS.rebus.sample.seed);
   el.classList.toggle('empty', empty);
   return el;
@@ -149,12 +155,12 @@ function bgLayer(c, page, pages) {
 
 function text(c, { edit = false } = {}) {
   const el = document.createElement('div');
-  el.className = 'cd text' + (edit ? ' edit' : '');
+  el.className = 'cd text' + (c.fmt === 'art' ? ' art' : '') + (edit ? ' edit' : '');
   const fo = fontOf(c.font);
   const pages = (c.pages?.length ? c.pages : ['']).map(h => soft(h, edit));
   const dp = c.datePos || 'top';   // 예전 카드는 위. 새 글카드는 없음에서 시작해요(blank)
   const info = esc([dateLine(c.date), (c.place || '').trim()].filter(Boolean).join(' · '));
-  const ex = FORMATS.text.sample.pages[0].replace(/<[^>]+>/g, '');
+  const ex = (FORMATS[c.fmt] || FORMATS.text).sample.pages[0].replace(/<[^>]+>/g, '');
   el.innerHTML = pages.map((h, i) => {
     const { html, ink } = bgLayer(c, i, pages.length);
     const date = `<div class="dt" style="font-size:${(({ s: 2.8, m: 3.4, l: 4.2 }[c.size] || 3.4) * fo.k).toFixed(3)}cqw;font-family:${fontCssOf(fo).replace(/"/g, '&quot;')}${fo.id === 'sans' ? '' : ';letter-spacing:.04em'}">${info}</div>`;   // 날짜 줄도 카드 글꼴 · 글자 크기를 따라가요 (글꼴마다 크기 보정)
@@ -244,12 +250,20 @@ export const FORMATS = {
     id: 'text', name: '글', info: '모든 길이 · 배경 고르기 · 무료', paid: false,
     tools: { photo: false, emo: true, page: true, shuf: 'code', style: true, font: true, bg: true, dp: true },
     sample: { pages: ['출근길에 버스를 한 대 놓쳤는데 덕분에 하늘을 오래 봤다. 오늘은 그걸로 됐다.'], bg: { id: 'g1', dim: 'dark' } },
+    render: text, fit: fitText, rich: true,
+  },
+  // 아트 포맷 #1: 앤드류 작품(번지는 색 띠)을 코드로. 그림이 작품이라 글꼴 · 배경은 정해 두고, 셔플로 새 그림
+  art: {
+    id: 'art', name: '번지는 빛', info: '아트 · 셔플할 때마다 새 그림 · 흐르는 빛', paid: true, rich: true,
+    tools: { photo: false, emo: false, page: true, shuf: true, style: true, font: false, bg: false, dp: true },
+    sample: { pages: ['창밖 불빛이 번져 보이는 밤. 오늘 하루도 천천히 흘러갔다.'], bg: { id: 'bands', dim: 'dark', seed: 11 } },
     render: text, fit: fitText,
   },
 };
-export const ORDER = ['rebus', 'text'];
+export const ORDER = ['rebus', 'art', 'text'];
 
 export function blank(fmt, date) {
+  if (fmt === 'art') return { fmt, date, place: '', pages: [''], bg: { id: 'bands', dim: 'dark', seed: newSeed() }, align: { h: 'l', v: 'm' }, datePos: 'none', font: 'sans', size: 'm' };
   return fmt === 'rebus'
     ? { fmt, date, place: '', html: '', seed: newSeed(), size: 'm', align: { h: 'l', v: 't' }, datePos: 'bottom' }
     : { fmt, date, place: '', pages: [''], bg: { id: 'g1', dim: 'dark', seed: newSeed() }, align: { h: 'l', v: 'm' }, datePos: 'none', font: 'serif', size: 'm' };

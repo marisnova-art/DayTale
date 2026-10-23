@@ -47,25 +47,45 @@ export function dimCss(b, mode) {
 function rng(s) { return () => { s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 const PAL = ['#3fd35a', '#ff4d6d', '#ff6ad5', '#8a5cff', '#e8d84a', '#ff8a3d', '#6ec8ff', '#c9a8ff', '#ff3fa0', '#4b6bff'];
 
-export function drawCode(cv, seed, shift = 0) {
-  const W = cv.width, H = cv.height, c = cv.getContext('2d'), r = rng(seed);
-  // 9:16 원본을 그린 뒤 카드(4:5)에 맞게 위아래를 잘라 써요. shift(0~1)로 장마다 보이는 부분이 옮겨가요
-  const full = Math.round(W * 16 / 9), off = Math.round((full - H) * shift);
-  const tmp = document.createElement('canvas'); tmp.width = Math.max(1, Math.round(W / 4)); tmp.height = Math.max(1, Math.round(full / 4));
-  const t = tmp.getContext('2d'), w = tmp.width, h = tmp.height;
-  t.fillStyle = '#c48bff'; t.fillRect(0, 0, w, h);
-  const n = 16 + Math.floor(r() * 6);
-  for (let i = 0; i < n; i++) {
-    const y = (i + r() * .8) / n * h, x = r() * w;
-    t.filter = `blur(${Math.max(1, Math.round(w * .05))}px)`; t.globalAlpha = .75 + r() * .25;
-    t.fillStyle = PAL[Math.floor(r() * PAL.length)];
-    t.beginPath(); t.ellipse(x, y, w * (.35 + r() * .75), h * (.025 + r() * .045), (r() - .5) * .08, 0, 7); t.fill();
+// 번지는 빛 (앤드류 작품 → 코드): 가로로 번지는 색 띠들. 띠마다 제 속도로 옆으로 흐르고 색이 옆 색으로 천천히 바뀌어요.
+// 작게(폭 64) 부드러운 띠를 그린 뒤 키워서 번지게 해요 (캔버스 블러 없이 → 아이폰에서도 같은 모양, 매 장면 그려도 가벼움)
+// t = 초(0이면 멈춘 그림). shift(0~1) = 9:16 원본에서 장마다 보이는 부분이 아래로 옮겨가요
+const mix = (a, b, k) => { const p = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)); const x = p(a), y = p(b); return `rgb(${x.map((v, i) => Math.round(v + (y[i] - v) * k)).join(',')})`; };
+const bandCache = new Map();
+function bandsOf(seed) {
+  if (bandCache.has(seed)) return bandCache.get(seed);
+  const r = rng(seed), n = 16 + Math.floor(r() * 6), out = [];
+  for (let i = 0; i < n; i++) out.push({
+    y: (i + r() * .8) / n, x: r(), rx: .35 + r() * .75, ry: .025 + r() * .045, a: .75 + r() * .25,
+    c1: Math.floor(r() * PAL.length), c2: Math.floor(r() * PAL.length), ph: r() * 6.28,
+    v: (r() < .5 ? -1 : 1) * (.006 + r() * .016),   // 1초에 폭의 0.6~2.2%
+  });
+  bandCache.set(seed, out); return out;
+}
+const small = document.createElement('canvas');
+export function drawCode(cv, seed, shift = 0, t = 0) {
+  const W = cv.width, H = cv.height, c = cv.getContext('2d');
+  const w = 64, full = Math.round(w * 16 / 9), h = Math.max(1, Math.round(w * H / W)), off = (full - h) * shift;
+  small.width = w; small.height = h;
+  const s = small.getContext('2d');
+  s.fillStyle = '#c48bff'; s.fillRect(0, 0, w, h);
+  for (const b of bandsOf(seed)) {
+    const y = b.y * full - off, ry = b.ry * full * 2.2, rx = b.rx * w;
+    if (y < -ry || y > h + ry) continue;
+    const k = (Math.sin(t * .16 + b.ph) + 1) / 2, col = t ? mix(PAL[b.c1], PAL[b.c2], k * .8) : PAL[b.c1];
+    const x0 = ((b.x + b.v * t) % 1 + 1) % 1 * w;
+    for (const x of [x0 - w - rx, x0, x0 + w + rx]) {   // 옆으로 흘러 나간 띠는 반대쪽에서 들어와요
+      s.save(); s.translate(x, y); s.scale(rx, ry);
+      const g = s.createRadialGradient(0, 0, 0, 0, 0, 1); g.addColorStop(0, col); g.addColorStop(.55, col); g.addColorStop(1, 'rgba(0,0,0,0)');
+      s.globalAlpha = b.a; s.fillStyle = g; s.beginPath(); s.arc(0, 0, 1, 0, 7); s.fill(); s.restore();
+    }
   }
-  t.globalAlpha = 1; t.filter = `blur(${Math.max(1, Math.round(w * .025))}px)`; t.drawImage(tmp, 0, 0); t.filter = 'none';
-  c.imageSmoothingQuality = 'high';
-  c.drawImage(tmp, 0, off / 4, w, H / 4, 0, 0, W, H);
-  // 옅은 그레인
-  const d = c.getImageData(0, 0, W, H), p = d.data;
+  s.globalAlpha = 1;
+  c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high';
+  c.drawImage(small, 0, 0, W, H);
+  if (t) return;
+  // 멈춘 그림(저장 · 쓰기 화면)에만 옅은 그레인
+  const d = c.getImageData(0, 0, W, H), p = d.data, r = rng(seed ^ 7);
   for (let i = 0; i < p.length; i += 4) { const g = (r() - .5) * 12; p[i] += g; p[i + 1] += g; p[i + 2] += g; }
   c.putImageData(d, 0, 0);
 }

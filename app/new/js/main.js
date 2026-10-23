@@ -94,7 +94,15 @@ function viewFeed(fresh, quiet) {
   addEventListener('scroll', onScroll, { passive: true });
   const onVis = () => document.body.classList.toggle('paused', document.hidden);
   document.addEventListener('visibilitychange', onVis);
-  cleanup = () => { removeEventListener('scroll', onScroll); document.removeEventListener('visibilitychange', onVis); closeFocus(true); };
+  // 아트 배경은 가운데 카드(와 크게 보기)만 그림 자체가 흘러요: 띠마다 제 속도로 옆으로, 색은 옆 색으로 천천히 (초당 30장)
+  let anim = 0, last = 0; const t0 = performance.now(), still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const tick = now => {
+    anim = requestAnimationFrame(tick);
+    if (document.hidden || now - last < 33) return; last = now;
+    $$('.fi.play canvas.bgc').forEach(cv => cv.width && drawCode(cv, +cv.dataset.seed, +cv.dataset.shift || 0, (now - t0) / 1000 + .01));
+  };
+  if (!still) anim = requestAnimationFrame(tick);
+  cleanup = () => { cancelAnimationFrame(anim); removeEventListener('scroll', onScroll); document.removeEventListener('visibilitychange', onVis); closeFocus(true); };
   setTimeout(pickMid, 80);
 
   // 방금 쓰거나 고친 카드: 그 자리로 가서 살짝 커지며 나와요. 고치다 뒤로 오면 그 자리로만 (주소는 홈으로 되돌려 둬요)
@@ -244,7 +252,7 @@ function viewWrite({ fmt, id }) {
   else if (fmt === 'draft') card = S.draft()?.card;
   else { card = blank(fmt, S.today()); if (card.fmt === 'text') { card.font = fontOf(S.pref('font', card.font)).id; card.datePos = S.pref('datePos', card.datePos); } }   // 새 카드는 마지막에 쓴 글꼴 · 날짜 자리로
   if (!card || !FORMATS[card.fmt]) return go('#/');
-  const f = FORMATS[card.fmt], rich = card.fmt === 'text';
+  const f = FORMATS[card.fmt], rich = !!f.rich;   // 장으로 쓰는 포맷(글 · 아트)
   if (!rich && card.html == null) { card.html = renderCard(card).querySelector('.rb').innerHTML; card.html = clean(card.html); delete card.text; }
   const st = { panel: null, tab: 'fmt', hist: [clone(card)], hi: 0, timer: 0, pg: 0, sel: null, composing: false };
   const root = document.documentElement;
