@@ -28,7 +28,9 @@ export const PAID = [
   { id: 'bands', code: 'bands', tone: '#a35cff', ink: '#fff', dim: ['center', '40,16,70', .55] },
 ];
 
-export const find = id => FREE.find(b => b.id === id) || PAID.find(b => b.id === id) || FREE[0];
+// 내 사진: 사진은 카드마다 달라서(ph) 여기엔 딤 · 글색만. 어둡게 덮고 흰 글
+export const PHOTO = { id: 'photo', name: '내 사진', photo: true, tone: '#555555', ink: '#fff', dim: ['all', '0,0,0', .34] };
+export const find = id => id === 'photo' ? PHOTO : FREE.find(b => b.id === id) || PAID.find(b => b.id === id) || FREE[0];
 export const isPaid = id => PAID.some(b => b.id === id);
 
 // 사용자가 고르는 건 '밝게 / 어둡게' 하나뿐이에요

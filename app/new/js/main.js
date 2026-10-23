@@ -7,6 +7,7 @@ import { cardImages, saveImages, buildPages } from './export.js';
 import { clean, offsetsOf, rangeAt } from './rich.js';
 import { FONTS, fontOf, fontCssOf } from './fonts.js';
 import { NAMES as STK, hydrate, preloadAll } from './stickers.js';
+import * as P from './photos.js';
 
 const app = document.getElementById('app');
 const $ = (s, r = document) => r.querySelector(s);
@@ -424,7 +425,7 @@ function viewWrite({ fmt, id }) {
       if (rich) el.addEventListener('scroll', () => { const i = pageAtScroll(); if (i !== st.pg) { st.pg = i; count(); paintRow2(); tools(); } }, { passive: true });   // 보는 장이 바뀌면 그 장의 배경 · 위치를 보여 줘요
     }
     el.classList.toggle('empty', !hasText());
-    fitCard(el, card); tools();
+    fitCard(el, card); tools(); panAxes();
     if (rich) scrollToPage(st.pg, false);
     count();
   }
@@ -511,7 +512,7 @@ function viewWrite({ fmt, id }) {
   function mode() {
     const w = typingNow() || st.panel === 'emo' || !!st.waitKb;
     if (wr.classList.contains('typ') !== w) { wr.classList.toggle('typ', w); applySize(); if (el && !rich) fitCard(el, card); requestAnimationFrame(() => { count(); keepCaret(); }); }
-    tools();
+    tools(); panAxes();
   }
 
   /* 도구 줄. 포맷이 안 쓰는 도구는 어둡게, 누르면 살짝 흔들림 */
@@ -610,15 +611,85 @@ function viewWrite({ fmt, id }) {
   function paintBgRow() {
     const pb = ps().bg, dim = pb.dim || 'dark', keep = $('.swp', row2)?.scrollLeft;
     row2.className = 'st2 g6 bgr';
-    row2.innerHTML = `<button class="k tl" data-x="photo" aria-label="내 사진">${ic('scene')}</button><button class="k tl" data-x="dim" aria-label="밝게 어둡게">${ic(dim === 'light' ? 'sun' : 'moon')}</button>
+    const isPh = pb.id === 'photo' && P.url(pb.ph);
+    row2.innerHTML = `<button class="k tl ${isPh ? 'phb sel' : ''}" data-x="photo" aria-label="내 사진" ${isPh ? `style="background-image:url(${P.url(pb.ph)})"` : ''}>${isPh ? '' : ic('scene')}</button><button class="k tl" data-x="dim" aria-label="밝게 어둡게">${ic(dim === 'light' ? 'sun' : 'moon')}</button>
       <div class="swp">${FREE.map(b => `<button class="k sw ${b.id === pb.id ? 'sel' : ''}" data-b="${b.id}" style="${b.css ? `background:${b.css}` : ''}">${b.code ? '<canvas width="88" height="88"></canvas>' : ''}</button>`).join('')}<span class="end"></span></div>`;
     $$('canvas', row2).forEach(cv => drawCode(cv, pb.seed || 1, .5));
     const sw = $('.swp', row2), sel = $('.sel', sw);
     if (keep != null) sw.scrollLeft = keep; else if (sel) sw.scrollLeft = Math.max(0, sel.offsetLeft - sw.offsetLeft);
     $$('button', row2).forEach(x => x.addEventListener('pointerdown', e => e.preventDefault()));
-    $('[data-x=photo]', row2).onclick = () => pop('내 사진 배경은 사진 연결 후');
+    $('[data-x=photo]', row2).onclick = pickPhoto;   // 폰 사진첩(PC는 파일 찾기)이 열려요. 사진 칸을 다시 누르면 다른 사진으로
     $('[data-x=dim]', row2).onclick = () => { flush(); pb.dim = dim === 'light' ? 'dark' : 'light'; syncFirst(); push(); draw(); paintBgRow(); pop(pb.dim === 'light' ? '밝게' : '어둡게', null, pgLab()); };
-    $$('[data-b]', row2).forEach(t => t.onclick = () => { flush(); pb.id = t.dataset.b; if (!pb.seed) pb.seed = newSeed(); syncFirst(); push(); draw(); paintBgRow(); const b = findBg(pb.id); pop(b.name, null, [pgLab(), KIND[b.kind]].filter(Boolean).join(' · ')); });
+    $$('[data-b]', row2).forEach(t => t.onclick = () => { flush(); clearPhoto(pb); pb.id = t.dataset.b; if (!pb.seed) pb.seed = newSeed(); syncFirst(); push(); draw(); paintBgRow(); const b = findBg(pb.id); pop(b.name, null, [pgLab(), KIND[b.kind]].filter(Boolean).join(' · ')); });
+  }
+
+  /* 내 사진 배경: 고른 사진이 보고 있는 장의 배경으로. 색 칸을 누르면 사진이 빠져요 */
+  const clearPhoto = b => { ['ph', 'x', 'y', 'w', 'h', 'tone'].forEach(k => delete b[k]); };
+  const picker = document.createElement('input'); picker.type = 'file'; picker.accept = 'image/*'; picker.hidden = true; wr.appendChild(picker);
+  function pickPhoto() { picker.value = ''; picker.click(); }
+  picker.onchange = async () => {
+    const file = picker.files?.[0]; if (!file) return;
+    try {
+      const p = await P.add(file), pb = ps().bg;
+      flush(); clearPhoto(pb); Object.assign(pb, { id: 'photo', ...p, x: 50, y: 50 }); if (!pb.dim) pb.dim = 'dark';
+      syncFirst(); push(); draw(); paintBgRow(); pop('내 사진', null, pgLab());
+    } catch (e) { console.error(e); pop('사진을 열지 못했어요'); }
+  };
+  // 스타일 보기에서 카드를 끌면 사진이 따라 움직여요 (보일 부분 고르기). 남는 쪽(가로 · 세로)으로만 움직이고,
+  // 가로로 남는 사진은 끝까지 간 뒤 더 밀면 옆 장으로 넘어가요
+  function photoPan() {
+    let d = null;
+    stage.addEventListener('pointerdown', e => {
+      if (typingNow() || st.panel || !el) return;
+      const pg = e.target.closest?.('.pg'); if (!pg || !el.contains(pg)) return;
+      const i = +pg.dataset.i, pb = ps(i).bg; if (pb.id !== 'photo' || !pb.w) return;
+      const W = pg.offsetWidth, H = pg.offsetHeight, k = Math.max(W / pb.w, H / pb.h);
+      d = { i, pb, pg, x0: e.clientX, y0: e.clientY, x: pb.x ?? 50, y: pb.y ?? 50, sx: pb.w * k - W, sy: pb.h * k - H, on: false, over: 0, id: e.pointerId, mouse: e.pointerType === 'mouse' };
+      if (d.mouse) e.preventDefault();   // PC: 누르자마자 글쓰기로 넘어가지 않게. 끌지 않고 떼면 그 자리에 커서를 놓아요
+    });
+    stage.addEventListener('pointermove', e => {
+      if (!d || e.pointerId !== d.id) return;
+      const dx = e.clientX - d.x0, dy = e.clientY - d.y0;
+      if (!d.on) {
+        if (Math.hypot(dx, dy) < 8) return;
+        const ax = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+        if ((ax === 'x' ? d.sx : d.sy) < 2) { d = null; return; }   // 그쪽으로 남는 게 없으면 원래대로(옆 장 넘기기 · 스크롤)
+        d.on = ax; stage.setPointerCapture?.(e.pointerId); pop('사진 위치');
+      }
+      e.preventDefault();
+      const clamp = v => Math.max(0, Math.min(100, v));
+      if (d.on === 'x') { const v = d.x - dx / d.sx * 100; d.pb.x = clamp(v); d.over = v < 0 ? -v / 100 * d.sx : v > 100 ? -(v - 100) / 100 * d.sx : 0; }
+      else d.pb.y = clamp(d.y - dy / d.sy * 100);
+      const bgi = $('.bgi.ph', d.pg); if (bgi) bgi.style.backgroundPosition = `${d.pb.x}% ${d.pb.y}%`;
+    }, { passive: false });
+    const end = e => {
+      if (!d) return; const x = d; d = null;
+      if (!x.on) {
+        if (x.mouse && e.type === 'pointerup') { const body = $('.body', x.pg), r = document.caretRangeFromPoint?.(e.clientX, e.clientY); body.focus(); if (r && body.contains(r.startContainer)) { const s = getSelection(); s.removeAllRanges(); s.addRange(r); } }
+        return;
+      }
+      const t = x.over > 60 ? x.i - 1 : x.over < -60 ? x.i + 1 : -1;
+      st.panJust = true; setTimeout(() => { st.panJust = false; }, 0);
+      syncFirst(); push();
+      if (t >= 0 && t < card.pages.length) { st.pg = t; scrollToPage(t); }
+    };
+    stage.addEventListener('pointerup', end); stage.addEventListener('pointercancel', end);
+    // 끄는 동안 카드가 옆으로 넘어가거나 글이 눌리지 않게
+    stage.addEventListener('click', e => { if (st.panJust) { e.preventDefault(); e.stopPropagation(); } }, true);
+  }
+  if (rich) photoPan();
+  // 손가락 끌기를 브라우저가 가져가지 않게: 사진이 세로로 남으면 세로 끌기는 우리 몫(가로는 장 넘기기), 가로로 남으면 그 반대
+  function panAxes() {
+    if (!rich || !el) return;
+    const style = !typingNow() && !st.panel;
+    $$('.pg', el).forEach(pg => {
+      const pb = ps(+pg.dataset.i).bg; let ta = '';
+      if (style && pb.id === 'photo' && pb.w) {
+        const W = pg.offsetWidth, H = pg.offsetHeight, k = Math.max(W / pb.w, H / pb.h);
+        ta = pb.h * k - H > 2 ? 'pan-x' : pb.w * k - W > 2 ? 'pan-y' : '';
+      }
+      pg.style.touchAction = ta;
+    });
   }
 
   /* 이모티콘 판: 키보드 자리에 같은 높이로 열려요. 도구 줄은 제자리 */
@@ -725,4 +796,6 @@ async function exportCard(c) {
   } catch (e) { busy.remove(); console.error(e); toast('저장하지 못했어요. 다시 해 주세요'); }
 }
 
-route();
+// 카드에 쓰인 내 사진을 먼저 읽어 두고 시작해요
+const usedPhotos = () => [...S.cards(), ...S.trash(), S.draft()?.card].filter(Boolean).flatMap(c => [c.bg, ...(c.pst || []).map(p => p.bg)]).filter(b => b?.ph).map(b => b.ph);
+P.boot(usedPhotos()).then(route);

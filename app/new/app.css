@@ -188,6 +188,8 @@ html:not(.kb-open) .wr.plc { bottom: var(--kbh, 40vh); }   /* 장소 줄: 아이
 .st2.bgr .sw { flex: 0 0 calc((100% - 24px) / 4); scroll-snap-align: start; overflow: hidden; background-size: cover; }
 .st2.bgr .sw canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 .st2.bgr .sw.sel::after { content: ''; position: absolute; inset: 3px; border-radius: 9px; box-shadow: inset 0 0 0 2px #fff, 0 0 0 1px rgba(0,0,0,.25); }
+.st2.bgr .phb { background-size: cover; background-position: center; overflow: hidden; }
+.st2.bgr .phb.sel::after { content: ''; position: absolute; inset: 3px; border-radius: 9px; box-shadow: inset 0 0 0 2px #fff, 0 0 0 1px rgba(0,0,0,.25); }
 .st2.bgr .end { flex: 0 0 calc((100% - 24px) / 4 * 2); }
 .st2.fnr .fst { grid-column: 2 / span 5; display: flex; gap: 8px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; -webkit-mask-image: linear-gradient(90deg, #000 78%, transparent); mask-image: linear-gradient(90deg, #000 78%, transparent); }
 .st2.fnr .fst::-webkit-scrollbar { display: none; }

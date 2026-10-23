@@ -1,5 +1,6 @@
 // 포맷 = 데이터 + 그리기. 카드는 가로 1080 기준으로 디자인하고 cqw 단위로 그려서, 화면 크기와 저장 이미지가 같은 모양이에요
 import { find as findBg, dimCss, drawCode } from './bg.js';
+import { url as photoUrl } from './photos.js';
 import { rangeAt } from './rich.js';
 import { hydrate } from './stickers.js';
 import { fontOf, fontCssOf, SIZES } from './fonts.js';
@@ -139,10 +140,11 @@ function bgLayer(c, page, pages) {
   const dim = layer;   // 그라데이션도 배경마다 정해 둔 딤을 깔아 글이 잘 읽혀요
   const shift = pages > 1 ? page / (pages - 1) : .5;
   let base = '';
-  if (b.img) base = `<div class="bgi" style="background-image:url(${b.img});background-position:50% ${Math.round(shift * 100)}%"></div>`;
+  if (b.photo) base = `<div class="bgi ph" style="background-image:url(${photoUrl(cb.ph)});background-position:${cb.x ?? 50}% ${cb.y ?? 50}%"></div>`;   // 내 사진: 고른 위치 그대로 (장으로 나뉘어도)
+  else if (b.img) base = `<div class="bgi" style="background-image:url(${b.img});background-position:50% ${Math.round(shift * 100)}%"></div>`;
   else if (b.code) base = `<canvas class="bgc" data-seed="${cb.seed || 1}" data-shift="${shift}"></canvas>`;
   else base = `<div class="bgi" style="background:${b.css}"></div>`;
-  return { html: base + `<div class="dimL" style="background:${dim}"></div>`, ink: (b.img || b.code || cb?.dim === 'light') ? ink : b.ink };
+  return { html: base + `<div class="dimL" style="background:${dim}"></div>`, ink: (b.img || b.code || b.photo || cb?.dim === 'light') ? ink : b.ink };
 }
 
 function text(c, { edit = false } = {}) {
@@ -250,5 +252,6 @@ export const cardText = c => c.fmt === 'rebus' ? plain(rebusHtmlOf(c)) : (c.page
 export function toneOf(c) {
   if (c.fmt === 'rebus') return V;
   const b = findBg(c.bg?.id);
+  if (b.photo) return c.bg.tone || b.tone;
   return b.tone || (b.css.match(/#[0-9a-fA-F]{6}/g) || ['#444444'])[b.css.startsWith('#') ? 0 : 1] || '#444444';
 }

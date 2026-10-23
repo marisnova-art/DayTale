@@ -84,7 +84,7 @@ async function textPages(c, W, ratio) {
   const nodes = out.map((pg, i) => {
     const wrap = document.createElement('div'); wrap.className = 'cd text one'; wrap.appendChild(pg); h.appendChild(wrap);
     const shift = out.length > 1 ? i / (out.length - 1) : .5;
-    pg.querySelectorAll('.bgi').forEach(b => { if (b.style.backgroundImage) b.style.backgroundPosition = `50% ${Math.round(shift * 100)}%`; });
+    pg.querySelectorAll('.bgi:not(.ph)').forEach(b => { if (b.style.backgroundImage) b.style.backgroundPosition = `50% ${Math.round(shift * 100)}%`; });
     pg.querySelectorAll('canvas.bgc').forEach(cv => { cv.width = Math.round(W * ratio); cv.height = Math.round(H * ratio); drawCode(cv, +cv.dataset.seed, shift); });
     return wrap;
   });
