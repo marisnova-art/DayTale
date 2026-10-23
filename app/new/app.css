@@ -302,3 +302,18 @@ html.pan .wr .panel { display: grid; }
 .done .cv .pgs.nosnap { scroll-snap-type: none; }
 .done .cv .pgs::-webkit-scrollbar { display: none; }
 .done .cv .pgs > * { flex: 0 0 100%; scroll-snap-align: start; border-radius: 0; }
+
+/* 영상 (포토 포맷): 커버 사진 위 캔버스에 재생. 팔레트 1칸 = 커버 + 큰 재생 표시, 5~6칸 = 타임라인, 7칸 = 커버 */
+.cd .bgv { position: absolute; left: 0; top: 0; width: 100%; aspect-ratio: 4 / 5; pointer-events: none; }
+.st2 .k .vb { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(0,0,0,.18); border-radius: inherit; }
+.st2 .k .vb svg { width: 50%; height: 50%; fill: #fff; filter: drop-shadow(0 1px 3px rgba(0,0,0,.55)); }
+.st2 .k.cv { background-size: cover; background-position: center; overflow: hidden; }
+.st2 .k.cv.sel::after { content: ''; position: absolute; inset: 3px; border-radius: 9px; box-shadow: inset 0 0 0 2px #fff, 0 0 0 1px rgba(0,0,0,.25); }
+.st2 .tlc { grid-column: span 2; position: relative; border-radius: 12px; overflow: hidden; background: var(--srf); touch-action: none; cursor: ew-resize; }
+.st2 .tlc .trk { position: absolute; top: 0; bottom: 0; background-color: #333338; background-repeat: no-repeat; }
+.st2 .tlc .sh2 { position: absolute; top: 0; bottom: 0; background: rgba(20,20,22,.62); pointer-events: none; }
+.st2 .tlc .sh2.l { left: 0; } .st2 .tlc .sh2.r { right: 0; }
+.st2 .tlc .wn { position: absolute; top: 0; bottom: 0; box-shadow: inset 0 0 0 2px #fff; border-radius: 9px; overflow: hidden; pointer-events: none; }
+.st2 .tlc .fl { position: absolute; left: 0; top: 0; bottom: 0; background: rgba(255,255,255,.3); }
+.st2 .tlc b { position: absolute; inset: 0; display: grid; place-items: center; font: 800 15px var(--ui); color: #fff; text-shadow: 0 0 4px rgba(0,0,0,.7); font-variant-numeric: tabular-nums; }
+.st2 .tlc.drag b, .st2 .tlc.drag .fl { opacity: 0; }

@@ -10,6 +10,7 @@ const P = {
   emo: '<circle cx="12" cy="12" r="9"/><path d="M8.5 14.5a4.5 4.5 0 0 0 7 0"/><path d="M9 9.5h.01M15 9.5h.01"/>',
   bg: '<path d="M12 3a9 9 0 1 0 0 18c1.4 0 2-1 1.6-2.1-.4-1.1.3-2.4 1.6-2.4H17a4 4 0 0 0 4-4c0-5.3-4-9.5-9-9.5z"/><path d="M7.5 11h.01M10 7h.01M15 7.5h.01"/>',   // 팔레트: 배경 · 꾸미기 옵션
   filter: '<circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/>',   // 반쪽 렌즈
+  cover: '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M12.00 6.60L13.47 10.38L17.52 10.61L14.38 13.17L15.41 17.09L12.00 14.90L8.59 17.09L9.62 13.17L6.48 10.61L10.53 10.38z" fill="currentColor" stroke-width="1"/>',   // 커버: 이 장면을 대표로
   grain: '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M7.5 8h.01M12 7h.01M16.5 8.5h.01M9 12h.01M14 11.5h.01M7 16h.01M11.5 16.5h.01M16 15.5h.01"/>',
   nograin: '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M7.5 8h.01M16.5 8.5h.01M9 12h.01M11.5 16.5h.01"/><path d="M4 20 20 4"/>',
   page: '<rect x="6" y="3" width="13" height="17" rx="2"/><path d="M3 7v12a2 2 0 0 0 2 2h9"/><path d="M12.5 8.5v6M9.5 11.5h6"/>',

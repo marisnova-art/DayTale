@@ -4,6 +4,7 @@ import { renderCard, fitCard, cardText, RB_M, lines, starts } from './formats.js
 import { drawCode } from './bg.js';
 import { ready } from './stickers.js';
 import { fontOf } from './fonts.js';
+import { prep } from './filters.js';
 
 const cache = new Map();
 const toData = async url => {
@@ -95,12 +96,14 @@ async function textPages(c, W, ratio) {
 // 카드를 4:5 장들로. 돌려받은 h(화면 밖 상자)는 다 쓰고 지워야 해요
 export async function buildPages(c, W, ratio = 1) {
   if (c.fmt !== 'rebus') { const d = document.createElement('div'); d.innerHTML = (c.pages || []).join(''); await ready(d); }   // 이모티콘 그림을 먼저 받아 둬요
+  await prep(c);   // 포토 포맷: 필터를 건 사진을 먼저 만들어 둬요 (그래야 저장 이미지에도 필터가)
   return c.fmt === 'rebus' ? rebusPages(c, W) : textPages(c, W, ratio);
 }
 
 export async function cardImages(c) {
   const W = 1080, H = 1350;
   const { h, nodes } = await buildPages(c, W, 1);
+  nodes.forEach(n => n.querySelectorAll('canvas.bgv').forEach(x => x.remove()));   // 영상인 장은 커버 사진으로 (영상 저장은 공통 저장 시트에서)
   try {
     const fontEmbedCSS = await fontCss(cardText(c) + (c.place || '') + '0123456789.·/ 일월화수목금토요', c.fmt !== 'rebus' ? c.font || 'serif' : 'sans');
     const files = [];

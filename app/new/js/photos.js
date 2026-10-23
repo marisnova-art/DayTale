@@ -34,18 +34,31 @@ export async function boot(used) {
 // 파일 → 줄인 JPEG. 돌려받는 것: { ph, w, h, tone }
 export async function add(file) {
   const img = await decode(file);
-  const k = Math.min(1, MAX / Math.max(img.width, img.height)), w = Math.round(img.width * k), h = Math.round(img.height * k);
-  const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
-  const c = cv.getContext('2d'); c.imageSmoothingQuality = 'high'; c.drawImage(img, 0, 0, w, h);
+  const out = await addCanvas(img, img.width, img.height);
   img.close?.();
+  return out;
+}
+// 그림(사진 · 영상 한 장면) → 줄인 JPEG로 저장. 영상 커버도 이걸로 만들어요
+export async function addCanvas(src, sw, sh) {
+  const k = Math.min(1, MAX / Math.max(sw, sh)), w = Math.round(sw * k), h = Math.round(sh * k);
+  const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+  const c = cv.getContext('2d'); c.imageSmoothingQuality = 'high'; c.drawImage(src, 0, 0, w, h);
   const blob = await new Promise(r => cv.toBlob(r, 'image/jpeg', .86));
   const t = document.createElement('canvas'); t.width = t.height = 1; const tc = t.getContext('2d'); tc.drawImage(cv, 0, 0, 1, 1);
   const [r, g, b] = tc.getImageData(0, 0, 1, 1).data, hex = '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
-  const ph = Date.now().toString(36).padStart(8, '0') + Math.random().toString(36).slice(2, 7);
+  const ph = newId();
   await tx('readwrite', s => s.put(blob, ph));
   urls.set(ph, URL.createObjectURL(blob));
   return { ph, w, h, tone: hex };
 }
+// 영상 파일은 그대로 이 기기에 둬요 (소리는 늘 끄고 재생). 돌려받는 것: 영상 번호
+export async function addFile(file) {
+  const id = newId();
+  await tx('readwrite', s => s.put(file, id));
+  urls.set(id, URL.createObjectURL(file));
+  return id;
+}
+const newId = () => Date.now().toString(36).padStart(8, '0') + Math.random().toString(36).slice(2, 7);
 async function decode(file) {
   try { return await createImageBitmap(file, { imageOrientation: 'from-image' }); } catch {}
   return new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = URL.createObjectURL(file); });

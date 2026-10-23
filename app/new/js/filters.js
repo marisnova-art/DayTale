@@ -93,12 +93,21 @@ function run(im, f, w, h, grain, crop) {
   const { i } = im, s = crop ? Math.max(w / i.naturalWidth, h / i.naturalHeight) : w / i.naturalWidth;
   sc.drawImage(i, (w - i.naturalWidth * s) / 2, (h - i.naturalHeight * s) / 2, i.naturalWidth * s, i.naturalHeight * s);
   if (!R || (f.m === 0 && !grain)) { out.getContext('2d').drawImage(src, 0, 0); return out; }
-  const { cv, g, u } = R; cv.width = w; cv.height = h; g.viewport(0, 0, w, h);
-  g.texImage2D(g.TEXTURE_2D, 0, g.RGBA, g.RGBA, g.UNSIGNED_BYTE, src);
-  g.uniform1i(u.T, 0); g.uniform2f(u.R, w, h); g.uniform1i(u.M, f.m); g.uniform1f(u.K, Math.max(1, Math.min(w, h) / 400)); g.uniform1f(u.LO, im.lo); g.uniform1f(u.HI, im.hi); g.uniform1f(u.GR, grain ? .07 : 0);
-  g.drawArrays(g.TRIANGLES, 0, 3);
-  out.getContext('2d').drawImage(cv, 0, 0); return out;
+  out.getContext('2d').drawImage(apply(src, f, grain, im.lo, im.hi), 0, 0); return out;
 }
+// 그려 둔 캔버스(src)에 필터를 걸어 그래픽 칩 캔버스를 돌려줘요 (영상은 장면마다 이걸 불러요). GL이 없으면 null
+export function apply(src, f, grain, lo = 0, hi = 1) {
+  const R = gl(); if (!R) return null;
+  const { cv, g, u } = R, w = src.width, h = src.height;
+  if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+  g.viewport(0, 0, w, h);
+  g.texImage2D(g.TEXTURE_2D, 0, g.RGBA, g.RGBA, g.UNSIGNED_BYTE, src);
+  g.uniform1i(u.T, 0); g.uniform2f(u.R, w, h); g.uniform1i(u.M, f.m); g.uniform1f(u.K, Math.max(1, Math.min(w, h) / 400)); g.uniform1f(u.LO, lo); g.uniform1f(u.HI, hi); g.uniform1f(u.GR, grain ? .07 : 0);
+  g.drawArrays(g.TRIANGLES, 0, 3);
+  return cv;
+}
+// 사진(영상은 커버)의 밝기 범위
+export const levels = async b => { try { const im = await image(srcOf(b)); return { lo: im.lo, hi: im.hi }; } catch { return { lo: 0, hi: 1 }; } };
 
 // 배경에 쓸 주소. 아직 없으면 원본 주소를 주고 뒤에서 만들어, 다 되면 그 사진을 쓰는 칸을 모두 바꿔요
 const done = new Map(), work = new Map();

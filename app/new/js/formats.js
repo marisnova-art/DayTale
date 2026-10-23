@@ -155,6 +155,7 @@ function bgLayer(c, page, pages) {
     const fid = c.fmt === 'photo' ? c.filter : null, u = bgUrl(cb, fid);
     base = u ? `<div class="bgi ph" data-fk="${keyOf(cb, fid)}" style="background-image:url(${u});background-position:${cb.x ?? 50}% ${cb.y ?? 50}%"></div>`
       : `<div class="bgi ph none"></div>${c.fmt === 'photo' ? `<button class="phadd" type="button" aria-label="사진 고르기">${PH_ICON}</button>` : ''}`;   // 아직 사진이 없는 장
+    if (u && cb.vd) base += '<canvas class="bgv"></canvas>';   // 영상: 커버 위에서 재생 (재생 중인 카드만 그려요)
   }
   else if (b.img) base = `<div class="bgi" style="background-image:url(${b.img});background-position:50% ${Math.round(shift * 100)}%"></div>`;
   else if (b.code) base = `<canvas class="bgc" data-seed="${cb.seed || 1}" data-shift="${shift}"${cb.grain === false ? ' data-gr="0"' : ''}></canvas>`;
@@ -269,9 +270,9 @@ export const FORMATS = {
     sample: { pages: ['창밖 불빛이 번져 보이는 밤. 오늘 하루도 천천히 흘러갔다.'], bg: { id: 'bands', dim: 'dark', seed: 11 } },
     render: text, fit: fitText,
   },
-  // 포토 포맷 #1: 내 사진이 카드를 가득 채우고 글은 그 위에. 틀 없이 필터가 핵심 (영상은 다음 단계)
+  // 포토 포맷 #1: 내 사진 · 영상이 카드를 가득 채우고 글은 그 위에. 틀 없이 필터가 핵심 (영상은 소리 없이 10초)
   photo: {
-    id: 'photo', name: '포토', info: '내 사진 · 필터 20개 · 장마다 다른 사진', paid: true, rich: true,
+    id: 'photo', name: '포토', info: '내 사진 · 영상 · 필터 20개', paid: true, rich: true,
     tools: { photo: true, emo: true, page: true, shuf: false, filter: true, style: true, font: true, bg: 'photo', dp: true },
     sample: { pages: ['퇴근 전에 옥상에 올라가 구름이 노을빛으로 물드는 걸 끝까지 봤다.'], bg: { id: 'photo', src: 'bg/photo-sample.webp', w: 1080, h: 1350, dim: 'dark', tone: '#5b7fae' }, filter: 'none', align: { h: 'l', v: 't' } },
     render: text, fit: fitText,

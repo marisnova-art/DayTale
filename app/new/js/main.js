@@ -1,7 +1,7 @@
 // 갖고 싶은 하루 · 모바일 1차: 피드 → 포맷 고르기 → 쓰기 → 완료·저장
 import { ic } from './icons.js';
 import * as S from './store.js';
-import { FORMATS, ORDER, blank, sampleCard, renderCard, fitCard, cardText, newSeed, placeObjects, dateChip, weekday, toneOf } from './formats.js';
+import { FORMATS, ORDER, blank, sampleCard, renderCard, fitCard, cardText, newSeed, placeObjects, dateChip, weekday, toneOf, pageBg } from './formats.js';
 import { FREE, KIND, find as findBg, drawCode } from './bg.js';
 import { cardImages, saveImages, buildPages } from './export.js';
 import { clean, offsetsOf, rangeAt } from './rich.js';
@@ -9,6 +9,7 @@ import { FONTS, fontOf, fontCssOf } from './fonts.js';
 import { NAMES as STK, hydrate, preloadAll } from './stickers.js';
 import * as P from './photos.js';
 import { FILTERS, filterOf, thumb as fthumb } from './filters.js';
+import * as V from './video.js';
 
 const app = document.getElementById('app');
 const $ = (s, r = document) => r.querySelector(s);
@@ -96,14 +97,24 @@ function viewFeed(fresh, quiet) {
   const onVis = () => document.body.classList.toggle('paused', document.hidden);
   document.addEventListener('visibilitychange', onVis);
   // 아트 배경은 가운데 카드만 그림 자체가 흘러요: 빛줄기가 천천히 일렁이고 색이 줄기를 따라 흘러요 (그래픽 칩으로 화면 속도대로)
-  let anim = 0; const t0 = performance.now(), still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let anim = 0, feedTimer = 0; const t0 = performance.now(), still = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const tick = now => {
     anim = requestAnimationFrame(tick);
     if (document.hidden) return;
     $$('.fi.play canvas.bgc').forEach(cv => cv.width && drawCode(cv, +cv.dataset.seed, +cv.dataset.shift || 0, (now - t0) / 1000 + .01));
+    feedVideo();
   };
-  if (!still) anim = requestAnimationFrame(tick);
-  cleanup = () => { cancelAnimationFrame(anim); removeEventListener('scroll', onScroll); document.removeEventListener('visibilitychange', onVis); closeFocus(true); };
+  // 영상도 가운데 카드만 (여러 장이면 보이는 장). 크게 보기 중에는 그 카드. 나머지는 커버 장면
+  const feedVideo = () => {
+    let cv = null, c = null;
+    if (focus) { cv = $('canvas.bgv', focus.box); c = focus.c; }
+    else if (cur && !document.hidden) { c = cur._card; cv = $$('canvas.bgv', cur).find(x => { const r = x.getBoundingClientRect(); return r.width && r.left > -r.width / 2 && r.left < innerWidth / 2; }); }
+    if (!cv || !c) return V.playing() && V.stop();
+    const pg = cv.closest('.pg'), b = pageBg(c, +(pg?.dataset.i || 0));
+    if (b?.vd) V.start(cv, b, c.filter);
+  };
+  if (!still) anim = requestAnimationFrame(tick); else feedTimer = setInterval(feedVideo, 300);
+  cleanup = () => { cancelAnimationFrame(anim); clearInterval(feedTimer); V.stop(); removeEventListener('scroll', onScroll); document.removeEventListener('visibilitychange', onVis); closeFocus(true); };
   setTimeout(pickMid, 80);
 
   // 방금 쓰거나 고친 카드: 그 자리로 가서 살짝 커지며 나와요. 고치다 뒤로 오면 그 자리로만 (주소는 홈으로 되돌려 둬요)
@@ -152,7 +163,7 @@ function pageInto(view, c, onCount) {
 // 카드 한 장. 긴 카드는 4:5 장들을 옆으로 밀어 봐요. 누르면 그 카드 전체를 화면 가득(다시 누르면 피드로).
 // 아래: 책갈피 · 저장 · 쓰기 · 삭제 · 장 수(여러 장일 때) / 글 첫머리 한 줄 / 언제 썼는지
 function feedItem(c) {
-  const it = document.createElement('article'); it.className = 'fi'; it.dataset.tone = toneOf(c); if (c.id) it.dataset.id = c.id;
+  const it = document.createElement('article'); it.className = 'fi'; it.dataset.tone = toneOf(c); if (c.id) it.dataset.id = c.id; it._card = c;
   const f = FORMATS[c.fmt];
   it.innerHTML = `${c.sample ? '' : `<p class="when">${ago(c)}</p>`}<div class="fx"><div class="view"></div></div>
     <div class="row">${c.sample
@@ -206,7 +217,7 @@ function openFocus(it, c) {
   ov.addEventListener('wheel', e => { if (sc.scrollHeight <= sc.clientHeight) e.preventDefault(); }, { passive: false });
   requestAnimationFrame(() => requestAnimationFrame(() => { box.style.transition = ''; ov.classList.add('in'); box.style.transform = ''; }));
   ov.addEventListener('click', () => closeFocus());
-  focus = { ov, box, view, from, y: scrollY };
+  focus = { ov, box, view, from, y: scrollY, c };
 }
 function closeFocus(now) {
   if (!focus || focus.closing) return;
@@ -319,7 +330,7 @@ function viewWrite({ fmt, id }) {
     gone = true; cancelAnimationFrame(raf);
     vv?.removeEventListener('resize', soonKb); vv?.removeEventListener('scroll', soonKb);
     removeEventListener('focusout', remeasure); removeEventListener('resize', onResize);
-    clearTimeout(st.timer); clearTimeout(st.waitT); clearTimeout(st.popT);
+    clearTimeout(st.timer); clearTimeout(st.waitT); clearTimeout(st.popT); V.stop();
     root.classList.remove('wmode', 'kb-open', 'pan');
   };
 
@@ -432,12 +443,17 @@ function viewWrite({ fmt, id }) {
       });
     } else {
       const nel = renderCard(card, { edit: true }); el ? el.replaceWith(nel) : stage.appendChild(nel); el = nel; shape = s;
-      if (rich) el.addEventListener('scroll', () => { const i = pageAtScroll(); if (i !== st.pg) { st.pg = i; count(); paintRow2(); tools(); } }, { passive: true });   // 보는 장이 바뀌면 그 장의 배경 · 위치를 보여 줘요
+      if (rich) el.addEventListener('scroll', () => { const i = pageAtScroll(); if (i !== st.pg) { st.pg = i; count(); paintRow2(); tools(); syncVideo(); } }, { passive: true });   // 보는 장이 바뀌면 그 장의 배경 · 위치를 보여 줘요
     }
     el.classList.toggle('empty', !hasText());
     fitCard(el, card); tools(); panAxes();
     if (rich) scrollToPage(st.pg, false);
-    count();
+    count(); syncVideo();
+  }
+  // 영상인 장을 보고 있으면 그 장만 재생 (정지 상태는 기억해요). 다른 장으로 가면 멈추고 커버
+  function syncVideo() {
+    const pb = rich && el ? ps(st.pg).bg : null, cv = pb?.vd && $(`.pg[data-i="${st.pg}"] canvas.bgv`, el);
+    if (cv) V.start(cv, pb, card.filter, { paused: !!st.vpause, onTick: tickTL }); else V.stop();
   }
   const step = () => el.querySelector('.pg') ? el.querySelector('.pg').offsetWidth + 12 : 1;
   const pageAtScroll = () => Math.max(0, Math.min(card.pages.length - 1, Math.round(el.scrollLeft / step())));
@@ -649,14 +665,65 @@ function viewWrite({ fmt, id }) {
     $$('[data-fl]', row2).forEach(x => x.onclick = () => pick(filterOf(x.dataset.fl), true));
   }
   // 포토 포맷 배경 줄(팔레트): 이 장 사진 바꾸기 · 밝게/어둡게 · 노이즈 (노이즈는 기본 꺼짐: 사진 그대로가 먼저)
+  // 영상인 장은 4칸부터: 재생/정지 · 타임라인(2칸) · 커버. 사진인 장에서는 이 칸들이 없어요
+  const PLAY = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5z" fill="currentColor" stroke="none"/></svg>';
+  const PAUSE = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h3.2v14H7zM13.8 5H17v14h-3.2z" fill="currentColor" stroke="none"/></svg>';
   function paintPhotoRow() {
-    const pb = ps().bg, dim = pb.dim || 'dark', on = !!pb.grain, has = !!P.url(pb.ph);
+    const pb = ps().bg, dim = pb.dim || 'dark', on = !!pb.grain, has = !!P.url(pb.ph), vid = has && !!pb.vd;
     row2.className = 'st2 g6';
-    row2.innerHTML = `<button class="k tl ${has ? 'phb sel' : ''}" data-x="photo" aria-label="사진" ${has ? `style="background-image:url(${P.url(pb.ph)})"` : ''}>${has ? '' : ic('scene')}</button><button class="k tl" data-x="dim" aria-label="밝게 어둡게">${ic(dim === 'light' ? 'sun' : 'moon')}</button><button class="k" data-x="grain" aria-label="노이즈">${ic(on ? 'grain' : 'nograin')}</button><span></span><span></span><span></span><span></span>`;
+    row2.innerHTML = `<button class="k tl ${has ? 'phb sel' : ''}" data-x="photo" aria-label="사진 · 영상" ${has ? `style="background-image:url(${P.url(pb.ph)})"` : ''}>${has ? (vid ? '<span class="vb"><svg viewBox="0 0 10 10"><path d="M2.6 1.3l6 3.7-6 3.7z"/></svg></span>' : '') : ic('scene')}</button><button class="k tl" data-x="dim" aria-label="밝게 어둡게">${ic(dim === 'light' ? 'sun' : 'moon')}</button><button class="k" data-x="grain" aria-label="노이즈">${ic(on ? 'grain' : 'nograin')}</button>${vid
+      ? `<button class="k" data-x="play" aria-label="재생 정지">${st.vpause ? PLAY : PAUSE}</button><div class="tlc" aria-label="구간"><div class="trk"></div><div class="sh2 l"></div><div class="sh2 r"></div><div class="wn"><div class="fl"></div><b></b></div></div>${pb.cvt != null ? `<button class="k cv sel" data-x="cover" aria-label="커버" style="background-image:url(${P.url(pb.ph)})"></button>` : `<button class="k" data-x="cover" aria-label="커버">${ic('cover')}</button>`}`
+      : '<span></span><span></span><span></span><span></span>'}`;
     $$('button', row2).forEach(x => x.addEventListener('pointerdown', e => e.preventDefault()));
     $('[data-x=photo]', row2).onclick = pickPhoto;
     $('[data-x=dim]', row2).onclick = () => { flush(); pb.dim = dim === 'light' ? 'dark' : 'light'; syncFirst(); push(); draw(); paintPhotoRow(); pop(pb.dim === 'light' ? '밝게' : '어둡게', null, pgLab()); };
     $('[data-x=grain]', row2).onclick = () => { flush(); if (on) delete pb.grain; else pb.grain = true; syncFirst(); push(); draw(); paintPhotoRow(); pop(on ? '노이즈 끔' : '노이즈 켬', null, pgLab()); };
+    if (!vid) return;
+    $('[data-x=play]', row2).onclick = () => { st.vpause = !st.vpause; V.setPaused(st.vpause); $('[data-x=play]', row2).innerHTML = st.vpause ? PLAY : PAUSE; };
+    // 커버: 지금 보이는 장면이 커버로 (재생 중이면 멈추고 그 장면). 피드에서 멈춰 있을 때 · 사진 저장에 쓰여요
+    $('[data-x=cover]', row2).onclick = async () => {
+      st.vpause = true; V.setPaused(true);
+      const t = V.playing()?.v.currentTime;
+      try {
+        const c = await V.capture(pb); flush(); Object.assign(pb, { ph: c.ph, tone: c.tone }); pb.cvt = t ?? pb.t0 ?? 0;
+        syncFirst(); push(); draw(); paintPhotoRow(); pop('커버', null, pgLab());
+      } catch (e) { console.error(e); }
+    };
+    timeline(pb);
+  }
+  // 타임라인 2칸: 가운데 고정 창(= 쓰는 10초) 아래로 영상 전체 띠가 휠처럼 지나가요. 창 안은 재생하며 채워지고 초 숫자만.
+  // 띠를 미는 동안은 멈추고 카드에 그 장면, 손을 떼면 창 안 구간이 처음부터 다시 돌아요. 10초 이하 영상은 창에 꼭 맞고 움직이지 않아요
+  function timeline(pb) {
+    const tl = $('.tlc', row2), trk = $('.trk', tl), Wt = tl.clientWidth, H = tl.clientHeight;
+    const len = V.lenOf(pb), dur = Math.max(len, pb.dur || len), ww = Wt * .44, wl = (Wt - ww) / 2, pps = ww / len, tw = dur * pps;
+    const place = t => { trk.style.left = (wl - t * pps) + 'px'; };
+    $('.wn', tl).style.cssText = `left:${wl}px;width:${ww}px`;
+    $('.sh2.l', tl).style.width = wl + 'px'; $('.sh2.r', tl).style.width = wl + 'px';
+    trk.style.width = tw + 'px'; place(pb.t0 || 0);
+    const fw = Math.max(8, Math.round(H * .56)), n = Math.max(1, Math.min(48, Math.ceil(tw / fw))), k = Math.min(2, devicePixelRatio || 1);
+    V.strip(pb, n, Math.round(fw * k), Math.round(H * k)).then(u => { if (u && trk.isConnected) { trk.style.backgroundImage = `url(${u})`; trk.style.backgroundSize = `${tw}px ${H}px`; } });
+    tickTL(0, len);
+    if (dur <= len + .05) return;
+    let d = null;
+    tl.addEventListener('pointerdown', e => { e.preventDefault(); d = { x: e.clientX, t: pb.t0 || 0, on: false, id: e.pointerId }; tl.setPointerCapture?.(e.pointerId); });
+    tl.addEventListener('pointermove', e => {
+      if (!d || e.pointerId !== d.id) return;
+      const dx = e.clientX - d.x; if (!d.on && Math.abs(dx) < 4) return;
+      if (!d.on) { d.on = true; tl.classList.add('drag'); }
+      d.now = Math.max(0, Math.min(dur - len, d.t - dx / pps)); place(d.now); V.scrub(d.now);
+    });
+    const end = async () => {
+      if (!d) return; const x = d; d = null; tl.classList.remove('drag');
+      if (!x.on) return;
+      flush(); pb.t0 = Math.round(x.now * 100) / 100; st.vpause = false;
+      if (pb.cvt == null) { try { const c = await V.capture(pb, pb.t0); Object.assign(pb, { ph: c.ph, tone: c.tone }); } catch {} }   // 커버를 안 골랐으면 새 구간의 첫 장면 (멈춘 채 그 자리라 바로 돼요)
+      V.scrubEnd(true); syncFirst(); push(); draw(); paintPhotoRow();
+    };
+    tl.addEventListener('pointerup', end); tl.addEventListener('pointercancel', end);
+  }
+  function tickTL(t, len) {
+    const wn = $('.st2 .tlc .wn'); if (!wn || $('.st2 .tlc.drag')) return;
+    $('.fl', wn).style.width = (t / len * 100).toFixed(1) + '%'; const n = String(Math.floor(t)); if ($('b', wn).textContent !== n) $('b', wn).textContent = n;
   }
   // 아트 포맷 배경 줄: 그림은 셔플로 바꾸고, 여기서는 그림을 꾸미는 옵션만 (지금은 노이즈 하나, 옵션이 생기면 옆 칸에)
   function paintArtRow() {
@@ -682,16 +749,19 @@ function viewWrite({ fmt, id }) {
   }
 
   /* 내 사진 배경: 고른 사진이 보고 있는 장의 배경으로. 색 칸을 누르면 사진이 빠져요 */
-  const clearPhoto = b => { ['ph', 'x', 'y', 'w', 'h', 'tone'].forEach(k => delete b[k]); };
-  const picker = document.createElement('input'); picker.type = 'file'; picker.accept = 'image/*'; picker.hidden = true; wr.appendChild(picker);
+  const clearPhoto = b => { ['ph', 'x', 'y', 'w', 'h', 'tone', 'vd', 'dur', 't0', 'cvt'].forEach(k => delete b[k]); };
+  const picker = document.createElement('input'); picker.type = 'file'; picker.accept = f.tools.bg === 'photo' ? 'image/*,video/*' : 'image/*'; picker.hidden = true; wr.appendChild(picker);   // 포토 포맷은 영상도
   function pickPhoto() { picker.value = ''; picker.click(); }
   picker.onchange = async () => {
     const file = picker.files?.[0]; if (!file) return;
     try {
-      const p = await P.add(file), pb = ps().bg;
+      const vid = /^video\//.test(file.type) && f.tools.bg === 'photo';
+      if (vid) pop('영상 읽는 중');
+      const p = vid ? await V.add(file) : await P.add(file), pb = ps().bg;
       flush(); clearPhoto(pb); Object.assign(pb, { id: 'photo', ...p, x: 50, y: 50 }); if (!pb.dim) pb.dim = 'dark';
-      syncFirst(); push(); draw(); paintRow2(); pop('내 사진', null, pgLab());
-    } catch (e) { console.error(e); pop('사진을 열지 못했어요'); }
+      if (vid) st.vpause = false;
+      syncFirst(); push(); draw(); paintRow2(); pop(vid ? '내 영상' : '내 사진', null, pgLab());
+    } catch (e) { console.error(e); pop(/^video/.test(file.type) ? '영상을 열지 못했어요' : '사진을 열지 못했어요'); }
   };
   // 스타일 보기에서 카드를 끌면 사진이 따라 움직여요 (보일 부분 고르기). 남는 쪽(가로 · 세로)으로만 움직이고,
   // 가로로 남는 사진은 끝까지 간 뒤 더 밀면 옆 장으로 넘어가요
@@ -855,5 +925,5 @@ async function exportCard(c) {
 }
 
 // 카드에 쓰인 내 사진을 먼저 읽어 두고 시작해요
-const usedPhotos = () => [...S.cards(), ...S.trash(), S.draft()?.card].filter(Boolean).flatMap(c => [c.bg, ...(c.pst || []).map(p => p.bg)]).filter(b => b?.ph).map(b => b.ph);
+const usedPhotos = () => [...S.cards(), ...S.trash(), S.draft()?.card].filter(Boolean).flatMap(c => [c.bg, ...(c.pst || []).map(p => p.bg)]).flatMap(b => [b?.ph, b?.vd]).filter(Boolean);   // 영상 파일도
 P.boot(usedPhotos()).then(route);
