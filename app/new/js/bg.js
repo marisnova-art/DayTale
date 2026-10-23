@@ -70,9 +70,10 @@ function auroraOf(seed) {
   paramCache.set(seed, p); return p;
 }
 const GLSL = `precision highp float;
-uniform vec2 uRes; uniform float uFull, uOff, uT, uBase; uniform int uN; uniform float uR[${MAXR * 8}];
+uniform vec2 uRes; uniform float uFull, uOff, uT, uBase, uGrain; uniform int uN; uniform float uR[${MAXR * 8}];
 vec3 hue(float h) { return clamp(abs(mod(h * 6. + vec3(0., 4., 2.), 6.) - 3.) - 1., 0., 1.); }
-float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+// 정밀도가 낮은 휴대폰 칩에서도 고르게: sin 없이 좌표를 섞는 해시 (Dave Hoskins hash12)
+float grain(vec2 p) { vec3 q = fract(vec3(p.xyx) * .1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }
 void main() {
   vec2 f = vec2(gl_FragCoord.x, uRes.y - gl_FragCoord.y);
   float x = f.x / uRes.x, y = (f.y + uOff) / uFull;
@@ -89,10 +90,11 @@ void main() {
     c += (pr * glow * .85 + vec3(1.) * core * .55) * along * br;
   }
   vec3 col = mix(top, bot, smoothstep(.15, 1., y)) + (1. - exp(-c * 1.15));
-  // 필름 입자: 그림에 붙어 있어 반짝이지 않아요. 어두운 곳에서 더 보이고 하얀 빛 가운데는 거의 안 보여요. 입자 크기는 카드 폭에 맞춰서 저장 이미지도 같은 느낌
-  vec2 g = floor(f / max(1., uRes.x / 600.));
-  float n = (hash(g) + hash(g + 17.31) - 1.), lum = dot(col, vec3(.3, .55, .15));
-  col += n * .085 * (1. - smoothstep(.2, .95, lum));
+  // 필름 그레인: 화면 한 픽셀에 점 하나, 밝기만 흔들어요. 정수 해시라 기기마다 무늬가 생기지 않아요. 어두운 곳에서 조금 더
+  if (uGrain > 0.) {
+    float n = (grain(f) + grain(f + vec2(37., 91.)) - 1.), lum = dot(col, vec3(.3, .55, .15));
+    col += n * uGrain * (1. - .6 * smoothstep(.15, .9, lum));
+  }
   gl_FragColor = vec4(col, 1.);
 }`;
 let G = null;
@@ -108,7 +110,7 @@ function gl() {
     g.attachShader(pr, sh(g.FRAGMENT_SHADER, GLSL)); g.linkProgram(pr); g.useProgram(pr);
     const buf = g.createBuffer(); g.bindBuffer(g.ARRAY_BUFFER, buf); g.bufferData(g.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), g.STATIC_DRAW);
     const a = g.getAttribLocation(pr, 'a'); g.enableVertexAttribArray(a); g.vertexAttribPointer(a, 2, g.FLOAT, false, 0, 0);
-    const u = {}; ['uRes', 'uFull', 'uOff', 'uT', 'uBase', 'uN', 'uR'].forEach(k => { u[k] = g.getUniformLocation(pr, k); });
+    const u = {}; ['uRes', 'uFull', 'uOff', 'uT', 'uBase', 'uN', 'uR', 'uGrain'].forEach(k => { u[k] = g.getUniformLocation(pr, k); });
     G = { cv, g, u };
   } catch (e) { console.warn('aurora gl', e); G = false; }
   return G;
@@ -136,7 +138,7 @@ function cpu(cv, P, off, full, t) {
   const mc = mid.getContext('2d'); mc.imageSmoothingQuality = 'high'; mc.drawImage(sm, 0, 0, mid.width, mid.height);
   const c = cv.getContext('2d'); c.imageSmoothingQuality = 'high'; c.drawImage(mid, 0, 0, W, H);
 }
-export function drawCode(cv, seed, shift = 0, t = 0) {
+export function drawCode(cv, seed, shift = 0, t = 0, grainAmt = cv.dataset.gr === '0' ? .01 : .05) {   // 노이즈 끄면 맑게(.01은 색 줄 생김만 막는 정도)
   const W = cv.width, H = cv.height; if (!W || !H) return;
   const P = auroraOf(seed), full = W * 16 / 9, off = Math.max(0, full - H) * shift;
   const R = gl();
@@ -145,7 +147,7 @@ export function drawCode(cv, seed, shift = 0, t = 0) {
   if (gc.width !== W || gc.height !== H) { gc.width = W; gc.height = H; }
   g.viewport(0, 0, W, H);
   const arr = new Float32Array(MAXR * 8); P.R.forEach((r, i) => arr.set(r, i * 8));
-  g.uniform2f(u.uRes, W, H); g.uniform1f(u.uFull, full); g.uniform1f(u.uOff, off); g.uniform1f(u.uT, t); g.uniform1f(u.uBase, P.base); g.uniform1i(u.uN, P.n); g.uniform1fv(u.uR, arr);
+  g.uniform2f(u.uRes, W, H); g.uniform1f(u.uFull, full); g.uniform1f(u.uOff, off); g.uniform1f(u.uT, t); g.uniform1f(u.uBase, P.base); g.uniform1i(u.uN, P.n); g.uniform1fv(u.uR, arr); g.uniform1f(u.uGrain, grainAmt);
   g.drawArrays(g.TRIANGLES, 0, 3);
   const c = cv.getContext('2d'); c.drawImage(gc, 0, 0);
 }

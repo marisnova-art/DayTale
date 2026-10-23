@@ -8,7 +8,9 @@ const P = {
   fmt: '<path d="M4 7V5h16v2"/><path d="M12 5v14"/><path d="M9 19h6"/>',
   photo: '<rect x="3" y="5" width="15" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.5"/><path d="m18 15-4-4-8 8"/><path d="M21 3v6M18 6h6"/>',
   emo: '<circle cx="12" cy="12" r="9"/><path d="M8.5 14.5a4.5 4.5 0 0 0 7 0"/><path d="M9 9.5h.01M15 9.5h.01"/>',
-  bg: '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 15c4-3 7-3 10 0s5 2 8-1"/>',
+  bg: '<path d="M12 3a9 9 0 1 0 0 18c1.4 0 2-1 1.6-2.1-.4-1.1.3-2.4 1.6-2.4H17a4 4 0 0 0 4-4c0-5.3-4-9.5-9-9.5z"/><path d="M7.5 11h.01M10 7h.01M15 7.5h.01"/>',   // 팔레트: 배경 · 꾸미기 옵션
+  grain: '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M7.5 8h.01M12 7h.01M16.5 8.5h.01M9 12h.01M14 11.5h.01M7 16h.01M11.5 16.5h.01M16 15.5h.01"/>',
+  nograin: '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M7.5 8h.01M16.5 8.5h.01M9 12h.01M11.5 16.5h.01"/><path d="M4 20 20 4"/>',
   page: '<rect x="6" y="3" width="13" height="17" rx="2"/><path d="M3 7v12a2 2 0 0 0 2 2h9"/><path d="M12.5 8.5v6M9.5 11.5h6"/>',
   shuf: '<path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="m15 15 6 6"/><path d="M4 4l5 5"/>',
   undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',
@@ -45,7 +47,7 @@ const P = {
   dbot: '<path d="M4 20h16"/><path d="M12 4v11M8 11l4 4 4-4"/>',
   doff: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16"/><path d="M3 3l18 18"/>',
   kb: '<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/>',
-  font: '<path d="M3 19 8.5 5h1L15 19"/><path d="M5.3 14h7.4"/><path d="M15.5 20.5 21 15l-2-2-5.5 5.5-.5 2.5z"/>',
+  font: '<path d="M7 20V4h11"/><path d="M7 12h8"/>',   // F
   size: '<path d="M3 6h11M8.5 6v13"/><path d="M14 12h7M17.5 12v7"/>',
   pin: '<path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
 };

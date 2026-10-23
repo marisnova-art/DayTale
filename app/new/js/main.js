@@ -580,6 +580,7 @@ function viewWrite({ fmt, id }) {
   const SZ = { m: ['s', '작은 글자'], s: ['l', '큰 글자'], l: ['m', '중간'] };
   const AH = { l: ['c', '가운데'], c: ['r', '오른쪽'], r: ['l', '왼쪽'] }, AV = { m: ['b', '아래'], b: ['t', '위'], t: ['m', '가운데'] };
   function paintRow2() {
+    if (st.tab === 'bg' && f.tools.bg === 'art') return paintArtRow();
     if (st.tab === 'bg' && f.tools.bg) return paintBgRow();
     if (st.tab === 'font' && f.tools.font) return paintFontRow();
     const on = !!f.tools.style, a = ps().align || { h: 'l', v: rich ? 'm' : 't' }, off = on ? '' : 'off', fOff = on && f.tools.font ? '' : 'off';
@@ -619,6 +620,14 @@ function viewWrite({ fmt, id }) {
     const step = d => { const c = FONTS.findIndex(o => o.id === fontOf(card.font).id), i = (c + d + FONTS.length) % FONTS.length; pick(FONTS[i], Math.abs(i - c) === 1); };   // 끝에서 처음으로(처음에서 끝으로) 돌아갈 땐 바로
     $('[data-x=prev]', row2).onclick = () => step(-1); $('[data-x=next]', row2).onclick = () => step(1);
     $$('[data-f]', row2).forEach(x => x.onclick = () => pick(fontOf(x.dataset.f), true));
+  }
+  // 아트 포맷 배경 줄: 그림은 셔플로 바꾸고, 여기서는 그림을 꾸미는 옵션만 (지금은 노이즈 하나, 옵션이 생기면 옆 칸에)
+  function paintArtRow() {
+    const pb = ps().bg, on = pb.grain !== false;
+    row2.className = 'st2 g6';
+    row2.innerHTML = `<button class="k" data-x="grain" aria-label="노이즈">${ic(on ? 'grain' : 'nograin')}</button><span></span><span></span><span></span><span></span><span></span><span></span>`;
+    const b = $('[data-x=grain]', row2); b.addEventListener('pointerdown', e => e.preventDefault());
+    b.onclick = () => { flush(); if (on) pb.grain = false; else delete pb.grain; syncFirst(); push(); draw(); paintArtRow(); pop(on ? '노이즈 끔' : '노이즈 켬', null, pgLab()); };
   }
   function paintBgRow() {
     const pb = ps().bg, dim = pb.dim || 'dark', keep = $('.swp', row2)?.scrollLeft;

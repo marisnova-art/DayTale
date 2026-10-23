@@ -148,7 +148,7 @@ function bgLayer(c, page, pages) {
   let base = '';
   if (b.photo) base = `<div class="bgi ph" style="background-image:url(${photoUrl(cb.ph)});background-position:${cb.x ?? 50}% ${cb.y ?? 50}%"></div>`;   // 내 사진: 고른 위치 그대로 (장으로 나뉘어도)
   else if (b.img) base = `<div class="bgi" style="background-image:url(${b.img});background-position:50% ${Math.round(shift * 100)}%"></div>`;
-  else if (b.code) base = `<canvas class="bgc" data-seed="${cb.seed || 1}" data-shift="${shift}"></canvas>`;
+  else if (b.code) base = `<canvas class="bgc" data-seed="${cb.seed || 1}" data-shift="${shift}"${cb.grain === false ? ' data-gr="0"' : ''}></canvas>`;
   else base = `<div class="bgi" style="background:${b.css}"></div>`;
   return { html: base + `<div class="dimL" style="background:${dim}"></div>`, ink: (b.img || b.code || b.photo || cb?.dim === 'light') ? ink : b.ink };
 }
@@ -232,7 +232,7 @@ function fitText(el) {
   el.querySelectorAll('canvas.bgc').forEach(cv => {
     const w = cv.clientWidth; if (!w) return;
     const k = Math.min(2, window.devicePixelRatio || 1), W = Math.round(w * k), H = Math.min(Math.round(cv.clientHeight * k) || Math.round(W * 1.25), Math.round(W * 16 / 9));
-    const key = [cv.dataset.seed, cv.dataset.shift, H].join();
+    const key = [cv.dataset.seed, cv.dataset.shift, H, cv.dataset.gr].join();
     if (cv.width === W && cv.dataset.done === key) return;
     cv.width = W; cv.height = H; drawCode(cv, +cv.dataset.seed, +cv.dataset.shift); cv.dataset.done = key;
   });
@@ -255,7 +255,7 @@ export const FORMATS = {
   // 아트 포맷 #1: 앤드류 작품(세로 오로라 빛줄기)을 코드로. 그림이 작품이라 배경은 정해 두고 셔플로 새 그림, 글꼴은 고를 수 있어요
   art: {
     id: 'art', name: '번지는 빛', info: '아트 · 셔플할 때마다 새 그림 · 흐르는 빛', paid: true, rich: true,
-    tools: { photo: false, emo: false, page: true, shuf: true, style: true, font: true, bg: false, dp: true },
+    tools: { photo: false, emo: false, page: true, shuf: true, style: true, font: true, bg: 'art', dp: true },
     sample: { pages: ['창밖 불빛이 번져 보이는 밤. 오늘 하루도 천천히 흘러갔다.'], bg: { id: 'bands', dim: 'dark', seed: 11 } },
     render: text, fit: fitText,
   },
