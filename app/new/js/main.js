@@ -8,6 +8,7 @@ import { clean, offsetsOf, rangeAt } from './rich.js';
 import { FONTS, fontOf, fontCssOf } from './fonts.js';
 import { NAMES as STK, hydrate, preloadAll } from './stickers.js';
 import * as P from './photos.js';
+import { FILTERS, filterOf, thumb as fthumb } from './filters.js';
 
 const app = document.getElementById('app');
 const $ = (s, r = document) => r.querySelector(s);
@@ -269,7 +270,7 @@ function viewWrite({ fmt, id }) {
   // 키보드를 내린 스타일 보기(큰 카드 + 3줄)와 키보드를 올린 쓰기 보기(1줄). 모든 줄은 같은 7칸이라 세로로 맞아요 (늘어도 최대 8칸)
   // 1줄 = 탭: 스타일 키보드 · 서식 · 글꼴 · 배경 · 셔플 · 되돌리기 · 다시하기 / 쓰기: 키보드 · 이모티콘 · 새 장 · 사진 · (빈칸) · 되돌리기 · 다시하기
   // 2줄 = 고른 탭의 선택지 (서식: 크기 · 좌우 · 위아래 / 글꼴: ‹ › + 이름 / 배경: 사진 · 밝게어둡게 + 색)
-  const T1 = [['kb', ''], ['fmt', 's'], ['font', 's'], ['bg', 's'], ['shuf', 's'], ['emo', 'w'], ['page', 'w'], ['photo', 'w'], ['', 'w'], ['undo', ''], ['redo', '']];
+  const T1 = [['kb', ''], ['fmt', 's'], ['font', 's'], ['bg', 's'], [f.tools.filter ? 'filter' : 'shuf', 's'], ['emo', 'w'], ['page', 'w'], ['photo', 'w'], ['', 'w'], ['undo', ''], ['redo', '']];
   app.innerHTML = `<div class="wr ${rich ? 'rich' : 'plain'}">
     <header class="top"><button class="cb" data-a="back" aria-label="뒤로">${ic('back')}</button><div class="nm stt"></div><button class="cb w" data-a="ok" aria-label="완료">${ic('check')}</button></header>
     <div class="area"><section class="stage"></section></div>
@@ -415,7 +416,7 @@ function viewWrite({ fmt, id }) {
 
   /* 카드 그리기. 글만 바뀌면 그 자리에서 바꾸고(키보드가 내려가지 않게), 장 수·배경·날짜 같은 틀이 바뀔 때만 새로 그려요 */
   let el = null, shape = '';
-  const shapeOf = () => JSON.stringify(rich ? [card.pages.length, card.bg, card.align, card.pst, card.datePos, card.date, card.place, card.font, card.size] : [card.date, card.place, card.size, card.align, card.datePos]);
+  const shapeOf = () => JSON.stringify(rich ? [card.pages.length, card.bg, card.align, card.pst, card.datePos, card.date, card.place, card.font, card.size, card.filter] : [card.date, card.place, card.size, card.align, card.datePos]);
   const bodies = () => $$('.body', el);
   const pageOf = b => b.closest('.pg') ? +b.closest('.pg').dataset.i : 0;
   const caretIn = b => { const s = getSelection(); return s.rangeCount && b.contains(s.anchorNode) ? offsetsOf(b, s.getRangeAt(0)) : null; };
@@ -477,6 +478,9 @@ function viewWrite({ fmt, id }) {
     el.classList.toggle('empty', !hasText());
     fitCard(el, card); count(); tools(); pushLater(); requestAnimationFrame(keepCaret);
   }
+  // 사진이 아직 없는 장(포토 포맷): 가운데 사진 버튼 → 그 장의 사진 고르기 (글쓰기 커서는 안 생겨요)
+  stage.addEventListener('pointerdown', e => { if (e.target.closest?.('.phadd')) { e.preventDefault(); e.stopPropagation(); } }, true);
+  stage.addEventListener('click', e => { const b = e.target.closest?.('.phadd'); if (!b) return; e.stopPropagation(); st.pg = +b.closest('.pg').dataset.i || 0; pickPhoto(); }, true);
   stage.addEventListener('compositionstart', () => { st.composing = true; });
   stage.addEventListener('compositionend', e => { st.composing = false; const b = e.target.closest?.('.body'); if (b) typed(b); });
   stage.addEventListener('input', e => {
@@ -529,6 +533,7 @@ function viewWrite({ fmt, id }) {
     if (k === 'kb' || k === 'undo' || k === 'redo') return true;
     if (k === 'fmt') return !!f.tools.style;
     if (k === 'font') return !!(f.tools.style && f.tools.font);
+    if (k === 'filter') return !!f.tools.filter;
     const v = f.tools[k]; return k === 'shuf' && v === 'code' ? !!findBg(ps().bg?.id).code : !!v;
   };
   function tools() {
@@ -538,7 +543,7 @@ function viewWrite({ fmt, id }) {
       if (k === 'undo') return b.classList.toggle('off', st.hi <= 0 && !st.timer);
       if (k === 'redo') return b.classList.toggle('off', st.hi >= st.hist.length - 1);
       b.classList.toggle('off', !enabled(k));
-      b.classList.toggle('on', k === 'kb' ? typ && !st.panel : k === 'fmt' || k === 'font' || k === 'bg' ? st.tab === k && enabled(k) : st.panel === k);
+      b.classList.toggle('on', k === 'kb' ? typ && !st.panel : ['fmt', 'font', 'bg', 'filter'].includes(k) ? st.tab === k && enabled(k) : st.panel === k);
     });
     $('[data-a=ok]').disabled = !hasText();
   }
@@ -569,7 +574,8 @@ function viewWrite({ fmt, id }) {
         push(); draw(); scrollToPage(st.pg);
         if (st.panel) closePanel(false); caretEnd(st.pg); return;
       }
-      if (k === 'fmt' || k === 'font' || k === 'bg') { st.tab = k; paintRow2(); return tools(); }
+      if (k === 'fmt' || k === 'font' || k === 'bg' || k === 'filter') { st.tab = k; paintRow2(); return tools(); }
+      if (k === 'photo') return pickPhoto();   // 쓰는 중에도 이 장의 사진을 고를 수 있어요 (포토 포맷)
       if (k === 'emo') return st.panel === k ? closePanel(true) : openPanel(k);
       pop('다음 단계에서 열려요');
     };
@@ -581,6 +587,8 @@ function viewWrite({ fmt, id }) {
   const AH = { l: ['c', '가운데'], c: ['r', '오른쪽'], r: ['l', '왼쪽'] }, AV = { m: ['b', '아래'], b: ['t', '위'], t: ['m', '가운데'] };
   function paintRow2() {
     if (st.tab === 'bg' && f.tools.bg === 'art') return paintArtRow();
+    if (st.tab === 'bg' && f.tools.bg === 'photo') return paintPhotoRow();
+    if (st.tab === 'filter' && f.tools.filter) return paintFilterRow();
     if (st.tab === 'bg' && f.tools.bg) return paintBgRow();
     if (st.tab === 'font' && f.tools.font) return paintFontRow();
     const on = !!f.tools.style, a = ps().align || { h: 'l', v: rich ? 'm' : 't' }, off = on ? '' : 'off', fOff = on && f.tools.font ? '' : 'off';
@@ -621,6 +629,35 @@ function viewWrite({ fmt, id }) {
     $('[data-x=prev]', row2).onclick = () => step(-1); $('[data-x=next]', row2).onclick = () => step(1);
     $$('[data-f]', row2).forEach(x => x.onclick = () => pick(fontOf(x.dataset.f), true));
   }
+  // 포토 포맷 필터 줄: 글꼴 줄과 같은 모듈. ‹ › 로 하나씩, 나머지 칸은 이 장 사진에 필터를 건 미리보기 (필터는 카드 전체에)
+  function paintFilterRow() {
+    const cur = filterOf(card.filter).id, pb = ps().bg;
+    row2.className = 'st2 g6 bgr flr';
+    row2.innerHTML = `<button class="k" data-x="prev" aria-label="이전 필터">${ic('prev')}</button><button class="k" data-x="next" aria-label="다음 필터">${ic('next')}</button>
+      <div class="swp">${FILTERS.map(o => `<button class="k sw ft ${o.id === cur ? 'sel' : ''}" data-fl="${o.id}" aria-label="${o.name}"><span>${o.name}</span></button>`).join('')}<span class="end"></span></div>`;
+    const sw = $('.swp', row2);
+    $$('[data-fl]', row2).forEach(x => fthumb(pb, x.dataset.fl).then(u => { if (u) x.style.backgroundImage = `url(${u})`; }));
+    const toCur = smooth => { const s = $('.sel', sw); if (s) sw.scrollTo({ left: s.offsetLeft - sw.firstElementChild.offsetLeft, behavior: smooth ? 'smooth' : 'instant' }); };
+    const pick = (o, smooth) => {
+      flush(); card.filter = o.id; push(); draw(); pop(o.name, null, '필터');
+      $$('[data-fl]', row2).forEach(x => x.classList.toggle('sel', x.dataset.fl === o.id)); toCur(smooth);
+    };
+    toCur(false);
+    $$('button', row2).forEach(x => x.addEventListener('pointerdown', e => e.preventDefault()));
+    const step = d => { const c = FILTERS.findIndex(o => o.id === cur), i = (filterOf(card.filter).m + d + FILTERS.length) % FILTERS.length; pick(FILTERS[i], Math.abs(i - c) === 1); };
+    $('[data-x=prev]', row2).onclick = () => step(-1); $('[data-x=next]', row2).onclick = () => step(1);
+    $$('[data-fl]', row2).forEach(x => x.onclick = () => pick(filterOf(x.dataset.fl), true));
+  }
+  // 포토 포맷 배경 줄(팔레트): 이 장 사진 바꾸기 · 밝게/어둡게 · 노이즈 (노이즈는 기본 꺼짐: 사진 그대로가 먼저)
+  function paintPhotoRow() {
+    const pb = ps().bg, dim = pb.dim || 'dark', on = !!pb.grain, has = !!P.url(pb.ph);
+    row2.className = 'st2 g6';
+    row2.innerHTML = `<button class="k tl ${has ? 'phb sel' : ''}" data-x="photo" aria-label="사진" ${has ? `style="background-image:url(${P.url(pb.ph)})"` : ''}>${has ? '' : ic('scene')}</button><button class="k tl" data-x="dim" aria-label="밝게 어둡게">${ic(dim === 'light' ? 'sun' : 'moon')}</button><button class="k" data-x="grain" aria-label="노이즈">${ic(on ? 'grain' : 'nograin')}</button><span></span><span></span><span></span><span></span>`;
+    $$('button', row2).forEach(x => x.addEventListener('pointerdown', e => e.preventDefault()));
+    $('[data-x=photo]', row2).onclick = pickPhoto;
+    $('[data-x=dim]', row2).onclick = () => { flush(); pb.dim = dim === 'light' ? 'dark' : 'light'; syncFirst(); push(); draw(); paintPhotoRow(); pop(pb.dim === 'light' ? '밝게' : '어둡게', null, pgLab()); };
+    $('[data-x=grain]', row2).onclick = () => { flush(); if (on) delete pb.grain; else pb.grain = true; syncFirst(); push(); draw(); paintPhotoRow(); pop(on ? '노이즈 끔' : '노이즈 켬', null, pgLab()); };
+  }
   // 아트 포맷 배경 줄: 그림은 셔플로 바꾸고, 여기서는 그림을 꾸미는 옵션만 (지금은 노이즈 하나, 옵션이 생기면 옆 칸에)
   function paintArtRow() {
     const pb = ps().bg, on = pb.grain !== false;
@@ -653,7 +690,7 @@ function viewWrite({ fmt, id }) {
     try {
       const p = await P.add(file), pb = ps().bg;
       flush(); clearPhoto(pb); Object.assign(pb, { id: 'photo', ...p, x: 50, y: 50 }); if (!pb.dim) pb.dim = 'dark';
-      syncFirst(); push(); draw(); paintBgRow(); pop('내 사진', null, pgLab());
+      syncFirst(); push(); draw(); paintRow2(); pop('내 사진', null, pgLab());
     } catch (e) { console.error(e); pop('사진을 열지 못했어요'); }
   };
   // 스타일 보기에서 카드를 끌면 사진이 따라 움직여요 (보일 부분 고르기). 남는 쪽(가로 · 세로)으로만 움직이고,

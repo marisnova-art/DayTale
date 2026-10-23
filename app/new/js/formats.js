@@ -1,6 +1,6 @@
 // 포맷 = 데이터 + 그리기. 카드는 가로 1080 기준으로 디자인하고 cqw 단위로 그려서, 화면 크기와 저장 이미지가 같은 모양이에요
 import { find as findBg, dimCss, drawCode } from './bg.js';
-import { url as photoUrl } from './photos.js';
+import { bgUrl, keyOf, GRAPHIC } from './filters.js';
 import { rangeAt } from './rich.js';
 import { hydrate } from './stickers.js';
 import { fontOf, fontCssOf, SIZES } from './fonts.js';
@@ -140,17 +140,27 @@ function fitRebus(el) {
 // 장마다 배경 · 글 위치를 따로 둘 수 있어요 (c.pst[i]). 없으면 카드 값 (글꼴 · 크기 · 날짜는 늘 카드 전체)
 export const pageBg = (c, i) => c.pst?.[i]?.bg || c.bg;
 export const pageAlign = (c, i) => c.pst?.[i]?.align || c.align || {};
+const PH_ICON = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="15" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.5"/><path d="m18 15-4-4-8 8"/><path d="M21 3v6M18 6h6"/></svg>';
 function bgLayer(c, page, pages) {
   const cb = pageBg(c, page), b = findBg(cb?.id);
   const { layer, ink } = dimCss(b, cb?.dim || 'dark');
-  const dim = layer;   // 그라데이션도 배경마다 정해 둔 딤을 깔아 글이 잘 읽혀요
+  let dim = layer;   // 그라데이션도 배경마다 정해 둔 딤을 깔아 글이 잘 읽혀요
+  if (c.fmt === 'photo' && cb?.dim !== 'light') {   // 포토 포맷: 사진이 주인공이라 글이 놓인 쪽만 어둡게
+    const v = pageAlign(c, page).v || 'b';
+    dim = v === 'm' ? 'rgba(0,0,0,.28)' : `linear-gradient(${v === 't' ? '180deg' : '0deg'}, rgba(0,0,0,.52), rgba(0,0,0,.1) 62%)`;
+  }
   const shift = pages > 1 ? page / (pages - 1) : .5;
   let base = '';
-  if (b.photo) base = `<div class="bgi ph" style="background-image:url(${photoUrl(cb.ph)});background-position:${cb.x ?? 50}% ${cb.y ?? 50}%"></div>`;   // 내 사진: 고른 위치 그대로 (장으로 나뉘어도)
+  if (b.photo) {   // 내 사진: 고른 위치 그대로 (장으로 나뉘어도). 포토 포맷은 카드 필터 · 노이즈를 건 사진으로
+    const fid = c.fmt === 'photo' ? c.filter : null, u = bgUrl(cb, fid);
+    base = u ? `<div class="bgi ph" data-fk="${keyOf(cb, fid)}" style="background-image:url(${u});background-position:${cb.x ?? 50}% ${cb.y ?? 50}%"></div>`
+      : `<div class="bgi ph none"></div>${c.fmt === 'photo' ? `<button class="phadd" type="button" aria-label="사진 고르기">${PH_ICON}</button>` : ''}`;   // 아직 사진이 없는 장
+  }
   else if (b.img) base = `<div class="bgi" style="background-image:url(${b.img});background-position:50% ${Math.round(shift * 100)}%"></div>`;
   else if (b.code) base = `<canvas class="bgc" data-seed="${cb.seed || 1}" data-shift="${shift}"${cb.grain === false ? ' data-gr="0"' : ''}></canvas>`;
   else base = `<div class="bgi" style="background:${b.css}"></div>`;
-  return { html: base + `<div class="dimL" style="background:${dim}"></div>`, ink: (b.img || b.code || b.photo || cb?.dim === 'light') ? ink : b.ink };
+  const gfx = c.fmt === 'photo' && GRAPHIC.has(c.filter) && cb?.dim !== 'light' ? '<div class="dimL" style="background:rgba(0,0,0,.18)"></div>' : '';   // 그래픽 필터는 점이 굵어 글 뒤를 조금 더
+  return { html: base + `<div class="dimL" style="background:${dim}"></div>` + gfx, ink: (b.img || b.code || b.photo || cb?.dim === 'light') ? ink : b.ink };
 }
 
 function text(c, { edit = false } = {}) {
@@ -259,10 +269,18 @@ export const FORMATS = {
     sample: { pages: ['창밖 불빛이 번져 보이는 밤. 오늘 하루도 천천히 흘러갔다.'], bg: { id: 'bands', dim: 'dark', seed: 11 } },
     render: text, fit: fitText,
   },
+  // 포토 포맷 #1: 내 사진이 카드를 가득 채우고 글은 그 위에. 틀 없이 필터가 핵심 (영상은 다음 단계)
+  photo: {
+    id: 'photo', name: '포토', info: '내 사진 · 필터 20개 · 장마다 다른 사진', paid: true, rich: true,
+    tools: { photo: true, emo: true, page: true, shuf: false, filter: true, style: true, font: true, bg: 'photo', dp: true },
+    sample: { pages: ['바다 앞에 앉아 해가 지는 걸 끝까지 봤다. 오늘은 이걸로 됐다.'], bg: { id: 'photo', src: 'bg/photo-sample.webp', w: 1080, h: 1350, dim: 'dark', tone: '#3a3550' }, filter: 'film', align: { h: 'l', v: 'b' } },
+    render: text, fit: fitText,
+  },
 };
-export const ORDER = ['rebus', 'art', 'text'];
+export const ORDER = ['rebus', 'art', 'photo', 'text'];
 
 export function blank(fmt, date) {
+  if (fmt === 'photo') return { fmt, date, place: '', pages: [''], bg: { id: 'photo', dim: 'dark' }, filter: 'none', align: { h: 'l', v: 'b' }, datePos: 'none', font: 'serif', size: 'm' };
   if (fmt === 'art') return { fmt, date, place: '', pages: [''], bg: { id: 'bands', dim: 'dark', seed: newSeed() }, align: { h: 'l', v: 'm' }, datePos: 'none', font: 'sans', size: 'm' };
   return fmt === 'rebus'
     ? { fmt, date, place: '', html: '', seed: newSeed(), size: 'm', align: { h: 'l', v: 't' }, datePos: 'bottom' }
