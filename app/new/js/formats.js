@@ -117,11 +117,15 @@ function rebus(c, { edit = false } = {}) {
 // 빈 카드에서는 흐린 예시 글이 고른 크기 · 자리를 그대로 따라가요 (누르면 바로 보이게)
 // 카드 높이는 글 높이를 직접 재서 정해요 (아이폰 브라우저는 4:5 상자가 글 따라 늘어나지 않아요)
 const RB_SIZES = { l: 140, m: 116, s: 96 };
+// 9:16 안전 영역 (1080 기준 위 · 아래로 더 비우는 만큼): 위 13% · 아래 22%에서 원래 여백을 뺀 값
+export const SAFE916 = [186, 358];
 export const RB_M = { bottom: [72, 170], top: [170, 72], none: [72, 72] };   // 날짜 줄 자리만큼 글 위 · 아래 여백 (1080 기준)
 function fitRebus(el) {
   const p = el.querySelector('.rb'); if (!p) return;
   const W = el.clientWidth; if (!W) return;
-  const s = W / 1080, H = W * 1.25, [mt, mb] = RB_M[el.dataset.dp] || RB_M.bottom;
+  const s = W / 1080, H = W * (+el.dataset.ar || 1.25);
+  let [mt, mb] = RB_M[el.dataset.dp] || RB_M.bottom;
+  if (el.classList.contains('r916')) { mt += SAFE916[0]; mb += SAFE916[1]; }   // 9:16: 스토리 · 릴스 위아래 가리는 자리를 비워요
   const ex = el.querySelector('.exm'), box = ex && el.classList.contains('empty') ? ex : p;
   p.style.fontSize = px(+p.dataset.sz || 116); if (ex) ex.style.fontSize = p.style.fontSize;
   p.style.marginBottom = px(mb);
@@ -214,7 +218,7 @@ export function starts(ls, avail) {
 function photoTiles(pg, tx) {
   pg.querySelectorAll('.bgi.ph.more').forEach(b => b.remove());
   const ph = pg.querySelector('.bgi.ph'); if (!ph) return;
-  const W = pg.offsetWidth, H = W * 1.25;
+  const W = pg.offsetWidth, H = W * (+pg.closest('.cd')?.dataset.ar || 1.25);
   ph.style.height = pg.classList.contains('long') ? H + 'px' : '';
   if (!pg.classList.contains('long')) return;
   const pad = parseFloat(getComputedStyle(tx).paddingTop);

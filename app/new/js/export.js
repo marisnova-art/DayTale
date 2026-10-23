@@ -1,9 +1,9 @@
 // 카드 → 4:5 장들. 저장할 땐 1080×1350 이미지로, 피드에선 같은 장을 화면 폭으로 그려서 옆으로 넘겨 봐요
 // (쓰는 동안은 한 장의 긴 카드, 나누는 건 여기서만. 줄이 잘리지 않게 줄 단위로 나눠요)
-import { renderCard, fitCard, cardText, RB_M, lines, starts, pageAlign } from './formats.js';
+import { renderCard, fitCard, cardText, RB_M, SAFE916, lines, starts, pageAlign } from './formats.js';
 import { drawCode } from './bg.js';
 import { ready } from './stickers.js';
-import { fontOf } from './fonts.js';
+import { fontOf, fontCssOf } from './fonts.js';
 import { prep } from './filters.js';
 
 const cache = new Map();
@@ -46,14 +46,17 @@ function clipTo(box, off, h) {
   inner.append(...box.childNodes); clip.appendChild(inner); box.appendChild(clip);
 }
 
-async function rebusPages(c, W) {
-  const H = Math.round(W * 1.25), s = W / 1080, h = host(W), el = renderCard(c); h.appendChild(el); fitCard(el, c);
+// ar = 세로 ÷ 가로 (4:5 = 1.25, 9:16 = 16/9). 9:16은 카드 자체를 9:16으로 다시 그려요
+const shape = (el, ar) => { el.dataset.ar = ar; el.classList.toggle('r916', ar > 1.5); return el; };
+async function rebusPages(c, W, ar) {
+  const H = Math.round(W * ar), s = W / 1080, h = host(W), el = shape(renderCard(c), ar); h.appendChild(el); fitCard(el, c);
   await document.fonts.ready; fitCard(el, c);
   if (el.offsetHeight <= H + 1) { el.style.height = H + 'px'; return { h, nodes: [el] }; }
-  const [mt, mb] = RB_M[el.dataset.dp] || RB_M.bottom, p = el.querySelector('.rb'), avail = H - (mt + mb) * s;
+  let [mt, mb] = RB_M[el.dataset.dp] || RB_M.bottom; if (ar > 1.5) { mt += SAFE916[0]; mb += SAFE916[1]; }
+  const p = el.querySelector('.rb'), avail = H - (mt + mb) * s;
   const st = starts(lines(p), avail);
   const nodes = st.map((off, i) => {
-    const pg = renderCard(c); pg.classList.add('paged');
+    const pg = shape(renderCard(c), ar); pg.classList.add('paged');
     h.appendChild(pg); fitCard(pg, c); pg.style.height = H + 'px';
     const rb = pg.querySelector('.rb'); rb.style.fontSize = p.style.fontSize;
     const box = document.createElement('div'); box.className = 'pgbox'; box.style.marginTop = mt * s + 'px'; rb.replaceWith(box); box.appendChild(rb); rb.style.margin = '0';
@@ -64,15 +67,15 @@ async function rebusPages(c, W) {
   return { h, nodes };
 }
 
-async function textPages(c, W, ratio) {
-  const H = Math.round(W * 1.25), h = host(W), el = renderCard(c);
+async function textPages(c, W, ratio, ar) {
+  const H = Math.round(W * ar), h = host(W), el = shape(renderCard(c), ar);
   el.style.alignItems = 'flex-start';   // 장마다 제 길이로 재요 (가장 긴 장 높이로 늘어나면 덜 긴 장이 안 넘친다고 잘못 재요)
   h.appendChild(el); fitCard(el, c);
   await document.fonts.ready; fitCard(el, c);
   const out = [];
   [...el.querySelectorAll('.pg')].forEach(pg => {
     if (!pg.classList.contains('long')) { out.push(pg); return; }
-    const tx = pg.querySelector('.tx'), pad = parseFloat(getComputedStyle(tx).paddingTop), avail = H - 2 * pad;
+    const tx = pg.querySelector('.tx'), cs = getComputedStyle(tx), pad = parseFloat(cs.paddingTop), avail = H - pad - parseFloat(cs.paddingBottom);
     const ls = lines(tx).map(([t, b]) => [t - pad, b - pad]), st = starts(ls, avail);
     st.forEach((off, i) => {
       const q = pg.cloneNode(true); q.classList.remove('long'); q.querySelectorAll('.brk, .bgi.ph.more').forEach(b => b.remove());   // 나뉜 장마다 사진은 맨 위 한 장(4:5)
@@ -83,7 +86,7 @@ async function textPages(c, W, ratio) {
   });
   // 장마다 따로 된 카드 틀에 넣고, 배경은 장마다 보이는 부분을 위 → 아래로 옮겨요
   const nodes = out.map((pg, i) => {
-    const wrap = document.createElement('div'); wrap.className = 'cd text one'; wrap.appendChild(pg); h.appendChild(wrap);
+    const wrap = shape(document.createElement('div'), ar); wrap.classList.add('cd', 'text', 'one'); wrap.appendChild(pg); h.appendChild(wrap);
     const shift = out.length > 1 ? i / (out.length - 1) : .5;
     pg.querySelectorAll('.bgi:not(.ph)').forEach(b => { if (b.style.backgroundImage) b.style.backgroundPosition = `50% ${Math.round(shift * 100)}%`; });
     pg.querySelectorAll('canvas.bgc').forEach(cv => { cv.width = Math.round(W * ratio); cv.height = Math.round(H * ratio); cv.dataset.shift = shift; drawCode(cv, +cv.dataset.seed, shift); });
@@ -94,46 +97,34 @@ async function textPages(c, W, ratio) {
 }
 
 // 카드를 4:5 장들로. 돌려받은 h(화면 밖 상자)는 다 쓰고 지워야 해요
-export async function buildPages(c, W, ratio = 1) {
+export async function buildPages(c, W, ratio = 1, ar = 1.25) {
   if (c.fmt !== 'rebus') { const d = document.createElement('div'); d.innerHTML = (c.pages || []).join(''); await ready(d); }   // 이모티콘 그림을 먼저 받아 둬요
   await prep(c);   // 포토 포맷: 필터를 건 사진을 먼저 만들어 둬요 (그래야 저장 이미지에도 필터가)
-  return c.fmt === 'rebus' ? rebusPages(c, W) : textPages(c, W, ratio);
+  return c.fmt === 'rebus' ? rebusPages(c, W, ar) : textPages(c, W, ratio, ar);
 }
 
-// 서명: 첫 장, 글 덩어리 반대쪽 구석에 작게 (그림 문장은 아래 날짜 줄 오른쪽 자리)
+// 서명: 모든 장, 장마다 글 덩어리 반대쪽 구석에. 날짜 줄과 같은 글꼴 · 크기 (그림 문장은 아래 날짜 줄 오른쪽 자리)
 export function signOn(nodes, c, text) {
-  const n = nodes[0]; if (!n || !text) return;
-  if (c.fmt === 'rebus') { const s = n.querySelector('.foot .sig'); if (s) s.textContent = text; if (n.dataset.dp === 'none') n.dataset.dp = 'sg'; return; }
-  const pg = n.querySelector('.pg') || n; if (!pg) return;
-  const a = pageAlign(c, +(pg.dataset.i || 0)), d = document.createElement('div');
-  d.className = 'sgn'; d.textContent = text;
-  d.dataset.v = a.v === 'b' ? 't' : 'b'; d.dataset.h = { l: 'r', r: 'l', c: 'c' }[a.h || 'l'];
-  pg.appendChild(d);
-}
-
-// 9:16: 카드 그림을 크게 흐리게 깔고(작게 줄였다 키우면 흐려져요) 가운데에 4:5 카드
-async function story(blob) {
-  const img = await createImageBitmap(blob), W = 1080, H = 1920;
-  const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const x = cv.getContext('2d');
-  // 단계별로 줄였다가 단계별로 키워야 네모 무늬 없이 부드럽게 흐려져요
-  const step = (src, w, h, cover) => { const c2 = document.createElement('canvas'); c2.width = w; c2.height = h; const g = c2.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
-    if (cover) { const k = Math.max(w / src.width, h / src.height); g.drawImage(src, (w - src.width * k) / 2, (h - src.height * k) / 2, src.width * k, src.height * k); } else g.drawImage(src, 0, 0, w, h); return c2; };
-  let b = step(img, 216, 384, true); b = step(b, 54, 96); b = step(b, 18, 32); b = step(b, 72, 128); b = step(b, 270, 480);
-  x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high'; x.drawImage(b, 0, 0, W, H);
-  x.fillStyle = 'rgba(0,0,0,.38)'; x.fillRect(0, 0, W, H);
-  const cw = Math.round(W * .86), ch = Math.round(cw * 1.25), l = (W - cw) / 2, t = (H - ch) / 2, r = 18;
-  x.save(); x.shadowColor = 'rgba(0,0,0,.45)'; x.shadowBlur = 60; x.shadowOffsetY = 18;
-  x.beginPath(); x.roundRect ? x.roundRect(l, t, cw, ch, r) : x.rect(l, t, cw, ch); x.fillStyle = '#000'; x.fill(); x.restore();
-  x.save(); x.beginPath(); x.roundRect ? x.roundRect(l, t, cw, ch, r) : x.rect(l, t, cw, ch); x.clip(); x.drawImage(img, l, t, cw, ch); x.restore();
-  return new Promise(ok => cv.toBlob(ok, 'image/png'));
+  if (!text) return;
+  const fo = fontOf(c.font), size = (({ s: 2.8, m: 3.4, l: 4.2 }[c.size] || 3.4) * fo.k).toFixed(3) + 'cqw';
+  nodes.forEach(n => {
+    if (c.fmt === 'rebus') { const s = n.querySelector('.foot .sig'); if (s) s.textContent = text; if (n.dataset.dp === 'none') n.dataset.dp = 'sg'; return; }
+    const pg = n.querySelector('.pg') || n;
+    const a = pageAlign(c, +(pg.dataset.i || 0)), d = document.createElement('div');
+    d.className = 'sgn'; d.textContent = text;
+    d.style.cssText = `font-family:${fontCssOf(fo)};font-size:${size}${fo.id === 'sans' ? '' : ';letter-spacing:.04em'}`;
+    d.dataset.v = a.v === 'b' ? 't' : 'b'; d.dataset.h = { l: 'r', r: 'l', c: 'c' }[a.h || 'l'];
+    pg.appendChild(d);
+  });
 }
 
 // o = { ratio: '45' | '916', sign: 글, pages: [보낼 장 번호] (없으면 모두), onStep(지금, 모두) }
 export async function cardImages(c, o = {}) {
-  const W = 1080, H = 1350;
-  const { h, nodes: all } = await buildPages(c, W, 1);
+  const W = 1080, story = o.ratio === '916', H = story ? 1920 : 1350;
+  const { h, nodes: all } = await buildPages(c, W, 1, story ? 16 / 9 : 1.25);
   all.forEach(n => n.querySelectorAll('canvas.bgv').forEach(x => x.remove()));   // 영상인 장은 커버 사진으로 (영상 MP4 저장은 다음 단계)
   signOn(all, c, o.sign);
+  await document.fonts.ready;   // 서명 글자의 글꼴 조각까지 받은 뒤에 그려요
   const pick = o.pages ? o.pages.filter(i => all[i]) : all.map((_, i) => i);
   try {
     const fontEmbedCSS = await fontCss(cardText(c) + (c.place || '') + (o.sign || '') + '0123456789.·/ 일월화수목금토요', c.fmt !== 'rebus' ? c.font || 'serif' : 'sans');
@@ -141,9 +132,8 @@ export async function cardImages(c, o = {}) {
     for (const [k, i] of pick.entries()) {
       o.onStep?.(k + 1, pick.length);
       const url = await window.htmlToImage.toPng(all[i], { width: W, height: H, pixelRatio: 1, fontEmbedCSS, cacheBust: false });
-      let blob = await (await fetch(url)).blob();
-      if (o.ratio === '916') blob = await story(blob);
-      files.push(new File([blob], `dayzine-${c.date}-${i + 1}${o.ratio === '916' ? '-story' : ''}.png`, { type: 'image/png' }));
+      const blob = await (await fetch(url)).blob();
+      files.push(new File([blob], `dayzine-${c.date}-${i + 1}${story ? '-916' : ''}.png`, { type: 'image/png' }));
     }
     return files;
   } finally { h.remove(); }
