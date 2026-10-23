@@ -54,7 +54,7 @@ export async function addCanvas(src, sw, sh) {
 // 영상 파일은 그대로 이 기기에 둬요 (소리는 늘 끄고 재생). 돌려받는 것: 영상 번호
 export async function addFile(file) {
   const id = newId();
-  await tx('readwrite', s => s.put(file, id));
+  try { await tx('readwrite', s => s.put(new Blob([file], { type: file.type || 'video/mp4' }), id)); } catch (e) { console.warn('video store', e); }   // 저장이 막혀도 지금은 쓸 수 있게
   urls.set(id, URL.createObjectURL(file));
   return id;
 }

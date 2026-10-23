@@ -754,14 +754,17 @@ function viewWrite({ fmt, id }) {
   function pickPhoto() { picker.value = ''; picker.click(); }
   picker.onchange = async () => {
     const file = picker.files?.[0]; if (!file) return;
+    let vid = (/^video\//.test(file.type) || /\.(mov|mp4|m4v|webm|3gp|hevc)$/i.test(file.name)) && f.tools.bg === 'photo';   // 아이폰은 종류(type)가 빈 채로 올 때가 있어요
     try {
-      const vid = /^video\//.test(file.type) && f.tools.bg === 'photo';
       if (vid) pop('영상 읽는 중');
-      const p = vid ? await V.add(file) : await P.add(file), pb = ps().bg;
+      let p;
+      if (vid) p = await V.add(file);
+      else try { p = await P.add(file); } catch (e) { if (f.tools.bg !== 'photo' || /^image\//.test(file.type)) throw e; vid = true; pop('영상 읽는 중'); p = await V.add(file); }   // 사진으로 안 열리면 영상으로 한 번 더
+      const pb = ps().bg;
       flush(); clearPhoto(pb); Object.assign(pb, { id: 'photo', ...p, x: 50, y: 50 }); if (!pb.dim) pb.dim = 'dark';
       if (vid) st.vpause = false;
       syncFirst(); push(); draw(); paintRow2(); pop(vid ? '내 영상' : '내 사진', null, pgLab());
-    } catch (e) { console.error(e); pop(/^video/.test(file.type) ? '영상을 열지 못했어요' : '사진을 열지 못했어요'); }
+    } catch (e) { console.error(e); pop(vid ? '영상을 열지 못했어요' : '사진을 열지 못했어요'); }
   };
   // 스타일 보기에서 카드를 끌면 사진이 따라 움직여요 (보일 부분 고르기). 남는 쪽(가로 · 세로)으로만 움직이고,
   // 가로로 남는 사진은 끝까지 간 뒤 더 밀면 옆 장으로 넘어가요

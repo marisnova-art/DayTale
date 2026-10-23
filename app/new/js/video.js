@@ -10,15 +10,27 @@ export const lenOf = b => Math.min(MAX, b.dur || MAX);
 // 영상 요소는 영상마다 하나만 만들어 두고 다시 써요 (다시 그려도 재생 위치가 그대로). 화면 밖 숨은 칸에 붙여 둬야 아이폰이 장면을 줘요
 const els = new Map();
 let shelf = null;
-const shelfEl = () => { if (!shelf) { shelf = document.createElement('div'); shelf.style.cssText = 'position:fixed;left:0;top:0;width:2px;height:2px;opacity:0;pointer-events:none;overflow:hidden;'; document.body.appendChild(shelf); } return shelf; };
+// 아이폰(WebKit)은 안 보이는(opacity 0 · 0px) 영상은 읽지도 재생하지도 않아요. 그래서 1px 크기로 화면 안에 두고, 재생할 땐 카드 안(캔버스 밑)으로 옮겨요
+const shelfEl = () => { if (!shelf) { shelf = document.createElement('div'); shelf.style.cssText = 'position:fixed;left:0;bottom:0;width:1px;height:1px;opacity:.01;pointer-events:none;overflow:hidden;z-index:-1;'; document.body.appendChild(shelf); } return shelf; };
+const mk = src => {
+  const v = document.createElement('video');
+  v.muted = true; v.defaultMuted = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.setAttribute('webkit-playsinline', ''); v.setAttribute('muted', ''); v.preload = 'auto';
+  v.style.cssText = 'width:1px;height:1px;'; v.src = src; shelfEl().appendChild(v); v.load();   // 아이폰은 load()를 불러야 읽기 시작해요
+  return v;
+};
+// 처음 장면이 나올 때까지: 아이폰은 한 번 재생해야 장면을 줘요 (소리 없는 재생은 허용). 장면이 오면 바로 멈춰요
+async function prime(v) {
+  if (v.readyState >= 2) return;
+  const was = v.paused; v.play().catch(() => {});
+  await ready(v, 8000);
+  if (was) v.pause();
+}
 function videoOf(vd) {
   if (els.has(vd)) return els.get(vd);
-  const v = document.createElement('video');
-  v.muted = true; v.defaultMuted = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.setAttribute('muted', ''); v.preload = 'auto';
-  v.src = P.url(vd); shelfEl().appendChild(v); els.set(vd, v);
+  const v = mk(P.url(vd)); els.set(vd, v);
   return v;
 }
-const ready = v => v.readyState >= 2 ? Promise.resolve() : new Promise(ok => { const ev = ['loadeddata', 'canplay', 'seeked'], f = () => { ev.forEach(k => v.removeEventListener(k, f)); ok(); }; ev.forEach(k => v.addEventListener(k, f)); setTimeout(f, 4000); });   // 옮기는 중(seeking)에도 장면이 오면 바로
+const ready = (v, ms = 4000) => v.readyState >= 2 ? Promise.resolve() : new Promise(ok => { const ev = ['loadeddata', 'canplay', 'seeked', 'playing'], f = () => { ev.forEach(k => v.removeEventListener(k, f)); ok(); }; ev.forEach(k => v.addEventListener(k, f)); setTimeout(f, ms); });   // 옮기는 중(seeking)에도 장면이 오면 바로
 const seekTo = (v, t) => new Promise(ok => {
   if (Math.abs(v.currentTime - t) < .02 && v.readyState >= 2) return ok();
   const f = () => { v.removeEventListener('seeked', f); ok(); }; v.addEventListener('seeked', f); v.currentTime = t; setTimeout(ok, 1500);
@@ -27,16 +39,22 @@ const seekTo = (v, t) => new Promise(ok => {
 // 영상 파일 → 카드 배경 값. 앞 10초 · 커버는 첫 장면 (아무것도 안 만져도 끝)
 export async function add(file) {
   const vd = await P.addFile(file), v = videoOf(vd);
-  await new Promise((ok, no) => { if (v.readyState >= 1) return ok(); v.addEventListener('loadedmetadata', ok, { once: true }); v.addEventListener('error', () => no(new Error('video')), { once: true }); });
+  await new Promise((ok, no) => {
+    if (v.readyState >= 1) return ok();
+    v.addEventListener('loadedmetadata', ok, { once: true }); v.addEventListener('error', () => no(new Error('video ' + (v.error?.code || ''))), { once: true });
+    v.play().catch(() => {});   // 아이폰: 읽기를 깨워요
+    setTimeout(() => no(new Error('video timeout')), 15000);
+  });
+  await prime(v);
   if (!v.videoWidth) throw new Error('video size');
   const dur = isFinite(v.duration) ? v.duration : MAX;
-  await ready(v); await seekTo(v, 0);
+  v.pause(); await seekTo(v, 0);
   const cover = await P.addCanvas(v, v.videoWidth, v.videoHeight);
   return { ...cover, w: v.videoWidth, h: v.videoHeight, vd, dur, t0: 0 };
 }
 // 지금 장면(또는 t초 장면)을 커버 사진으로
 export async function capture(b, t) {
-  const v = videoOf(b.vd); await ready(v);
+  const v = videoOf(b.vd); await prime(v);
   if (t != null) await seekTo(v, t);
   return { ...(await P.addCanvas(v, v.videoWidth, v.videoHeight)), w: v.videoWidth, h: v.videoHeight };
 }
@@ -46,8 +64,7 @@ const strips = new Map();
 export function strip(b, n, fw, fh) {
   const k = `${b.vd}|${n}|${fw}|${fh}`;
   if (!strips.has(k)) strips.set(k, (async () => {
-    const v = document.createElement('video'); v.muted = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.preload = 'auto'; v.src = P.url(b.vd);
-    shelfEl().appendChild(v); await ready(v);
+    const v = mk(P.url(b.vd)); await prime(v); v.pause();
     const cv = document.createElement('canvas'); cv.width = n * fw; cv.height = fh; const c = cv.getContext('2d');
     for (let i = 0; i < n; i++) {
       await seekTo(v, Math.min(b.dur - .05, (i + .5) * b.dur / n));
@@ -67,7 +84,7 @@ const work = document.createElement('canvas'), wc = work.getContext('2d');
 export const playing = () => cur;
 export function stop() {
   if (!cur) return;
-  cancelAnimationFrame(cur.raf); cur.v.pause();
+  cancelAnimationFrame(cur.raf); cur.v.pause(); cur.v.style.cssText = 'width:1px;height:1px;'; shelfEl().appendChild(cur.v);
   const c = cur.cv.getContext('2d'); c.clearRect(0, 0, cur.cv.width, cur.cv.height);   // 멈춘 카드는 커버 사진이 보여요
   cur = null;
 }
@@ -78,6 +95,7 @@ export function start(cv, b, fid, { paused = false, onTick } = {}) {
   stop();
   const v = videoOf(b.vd), me = { cv, v, b, fid, paused, lv: { lo: 0, hi: 1 }, raf: 0, onTick, key: '' };
   cur = me;
+  v.style.cssText = `position:absolute;left:0;top:0;width:100%;aspect-ratio:4/5;object-fit:cover;object-position:${b.x ?? 50}% ${b.y ?? 50}%;pointer-events:none;`; cv.before(v);   // 화면에 보이는 자리에 있어야 아이폰이 계속 재생해요 (위 캔버스가 덮어요)
   levels(b).then(l => { me.lv = l; me.key = ''; });
   const t0 = b.t0 || 0, len = lenOf(b);
   if (keep == null || keep < t0 - .05 || keep > t0 + len) v.currentTime = t0;
