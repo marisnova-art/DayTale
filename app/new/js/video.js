@@ -43,7 +43,7 @@ export async function add(file) {
     if (v.readyState >= 1) return ok();
     v.addEventListener('loadedmetadata', ok, { once: true }); v.addEventListener('error', () => no(new Error('video ' + (v.error?.code || ''))), { once: true });
     v.play().catch(() => {});   // 아이폰: 읽기를 깨워요
-    setTimeout(() => no(new Error('video timeout')), 15000);
+    setTimeout(() => no(new Error('video timeout ' + v.readyState + '/' + v.networkState)), 12000);
   });
   await prime(v);
   if (!v.videoWidth) throw new Error('video size');

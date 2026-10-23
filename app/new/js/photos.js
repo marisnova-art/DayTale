@@ -1,7 +1,8 @@
 // 내 사진 배경: 고른 사진은 긴 쪽 1440으로 줄이고(위치 정보 같은 사진 속 정보는 다시 그리면서 빠져요) 이 기기(IndexedDB)에만 둬요.
 // 계정 연결 후에는 서버(R2)로 옮겨요. 카드에는 사진 번호(ph)만 적고, 그릴 때는 미리 읽어 둔 주소를 써요
 const DB = 'dz.photos', ST = 'p', MAX = 1440;
-const urls = new Map();
+const urls = new Map(), saving = new Map();
+export const stored = () => Promise.all([...saving.values()]);   // 뒤에서 넣고 있는 영상이 다 들어갈 때까지
 
 function open() {
   return new Promise((ok, no) => {
@@ -54,8 +55,9 @@ export async function addCanvas(src, sw, sh) {
 // 영상 파일은 그대로 이 기기에 둬요 (소리는 늘 끄고 재생). 돌려받는 것: 영상 번호
 export async function addFile(file) {
   const id = newId();
-  try { await tx('readwrite', s => s.put(new Blob([file], { type: file.type || 'video/mp4' }), id)); } catch (e) { console.warn('video store', e); }   // 저장이 막혀도 지금은 쓸 수 있게
   urls.set(id, URL.createObjectURL(file));
+  // 큰 영상은 기기에 넣는 데 시간이 걸려요(아이폰). 기다리지 않고 바로 쓰고, 넣기는 뒤에서 (막혀도 지금은 쓸 수 있게)
+  saving.set(id, (async () => { try { await tx('readwrite', s => s.put(file.slice(0, file.size, file.type || 'video/mp4'), id)); } catch (e) { console.warn('video store', e); } finally { saving.delete(id); } })());
   return id;
 }
 const newId = () => Date.now().toString(36).padStart(8, '0') + Math.random().toString(36).slice(2, 7);
