@@ -3,7 +3,8 @@ import { ic } from './icons.js';
 import * as S from './store.js';
 import { FORMATS, ORDER, blank, sampleCard, renderCard, fitCard, cardText, newSeed, placeObjects, dateChip, weekday, toneOf, pageBg } from './formats.js';
 import { FREE, KIND, find as findBg, drawCode } from './bg.js';
-import { cardImages, saveImages, buildPages } from './export.js';
+import { buildPages } from './export.js';
+import { openSave } from './save.js';
 import { clean, offsetsOf, rangeAt } from './rich.js';
 import { FONTS, fontOf, fontCssOf } from './fonts.js';
 import { NAMES as STK, hydrate, preloadAll } from './stickers.js';
@@ -178,7 +179,7 @@ function feedItem(c) {
   const on = (k, fn) => { const b = $(`[data-a=${k}]`, it); if (b) b.onclick = fn; };
   on('use', () => go(`#/write/${c.fmt}`));
   on('edit', () => go(`#/edit/${c.id}`));
-  on('save', () => exportCard(c));
+  on('save', () => openSave(c));
   on('mark', e => { c.mark = !c.mark; S.saveCard(c); e.currentTarget.classList.toggle('on', c.mark); toast(c.mark ? '책갈피에 넣었어요' : '책갈피에서 뺐어요'); });
   on('del', async () => {   // 한 번 물어보고 지워요. 지운 카드는 휴지통에 30일
     if (!(await ask('이 카드를 지울까요?', '삭제'))) return;
@@ -917,17 +918,6 @@ function viewWrite({ fmt, id }) {
 
   paintMeta(); paintRow2(); mode(); sizeCard(); draw(); kb();
   document.fonts?.ready.then(() => el && fitCard(el, card));
-}
-
-async function exportCard(c) {
-  const busy = document.createElement('div'); busy.className = 'busy'; busy.textContent = '이미지를 만드는 중…';
-  document.body.appendChild(busy);
-  try {
-    const files = await cardImages(c);
-    busy.remove();
-    const r = await saveImages(files);
-    if (r === 'downloaded') toast(`사진 ${files.length}장을 저장했어요`);
-  } catch (e) { busy.remove(); console.error(e); toast('저장하지 못했어요. 다시 해 주세요'); }
 }
 
 // 카드에 쓰인 내 사진을 먼저 읽어 두고 시작해요

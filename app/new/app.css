@@ -317,3 +317,47 @@ html.pan .wr .panel { display: grid; }
 .st2 .tlc .fl { position: absolute; left: 0; top: 0; bottom: 0; background: rgba(255,255,255,.3); }
 .st2 .tlc b { position: absolute; inset: 0; display: grid; place-items: center; font: 800 15px var(--ui); color: #fff; text-shadow: 0 0 4px rgba(0,0,0,.7); font-variant-numeric: tabular-nums; }
 .st2 .tlc.drag b, .st2 .tlc.drag .fl { opacity: 0; }
+
+/* 서명: 첫 장 구석에 작게 (글 덩어리 반대쪽) */
+.cd .sgn { position: absolute; z-index: 2; font: 700 3cqw/1 'Pretendard Variable', sans-serif; letter-spacing: .02em; opacity: .8; white-space: nowrap; max-width: 60%; overflow: hidden; text-overflow: ellipsis; }
+.cd .sgn[data-v=b] { bottom: 6cqw; } .cd .sgn[data-v=t] { top: 6cqw; }
+.cd .sgn[data-h=r] { right: 7.4cqw; } .cd .sgn[data-h=l] { left: 7.4cqw; } .cd .sgn[data-h=c] { left: 50%; transform: translateX(-50%); }
+.cd.rebus[data-dp=sg] .foot > span:first-child { visibility: hidden; }
+
+/* 저장 시트: 겉은 아래 시트, 안은 쓰기 도구 칸(7칸) */
+.sv-bg { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,.6); animation: fade .16s; }
+.sv-bg.out { opacity: 0; transition: opacity .18s; }
+.sv { position: fixed; left: 0; right: 0; bottom: var(--svb, 0px); z-index: 51; max-width: 480px; margin: 0 auto; background: #1A1A1D; border-radius: 24px 24px 0 0;
+  padding: 10px var(--gut) calc(16px + var(--safe-b)); display: flex; flex-direction: column; gap: 12px; animation: up .22s cubic-bezier(.2,.9,.3,1); touch-action: none; }
+.sv.out { transform: translateY(105%); transition: transform .2s; }
+.sv.kb { padding-bottom: 10px; }
+.sv .grab { width: 36px; height: 5px; border-radius: 3px; background: #3a3a3e; margin: 0 auto; }
+@keyframes up { from { transform: translateY(100%); } }
+.sv .pv { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.sv .fr { position: relative; overflow: hidden; border-radius: 6px; flex: none; }
+.sv .fr .blr { position: absolute; inset: -12%; filter: blur(16px) brightness(.62); transform: scale(1.1); pointer-events: none; }
+.sv .fr .blr > * { width: 100%; height: 100%; }
+.sv .fr .blr .cd { height: 100%; } .sv .fr .blr .pg { height: 100%; aspect-ratio: auto; }
+.sv .fr .in { position: absolute; left: 7%; right: 7%; top: 50%; transform: translateY(-50%); border-radius: 4px; overflow: hidden; box-shadow: 0 6px 20px rgba(0,0,0,.45); }
+.sv .pgs2 { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; touch-action: pan-x; }
+.sv .pgs2::-webkit-scrollbar { display: none; }
+.sv .pgs2 > * { flex: 0 0 100%; scroll-snap-align: start; border-radius: 0; }
+.sv .dots { display: flex; gap: 5px; height: 5px; } .sv .dots i { width: 5px; height: 5px; border-radius: 2px; background: #4a4a50; transition: width .2s; } .sv .dots i.on { background: #fff; width: 14px; }
+.sv .g7 { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.sv .k { aspect-ratio: 1; border-radius: 12px; background: var(--srf); display: grid; place-items: center; color: #fff; }
+.sv .k.on { background: #fff; color: var(--bg); }
+.sv .k.dim { background: #19191c; color: #3a3a3f; }
+.sv .k.sp2 { grid-column: span 2; aspect-ratio: auto; }
+.sv .k .ic { width: 22px; height: 22px; } .sv .k .fill { fill: currentColor; stroke: none; }
+.sv .k:empty { background: none; }
+.sv .inp { display: flex; gap: 6px; } .sv .inp input { flex: 1; min-width: 0; height: 48px; border-radius: 12px; border: 0; background: var(--srf); color: #fff; font: 600 16px var(--ui); padding: 0 14px; outline: none; }
+.sv .inp button { width: 48px; height: 48px; border-radius: 12px; background: #fff; color: var(--bg); display: grid; place-items: center; flex: none; }
+.sv .go { height: 52px; border-radius: 16px; background: #fff; color: var(--bg); display: flex; align-items: center; justify-content: center; gap: 8px; font: 800 16px var(--ui); }
+.sv .go[disabled] { opacity: .5; }
+/* 위 가운데 알림 (쓰기 화면 밖) */
+.pill { position: fixed; left: 50%; top: calc(var(--safe-t) + 14px); transform: translateX(-50%); z-index: 80; height: 40px; padding: 0 16px; border-radius: 14px; background: #26262A; color: #fff;
+  display: flex; align-items: center; gap: 8px; font: 700 14px var(--ui); white-space: nowrap; box-shadow: 0 6px 24px rgba(0,0,0,.4); animation: fade .16s; pointer-events: none; }
+.pill .ic { width: 18px; height: 18px; }
+.sv .inp[hidden], .sv .g7[hidden] { display: none; }
+.sv .vrow .k.sp2 { aspect-ratio: 2.12; }
+.sv.kb .pv { display: none; }   /* 장소 · 서명을 적는 동안은 입력 줄과 칸만 (키보드 위 공간이 좁아요) */

@@ -1,6 +1,6 @@
 // 카드 → 4:5 장들. 저장할 땐 1080×1350 이미지로, 피드에선 같은 장을 화면 폭으로 그려서 옆으로 넘겨 봐요
 // (쓰는 동안은 한 장의 긴 카드, 나누는 건 여기서만. 줄이 잘리지 않게 줄 단위로 나눠요)
-import { renderCard, fitCard, cardText, RB_M, lines, starts } from './formats.js';
+import { renderCard, fitCard, cardText, RB_M, lines, starts, pageAlign } from './formats.js';
 import { drawCode } from './bg.js';
 import { ready } from './stickers.js';
 import { fontOf } from './fonts.js';
@@ -100,17 +100,50 @@ export async function buildPages(c, W, ratio = 1) {
   return c.fmt === 'rebus' ? rebusPages(c, W) : textPages(c, W, ratio);
 }
 
-export async function cardImages(c) {
+// 서명: 첫 장, 글 덩어리 반대쪽 구석에 작게 (그림 문장은 아래 날짜 줄 오른쪽 자리)
+export function signOn(nodes, c, text) {
+  const n = nodes[0]; if (!n || !text) return;
+  if (c.fmt === 'rebus') { const s = n.querySelector('.foot .sig'); if (s) s.textContent = text; if (n.dataset.dp === 'none') n.dataset.dp = 'sg'; return; }
+  const pg = n.querySelector('.pg') || n; if (!pg) return;
+  const a = pageAlign(c, +(pg.dataset.i || 0)), d = document.createElement('div');
+  d.className = 'sgn'; d.textContent = text;
+  d.dataset.v = a.v === 'b' ? 't' : 'b'; d.dataset.h = { l: 'r', r: 'l', c: 'c' }[a.h || 'l'];
+  pg.appendChild(d);
+}
+
+// 9:16: 카드 그림을 크게 흐리게 깔고(작게 줄였다 키우면 흐려져요) 가운데에 4:5 카드
+async function story(blob) {
+  const img = await createImageBitmap(blob), W = 1080, H = 1920;
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const x = cv.getContext('2d');
+  // 단계별로 줄였다가 단계별로 키워야 네모 무늬 없이 부드럽게 흐려져요
+  const step = (src, w, h, cover) => { const c2 = document.createElement('canvas'); c2.width = w; c2.height = h; const g = c2.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+    if (cover) { const k = Math.max(w / src.width, h / src.height); g.drawImage(src, (w - src.width * k) / 2, (h - src.height * k) / 2, src.width * k, src.height * k); } else g.drawImage(src, 0, 0, w, h); return c2; };
+  let b = step(img, 216, 384, true); b = step(b, 54, 96); b = step(b, 18, 32); b = step(b, 72, 128); b = step(b, 270, 480);
+  x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high'; x.drawImage(b, 0, 0, W, H);
+  x.fillStyle = 'rgba(0,0,0,.38)'; x.fillRect(0, 0, W, H);
+  const cw = Math.round(W * .86), ch = Math.round(cw * 1.25), l = (W - cw) / 2, t = (H - ch) / 2, r = 18;
+  x.save(); x.shadowColor = 'rgba(0,0,0,.45)'; x.shadowBlur = 60; x.shadowOffsetY = 18;
+  x.beginPath(); x.roundRect ? x.roundRect(l, t, cw, ch, r) : x.rect(l, t, cw, ch); x.fillStyle = '#000'; x.fill(); x.restore();
+  x.save(); x.beginPath(); x.roundRect ? x.roundRect(l, t, cw, ch, r) : x.rect(l, t, cw, ch); x.clip(); x.drawImage(img, l, t, cw, ch); x.restore();
+  return new Promise(ok => cv.toBlob(ok, 'image/png'));
+}
+
+// o = { ratio: '45' | '916', sign: 글, pages: [보낼 장 번호] (없으면 모두), onStep(지금, 모두) }
+export async function cardImages(c, o = {}) {
   const W = 1080, H = 1350;
-  const { h, nodes } = await buildPages(c, W, 1);
-  nodes.forEach(n => n.querySelectorAll('canvas.bgv').forEach(x => x.remove()));   // 영상인 장은 커버 사진으로 (영상 저장은 공통 저장 시트에서)
+  const { h, nodes: all } = await buildPages(c, W, 1);
+  all.forEach(n => n.querySelectorAll('canvas.bgv').forEach(x => x.remove()));   // 영상인 장은 커버 사진으로 (영상 MP4 저장은 다음 단계)
+  signOn(all, c, o.sign);
+  const pick = o.pages ? o.pages.filter(i => all[i]) : all.map((_, i) => i);
   try {
-    const fontEmbedCSS = await fontCss(cardText(c) + (c.place || '') + '0123456789.·/ 일월화수목금토요', c.fmt !== 'rebus' ? c.font || 'serif' : 'sans');
+    const fontEmbedCSS = await fontCss(cardText(c) + (c.place || '') + (o.sign || '') + '0123456789.·/ 일월화수목금토요', c.fmt !== 'rebus' ? c.font || 'serif' : 'sans');
     const files = [];
-    for (const [i, n] of nodes.entries()) {
-      const url = await window.htmlToImage.toPng(n, { width: W, height: H, pixelRatio: 1, fontEmbedCSS, cacheBust: false });
-      const blob = await (await fetch(url)).blob();
-      files.push(new File([blob], `dayzine-${c.date}-${i + 1}.png`, { type: 'image/png' }));
+    for (const [k, i] of pick.entries()) {
+      o.onStep?.(k + 1, pick.length);
+      const url = await window.htmlToImage.toPng(all[i], { width: W, height: H, pixelRatio: 1, fontEmbedCSS, cacheBust: false });
+      let blob = await (await fetch(url)).blob();
+      if (o.ratio === '916') blob = await story(blob);
+      files.push(new File([blob], `dayzine-${c.date}-${i + 1}${o.ratio === '916' ? '-story' : ''}.png`, { type: 'image/png' }));
     }
     return files;
   } finally { h.remove(); }
@@ -118,7 +151,7 @@ export async function cardImages(c) {
 
 export async function saveImages(files) {
   if (navigator.canShare && navigator.canShare({ files })) {
-    try { await navigator.share({ files }); return 'shared'; } catch (e) { if (e.name === 'AbortError') return 'cancel'; }
+    try { await navigator.share({ files }); return 'shared'; } catch (e) { if (e.name === 'AbortError') return 'cancel'; if (e.name === 'NotAllowedError') return 'again'; }   // 아이폰: 이미지를 만드는 사이 누른 효과가 끝나면 한 번 더 눌러야 해요
   }
   for (const f of files) {
     const a = document.createElement('a'); a.href = URL.createObjectURL(f); a.download = f.name;
