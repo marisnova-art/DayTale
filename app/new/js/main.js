@@ -281,7 +281,8 @@ function viewWrite({ fmt, id }) {
   // 키보드를 내린 스타일 보기(큰 카드 + 3줄)와 키보드를 올린 쓰기 보기(1줄). 모든 줄은 같은 7칸이라 세로로 맞아요 (늘어도 최대 8칸)
   // 1줄 = 탭: 스타일 키보드 · 서식 · 글꼴 · 배경 · 셔플 · 되돌리기 · 다시하기 / 쓰기: 키보드 · 이모티콘 · 새 장 · 사진 · (빈칸) · 되돌리기 · 다시하기
   // 2줄 = 고른 탭의 선택지 (서식: 크기 · 좌우 · 위아래 / 글꼴: ‹ › + 이름 / 배경: 사진 · 밝게어둡게 + 색)
-  const T1 = [['kb', ''], ['fmt', 's'], ['font', 's'], ['bg', 's'], [f.tools.filter ? 'filter' : 'shuf', 's'], ['emo', 'w'], ['page', 'w'], ['photo', 'w'], ['', 'w'], ['undo', ''], ['redo', '']];
+  // 포토 포맷은 쓰는 중 줄에 사진 칸이 없어요 (팔레트 1칸 · 빈 장 가운데 버튼에서 골라요)
+  const T1 = [['kb', ''], ['fmt', 's'], ['font', 's'], ['bg', 's'], [f.tools.filter ? 'filter' : 'shuf', 's'], ['emo', 'w'], ['page', 'w'], [f.tools.bg === 'photo' ? '' : 'photo', 'w'], ['', 'w'], ['undo', ''], ['redo', '']];
   app.innerHTML = `<div class="wr ${rich ? 'rich' : 'plain'}">
     <header class="top"><button class="cb" data-a="back" aria-label="뒤로">${ic('back')}</button><div class="nm stt"></div><button class="cb w" data-a="ok" aria-label="완료">${ic('check')}</button></header>
     <div class="area"><section class="stage"></section></div>

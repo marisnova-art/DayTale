@@ -85,7 +85,7 @@ export const playing = () => cur;
 export function stop() {
   if (!cur) return;
   cancelAnimationFrame(cur.raf); cur.v.pause(); cur.v.style.cssText = 'width:1px;height:1px;'; shelfEl().appendChild(cur.v);
-  const c = cur.cv.getContext('2d'); c.clearRect(0, 0, cur.cv.width, cur.cv.height);   // 멈춘 카드는 커버 사진이 보여요
+  const c = cur.cv.getContext('2d'); c.clearRect(0, 0, cur.cv.width, cur.cv.height); cur.cv.style.visibility = '';   // 멈춘 카드는 커버 사진이 보여요
   cur = null;
 }
 // cv = 카드 안 영상 캔버스, b = 그 장 배경 값, fid = 카드 필터
@@ -93,8 +93,10 @@ export function start(cv, b, fid, { paused = false, onTick } = {}) {
   if (cur && cur.cv === cv && cur.b === b && cur.fid === fid) { cur.onTick = onTick; setPaused(paused); return cur; }
   const keep = cur && cur.b.vd === b.vd ? cur.v.currentTime : null;
   stop();
-  const v = videoOf(b.vd), me = { cv, v, b, fid, paused, lv: { lo: 0, hi: 1 }, raf: 0, onTick, key: '' };
+  const v = videoOf(b.vd), me = { cv, v, b, fid, paused, lv: { lo: 0, hi: 1 }, raf: 0, onTick, key: '', fr: 0 };
   cur = me;
+  // 새 장면이 올 때만 그려요 (화면은 초당 120번이어도 영상은 30장 정도라 필터 일이 크게 줄어요)
+  if (v.requestVideoFrameCallback) { const nf = () => { if (cur !== me) return; me.fr++; v.requestVideoFrameCallback(nf); }; v.requestVideoFrameCallback(nf); }
   v.style.cssText = `position:absolute;left:0;top:0;width:100%;aspect-ratio:4/5;object-fit:cover;object-position:${b.x ?? 50}% ${b.y ?? 50}%;pointer-events:none;`; cv.before(v);   // 화면에 보이는 자리에 있어야 아이폰이 계속 재생해요 (위 캔버스가 덮어요)
   levels(b).then(l => { me.lv = l; me.key = ''; });
   const t0 = b.t0 || 0, len = lenOf(b);
@@ -104,6 +106,7 @@ export function start(cv, b, fid, { paused = false, onTick } = {}) {
     if (cur !== me) return;
     me.raf = requestAnimationFrame(loop);
     if (!cv.isConnected) return stop();
+    if (document.hidden) { if (!v.paused) v.pause(); return; }   // 앱이 뒤로 가거나 화면이 꺼지면 멈춰요 (돌아오면 아래에서 다시 재생)
     const s = me.b.t0 || 0, l = lenOf(me.b);
     if (!me.paused && !me.scrub && (v.currentTime >= s + l - .04 || v.currentTime < s - .3)) { v.currentTime = s; v.play().catch(() => {}); }
     if (!me.paused && !me.scrub && v.paused && v.readyState >= 2) v.play().catch(() => {});
@@ -133,15 +136,20 @@ export function scrubEnd(play = true) {
 // 장면 하나 그리기: 카드 4:5 칸을 고른 위치(x · y)로 꽉 채워 자르고, 필터 · 노이즈를 걸어요
 function paint(me) {
   const { cv, v, b } = me; if (v.readyState < 2 || !v.videoWidth) return;
-  const W = Math.round(cv.clientWidth * Math.min(2, devicePixelRatio || 1)); if (!W) return;
+  const f = filterOf(me.fid), raw = !f.m && !b.grain;
+  // 필터 · 노이즈가 없으면 그리지 않고 영상 그대로 보여 줘요 (일이 거의 없어요)
+  if (raw) { if (cv.style.visibility !== 'hidden') { cv.style.visibility = 'hidden'; } const op = `${b.x ?? 50}% ${b.y ?? 50}%`; if (v.style.objectPosition !== op) v.style.objectPosition = op; return; }
+  cv.style.visibility = '';
+  // 카드 크기에 맞춘 해상도 (가로 최대 720): 필요 이상으로 크게 그리지 않아요
+  const W = Math.min(720, Math.round(cv.clientWidth * Math.min(2, devicePixelRatio || 1))); if (!W) return;
   const H = Math.round(W * 1.25);
-  const key = [v.currentTime, W, b.x, b.y, me.fid, b.grain, me.lv.lo].join();
-  if (me.paused && key === me.key) return;   // 멈춰 있고 바뀐 게 없으면 다시 안 그려요
+  const key = [v.requestVideoFrameCallback ? me.fr : Math.round(v.currentTime * 30), v.paused ? v.currentTime : '', W, b.x, b.y, me.fid, b.grain, me.lv.lo].join();
+  if (key === me.key) return;   // 새 장면도 바뀐 것도 없으면 다시 안 그려요
   me.key = key;
   if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
   if (work.width !== W || work.height !== H) { work.width = W; work.height = H; }
   const s = Math.max(W / v.videoWidth, H / v.videoHeight), dw = v.videoWidth * s, dh = v.videoHeight * s;
   wc.drawImage(v, (W - dw) * (b.x ?? 50) / 100, (H - dh) * (b.y ?? 50) / 100, dw, dh);
-  const f = filterOf(me.fid), out = (f.m || b.grain) ? apply(work, f, !!b.grain, me.lv.lo, me.lv.hi) : null;
+  const out = apply(work, f, !!b.grain, me.lv.lo, me.lv.hi);
   cv.getContext('2d').drawImage(out || work, 0, 0);
 }
