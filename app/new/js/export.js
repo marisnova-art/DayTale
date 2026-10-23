@@ -74,7 +74,7 @@ async function textPages(c, W, ratio) {
     const tx = pg.querySelector('.tx'), pad = parseFloat(getComputedStyle(tx).paddingTop), avail = H - 2 * pad;
     const ls = lines(tx).map(([t, b]) => [t - pad, b - pad]), st = starts(ls, avail);
     st.forEach((off, i) => {
-      const q = pg.cloneNode(true); q.classList.remove('long'); q.querySelectorAll('.brk').forEach(b => b.remove());
+      const q = pg.cloneNode(true); q.classList.remove('long'); q.querySelectorAll('.brk, .bgi.ph.more').forEach(b => b.remove());   // 나뉜 장마다 사진은 맨 위 한 장(4:5)
       const qtx = q.querySelector('.tx'); qtx.style.justifyContent = 'flex-start';
       clipTo(qtx, off, st[i + 1] ? st[i + 1] - off : avail);
       out.push(q);
@@ -102,7 +102,7 @@ export async function cardImages(c) {
   const W = 1080, H = 1350;
   const { h, nodes } = await buildPages(c, W, 1);
   try {
-    const fontEmbedCSS = await fontCss(cardText(c) + '0123456789.·/ 일월화수목금토요', c.fmt === 'text' ? c.font || 'serif' : 'sans');
+    const fontEmbedCSS = await fontCss(cardText(c) + (c.place || '') + '0123456789.·/ 일월화수목금토요', c.fmt === 'text' ? c.font || 'serif' : 'sans');
     const files = [];
     for (const [i, n] of nodes.entries()) {
       const url = await window.htmlToImage.toPng(n, { width: W, height: H, pixelRatio: 1, fontEmbedCSS, cacheBust: false });

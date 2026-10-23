@@ -242,7 +242,7 @@ function viewWrite({ fmt, id }) {
   let card;
   if (id) card = S.card(id);
   else if (fmt === 'draft') card = S.draft()?.card;
-  else { card = blank(fmt, S.today()); if (card.fmt === 'text') card.font = fontOf(S.pref('font', card.font)).id; }   // 새 카드는 마지막에 쓴 글꼴로
+  else { card = blank(fmt, S.today()); if (card.fmt === 'text') { card.font = fontOf(S.pref('font', card.font)).id; card.datePos = S.pref('datePos', card.datePos); } }   // 새 카드는 마지막에 쓴 글꼴 · 날짜 자리로
   if (!card || !FORMATS[card.fmt]) return go('#/');
   const f = FORMATS[card.fmt], rich = card.fmt === 'text';
   if (!rich && card.html == null) { card.html = renderCard(card).querySelector('.rb').innerHTML; card.html = clean(card.html); delete card.text; }
@@ -774,7 +774,7 @@ function viewWrite({ fmt, id }) {
     delete card.sample; S.saveCard(card);
     const pl = (card.place || '').trim();   // 최근 장소 (장소 칸에서 다시 고를 수 있게)
     if (pl) S.setPref('places', [pl, ...S.pref('places', []).filter(x => x !== pl)].slice(0, 20));
-    if (card.fmt === 'text') S.setPref('font', card.font);   // 다음 새 카드는 이 글꼴로 시작
+    if (card.fmt === 'text') { S.setPref('font', card.font); S.setPref('datePos', card.datePos || 'top'); }   // 다음 새 카드는 이 글꼴로 시작
     // 다 됐다는 표시: 가운데 큰 체크가 잠깐 떴다가 피드로
     const ok = $('[data-a=ok]'); ok.disabled = true; document.activeElement?.blur?.();
     const mk = document.createElement('div'); mk.className = 'okmark'; mk.innerHTML = `<span>${ic('check')}</span>`; document.body.appendChild(mk);

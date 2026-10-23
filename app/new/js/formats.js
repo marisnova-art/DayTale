@@ -150,14 +150,14 @@ function bgLayer(c, page, pages) {
 function text(c, { edit = false } = {}) {
   const el = document.createElement('div');
   el.className = 'cd text' + (edit ? ' edit' : '');
-  const fo = fontOf(c.font), serif = fo.gen === 'serif';
+  const fo = fontOf(c.font);
   const pages = (c.pages?.length ? c.pages : ['']).map(h => soft(h, edit));
-  const dp = c.datePos || 'top';
+  const dp = c.datePos || 'top';   // 예전 카드는 위. 새 글카드는 없음에서 시작해요(blank)
   const info = esc([dateLine(c.date), (c.place || '').trim()].filter(Boolean).join(' · '));
   const ex = FORMATS.text.sample.pages[0].replace(/<[^>]+>/g, '');
   el.innerHTML = pages.map((h, i) => {
     const { html, ink } = bgLayer(c, i, pages.length);
-    const date = `<div class="dt" style="font-size:${{ s: 2.8, m: 3.4, l: 4.2 }[c.size] || 3.4}cqw;font-family:${serif ? fontCssOf(fo) : "'Pretendard Variable', sans-serif"}">${info}</div>`;   // 날짜 줄도 글자 크기를 따라가요 (작은 = 예전 크기)
+    const date = `<div class="dt" style="font-size:${(({ s: 2.8, m: 3.4, l: 4.2 }[c.size] || 3.4) * fo.k).toFixed(3)}cqw;font-family:${fontCssOf(fo).replace(/"/g, '&quot;')}${fo.id === 'sans' ? '' : ';letter-spacing:.04em'}">${info}</div>`;   // 날짜 줄도 카드 글꼴 · 글자 크기를 따라가요 (글꼴마다 크기 보정)
     return `<section class="pg" data-i="${i}" style="color:${ink}">${html}
       <div class="tx" data-k="${fo.k}" data-sz="${SIZES[c.size] || SIZES.m}" style="font-family:${fontCssOf(fo).replace(/"/g, '&quot;')};line-height:${fo.lh};letter-spacing:${fo.ls || 'normal'};justify-content:${{ t: 'flex-start', m: 'center', b: 'flex-end' }[pageAlign(c, i).v || 'm']};text-align:${{ l: 'left', c: 'center', r: 'right' }[pageAlign(c, i).h || 'l']}">
         ${dp === 'top' && i === 0 ? date : ''}
@@ -193,6 +193,18 @@ export function starts(ls, avail) {
   for (const [t, b] of ls) if (b - base > avail && t > base) { base = t; s.push(t); }
   return s;
 }
+// 내 사진은 늘 4:5 한 장 크기로 깔아요. 긴 장은 저장할 때 나뉘는 자리마다 같은 사진을 한 장씩 (쓰는 화면 = 저장 결과)
+function photoTiles(pg, tx) {
+  pg.querySelectorAll('.bgi.ph.more').forEach(b => b.remove());
+  const ph = pg.querySelector('.bgi.ph'); if (!ph) return;
+  const W = pg.offsetWidth, H = W * 1.25;
+  ph.style.height = pg.classList.contains('long') ? H + 'px' : '';
+  if (!pg.classList.contains('long')) return;
+  const pad = parseFloat(getComputedStyle(tx).paddingTop);
+  starts(lines(tx).map(([t, b]) => [t - pad, b - pad]), H - 2 * pad).slice(1).forEach(off => {
+    const m = ph.cloneNode(); m.classList.add('more'); m.style.top = (pad + off) + 'px'; ph.after(m);
+  });
+}
 function fitText(el) {
   el.querySelectorAll('.pg').forEach(pg => {
     const tx = pg.querySelector('.tx'); if (!tx) return;
@@ -204,6 +216,7 @@ function fitText(el) {
     tx.style.fontSize = px((+tx.dataset.sz || 65) * (+tx.dataset.k || 1));
     if (over()) pg.classList.add('long');
     tx.style.justifyContent = jc;
+    photoTiles(pg, tx);
     // 쓰는 화면: 저장할 때 나뉠 자리(줄 사이)에 점선. 저장과 같은 방법으로 재서 장 수가 같아요
     if (pg.classList.contains('long') && el.classList.contains('edit')) {
       const pad = parseFloat(getComputedStyle(tx).paddingTop), st = starts(lines(tx).map(([t, b]) => [t - pad, b - pad]), pg.offsetWidth * 1.25 - 2 * pad);
@@ -239,7 +252,7 @@ export const ORDER = ['rebus', 'text'];
 export function blank(fmt, date) {
   return fmt === 'rebus'
     ? { fmt, date, place: '', html: '', seed: newSeed(), size: 'm', align: { h: 'l', v: 't' }, datePos: 'bottom' }
-    : { fmt, date, place: '', pages: [''], bg: { id: 'g1', dim: 'dark', seed: newSeed() }, align: { h: 'l', v: 'm' }, datePos: 'top', font: 'serif', size: 'm' };
+    : { fmt, date, place: '', pages: [''], bg: { id: 'g1', dim: 'dark', seed: newSeed() }, align: { h: 'l', v: 'm' }, datePos: 'none', font: 'serif', size: 'm' };
 }
 export const sampleCard = (fmt, date) => ({ ...blank(fmt, date), ...structuredClone(FORMATS[fmt].sample), sample: true });
 
