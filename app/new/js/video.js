@@ -99,7 +99,7 @@ export function start(cv, b, fid, { paused = false, onTick } = {}) {
   if (v.requestVideoFrameCallback) { const nf = () => { if (cur !== me) return; me.fr++; v.requestVideoFrameCallback(nf); }; v.requestVideoFrameCallback(nf); }
   // 화면에 보이는 자리에 있어야 아이폰이 계속 재생해요 (위 캔버스가 덮어요).
   // 처음엔 거의 투명하게: 맞는 장면이 올 때까지 커버 사진이 보이고, 장면이 오면 0.25초에 걸쳐 나타나요 (검은 화면 · 앞 영상 장면 · 깜빡임 없이)
-  v.style.cssText = `position:absolute;left:0;top:0;width:100%;aspect-ratio:${1 / me.ar};object-fit:cover;object-position:${b.x ?? 50}% ${b.y ?? 50}%;pointer-events:none;opacity:.01;transition:opacity .25s ease;`; cv.before(v);
+  v.style.cssText = `position:absolute;left:0;top:0;width:100%;height:${Math.round((cv.clientWidth || cv.parentNode.clientWidth) * me.ar)}px;object-fit:cover;background:transparent;object-position:${b.x ?? 50}% ${b.y ?? 50}%;pointer-events:none;opacity:.01;transition:opacity .25s ease;`; cv.before(v);
   cv.style.transition = 'opacity .25s ease'; cv.style.opacity = '0';
   levels(b).then(l => { me.lv = l; me.key = ''; });
   const t0 = b.t0 || 0, len = lenOf(b);
@@ -148,15 +148,12 @@ const frame = (v, paused) => new Promise(ok => {
   if (paused || !v.requestVideoFrameCallback) return ready(v).then(() => paused ? ok() : v.addEventListener('timeupdate', ok, { once: true }));
   v.requestVideoFrameCallback(() => ok());
 });
-const show = me => { const raw = rawOf(me); me.v.style.opacity = raw ? '1' : '.01'; me.cv.style.opacity = raw ? '0' : '1'; };
-const rawOf = me => !filterOf(me.fid).m && !me.b.grain;
+// 늘 캔버스로 보여 줘요. 영상은 안 보이게(.01) 두고 장면만 그려요: 되감기 · 버퍼링 동안 아이폰이 영상을 검게 칠해도 캔버스엔 마지막 장면이 남아요
+const show = me => { me.v.style.opacity = '.01'; me.cv.style.opacity = '1'; };
 // 장면 하나 그리기: 카드 칸을 고른 위치(x · y)로 꽉 채워 자르고, 필터 · 노이즈를 걸어요
 function paint(me) {
-  const { cv, v, b } = me; if (!me.live || v.readyState < 2 || !v.videoWidth) return;
-  const f = filterOf(me.fid), raw = rawOf(me);
-  if (me.raw !== raw) { me.raw = raw; show(me); }
-  // 필터 · 노이즈가 없으면 그리지 않고 영상 그대로 보여 줘요 (일이 거의 없어요)
-  if (raw) { const op = `${b.x ?? 50}% ${b.y ?? 50}%`; if (v.style.objectPosition !== op) v.style.objectPosition = op; return; }
+  const { cv, v, b } = me; if (!me.live || v.seeking || v.readyState < 2 || !v.videoWidth) return;   // 되감는 중엔 마지막 장면을 그대로
+  const f = filterOf(me.fid);
   // 카드 크기에 맞춘 해상도 (가로 최대 720): 필요 이상으로 크게 그리지 않아요
   const W = Math.min(720, Math.round(cv.clientWidth * Math.min(2, devicePixelRatio || 1))); if (!W) return;
   const H = Math.round(W * me.ar);

@@ -25,7 +25,8 @@ export const arOf = c => AR[c?.ratio] || 1.25;
 export const shape = (el, ar) => { el.dataset.ar = ar; el.classList.toggle('r916', ar > 1.5); el.classList.toggle('r11', ar < 1.1); return el; };
 // 정보 줄 = 날짜 · 장소 (각각 켜고 끄기), 자리는 위 · 아래. 서명은 늘 맨 아래 왼쪽 · 가운데 · 오른쪽 (모든 장)
 export const dateOn = c => c.showDate ?? (!!c.datePos && c.datePos !== 'none');
-export const placeOn = c => !!(c.place || '').trim() && !c.placeOff;
+export const placeOn = c => dateOn(c) && !!(c.place || '').trim() && !c.placeOff;   // 장소는 날짜 줄에 같이 (줄을 끄면 같이 숨어요)
+export const dhOf = c => ({ l: 'left', c: 'center', r: 'right' }[c.dh] || 'left');   // 날짜 줄 좌 · 중 · 우
 export const infoPos = c => c.datePos === 'top' || c.datePos === 'bottom' ? c.datePos : c.fmt === 'rebus' ? 'bottom' : 'top';
 export const signOf = c => c.sg && (c.signTxt || '').trim() ? c.sg : '';
 // 글자 크기 5단계 · 줄 간격 3단계 · 위아래 5자리
@@ -120,7 +121,7 @@ function rebus(c, { edit = false } = {}) {
   el.classList.toggle('hsg', !!sg); el.style.setProperty('--dl', fz + 'cqw');
   el.innerHTML = `<div class="rb body" data-sz="${RB_SIZES[c.size] || RB_SIZES.m}" data-v="${a.v || 't'}" style="${ta}" ${edit ? 'contenteditable="true" spellcheck="false" autocapitalize="off"' : ''}>${empty && !edit ? '<span class="ph">오늘 있었던 일을 써 보세요.</span>' : html}</div>
     ${edit ? `<div class="rb exm" style="${ta}">${FORMATS.rebus.sample.html}</div>` : ''}
-    <div class="foot" style="font-size:${fz}cqw"><span>${foot}</span></div>${sg ? `<div class="sgn" data-h="${sg}" style="font-size:${fz}cqw">${esc(c.signTxt)}</div>` : ''}`;
+    <div class="foot" style="font-size:${fz}cqw;justify-content:${{ left: 'flex-start', center: 'center', right: 'flex-end' }[dhOf(c)]}"><span>${foot}</span></div>${sg ? `<div class="sgn" data-h="${sg}" style="font-size:${fz}cqw">${esc(c.signTxt)}</div>` : ''}`;
   shape(el, arOf(c));
   placeObjects(el.querySelector('.rb'), c.seed);
   el.querySelectorAll('.o').forEach(o => { o.dataset.m = MOTION[o.dataset.k] || 'tw'; });   // 예전에 저장된 그림도 움직임 종류를 붙여요
@@ -212,7 +213,7 @@ function text(c, { edit = false } = {}) {
   const ex = (FORMATS[c.fmt] || FORMATS.text).sample.pages[0].replace(/<[^>]+>/g, '');
   el.innerHTML = pages.map((h, i) => {
     const { html, ink } = bgLayer(c, i, pages.length);
-    const date = info ? `<div class="dt ${dp === 'top' ? 'dup' : 'ddn'}" style="font-size:${dl}cqw;font-family:${ff}${ls}">${info}</div>` : '';   // 날짜 줄도 카드 글꼴 · 글자 크기를 따라가요 (글꼴마다 크기 보정)
+    const date = info ? `<div class="dt ${dp === 'top' ? 'dup' : 'ddn'}" style="text-align:${dhOf(c)};font-size:${dl}cqw;font-family:${ff}${ls}">${info}</div>` : '';   // 날짜 줄도 카드 글꼴 · 글자 크기를 따라가요 (글꼴마다 크기 보정)
     const sig = sg ? `<div class="sgn" data-h="${sg}" style="font-size:${dl}cqw;font-family:${ff}${ls}">${esc(c.signTxt)}</div>` : '';   // 서명: 모든 장 맨 아래
     return `<section class="pg${sg ? ' hsg' : ''}" data-i="${i}" style="color:${c.ink || ink};--dl:${dl}cqw">${html}
       <div class="tx" data-k="${fo.k}" data-sz="${SIZES[c.size] || SIZES.m}" data-v="${pageAlign(c, i).v || 'm'}" style="font-family:${ff};line-height:${(fo.lh * (LH[c.lh] || 1)).toFixed(3)};letter-spacing:${fo.ls || 'normal'};text-align:${{ l: 'left', c: 'center', r: 'right' }[pageAlign(c, i).h || 'l']}${c.bold ? ';font-weight:700' : ''}">

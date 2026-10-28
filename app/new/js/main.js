@@ -267,7 +267,7 @@ function viewWrite({ fmt, id }) {
   else if (fmt === 'draft') card = S.draft()?.card;
   else {   // 새 카드는 마지막에 쓴 글꼴 · 날짜 줄 · 비율 · 서명 자리로
     card = blank(fmt, S.today());
-    if (card.fmt === 'text') { card.font = fontOf(S.pref('font', card.font)).id; const dp = S.pref('datePos', ''); if (dp === 'top' || dp === 'bottom') card.datePos = dp; }
+    if (card.fmt === 'text') { card.font = fontOf(S.pref('font', card.font)).id; const dp = S.pref('datePos', ''); if (dp === 'top' || dp === 'bottom') card.datePos = dp; const dh = S.pref('dh', ''); if (dh) card.dh = dh; }
     card.showDate = S.pref('showDate:' + card.fmt, dateOn(card));
     card.ratio = S.pref('ratio', '45'); card.sg = S.pref('sg', ''); card.signTxt = S.pref('sign', '');
   }
@@ -299,11 +299,12 @@ function viewWrite({ fmt, id }) {
     <div class="tb g6">${T1.map(([k, m]) => k ? `<button class="k t ${m} ${k === 'ratio' ? 'rt' : ''}" data-t="${k}" aria-label="${k}">${k === 'ratio' ? '' : ic(k)}</button>` : `<span class="${m}"></span>`).join('')}</div>
     <div class="st2 g6"></div>
     <div class="st3 g6">
-      <button class="wide w2 dt" aria-label="날짜">${ic('date')}<span></span></button>
-      <label class="wide w2 pl">${ic('pin')}<input class="pi" maxlength="20" placeholder="장소" aria-label="장소" enterkeyhint="done"></label>
-      <button class="wide w2 sgb" aria-label="서명"></button>
-      <label class="wide sgi">${ic('pen')}<input class="si" maxlength="24" placeholder="서명 (예: @andrew)" aria-label="서명" enterkeyhint="done"></label>
-      <button class="k tl dp" aria-label="날짜 줄 위치"></button><button class="k vio svb" aria-label="사진 저장">${ic('save')}</button><button class="k on pok" aria-label="확인">${ic('check')}</button>
+      <button class="wide w4 inf" aria-label="날짜 · 장소 · 서명"><span></span></button><button class="k dpc" aria-label="날짜 줄 자리"></button><button class="k sgc" aria-label="서명 자리"></button><button class="wide w2 vio svb" aria-label="이미지 저장">${ic('save')}<span>이미지 저장</span></button>
+    </div>
+    <div class="ipn">
+      <div class="g6"><button class="wide w7 dt" aria-label="날짜">${ic('date')}<span></span></button><button class="k on ok" aria-label="확인">${ic('check')}</button></div>
+      <div class="g6"><label class="wide w8 pl">${ic('pin')}<input class="pi" maxlength="20" placeholder="장소" aria-label="장소" enterkeyhint="next"></label></div>
+      <div class="g6"><label class="wide w8 sl">${ic('pen')}<input class="si" maxlength="24" placeholder="서명" aria-label="서명" enterkeyhint="done"></label></div>
     </div>
     <div class="recent"></div>
     <div class="panel"></div></div>`;
@@ -351,14 +352,14 @@ function viewWrite({ fmt, id }) {
   const sizes = { w: 0, v: 0 };
   function sizeCard() {
     // 쓰기 보기 = 화면 폭(양옆 16). 스타일 보기 = 카드 한 장(4:5)이 다 보이는 크기 (작은 폰에서는 조금 좁아져요)
-    const area = $('.area'), styleView = !wr.classList.contains('typ') && !wr.classList.contains('plc') && !wr.classList.contains('sgc') && !root.classList.contains('kb-open');
+    const area = $('.area'), styleView = !wr.classList.contains('typ') && !wr.classList.contains('inf') && !root.classList.contains('kb-open');
     sizes.w = Math.floor(Math.max(160, wr.clientWidth - 32));
     if (styleView && area.clientHeight) sizes.v = Math.min(sizes.w, Math.floor((area.clientHeight - 20) / arOf(card)));
     else if (!sizes.v) sizes.v = sizes.w;
     applySize(true);
   }
   function applySize(force) {
-    const writing = wr.classList.contains('typ') || wr.classList.contains('plc') || wr.classList.contains('sgc') || root.classList.contains('kb-open') || root.classList.contains('pan');
+    const writing = wr.classList.contains('typ') || wr.classList.contains('inf') || root.classList.contains('kb-open') || root.classList.contains('pan');
     const cw = writing ? sizes.w : sizes.v;
     if (!force && wr.style.getPropertyValue('--cw') === cw + 'px') return;
     wr.style.setProperty('--cw', cw + 'px'); wr.style.setProperty('--ar', arOf(card));
@@ -388,73 +389,76 @@ function viewWrite({ fmt, id }) {
   }
   stage.addEventListener('scroll', () => count(), { passive: true });
 
-  /* 아래 줄: 날짜 2칸 · 장소 2칸 · 서명 2칸 · 날짜 줄 위치 · 사진 저장. 켜진 칸을 누르면 꺼지고, 꺼진 칸을 누르면 고르는 판(달력 · 입력)이 열려요 */
-  const dtb = $('.st3 .dt'), pi = $('.st3 .pi'), dpb = $('.st3 .dp'), sgb = $('.st3 .sgb'), si = $('.st3 .si');
-  const SGN = { l: ['sl', '서명 · 왼쪽'], c: ['sc', '서명 · 가운데'], r: ['sr', '서명 · 오른쪽'] }, SGC = { '': 'l', l: 'c', c: 'r', r: '' };
+  /* 아래 줄: 날짜 · 장소 · 서명 글자(4칸, 누르면 키보드 화면에서 셋을 같이 입력) · 날짜 줄 자리(상좌 → … → 하우 → 꺼짐) · 서명 자리(좌 → 중 → 우 → 꺼짐) · 이미지 저장(2칸).
+     키보드 화면은 입력만: 날짜(누르면 달력) · 장소 · 서명. 자리는 카드 전체가 보이는 쓰기 화면에서 정해요 */
+  const ipn = $('.ipn'), infb = $('.st3 .inf'), dpc = $('.st3 .dpc'), sgc = $('.st3 .sgc'), dtb = $('.ipn .dt'), pi = $('.ipn .pi'), si = $('.ipn .si'), recent = $('.recent');
+  const DPS = [['top', 'l', '상좌'], ['top', 'c', '상중'], ['top', 'r', '상우'], ['bottom', 'l', '하좌'], ['bottom', 'c', '하중'], ['bottom', 'r', '하우']];
+  const SGN = { l: '서명 · 왼쪽', c: '서명 · 가운데', r: '서명 · 오른쪽' };
   function paintMeta() {
-    const dOn = dateOn(card), pOn = placeOn(card), sg = signOf(card);
-    $('.st3 .dt span').textContent = dOn ? dateChip(card.date) : '날짜'; dtb.classList.toggle('mo', !dOn);
-    if (document.activeElement !== pi) pi.value = pOn ? card.place : '';
-    $('.st3 .pl').classList.toggle('mo', !pOn);
-    sgb.innerHTML = ic(sg ? SGN[sg][0] : 'sc') + `<span>${esc(sg ? card.signTxt : '서명')}</span>`; sgb.classList.toggle('mo', !sg);
-    dpb.innerHTML = ic(infoPos(card) === 'bottom' ? 'dB' : 'dT'); dpb.classList.toggle('hid', !f.tools.dp);
+    const dOn = dateOn(card), sg = signOf(card);
+    const parts = [dOn ? dateChip(card.date) : '', placeOn(card) ? card.place.trim() : '', sg ? card.signTxt.trim() : ''].filter(Boolean);   // 켜 둔 것만 카드에 보이는 그대로
+    $('span', infb).textContent = parts.join(' · ') || '날짜 · 장소 · 서명'; infb.classList.toggle('mo', !parts.length);
+    $('span', dtb).textContent = dateChip(card.date);
+    if (document.activeElement !== pi) pi.value = card.place || '';
+    if (document.activeElement !== si) si.value = card.signTxt || '';
+    dpc.innerHTML = ic(dOn ? 'p' + infoPos(card)[0] + (card.dh || 'l') : 'poff'); dpc.classList.toggle('hid', !f.tools.dp);
+    sgc.innerHTML = ic(sg ? { l: 'sl', c: 'sc', r: 'sr' }[sg] : 'soff');
   }
-  // 날짜: 꺼져 있으면 아이폰 달력 대신 키보드 자리에 우리 달력 판 (어느 폰에서나 같은 모양). 날짜를 고르면 켜져요
-  dtb.addEventListener('pointerdown', e => e.preventDefault());
-  dtb.onclick = () => {
-    flush(); if (st.panel === 'date') return closePanel(false);
-    if (dateOn(card)) { card.showDate = false; paintMeta(); push(); draw(); return pop('날짜 끔'); }
-    st.calM = card.date.slice(0, 7); openPanel('date');
+  const infOpen = () => wr.classList.contains('inf');
+  function openInf() { if (st.panel) closePanel(false); wr.classList.add('inf'); paintMeta(); applySize(true); }
+  function closeInf() {
+    if (!infOpen()) return;
+    if (st.panel === 'date') closePanel(false);
+    wr.classList.remove('inf', 'ki'); document.activeElement?.blur?.(); flush(); paintMeta(); applySize(true);
+    setTimeout(() => { if (!document.activeElement?.matches?.('input, .body')) { scrollTo(0, 0); kb(); } }, 300);
+  }
+  // 날짜 · 장소 · 서명 칸: 키보드 화면을 열고 장소에 커서 (아이폰은 누르는 순간에 커서를 넣어야 키보드가 올라와요)
+  infb.addEventListener('pointerdown', e => { e.preventDefault(); openInf(); pi.focus({ preventScroll: true }); });
+  $$('button', ipn).forEach(b => b.addEventListener('pointerdown', e => e.preventDefault()));
+  $('.ok', ipn).onclick = closeInf;
+  // 날짜: 키보드 자리에 우리 달력 판 (세 줄은 위에 그대로). 고르면 다시 장소로
+  dtb.onclick = () => { flush(); if (st.panel === 'date') return closePanel(false); document.activeElement?.blur?.(); st.calM = card.date.slice(0, 7); openPanel('date'); };
+  // 날짜 줄 자리: 상좌 → 상중 → 상우 → 하좌 → 하중 → 하우 → 꺼짐 (꺼도 날짜 · 장소 값은 그대로)
+  dpc.addEventListener('pointerdown', e => e.preventDefault());
+  dpc.onclick = () => {
+    flush();
+    const i = dateOn(card) ? DPS.findIndex(([v, h]) => v === infoPos(card) && h === (card.dh || 'l')) : -1, n = DPS[i + 1];
+    if (n) { card.showDate = true; card.datePos = n[0]; card.dh = n[1]; pop(n[2], null, '날짜 줄'); } else { card.showDate = false; pop('꺼짐', null, '날짜 줄'); }
+    paintMeta(); push(); draw();
   };
-  pi.addEventListener('input', () => { card.place = pi.value; card.placeOff = false; draw(); pushLater(); });
-  pi.addEventListener('keydown', e => { if (e.key === 'Enter') pi.blur(); });
-  // 장소를 쓰는 동안: 다른 줄은 숨고 키보드 바로 위에 장소 줄 + 최근 장소 (아래 줄은 키보드에 가려지니까)
-  const recent = $('.recent');
+  // 서명 자리: 좌 → 중 → 우 → 꺼짐. 적어 둔 서명이 없으면 키보드 화면의 서명 줄로
+  sgc.addEventListener('pointerdown', e => {
+    e.preventDefault(); flush();
+    const txt = (card.signTxt || S.pref('sign', '')).trim();
+    if (!txt) { openInf(); return si.focus({ preventScroll: true }); }
+    card.signTxt = txt; card.sg = { '': 'l', l: 'c', c: 'r', r: '' }[card.sg || ''] ?? '';
+    paintMeta(); push(); draw(); pop(card.sg ? SGN[card.sg] : '서명 꺼짐');
+  });
+  // 장소: 쓰는 대로 카드에. 키보드 위에 최근 장소
   function paintRecent() {
     const q = pi.value.trim(), all = S.pref('places', []);
     const list = all.filter(x => x !== q && (!q || x.includes(q))).slice(0, 10);
     recent.innerHTML = list.map(x => `<button class="chip2">${esc(x)}</button>`).join('');
-    recent.classList.toggle('none', !list.length);
+    recent.classList.toggle('none', !list.length || document.activeElement !== pi);
     $$('button', recent).forEach((b, i) => {
       b.addEventListener('pointerdown', e => e.preventDefault());
-      b.onclick = () => { pi.value = list[i]; card.place = list[i]; card.placeOff = false; draw(); push(); pi.blur(); };
+      b.onclick = () => { pi.value = list[i]; card.place = list[i]; card.placeOff = false; paintMeta(); draw(); push(); si.focus({ preventScroll: true }); };
     });
   }
-  // 아이폰은 키보드가 덮을 자리(맨 아래)에 있는 칸을 누르면 키보드를 다르게 알려 줘요. 그래서 장소 줄을 먼저 키보드 위 자리로 올리고 커서를 넣어요.
-  // 줄 높이는 글 쓸 때 잰 이 폰의 키보드 높이(--kbh)를 써요. 다시 열면 적어 둔 장소가 들어 있어요
-  const plOpen = () => { if (st.panel) closePanel(false); pi.value = card.place || ''; wr.classList.add('plc'); paintRecent(); applySize(true); };
-  $('.st3 .pl').addEventListener('pointerdown', e => {
-    if (wr.classList.contains('plc')) return;
-    e.preventDefault();
-    if (placeOn(card)) { flush(); card.placeOff = true; paintMeta(); push(); draw(); return pop('장소 끔'); }
-    plOpen(); pi.focus({ preventScroll: true });
+  pi.addEventListener('input', () => { card.place = pi.value; card.placeOff = false; if (pi.value.trim() && !dateOn(card)) card.showDate = true; paintMeta(); paintRecent(); draw(); pushLater(); });
+  si.addEventListener('input', () => {
+    const v = si.value.trim(); card.signTxt = v;
+    if (v && !card.sg) card.sg = S.pref('sgLast', 'r');   // 서명을 적으면 켜져요 (마지막에 둔 자리, 처음엔 오른쪽)
+    paintMeta(); draw(); pushLater();
   });
-  $('.st3 .pl').addEventListener('click', e => { if (!wr.classList.contains('plc')) e.preventDefault(); });
-  pi.addEventListener('focus', () => { if (!wr.classList.contains('plc')) plOpen(); });
-  pi.addEventListener('input', paintRecent);
-  pi.addEventListener('blur', () => { wr.classList.remove('plc'); if (pi.value.trim()) card.placeOff = false; paintMeta(); applySize(true); flush(); setTimeout(() => { if (!document.activeElement?.matches?.('input, .body')) { scrollTo(0, 0); kb(); } }, 300); });
-  $('.st3 .pok').addEventListener('pointerdown', e => e.preventDefault());
-  $('.st3 .pok').onclick = () => document.activeElement?.blur?.();
-  // 서명: 누를 때마다 왼쪽 → 가운데 → 오른쪽 → 끔. 처음(적어 둔 서명이 없을 때)만 키보드 위에 서명 줄이 열려요 (고치기는 설정에서)
-  const sgOpen = () => { if (st.panel) closePanel(false); si.value = card.signTxt || S.pref('sign', ''); wr.classList.add('sgc'); applySize(true); };
-  sgb.addEventListener('pointerdown', e => {
-    e.preventDefault(); flush();
-    const txt = (card.signTxt || S.pref('sign', '')).trim();
-    if (!txt) { sgOpen(); return si.focus({ preventScroll: true }); }
-    card.signTxt = txt; card.sg = SGC[card.sg || ''] ?? ''; paintMeta(); push(); draw(); pop(card.sg ? SGN[card.sg][1] : '서명 끔');
+  pi.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); si.focus({ preventScroll: true }); } });
+  si.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); closeInf(); } });
+  [pi, si].forEach(x => {
+    x.addEventListener('focus', () => { if (!infOpen()) openInf(); if (st.panel) closePanel(false); wr.classList.add('ki'); paintRecent(); applySize(true); });
+    x.addEventListener('blur', () => { setTimeout(() => { if (!document.activeElement?.matches?.('.ipn input')) { wr.classList.remove('ki'); paintRecent(); } }, 0); if (x === si && si.value.trim()) S.setPref('sign', si.value.trim()); flush(); });
   });
-  si.addEventListener('keydown', e => { if (e.key === 'Enter') si.blur(); });
-  si.addEventListener('blur', () => {
-    wr.classList.remove('sgc'); const v = si.value.trim();
-    if (v) { S.setPref('sign', v); card.signTxt = v; if (!card.sg) card.sg = 'l'; push(); draw(); pop(SGN[card.sg][1]); }
-    paintMeta(); applySize(true); setTimeout(() => { if (!document.activeElement?.matches?.('input, .body')) { scrollTo(0, 0); kb(); } }, 300);
-  });
-  // 날짜 줄 위치: 위 ↔ 아래 (날짜 · 장소 줄만. 서명은 늘 맨 아래)
-  dpb.addEventListener('pointerdown', e => e.preventDefault());
-  dpb.addEventListener('click', () => {
-    if (!f.tools.dp) return;
-    flush(); card.datePos = infoPos(card) === 'top' ? 'bottom' : 'top'; paintMeta(); push(); draw(); pop(card.datePos === 'top' ? '날짜 줄 · 위' : '날짜 줄 · 아래');
-  });
+  // 글을 누르면 판을 닫고 쓰기로
+  stage.addEventListener('pointerdown', () => { if (infOpen()) closeInf(); }, true);
   // 사진 저장: 카드에 정한 그대로 모든 장을 바로 (쓰기 화면에 그대로 있어요. 완료 전이면 아직 쓰는 중)
   const svb = $('.st3 .svb');
   svb.addEventListener('pointerdown', e => e.preventDefault());
@@ -472,7 +476,7 @@ function viewWrite({ fmt, id }) {
 
   /* 카드 그리기. 글만 바뀌면 그 자리에서 바꾸고(키보드가 내려가지 않게), 장 수·배경·날짜 같은 틀이 바뀔 때만 새로 그려요 */
   let el = null, shape = '';
-  const look = () => [card.ratio, card.lh, card.bold, card.ink, card.showDate, card.placeOff, card.sg, card.signTxt];
+  const look = () => [card.ratio, card.lh, card.bold, card.ink, card.showDate, card.placeOff, card.sg, card.signTxt, card.dh];
   const shapeOf = () => JSON.stringify(rich ? [card.pages.length, card.bg, card.align, card.pst, card.datePos, card.date, card.place, card.font, card.size, card.filter, ...look()] : [card.date, card.place, card.size, card.align, card.datePos, ...look()]);
   const bodies = () => $$('.body', el);
   const pageOf = b => b.closest('.pg') ? +b.closest('.pg').dataset.i : 0;
@@ -965,7 +969,7 @@ function viewWrite({ fmt, id }) {
       <div class="g7">${'일월화수목금토'.split('').map(x => `<i>${x}</i>`).join('')}${cells.join('')}</div></div>`;
     $$('button', panel).forEach(x => x.addEventListener('pointerdown', e => e.preventDefault()));
     $$('[data-m]', panel).forEach(x => x.onclick = () => { const t = new Date(y, m - 1 + +x.dataset.m, 1); st.calM = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}`; panelDate(); });
-    $$('[data-d]', panel).forEach(x => x.onclick = () => { flush(); card.date = x.dataset.d; card.showDate = true; paintMeta(); push(); draw(); closePanel(false); });
+    $$('[data-d]', panel).forEach(x => x.onclick = () => { flush(); card.date = x.dataset.d; card.showDate = true; paintMeta(); push(); draw(); closePanel(false); if (infOpen()) pi.focus({ preventScroll: true }); });
   }
 
   // 이모티콘: 우리 이모티콘 81개. 굵은(색) · 선(글자색). 고르면 커서 자리에 들어가고, 이어서 고르면 그 뒤에 차례로
@@ -1010,8 +1014,8 @@ function viewWrite({ fmt, id }) {
     delete card.sample; S.saveCard(card);
     const pl = (card.place || '').trim();   // 최근 장소 (장소 칸에서 다시 고를 수 있게)
     if (pl) S.setPref('places', [pl, ...S.pref('places', []).filter(x => x !== pl)].slice(0, 20));
-    if (card.fmt === 'text') { S.setPref('font', card.font); S.setPref('datePos', infoPos(card)); }   // 다음 새 카드는 이 글꼴 · 날짜 줄 자리로 시작
-    S.setPref('ratio', card.ratio || '45'); S.setPref('sg', card.sg || ''); S.setPref('showDate:' + card.fmt, dateOn(card));
+    if (card.fmt === 'text') { S.setPref('font', card.font); S.setPref('datePos', infoPos(card)); S.setPref('dh', card.dh || 'l'); }   // 다음 새 카드는 이 글꼴 · 날짜 줄 자리로 시작
+    S.setPref('ratio', card.ratio || '45'); S.setPref('sg', card.sg || ''); if (card.sg) S.setPref('sgLast', card.sg); S.setPref('showDate:' + card.fmt, dateOn(card));
     // 다 됐다는 표시: 가운데 큰 체크가 잠깐 떴다가 피드로
     const ok = $('[data-a=ok]'); ok.disabled = true; document.activeElement?.blur?.();
     const mk = document.createElement('div'); mk.className = 'okmark'; mk.innerHTML = `<span>${ic('check')}</span>`; document.body.appendChild(mk);
