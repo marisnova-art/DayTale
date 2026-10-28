@@ -25,4 +25,4 @@ export const FONTS = [
 export const fontOf = id => FONTS.find(f => f.id === id) || FONTS[0];
 export const fontCssOf = f => `'${f.fam}', ${f.gen}`;
 // 글자 크기: 큰 · 중간 · 작은 = 카드 폭의 8% · 6% · 4.5% (1080 기준 86 · 65 · 49)
-export const SIZES = { l: 86, m: 65, s: 49 };
+export const SIZES = { xl: 108, l: 86, m: 65, s: 49, xs: 40 };

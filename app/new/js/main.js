@@ -1,10 +1,10 @@
 // 갖고 싶은 하루 · 모바일 1차: 피드 → 포맷 고르기 → 쓰기 → 완료·저장
 import { ic } from './icons.js';
 import * as S from './store.js';
-import { FORMATS, ORDER, blank, sampleCard, renderCard, fitCard, cardText, newSeed, placeObjects, dateChip, weekday, toneOf, pageBg } from './formats.js';
+import { FORMATS, ORDER, LABEL, blank, sampleCard, renderCard, fitCard, cardText, newSeed, placeObjects, dateChip, weekday, toneOf, pageBg, AR, RATIOS, arOf, dateOn, placeOn, infoPos, signOf, SIZE5, V5, dimLv, inkOn } from './formats.js';
 import { FREE, KIND, find as findBg, drawCode } from './bg.js';
 import { buildPages } from './export.js';
-import { openSave } from './save.js';
+import { saveCard, pill } from './save.js';
 import { clean, offsetsOf, rangeAt } from './rich.js';
 import { FONTS, fontOf, fontCssOf } from './fonts.js';
 import { NAMES as STK, hydrate, preloadAll } from './stickers.js';
@@ -166,7 +166,7 @@ function pageInto(view, c, onCount) {
 function feedItem(c) {
   const it = document.createElement('article'); it.className = 'fi'; it.dataset.tone = toneOf(c); if (c.id) it.dataset.id = c.id; it._card = c;
   const f = FORMATS[c.fmt];
-  it.innerHTML = `${c.sample ? '' : `<p class="when">${ago(c)}</p>`}<div class="fx"><div class="view"></div></div>
+  it.innerHTML = `${c.sample ? '' : `<p class="when"><span>${ago(c)}</span><i>${LABEL[c.fmt] || ''}</i></p>`}<div class="fx"><div class="view"></div></div>
     <div class="row">${c.sample
       ? `<div class="ours">${f.name}<i>NEW</i></div><button class="cb" data-a="use" aria-label="이 포맷으로 쓰기">${ic('pen')}</button>`
       : `<div class="l"><button class="cb ${c.mark ? 'on' : ''}" data-a="mark" aria-label="책갈피">${ic('bookmark')}</button><button class="cb" data-a="save" aria-label="사진에 저장">${ic('save')}</button><button class="cb" data-a="edit" aria-label="고치기">${ic('pen')}</button><button class="cb" data-a="del" aria-label="삭제">${ic('trash')}</button><span class="pc" hidden></span></div>`}</div>
@@ -179,7 +179,7 @@ function feedItem(c) {
   const on = (k, fn) => { const b = $(`[data-a=${k}]`, it); if (b) b.onclick = fn; };
   on('use', () => go(`#/write/${c.fmt}`));
   on('edit', () => go(`#/edit/${c.id}`));
-  on('save', () => openSave(c));
+  on('save', () => saveCard(c));
   on('mark', e => { c.mark = !c.mark; S.saveCard(c); e.currentTarget.classList.toggle('on', c.mark); toast(c.mark ? '책갈피에 넣었어요' : '책갈피에서 뺐어요'); });
   on('del', async () => {   // 한 번 물어보고 지워요. 지운 카드는 휴지통에 30일
     if (!(await ask('이 카드를 지울까요?', '삭제'))) return;
@@ -212,20 +212,22 @@ function openFocus(it, c) {
   // 짧으면 가운데, 길면 시계 줄 아래부터
   const top = Math.max((innerHeight - H) / 2, (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--safe-t')) || 0) + 16);
   box.style.marginTop = top + 'px';
+  // 피드 칸 크기로 줄이면서 칸 밖(긴 카드의 아래쪽)은 같은 움직임으로 잘라요: 위 · 아래가 함께 들어가요
+  const clip = () => `inset(0 0 ${Math.max(0, H - r.height * T / r.width)}px 0 round ${6 * T / r.width}px)`;
   const from = () => { const b = box.getBoundingClientRect(), k = r.width / T; return `translate(${r.left - b.left}px,${r.top - b.top}px) scale(${k})`; };
-  box.style.transition = 'none'; box.style.transform = from(); view.style.visibility = 'hidden';
+  box.style.transition = 'none'; box.style.transform = from(); box.style.clipPath = clip(); view.style.visibility = 'hidden';
   // 뒤 피드는 그대로(보던 자리 유지)
   ov.addEventListener('wheel', e => { if (sc.scrollHeight <= sc.clientHeight) e.preventDefault(); }, { passive: false });
-  requestAnimationFrame(() => requestAnimationFrame(() => { box.style.transition = ''; ov.classList.add('in'); box.style.transform = ''; }));
+  requestAnimationFrame(() => requestAnimationFrame(() => { box.style.transition = ''; ov.classList.add('in'); box.style.transform = ''; box.style.clipPath = 'inset(0 0 0 0 round 0px)'; }));
   ov.addEventListener('click', () => closeFocus());
-  focus = { ov, box, view, from, y: scrollY, c };
+  focus = { ov, box, view, from, clip, y: scrollY, c };
 }
 function closeFocus(now) {
   if (!focus || focus.closing) return;
   const f = focus; f.closing = true;
   const done = () => { f.view.style.visibility = ''; f.ov.remove(); if (scrollY !== f.y) scrollTo(0, f.y); focus = null; };
   if (now) return done();
-  f.ov.classList.remove('in'); f.box.style.transform = f.from();
+  f.ov.classList.remove('in'); f.box.style.transform = f.from(); f.box.style.clipPath = f.clip();
   setTimeout(done, 380);
 }
 
@@ -263,7 +265,12 @@ function viewWrite({ fmt, id }) {
   let card;
   if (id) card = S.card(id);
   else if (fmt === 'draft') card = S.draft()?.card;
-  else { card = blank(fmt, S.today()); if (card.fmt === 'text') { card.font = fontOf(S.pref('font', card.font)).id; card.datePos = S.pref('datePos', card.datePos); } }   // 새 카드는 마지막에 쓴 글꼴 · 날짜 자리로
+  else {   // 새 카드는 마지막에 쓴 글꼴 · 날짜 줄 · 비율 · 서명 자리로
+    card = blank(fmt, S.today());
+    if (card.fmt === 'text') { card.font = fontOf(S.pref('font', card.font)).id; const dp = S.pref('datePos', ''); if (dp === 'top' || dp === 'bottom') card.datePos = dp; }
+    card.showDate = S.pref('showDate:' + card.fmt, dateOn(card));
+    card.ratio = S.pref('ratio', '45'); card.sg = S.pref('sg', ''); card.signTxt = S.pref('sign', '');
+  }
   if (!card || !FORMATS[card.fmt]) return go('#/');
   const f = FORMATS[card.fmt], rich = !!f.rich;   // 장으로 쓰는 포맷(글 · 아트)
   if (!rich && card.html == null) { card.html = renderCard(card).querySelector('.rb').innerHTML; card.html = clean(card.html); delete card.text; }
@@ -283,16 +290,20 @@ function viewWrite({ fmt, id }) {
   // 1줄 = 탭: 스타일 키보드 · 서식 · 글꼴 · 배경 · 셔플 · 되돌리기 · 다시하기 / 쓰기: 키보드 · 이모티콘 · 새 장 · 사진 · (빈칸) · 되돌리기 · 다시하기
   // 2줄 = 고른 탭의 선택지 (서식: 크기 · 좌우 · 위아래 / 글꼴: ‹ › + 이름 / 배경: 사진 · 밝게어둡게 + 색)
   // 포토 포맷은 쓰는 중 줄에 사진 칸이 없어요 (팔레트 1칸 · 빈 장 가운데 버튼에서 골라요)
-  const T1 = [['kb', ''], ['fmt', 's'], ['font', 's'], ['bg', 's'], [f.tools.filter ? 'filter' : 'shuf', 's'], ['emo', 'w'], ['page', 'w'], [f.tools.bg === 'photo' ? '' : 'photo', 'w'], ['', 'w'], ['undo', ''], ['redo', '']];
+  // 8칸: 스타일 보기 = 키보드 · 비율 · 서식 · 글꼴 · 배경 · 셔플/필터 · ↶ · ↷ / 쓰기 보기 = 키보드 · 이모티콘 · 새 장 · 사진 · 빈칸 · 빈칸 · ↶ · ↷.
+  // 지금 못 쓰는 칸은 숨겨요(빈칸). 되돌리기 · 다시하기만 흐리게 남아요
+  const T1 = [['kb', ''], ['ratio', 's'], ['fmt', 's'], ['font', 's'], ['bg', 's'], [f.tools.filter ? 'filter' : 'shuf', 's'], ['emo', 'w'], ['page', 'w'], [f.tools.bg === 'photo' ? '' : 'photo', 'w'], ['', 'w'], ['', 'w'], ['undo', ''], ['redo', '']];
   app.innerHTML = `<div class="wr ${rich ? 'rich' : 'plain'}">
     <header class="top"><button class="cb" data-a="back" aria-label="뒤로">${ic('back')}</button><div class="nm stt"></div><button class="cb w" data-a="ok" aria-label="완료">${ic('check')}</button></header>
     <div class="area"><section class="stage"></section></div>
-    <div class="tb g6">${T1.map(([k, m]) => k ? `<button class="k t ${m}" data-t="${k}" aria-label="${k}">${ic(k)}</button>` : `<span class="${m}"></span>`).join('')}</div>
+    <div class="tb g6">${T1.map(([k, m]) => k ? `<button class="k t ${m} ${k === 'ratio' ? 'rt' : ''}" data-t="${k}" aria-label="${k}">${k === 'ratio' ? '' : ic(k)}</button>` : `<span class="${m}"></span>`).join('')}</div>
     <div class="st2 g6"></div>
     <div class="st3 g6">
-      <button class="wide w3 dt" aria-label="날짜">${ic('date')}<span></span></button>
-      <label class="wide w3 pl">${ic('pin')}<input class="pi" maxlength="20" placeholder="장소" aria-label="장소" enterkeyhint="done"></label>
-      <button class="k tl dp" aria-label="날짜 위치"></button><button class="k on pok" aria-label="장소 확인">${ic('check')}</button>
+      <button class="wide w2 dt" aria-label="날짜">${ic('date')}<span></span></button>
+      <label class="wide w2 pl">${ic('pin')}<input class="pi" maxlength="20" placeholder="장소" aria-label="장소" enterkeyhint="done"></label>
+      <button class="wide w2 sgb" aria-label="서명"></button>
+      <label class="wide sgi">${ic('pen')}<input class="si" maxlength="24" placeholder="서명 (예: @andrew)" aria-label="서명" enterkeyhint="done"></label>
+      <button class="k tl dp" aria-label="날짜 줄 위치"></button><button class="k vio svb" aria-label="사진 저장">${ic('save')}</button><button class="k on pok" aria-label="확인">${ic('check')}</button>
     </div>
     <div class="recent"></div>
     <div class="panel"></div></div>`;
@@ -340,17 +351,17 @@ function viewWrite({ fmt, id }) {
   const sizes = { w: 0, v: 0 };
   function sizeCard() {
     // 쓰기 보기 = 화면 폭(양옆 16). 스타일 보기 = 카드 한 장(4:5)이 다 보이는 크기 (작은 폰에서는 조금 좁아져요)
-    const area = $('.area'), styleView = !wr.classList.contains('typ') && !wr.classList.contains('plc') && !root.classList.contains('kb-open');
+    const area = $('.area'), styleView = !wr.classList.contains('typ') && !wr.classList.contains('plc') && !wr.classList.contains('sgc') && !root.classList.contains('kb-open');
     sizes.w = Math.floor(Math.max(160, wr.clientWidth - 32));
-    if (styleView && area.clientHeight) sizes.v = Math.min(sizes.w, Math.floor((area.clientHeight - 20) / 1.25));
+    if (styleView && area.clientHeight) sizes.v = Math.min(sizes.w, Math.floor((area.clientHeight - 20) / arOf(card)));
     else if (!sizes.v) sizes.v = sizes.w;
     applySize(true);
   }
   function applySize(force) {
-    const writing = wr.classList.contains('typ') || wr.classList.contains('plc') || root.classList.contains('kb-open') || root.classList.contains('pan');
+    const writing = wr.classList.contains('typ') || wr.classList.contains('plc') || wr.classList.contains('sgc') || root.classList.contains('kb-open') || root.classList.contains('pan');
     const cw = writing ? sizes.w : sizes.v;
     if (!force && wr.style.getPropertyValue('--cw') === cw + 'px') return;
-    wr.style.setProperty('--cw', cw + 'px');
+    wr.style.setProperty('--cw', cw + 'px'); wr.style.setProperty('--ar', arOf(card));
     if (el) { fitCard(el, card); scrollToPage(st.pg, false); requestAnimationFrame(keepCaret); }
   }
 
@@ -377,18 +388,25 @@ function viewWrite({ fmt, id }) {
   }
   stage.addEventListener('scroll', () => count(), { passive: true });
 
-  /* 3줄: 날짜(누르면 달력) · 장소 · 날짜 위치(누를 때마다 위 → 아래 → 없음) */
-  const dtb = $('.st3 .dt'), pi = $('.st3 .pi'), dpb = $('.st3 .dp');
-  const DP = { top: ['dtop', '날짜 위'], bottom: ['dbot', '날짜 아래'], none: ['doff', '날짜 없음'] }, dpDef = rich ? 'top' : 'bottom';
+  /* 아래 줄: 날짜 2칸 · 장소 2칸 · 서명 2칸 · 날짜 줄 위치 · 사진 저장. 켜진 칸을 누르면 꺼지고, 꺼진 칸을 누르면 고르는 판(달력 · 입력)이 열려요 */
+  const dtb = $('.st3 .dt'), pi = $('.st3 .pi'), dpb = $('.st3 .dp'), sgb = $('.st3 .sgb'), si = $('.st3 .si');
+  const SGN = { l: ['sl', '서명 · 왼쪽'], c: ['sc', '서명 · 가운데'], r: ['sr', '서명 · 오른쪽'] }, SGC = { '': 'l', l: 'c', c: 'r', r: '' };
   function paintMeta() {
-    $('.st3 .dt span').textContent = dateChip(card.date);
-    dpb.innerHTML = ic(DP[card.datePos || dpDef][0]); dpb.classList.toggle('off', !f.tools.dp);
-    pi.value = card.place || '';
+    const dOn = dateOn(card), pOn = placeOn(card), sg = signOf(card);
+    $('.st3 .dt span').textContent = dOn ? dateChip(card.date) : '날짜'; dtb.classList.toggle('mo', !dOn);
+    if (document.activeElement !== pi) pi.value = pOn ? card.place : '';
+    $('.st3 .pl').classList.toggle('mo', !pOn);
+    sgb.innerHTML = ic(sg ? SGN[sg][0] : 'sc') + `<span>${esc(sg ? card.signTxt : '서명')}</span>`; sgb.classList.toggle('mo', !sg);
+    dpb.innerHTML = ic(infoPos(card) === 'bottom' ? 'dB' : 'dT'); dpb.classList.toggle('hid', !f.tools.dp);
   }
-  // 날짜: 아이폰 달력 대신 키보드 자리에 우리 달력 판 (어느 폰에서나 같은 모양)
+  // 날짜: 꺼져 있으면 아이폰 달력 대신 키보드 자리에 우리 달력 판 (어느 폰에서나 같은 모양). 날짜를 고르면 켜져요
   dtb.addEventListener('pointerdown', e => e.preventDefault());
-  dtb.onclick = () => { flush(); if (st.panel === 'date') return closePanel(false); st.calM = card.date.slice(0, 7); openPanel('date'); };
-  pi.addEventListener('input', () => { card.place = pi.value; draw(); pushLater(); });
+  dtb.onclick = () => {
+    flush(); if (st.panel === 'date') return closePanel(false);
+    if (dateOn(card)) { card.showDate = false; paintMeta(); push(); draw(); return pop('날짜 끔'); }
+    st.calM = card.date.slice(0, 7); openPanel('date');
+  };
+  pi.addEventListener('input', () => { card.place = pi.value; card.placeOff = false; draw(); pushLater(); });
   pi.addEventListener('keydown', e => { if (e.key === 'Enter') pi.blur(); });
   // 장소를 쓰는 동안: 다른 줄은 숨고 키보드 바로 위에 장소 줄 + 최근 장소 (아래 줄은 키보드에 가려지니까)
   const recent = $('.recent');
@@ -399,23 +417,48 @@ function viewWrite({ fmt, id }) {
     recent.classList.toggle('none', !list.length);
     $$('button', recent).forEach((b, i) => {
       b.addEventListener('pointerdown', e => e.preventDefault());
-      b.onclick = () => { pi.value = list[i]; card.place = list[i]; draw(); push(); pi.blur(); };
+      b.onclick = () => { pi.value = list[i]; card.place = list[i]; card.placeOff = false; draw(); push(); pi.blur(); };
     });
   }
   // 아이폰은 키보드가 덮을 자리(맨 아래)에 있는 칸을 누르면 키보드를 다르게 알려 줘요. 그래서 장소 줄을 먼저 키보드 위 자리로 올리고 커서를 넣어요.
-  // 줄 높이는 글 쓸 때 잰 이 폰의 키보드 높이(--kbh)를 써요
-  const plOpen = () => { if (st.panel) closePanel(false); wr.classList.add('plc'); paintRecent(); applySize(true); };
-  $('.st3 .pl').addEventListener('pointerdown', e => { if (!wr.classList.contains('plc')) { e.preventDefault(); plOpen(); pi.focus({ preventScroll: true }); } });
+  // 줄 높이는 글 쓸 때 잰 이 폰의 키보드 높이(--kbh)를 써요. 다시 열면 적어 둔 장소가 들어 있어요
+  const plOpen = () => { if (st.panel) closePanel(false); pi.value = card.place || ''; wr.classList.add('plc'); paintRecent(); applySize(true); };
+  $('.st3 .pl').addEventListener('pointerdown', e => {
+    if (wr.classList.contains('plc')) return;
+    e.preventDefault();
+    if (placeOn(card)) { flush(); card.placeOff = true; paintMeta(); push(); draw(); return pop('장소 끔'); }
+    plOpen(); pi.focus({ preventScroll: true });
+  });
+  $('.st3 .pl').addEventListener('click', e => { if (!wr.classList.contains('plc')) e.preventDefault(); });
   pi.addEventListener('focus', () => { if (!wr.classList.contains('plc')) plOpen(); });
   pi.addEventListener('input', paintRecent);
-  pi.addEventListener('blur', () => { wr.classList.remove('plc'); applySize(true); flush(); setTimeout(() => { if (!document.activeElement?.matches?.('input, .body')) { scrollTo(0, 0); kb(); } }, 300); });
+  pi.addEventListener('blur', () => { wr.classList.remove('plc'); if (pi.value.trim()) card.placeOff = false; paintMeta(); applySize(true); flush(); setTimeout(() => { if (!document.activeElement?.matches?.('input, .body')) { scrollTo(0, 0); kb(); } }, 300); });
   $('.st3 .pok').addEventListener('pointerdown', e => e.preventDefault());
-  $('.st3 .pok').onclick = () => pi.blur();
+  $('.st3 .pok').onclick = () => document.activeElement?.blur?.();
+  // 서명: 누를 때마다 왼쪽 → 가운데 → 오른쪽 → 끔. 처음(적어 둔 서명이 없을 때)만 키보드 위에 서명 줄이 열려요 (고치기는 설정에서)
+  const sgOpen = () => { if (st.panel) closePanel(false); si.value = card.signTxt || S.pref('sign', ''); wr.classList.add('sgc'); applySize(true); };
+  sgb.addEventListener('pointerdown', e => {
+    e.preventDefault(); flush();
+    const txt = (card.signTxt || S.pref('sign', '')).trim();
+    if (!txt) { sgOpen(); return si.focus({ preventScroll: true }); }
+    card.signTxt = txt; card.sg = SGC[card.sg || ''] ?? ''; paintMeta(); push(); draw(); pop(card.sg ? SGN[card.sg][1] : '서명 끔');
+  });
+  si.addEventListener('keydown', e => { if (e.key === 'Enter') si.blur(); });
+  si.addEventListener('blur', () => {
+    wr.classList.remove('sgc'); const v = si.value.trim();
+    if (v) { S.setPref('sign', v); card.signTxt = v; if (!card.sg) card.sg = 'l'; push(); draw(); pop(SGN[card.sg][1]); }
+    paintMeta(); applySize(true); setTimeout(() => { if (!document.activeElement?.matches?.('input, .body')) { scrollTo(0, 0); kb(); } }, 300);
+  });
+  // 날짜 줄 위치: 위 ↔ 아래 (날짜 · 장소 줄만. 서명은 늘 맨 아래)
   dpb.addEventListener('pointerdown', e => e.preventDefault());
   dpb.addEventListener('click', () => {
-    if (!f.tools.dp) return shake(dpb);
-    flush(); card.datePos = rich ? { top: 'bottom', bottom: 'none', none: 'top' }[card.datePos || dpDef] : { bottom: 'top', top: 'none', none: 'bottom' }[card.datePos || dpDef]; paintMeta(); push(); draw(); pop(DP[card.datePos][1]);   // 그림 문장은 아래 → 위 → 없음
+    if (!f.tools.dp) return;
+    flush(); card.datePos = infoPos(card) === 'top' ? 'bottom' : 'top'; paintMeta(); push(); draw(); pop(card.datePos === 'top' ? '날짜 줄 · 위' : '날짜 줄 · 아래');
   });
+  // 사진 저장: 카드에 정한 그대로 모든 장을 바로 (쓰기 화면에 그대로 있어요. 완료 전이면 아직 쓰는 중)
+  const svb = $('.st3 .svb');
+  svb.addEventListener('pointerdown', e => e.preventDefault());
+  svb.onclick = () => { if (!hasText()) return shake(svb); flush(); saveCard(clone(card)); };
 
   // 알림은 모두 위 가운데 상태 자리에 1초쯤 (글꼴 이름은 그 글꼴로). 어두운 위 줄이라 어떤 배경에서도 보여요
   function pop(text, font, kind) {   // kind가 있으면 두 줄: 작은 회색 종류 + 이름
@@ -429,7 +472,8 @@ function viewWrite({ fmt, id }) {
 
   /* 카드 그리기. 글만 바뀌면 그 자리에서 바꾸고(키보드가 내려가지 않게), 장 수·배경·날짜 같은 틀이 바뀔 때만 새로 그려요 */
   let el = null, shape = '';
-  const shapeOf = () => JSON.stringify(rich ? [card.pages.length, card.bg, card.align, card.pst, card.datePos, card.date, card.place, card.font, card.size, card.filter] : [card.date, card.place, card.size, card.align, card.datePos]);
+  const look = () => [card.ratio, card.lh, card.bold, card.ink, card.showDate, card.placeOff, card.sg, card.signTxt];
+  const shapeOf = () => JSON.stringify(rich ? [card.pages.length, card.bg, card.align, card.pst, card.datePos, card.date, card.place, card.font, card.size, card.filter, ...look()] : [card.date, card.place, card.size, card.align, card.datePos, ...look()]);
   const bodies = () => $$('.body', el);
   const pageOf = b => b.closest('.pg') ? +b.closest('.pg').dataset.i : 0;
   const caretIn = b => { const s = getSelection(); return s.rangeCount && b.contains(s.anchorNode) ? offsetsOf(b, s.getRangeAt(0)) : null; };
@@ -548,7 +592,8 @@ function viewWrite({ fmt, id }) {
 
   /* 도구 줄. 포맷이 안 쓰는 도구는 어둡게, 누르면 살짝 흔들림 */
   const enabled = k => {
-    if (k === 'kb' || k === 'undo' || k === 'redo') return true;
+    if (k === 'kb' || k === 'undo' || k === 'redo' || k === 'ratio') return true;
+    if (k === 'photo' || k === 'emo' || k === 'page') return !!f.tools[k];
     if (k === 'fmt') return !!f.tools.style;
     if (k === 'font') return !!(f.tools.style && f.tools.font);
     if (k === 'filter') return !!f.tools.filter;
@@ -560,8 +605,10 @@ function viewWrite({ fmt, id }) {
       const k = b.dataset.t;
       if (k === 'undo') return b.classList.toggle('off', st.hi <= 0 && !st.timer);
       if (k === 'redo') return b.classList.toggle('off', st.hi >= st.hist.length - 1);
-      b.classList.toggle('off', !enabled(k));
-      b.classList.toggle('on', k === 'kb' ? typ && !st.panel : ['fmt', 'font', 'bg', 'filter'].includes(k) ? st.tab === k && enabled(k) : st.panel === k);
+      b.classList.toggle('hid', !enabled(k));
+      if (k === 'ratio') b.textContent = RATIOS.find(r => r[0] === (card.ratio || '45'))[1];
+      const tab = { ink: 'fmt', hue: 'bg' }[st.tab] || st.tab;
+      b.classList.toggle('on', k === 'kb' ? typ && !st.panel : ['fmt', 'font', 'bg', 'filter'].includes(k) ? tab === k && enabled(k) : st.panel === k);
     });
     $('[data-a=ok]').disabled = !hasText();
   }
@@ -571,8 +618,12 @@ function viewWrite({ fmt, id }) {
     b.addEventListener('pointerdown', e => e.preventDefault());   // 눌러도 키보드 · 커서가 그대로
     b.onclick = () => {
       const k = b.dataset.t;
-      if (b.classList.contains('off')) return shake(b);
+      if (b.classList.contains('off') || b.classList.contains('hid')) return shake(b);
       flush();
+      if (k === 'ratio') {   // 4:5 → 9:16 → 1:1. 카드 자체가 그 비율로 (저장 이미지도 그대로)
+        const i = RATIOS.findIndex(r => r[0] === (card.ratio || '45')), [n, t] = RATIOS[(i + 1) % RATIOS.length];
+        card.ratio = n; push(); sizeCard(); draw(); tools(); return pop(t, null, '비율');
+      }
       if (k === 'kb') {   // 스타일 보기 → 글 끝에서 쓰기(키보드 올림) / 쓰기 → 키보드 내림 / 이모티콘 판 → 다시 키보드
         if (st.panel) return closePanel(true);
         if (typingNow()) { document.activeElement.blur(); return mode(); }
@@ -601,30 +652,71 @@ function viewWrite({ fmt, id }) {
 
   /* 2줄 (스타일 보기). 서식: 글꼴 · 크기 · 좌우 · 위아래, 누를 때마다 다음 값으로(카드 전체). 배경: 내 사진 · 밝게/어둡게 + 색 칸(옆으로 밀어요) */
   const row2 = $('.st2');
-  const SZ = { m: ['s', '작은 글자'], s: ['l', '큰 글자'], l: ['m', '중간'] };
-  const AH = { l: ['c', '가운데'], c: ['r', '오른쪽'], r: ['l', '왼쪽'] }, AV = { m: ['b', '아래'], b: ['t', '위'], t: ['m', '가운데'] };
+  // 서식: 크기 5단계 · 줄 간격 3단계 · 좌우 · 위아래 5자리 · 굵게 · 글자색. 누를 때마다 다음 값, 위 가운데에 값 (그림 문장은 앞 4칸만)
+  const SZN = { xs: '가장 작게', s: '작게', m: '보통', l: '크게', xl: '가장 크게' }, LHN = { s: '좁게', m: '보통', l: '넓게' };
+  const AH = { l: ['c', '가운데'], c: ['r', '오른쪽'], r: ['l', '왼쪽'] }, VN = { t: '위', tm: '위쪽', m: '가운데', bm: '아래쪽', b: '아래' };
+  const next = (list, v) => list[(list.indexOf(v) + 1) % list.length];
   function paintRow2() {
+    if (st.tab === 'ink') return paintHue('ink');
+    if (st.tab === 'hue') return paintHue('bg');
     if (st.tab === 'bg' && f.tools.bg === 'art') return paintArtRow();
     if (st.tab === 'bg' && f.tools.bg === 'photo') return paintPhotoRow();
     if (st.tab === 'filter' && f.tools.filter) return paintFilterRow();
     if (st.tab === 'bg' && f.tools.bg) return paintBgRow();
     if (st.tab === 'font' && f.tools.font) return paintFontRow();
-    const on = !!f.tools.style, a = ps().align || { h: 'l', v: rich ? 'm' : 't' }, off = on ? '' : 'off', fOff = on && f.tools.font ? '' : 'off';
+    const a = ps().align || { h: 'l', v: rich ? 'm' : 't' };
     row2.className = 'st2 g6';
-    row2.innerHTML = `<button class="k ${off}" data-s="size" aria-label="크기">${ic('size')}</button>
-      <button class="k ${off}" data-s="h" aria-label="좌우">${ic('a' + (a.h || 'l'))}</button><button class="k ${off}" data-s="v" aria-label="위아래">${ic('v' + (a.v || 'm'))}</button><span></span><span></span><span></span><span></span>`;
+    row2.innerHTML = `<button class="k" data-s="size" aria-label="크기">${ic('size')}</button><button class="k" data-s="lh" aria-label="줄 간격">${ic('lh')}</button>
+      <button class="k" data-s="h" aria-label="좌우">${ic('a' + (a.h || 'l'))}</button><button class="k" data-s="v" aria-label="위아래">${ic('v' + (a.v || 'm'))}</button>
+      ${rich ? `<button class="k ${card.bold ? 'on' : ''}" data-s="bold" aria-label="굵게">${ic('bold')}</button><button class="k" data-s="ink" aria-label="글자색" style="--ink:${card.ink || '#F4B860'}">${ic('col')}</button>` : '<span></span><span></span>'}<span></span><span></span>`;
     $$('.k', row2).forEach(x => {
       x.addEventListener('pointerdown', e => e.preventDefault());
       x.onclick = () => {
-        if (x.classList.contains('off')) return shake(x);
         flush();
         const k = x.dataset.s;
-        if (k === 'size') { const [n, t] = SZ[card.size || 'm']; card.size = n; push(); draw(); pop(t); }
+        if (k === 'size') { card.size = next(SIZE5, card.size || 'm'); push(); draw(); pop(SZN[card.size], null, '글자 크기'); }
+        if (k === 'lh') { card.lh = next(['s', 'm', 'l'], card.lh || 'm'); push(); draw(); pop(LHN[card.lh], null, '줄 간격'); }
         if (k === 'h') { const [n, t] = AH[a.h || 'l']; ps().align = { ...a, h: n }; syncFirst(); push(); draw(); pop(t, null, pgLab()); }
-        if (k === 'v') { const [n, t] = AV[a.v || (rich ? 'm' : 't')]; ps().align = { ...a, v: n }; syncFirst(); push(); draw(); pop(t, null, pgLab()); }
+        if (k === 'v') { const n = next(V5, a.v || (rich ? 'm' : 't')); ps().align = { ...a, v: n }; syncFirst(); push(); draw(); pop(VN[n], null, pgLab()); }
+        if (k === 'bold') { card.bold = !card.bold; push(); draw(); pop(card.bold ? '굵게' : '보통 굵기'); }
+        if (k === 'ink') { st.tab = 'ink'; return paintRow2(); }
         paintRow2();
       };
     });
+  }
+  // 색 막대: ‹ (돌아가기) · (글자색은 자동) · 막대. 밀면 바로 바뀌고, 손을 떼면 기록해요. 흰색 → 색들 → 검정
+  const HUE = [[0, '#ffffff'], [.08, '#ff4d4d'], [.2, '#ffb84d'], [.32, '#f7f24a'], [.46, '#4de07a'], [.6, '#4dc9ff'], [.74, '#6b5cff'], [.88, '#e04dff'], [1, '#1a1a1a']];
+  const hx = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const hueAt = p => {
+    p = Math.max(0, Math.min(1, p)); let i = 1; while (i < HUE.length - 1 && HUE[i][0] < p) i++;
+    const [p0, c0] = HUE[i - 1], [p1, c1] = HUE[i], t = (p - p0) / (p1 - p0 || 1), a = hx(c0), b = hx(c1);
+    return '#' + a.map((v, j) => Math.round(v + (b[j] - v) * t).toString(16).padStart(2, '0')).join('');
+  };
+  function paintHue(what) {
+    const pb = ps().bg, ink = what === 'ink', pos = ink ? card.inkPos : pb.id === 'hex' ? pb.pos : null;
+    row2.className = 'st2 g6 hur';
+    row2.innerHTML = `<button class="k" data-x="back" aria-label="돌아가기">${ic('back')}</button>${ink ? `<button class="k rt ${card.ink ? '' : 'on'}" data-x="auto">자동</button>` : ''}<div class="hbar" style="grid-column:span ${ink ? 6 : 7}"><i ${pos == null ? 'hidden' : ''} style="left:${(pos ?? .5) * 100}%"></i></div>`;
+    $$('button', row2).forEach(x => x.addEventListener('pointerdown', e => e.preventDefault()));
+    $('[data-x=back]', row2).onclick = () => { st.tab = ink ? 'fmt' : 'bg'; paintRow2(); };
+    if (ink) $('[data-x=auto]', row2).onclick = () => { flush(); card.ink = null; delete card.inkPos; push(); draw(); paintRow2(); pop('자동', null, '글자색'); };
+    const bar = $('.hbar', row2), knob = $('i', bar);
+    let d = null;
+    const at = e => { const r = bar.getBoundingClientRect(); return (e.clientX - r.left) / r.width; };
+    const live = p => {
+      const c = hueAt(p); knob.hidden = false; knob.style.left = Math.max(0, Math.min(1, p)) * 100 + '%';
+      if (ink) $$('.pg', el).forEach(pg => { pg.style.color = c; });
+      else { const pg = $(`.pg[data-i="${st.pg}"]`, el); if (pg) { $$('.bgi, .dimL, canvas.bgc', pg).forEach((x, j) => { if (j) x.style.display = 'none'; else { x.className = 'bgi'; x.style.background = c; } }); if (!card.ink) pg.style.color = inkOn(c); } }
+      return c;
+    };
+    bar.addEventListener('pointerdown', e => { e.preventDefault(); d = { id: e.pointerId }; bar.setPointerCapture?.(e.pointerId); d.c = live(d.p = at(e)); });
+    bar.addEventListener('pointermove', e => { if (d && e.pointerId === d.id) d.c = live(d.p = at(e)); });
+    const end = () => {
+      if (!d) return; const { c, p } = d; d = null; flush();
+      if (ink) { card.ink = c; card.inkPos = p; }
+      else { clearPhoto(pb); pb.id = 'hex'; pb.hex = c; pb.pos = Math.max(0, Math.min(1, p)); S.setPref('hexes', [c, ...S.pref('hexes', []).filter(x => x !== c)].slice(0, 6)); syncFirst(); }
+      push(); draw(); paintRow2(); pop(ink ? '글자색' : '직접 색', null, ink ? null : pgLab());
+    };
+    bar.addEventListener('pointerup', end); bar.addEventListener('pointercancel', end);
   }
   // 글꼴 줄: 1 · 2칸 = 이전 · 다음 글꼴(끝에서는 처음으로), 3~7칸 = 이름 줄(이름 하나가 2칸, 그 글꼴로). 지금 글꼴이 맨 앞, 밀어 보고 이름을 눌러 바로 골라요
   function paintFontRow() {
@@ -671,14 +763,14 @@ function viewWrite({ fmt, id }) {
   const PLAY = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5z" fill="currentColor" stroke="none"/></svg>';
   const PAUSE = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h3.2v14H7zM13.8 5H17v14h-3.2z" fill="currentColor" stroke="none"/></svg>';
   function paintPhotoRow() {
-    const pb = ps().bg, dim = pb.dim || 'dark', on = !!pb.grain, has = !!P.url(pb.ph), vid = has && !!pb.vd;
+    const pb = ps().bg, on = !!pb.grain, has = !!P.url(pb.ph), vid = has && !!pb.vd;
     row2.className = 'st2 g6';
-    row2.innerHTML = `<button class="k tl ${has ? 'phb sel' : ''}" data-x="photo" aria-label="사진 · 영상" ${has ? `style="background-image:url(${P.url(pb.ph)})"` : ''}>${has ? (vid ? '<span class="vb"><svg viewBox="0 0 10 10"><path d="M2.6 1.3l6 3.7-6 3.7z"/></svg></span>' : '') : ic('scene')}</button><button class="k tl" data-x="dim" aria-label="밝게 어둡게">${ic(dim === 'light' ? 'sun' : 'moon')}</button><button class="k" data-x="grain" aria-label="노이즈">${ic(on ? 'grain' : 'nograin')}</button>${vid
+    row2.innerHTML = `<button class="k tl ${has ? 'phb sel' : ''}" data-x="photo" aria-label="사진 · 영상" ${has ? `style="background-image:url(${P.url(pb.ph)})"` : ''}>${has ? (vid ? '<span class="vb"><svg viewBox="0 0 10 10"><path d="M2.6 1.3l6 3.7-6 3.7z"/></svg></span>' : '') : ic('scene')}</button>${dimBtn(pb)}<button class="k" data-x="grain" aria-label="노이즈">${ic(on ? 'grain' : 'nograin')}</button>${vid
       ? `<button class="k" data-x="play" aria-label="재생 정지">${st.vpause ? PLAY : PAUSE}</button><div class="tlc" aria-label="구간"><div class="trk"></div><div class="sh2 l"></div><div class="sh2 r"></div><div class="wn"><div class="fl"></div><b></b></div></div>${pb.cvt != null ? `<button class="k cv sel" data-x="cover" aria-label="커버" style="background-image:url(${P.url(pb.ph)})"></button>` : `<button class="k" data-x="cover" aria-label="커버">${ic('cover')}</button>`}`
-      : '<span></span><span></span><span></span><span></span>'}`;
+      : '<span></span><span></span><span></span><span></span>'}<span></span>`;
     $$('button', row2).forEach(x => x.addEventListener('pointerdown', e => e.preventDefault()));
     $('[data-x=photo]', row2).onclick = pickPhoto;
-    $('[data-x=dim]', row2).onclick = () => { flush(); pb.dim = dim === 'light' ? 'dark' : 'light'; syncFirst(); push(); draw(); paintPhotoRow(); pop(pb.dim === 'light' ? '밝게' : '어둡게', null, pgLab()); };
+    dimOn(pb, paintPhotoRow);
     $('[data-x=grain]', row2).onclick = () => { flush(); if (on) delete pb.grain; else pb.grain = true; syncFirst(); push(); draw(); paintPhotoRow(); pop(on ? '노이즈 끔' : '노이즈 켬', null, pgLab()); };
     if (!vid) return;
     $('[data-x=play]', row2).onclick = () => { st.vpause = !st.vpause; V.setPaused(st.vpause); $('[data-x=play]', row2).innerHTML = st.vpause ? PLAY : PAUSE; };
@@ -731,27 +823,36 @@ function viewWrite({ fmt, id }) {
   function paintArtRow() {
     const pb = ps().bg, on = pb.grain !== false;
     row2.className = 'st2 g6';
-    row2.innerHTML = `<button class="k" data-x="grain" aria-label="노이즈">${ic(on ? 'grain' : 'nograin')}</button><span></span><span></span><span></span><span></span><span></span><span></span>`;
-    const b = $('[data-x=grain]', row2); b.addEventListener('pointerdown', e => e.preventDefault());
+    row2.innerHTML = `${dimBtn(pb)}<button class="k" data-x="grain" aria-label="노이즈">${ic(on ? 'grain' : 'nograin')}</button><span></span><span></span><span></span><span></span><span></span><span></span>`;
+    $$('button', row2).forEach(x => x.addEventListener('pointerdown', e => e.preventDefault()));
+    dimOn(pb, paintArtRow);
+    const b = $('[data-x=grain]', row2);
     b.onclick = () => { flush(); if (on) pb.grain = false; else delete pb.grain; syncFirst(); push(); draw(); paintArtRow(); pop(on ? '노이즈 끔' : '노이즈 켬', null, pgLab()); };
   }
+  // 딤: 약 → 중 → 강 (아이콘 = 네모가 칠해지는 만큼). 글이 또렷해져요
+  const DIMN = { 1: '약', 2: '중', 3: '강' };
+  const dimBtn = pb => `<button class="k" data-x="dim" aria-label="딤">${ic('d' + dimLv(pb.dim))}</button>`;
+  const dimOn = (pb, repaint) => { $('[data-x=dim]', row2).onclick = () => { flush(); const n = dimLv(pb.dim) % 3 + 1; pb.dim = n === 1 ? 'dark' : 'd' + n; syncFirst(); push(); draw(); repaint(); pop(DIMN[n], null, ['딤', pgLab()].filter(Boolean).join(' · ')); }; };
+  // 배경 줄(글): 내 사진 · 딤 · 컬러칩(색 막대) · 색 칸(최근 직접 고른 색이 맨 앞, 옆으로 밀어요)
   function paintBgRow() {
-    const pb = ps().bg, dim = pb.dim || 'dark', keep = $('.swp', row2)?.scrollLeft;
+    const pb = ps().bg, keep = $('.swp', row2)?.scrollLeft;
     row2.className = 'st2 g6 bgr';
-    const isPh = pb.id === 'photo' && P.url(pb.ph);
-    row2.innerHTML = `<button class="k tl ${isPh ? 'phb sel' : ''}" data-x="photo" aria-label="내 사진" ${isPh ? `style="background-image:url(${P.url(pb.ph)})"` : ''}>${isPh ? '' : ic('scene')}</button><button class="k tl" data-x="dim" aria-label="밝게 어둡게">${ic(dim === 'light' ? 'sun' : 'moon')}</button>
-      <div class="swp">${FREE.map(b => `<button class="k sw ${b.id === pb.id ? 'sel' : ''}" data-b="${b.id}" style="${b.css ? `background:${b.css}` : ''}">${b.code ? '<canvas width="88" height="88"></canvas>' : ''}</button>`).join('')}<span class="end"></span></div>`;
+    const isPh = pb.id === 'photo' && P.url(pb.ph), hexes = S.pref('hexes', []);
+    row2.innerHTML = `<button class="k tl ${isPh ? 'phb sel' : ''}" data-x="photo" aria-label="내 사진" ${isPh ? `style="background-image:url(${P.url(pb.ph)})"` : ''}>${isPh ? '' : ic('scene')}</button>${dimBtn(pb)}<button class="k hue" data-x="hue" aria-label="직접 색"><i></i></button>
+      <div class="swp">${hexes.map(h => `<button class="k sw ${pb.id === 'hex' && pb.hex === h ? 'sel' : ''}" data-h="${h}" style="background:${h}"></button>`).join('')}${FREE.map(b => `<button class="k sw ${b.id === pb.id ? 'sel' : ''}" data-b="${b.id}" style="${b.css ? `background:${b.css}` : ''}">${b.code ? '<canvas width="88" height="88"></canvas>' : ''}</button>`).join('')}<span class="end"></span></div>`;
     $$('canvas', row2).forEach(cv => drawCode(cv, pb.seed || 1, .5));
     const sw = $('.swp', row2), sel = $('.sel', sw);
     if (keep != null) sw.scrollLeft = keep; else if (sel) sw.scrollLeft = Math.max(0, sel.offsetLeft - sw.offsetLeft);
     $$('button', row2).forEach(x => x.addEventListener('pointerdown', e => e.preventDefault()));
     $('[data-x=photo]', row2).onclick = pickPhoto;   // 폰 사진첩(PC는 파일 찾기)이 열려요. 사진 칸을 다시 누르면 다른 사진으로
-    $('[data-x=dim]', row2).onclick = () => { flush(); pb.dim = dim === 'light' ? 'dark' : 'light'; syncFirst(); push(); draw(); paintBgRow(); pop(pb.dim === 'light' ? '밝게' : '어둡게', null, pgLab()); };
-    $$('[data-b]', row2).forEach(t => t.onclick = () => { flush(); clearPhoto(pb); pb.id = t.dataset.b; if (!pb.seed) pb.seed = newSeed(); syncFirst(); push(); draw(); paintBgRow(); const b = findBg(pb.id); pop(b.name, null, [pgLab(), KIND[b.kind]].filter(Boolean).join(' · ')); });
+    dimOn(pb, paintBgRow);
+    $('[data-x=hue]', row2).onclick = () => { st.tab = 'hue'; paintRow2(); };
+    $$('[data-h]', row2).forEach(t => t.onclick = () => { flush(); clearPhoto(pb); pb.id = 'hex'; pb.hex = t.dataset.h; syncFirst(); push(); draw(); paintBgRow(); pop('직접 색', null, pgLab()); });
+    $$('[data-b]', row2).forEach(t => t.onclick = () => { flush(); clearPhoto(pb); delete pb.hex; delete pb.pos; pb.id = t.dataset.b; if (!pb.seed) pb.seed = newSeed(); syncFirst(); push(); draw(); paintBgRow(); const b = findBg(pb.id); pop(b.name, null, [pgLab(), KIND[b.kind]].filter(Boolean).join(' · ')); });
   }
 
   /* 내 사진 배경: 고른 사진이 보고 있는 장의 배경으로. 색 칸을 누르면 사진이 빠져요 */
-  const clearPhoto = b => { ['ph', 'x', 'y', 'w', 'h', 'tone', 'vd', 'dur', 't0', 'cvt'].forEach(k => delete b[k]); };
+  const clearPhoto = b => { ['ph', 'x', 'y', 'w', 'h', 'tone', 'vd', 'dur', 't0', 'cvt', 'hex', 'pos'].forEach(k => delete b[k]); };
   const picker = document.createElement('input'); picker.type = 'file'; picker.accept = f.tools.bg === 'photo' ? 'image/*,video/*' : 'image/*'; picker.hidden = true; wr.appendChild(picker);   // 포토 포맷은 영상도
   function pickPhoto() { picker.value = ''; picker.click(); }
   picker.onchange = async () => {
@@ -864,7 +965,7 @@ function viewWrite({ fmt, id }) {
       <div class="g7">${'일월화수목금토'.split('').map(x => `<i>${x}</i>`).join('')}${cells.join('')}</div></div>`;
     $$('button', panel).forEach(x => x.addEventListener('pointerdown', e => e.preventDefault()));
     $$('[data-m]', panel).forEach(x => x.onclick = () => { const t = new Date(y, m - 1 + +x.dataset.m, 1); st.calM = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}`; panelDate(); });
-    $$('[data-d]', panel).forEach(x => x.onclick = () => { flush(); card.date = x.dataset.d; paintMeta(); push(); draw(); closePanel(false); });
+    $$('[data-d]', panel).forEach(x => x.onclick = () => { flush(); card.date = x.dataset.d; card.showDate = true; paintMeta(); push(); draw(); closePanel(false); });
   }
 
   // 이모티콘: 우리 이모티콘 81개. 굵은(색) · 선(글자색). 고르면 커서 자리에 들어가고, 이어서 고르면 그 뒤에 차례로
@@ -909,7 +1010,8 @@ function viewWrite({ fmt, id }) {
     delete card.sample; S.saveCard(card);
     const pl = (card.place || '').trim();   // 최근 장소 (장소 칸에서 다시 고를 수 있게)
     if (pl) S.setPref('places', [pl, ...S.pref('places', []).filter(x => x !== pl)].slice(0, 20));
-    if (card.fmt === 'text') { S.setPref('font', card.font); S.setPref('datePos', card.datePos || 'top'); }   // 다음 새 카드는 이 글꼴로 시작
+    if (card.fmt === 'text') { S.setPref('font', card.font); S.setPref('datePos', infoPos(card)); }   // 다음 새 카드는 이 글꼴 · 날짜 줄 자리로 시작
+    S.setPref('ratio', card.ratio || '45'); S.setPref('sg', card.sg || ''); S.setPref('showDate:' + card.fmt, dateOn(card));
     // 다 됐다는 표시: 가운데 큰 체크가 잠깐 떴다가 피드로
     const ok = $('[data-a=ok]'); ok.disabled = true; document.activeElement?.blur?.();
     const mk = document.createElement('div'); mk.className = 'okmark'; mk.innerHTML = `<span>${ic('check')}</span>`; document.body.appendChild(mk);

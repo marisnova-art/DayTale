@@ -18,6 +18,22 @@ export const dateLine = d => { const x = parse(d); return `${x.getFullYear()}. $
 export const weekday = d => WDL[parse(d).getDay()];
 export const dateChip = d => { const x = parse(d); return `${x.getMonth() + 1}.${String(x.getDate()).padStart(2, '0')} ${WD[x.getDay()]}`; };
 
+// 비율: 4:5(기본) · 9:16 · 1:1. 쓰기에서 고르고, 피드 · 저장 이미지가 그 비율 그대로예요
+export const AR = { 45: 1.25, 916: 16 / 9, 11: 1 };
+export const RATIOS = [['45', '4:5'], ['916', '9:16'], ['11', '1:1']];
+export const arOf = c => AR[c?.ratio] || 1.25;
+export const shape = (el, ar) => { el.dataset.ar = ar; el.classList.toggle('r916', ar > 1.5); el.classList.toggle('r11', ar < 1.1); return el; };
+// 정보 줄 = 날짜 · 장소 (각각 켜고 끄기), 자리는 위 · 아래. 서명은 늘 맨 아래 왼쪽 · 가운데 · 오른쪽 (모든 장)
+export const dateOn = c => c.showDate ?? (!!c.datePos && c.datePos !== 'none');
+export const placeOn = c => !!(c.place || '').trim() && !c.placeOff;
+export const infoPos = c => c.datePos === 'top' || c.datePos === 'bottom' ? c.datePos : c.fmt === 'rebus' ? 'bottom' : 'top';
+export const signOf = c => c.sg && (c.signTxt || '').trim() ? c.sg : '';
+// 글자 크기 5단계 · 줄 간격 3단계 · 위아래 5자리
+export const SIZE5 = ['xs', 's', 'm', 'l', 'xl'];
+export const LH = { s: .86, m: 1, l: 1.16 };
+export const V5 = ['t', 'tm', 'm', 'bm', 'b'];
+const DL = { xs: 2.5, s: 2.8, m: 3.4, l: 4.2, xl: 4.8 };   // 날짜 줄 · 서명 크기 (cqw)
+
 // ── 그림 문장 ──────────────────────────────────────────────
 const V = '#6C4BD8', O = '#F2622E', T = '#12A08F', Y = '#FFC21A', R = '#FF9EB5', K = '#2E2D2B', BG = '#F3F1EC';
 const sv = (w, b) => `<svg class="i" viewBox="0 0 ${w} 64">${b}</svg>`;
@@ -98,12 +114,14 @@ function rebus(c, { edit = false } = {}) {
   const el = document.createElement('div');
   el.className = 'cd rebus' + (edit ? ' edit' : '');
   const html = soft(rebusHtmlOf(c), edit), empty = !html.replace(/<[^>]+>/g, '').trim();
-  const foot = [`${dateChip(c.date).split(' ')[0]} ${weekday(c.date)}`, (c.place || '').trim()].filter(Boolean).map(esc).join(' · ');   // 10.22 목요일 · 장소 (글포맷처럼 날짜 먼저)
-  const a = c.align || {}, ta = `text-align:${{ l: 'left', c: 'center', r: 'right' }[a.h || 'l']}`;
-  el.dataset.dp = c.datePos || 'bottom';
+  const foot = [dateOn(c) ? `${dateChip(c.date).split(' ')[0]} ${weekday(c.date)}` : '', placeOn(c) ? c.place.trim() : ''].filter(Boolean).map(esc).join(' · ');   // 10.22 목요일 · 장소 (글포맷처럼 날짜 먼저)
+  const a = c.align || {}, ta = `text-align:${{ l: 'left', c: 'center', r: 'right' }[a.h || 'l']};line-height:${(1.34 * (LH[c.lh] || 1)).toFixed(3)}`, sg = signOf(c), fz = { xs: 3.2, s: 3.5, m: 3.889, l: 4.4, xl: 4.8 }[c.size] || 3.889;
+  el.dataset.dp = foot ? infoPos(c) : 'none';
+  el.classList.toggle('hsg', !!sg); el.style.setProperty('--dl', fz + 'cqw');
   el.innerHTML = `<div class="rb body" data-sz="${RB_SIZES[c.size] || RB_SIZES.m}" data-v="${a.v || 't'}" style="${ta}" ${edit ? 'contenteditable="true" spellcheck="false" autocapitalize="off"' : ''}>${empty && !edit ? '<span class="ph">오늘 있었던 일을 써 보세요.</span>' : html}</div>
     ${edit ? `<div class="rb exm" style="${ta}">${FORMATS.rebus.sample.html}</div>` : ''}
-    <div class="foot" style="font-size:${{ s: 3.5, m: 3.889, l: 4.4 }[c.size] || 3.889}cqw"><span>${foot}</span><span class="sig"></span></div>`;
+    <div class="foot" style="font-size:${fz}cqw"><span>${foot}</span></div>${sg ? `<div class="sgn" data-h="${sg}" style="font-size:${fz}cqw">${esc(c.signTxt)}</div>` : ''}`;
+  shape(el, arOf(c));
   placeObjects(el.querySelector('.rb'), c.seed);
   el.querySelectorAll('.o').forEach(o => { o.dataset.m = MOTION[o.dataset.k] || 'tw'; });   // 예전에 저장된 그림도 움직임 종류를 붙여요
   if (edit) placeObjects(el.querySelector('.exm'), FORMATS.rebus.sample.seed);
@@ -116,16 +134,21 @@ function rebus(c, { edit = false } = {}) {
 // 쓰는 중(키보드 올라옴)에는 늘 위에서부터: 줄이 늘어도 글이 밀리지 않게. 고른 자리는 키보드를 내리면 적용돼요.
 // 빈 카드에서는 흐린 예시 글이 고른 크기 · 자리를 그대로 따라가요 (누르면 바로 보이게)
 // 카드 높이는 글 높이를 직접 재서 정해요 (아이폰 브라우저는 4:5 상자가 글 따라 늘어나지 않아요)
-const RB_SIZES = { l: 140, m: 116, s: 96 };
+const RB_SIZES = { xl: 164, l: 140, m: 116, s: 96, xs: 84 };
 // 9:16 안전 영역 (1080 기준 위 · 아래로 더 비우는 만큼): 위 13% · 아래 22%에서 원래 여백을 뺀 값
 export const SAFE916 = [186, 358];
-export const RB_M = { bottom: [72, 170], top: [170, 72], none: [72, 72] };   // 날짜 줄 자리만큼 글 위 · 아래 여백 (1080 기준)
+// 날짜 줄 · 서명 자리만큼 글 위 · 아래 여백 (1080 기준). 서명은 맨 아래, 날짜 줄이 아래면 서명 위로 한 줄
+export function rbMargins(el) {
+  const dp = el.dataset.dp, sg = el.classList.contains('hsg');
+  let mt = dp === 'top' ? 170 : 72, mb = (dp === 'bottom' ? 170 : 72) + (sg ? (dp === 'bottom' ? 80 : 98) : 0);
+  if (el.classList.contains('r916')) { mt += SAFE916[0]; mb += SAFE916[1]; }   // 9:16: 스토리 · 릴스 위아래 가리는 자리를 비워요
+  return [mt, mb];
+}
 function fitRebus(el) {
   const p = el.querySelector('.rb'); if (!p) return;
   const W = el.clientWidth; if (!W) return;
   const s = W / 1080, H = W * (+el.dataset.ar || 1.25);
-  let [mt, mb] = RB_M[el.dataset.dp] || RB_M.bottom;
-  if (el.classList.contains('r916')) { mt += SAFE916[0]; mb += SAFE916[1]; }   // 9:16: 스토리 · 릴스 위아래 가리는 자리를 비워요
+  const [mt, mb] = rbMargins(el);
   const ex = el.querySelector('.exm'), box = ex && el.classList.contains('empty') ? ex : p;
   p.style.fontSize = px(+p.dataset.sz || 116); if (ex) ex.style.fontSize = p.style.fontSize;
   p.style.marginBottom = px(mb);
@@ -135,7 +158,7 @@ function fitRebus(el) {
   else {
     el.style.height = H + 'px';
     const v = el.closest('.wr.typ') ? 't' : p.dataset.v || 't';
-    if (v !== 't') top += (H - need) * (v === 'b' ? 1 : .5);
+    if (v !== 't') top += (H - need) * ({ tm: .25, m: .5, bm: .75, b: 1 }[v] ?? .5);
   }
   p.style.marginTop = top + 'px'; if (ex) ex.style.marginTop = top + 'px';
 }
@@ -145,12 +168,19 @@ function fitRebus(el) {
 export const pageBg = (c, i) => c.pst?.[i]?.bg || c.bg;
 export const pageAlign = (c, i) => c.pst?.[i]?.align || c.align || {};
 const PH_ICON = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="15" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.5"/><path d="m18 15-4-4-8 8"/><path d="M21 3v6M18 6h6"/></svg>';
+// 직접 고른 색(hex): 밝은 색이면 글이 어둡게
+const lum = h => { const [r, g, b] = [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255); return .2126 * r + .7152 * g + .0722 * b; };
+export const inkOn = hex => lum(hex) > .62 ? '#1E1D1B' : '#fff';
+export const hexBg = hex => ({ id: 'hex', name: '직접 색', css: hex, tone: hex, ink: inkOn(hex), dim: ['all', '0,0,0', 0] });
+// 딤: 약(배경마다 정해 둔 딤) · 중 · 강. 글이 흰색이면 어둡게, 어두운 글이면 밝게 덮어서 글이 또렷해져요
+export const dimLv = d => d === 'd3' ? 3 : d === 'd2' ? 2 : 1;
+const EXTRA = { 1: 0, 2: .2, 3: .4 };
 function bgLayer(c, page, pages) {
-  const cb = pageBg(c, page), b = findBg(cb?.id);
-  const { layer, ink } = dimCss(b, cb?.dim || 'dark');
+  const cb = pageBg(c, page), b = cb?.id === 'hex' && cb.hex ? hexBg(cb.hex) : findBg(cb?.id);
+  const { layer, ink } = dimCss(b, cb?.dim === 'light' ? 'light' : 'dark');
   let dim = layer;   // 그라데이션도 배경마다 정해 둔 딤을 깔아 글이 잘 읽혀요
   if (c.fmt === 'photo' && cb?.dim !== 'light') {   // 포토 포맷: 사진이 주인공이라 글이 놓인 쪽만 어둡게
-    const v = pageAlign(c, page).v || 'b';
+    const v = { tm: 't', bm: 'b' }[pageAlign(c, page).v] || pageAlign(c, page).v || 'b';
     dim = v === 'm' ? 'rgba(0,0,0,.28)' : `linear-gradient(${v === 't' ? '180deg' : '0deg'}, rgba(0,0,0,.52), rgba(0,0,0,.1) 62%)`;
   }
   const shift = pages > 1 ? page / (pages - 1) : .5;
@@ -165,7 +195,9 @@ function bgLayer(c, page, pages) {
   else if (b.code) base = `<canvas class="bgc" data-seed="${cb.seed || 1}" data-shift="${shift}"${cb.grain === false ? ' data-gr="0"' : ''}></canvas>`;
   else base = `<div class="bgi" style="background:${b.css}"></div>`;
   const gfx = c.fmt === 'photo' && GRAPHIC.has(c.filter) && cb?.dim !== 'light' ? '<div class="dimL" style="background:rgba(0,0,0,.18)"></div>' : '';   // 그래픽 필터는 점이 굵어 글 뒤를 조금 더
-  return { html: base + `<div class="dimL" style="background:${dim}"></div>` + gfx, ink: (b.img || b.code || b.photo || cb?.dim === 'light') ? ink : b.ink };
+  const tink = (b.img || b.code || b.photo || cb?.dim === 'light') ? ink : b.ink, ex = EXTRA[dimLv(cb?.dim)], dark = lum(c.ink || tink) > .5;
+  const more = ex ? `<div class="dimL" style="background:${dark ? `rgba(0,0,0,${ex})` : `rgba(255,255,255,${ex * 1.2})`}"></div>` : '';
+  return { html: base + `<div class="dimL" style="background:${dim}"></div>` + gfx + more, ink: tink };
 }
 
 function text(c, { edit = false } = {}) {
@@ -173,18 +205,21 @@ function text(c, { edit = false } = {}) {
   el.className = 'cd text' + (c.fmt === 'art' ? ' art' : '') + (edit ? ' edit' : '');
   const fo = fontOf(c.font);
   const pages = (c.pages?.length ? c.pages : ['']).map(h => soft(h, edit));
-  const dp = c.datePos || 'top';   // 예전 카드는 위. 새 글카드는 없음에서 시작해요(blank)
-  const info = esc([dateLine(c.date), (c.place || '').trim()].filter(Boolean).join(' · '));
+  const dp = infoPos(c), sg = signOf(c), dl = ((DL[c.size] || DL.m) * fo.k).toFixed(3);
+  const info = esc([dateOn(c) ? dateLine(c.date) : '', placeOn(c) ? c.place.trim() : ''].filter(Boolean).join(' · '));
+  const ff = fontCssOf(fo).replace(/"/g, '&quot;'), ls = fo.id === 'sans' ? '' : ';letter-spacing:.04em';
+  shape(el, arOf(c));
   const ex = (FORMATS[c.fmt] || FORMATS.text).sample.pages[0].replace(/<[^>]+>/g, '');
   el.innerHTML = pages.map((h, i) => {
     const { html, ink } = bgLayer(c, i, pages.length);
-    const date = `<div class="dt" style="font-size:${(({ s: 2.8, m: 3.4, l: 4.2 }[c.size] || 3.4) * fo.k).toFixed(3)}cqw;font-family:${fontCssOf(fo).replace(/"/g, '&quot;')}${fo.id === 'sans' ? '' : ';letter-spacing:.04em'}">${info}</div>`;   // 날짜 줄도 카드 글꼴 · 글자 크기를 따라가요 (글꼴마다 크기 보정)
-    return `<section class="pg" data-i="${i}" style="color:${ink}">${html}
-      <div class="tx" data-k="${fo.k}" data-sz="${SIZES[c.size] || SIZES.m}" style="font-family:${fontCssOf(fo).replace(/"/g, '&quot;')};line-height:${fo.lh};letter-spacing:${fo.ls || 'normal'};justify-content:${{ t: 'flex-start', m: 'center', b: 'flex-end' }[pageAlign(c, i).v || 'm']};text-align:${{ l: 'left', c: 'center', r: 'right' }[pageAlign(c, i).h || 'l']}">
+    const date = info ? `<div class="dt ${dp === 'top' ? 'dup' : 'ddn'}" style="font-size:${dl}cqw;font-family:${ff}${ls}">${info}</div>` : '';   // 날짜 줄도 카드 글꼴 · 글자 크기를 따라가요 (글꼴마다 크기 보정)
+    const sig = sg ? `<div class="sgn" data-h="${sg}" style="font-size:${dl}cqw;font-family:${ff}${ls}">${esc(c.signTxt)}</div>` : '';   // 서명: 모든 장 맨 아래
+    return `<section class="pg${sg ? ' hsg' : ''}" data-i="${i}" style="color:${c.ink || ink};--dl:${dl}cqw">${html}
+      <div class="tx" data-k="${fo.k}" data-sz="${SIZES[c.size] || SIZES.m}" data-v="${pageAlign(c, i).v || 'm'}" style="font-family:${ff};line-height:${(fo.lh * (LH[c.lh] || 1)).toFixed(3)};letter-spacing:${fo.ls || 'normal'};text-align:${{ l: 'left', c: 'center', r: 'right' }[pageAlign(c, i).h || 'l']}${c.bold ? ';font-weight:700' : ''}">
         ${dp === 'top' && i === 0 ? date : ''}
         <div class="body" ${edit ? 'contenteditable="true" spellcheck="false" autocapitalize="off"' : ''} data-ph="${i === 0 ? esc(ex) : '이어서 써 보세요'}">${h}</div>
         ${dp === 'bottom' && i === pages.length - 1 ? date : ''}
-      </div></section>`;
+      </div>${sig}</section>`;
   }).join('');
   el.classList.toggle('empty', !pages.join('').replace(/<[^>]+>/g, '').trim() && !pages.join('').includes('class="stk"'));
   hydrate(el);
@@ -221,8 +256,8 @@ function photoTiles(pg, tx) {
   const W = pg.offsetWidth, H = W * (+pg.closest('.cd')?.dataset.ar || 1.25);
   ph.style.height = pg.classList.contains('long') ? H + 'px' : '';
   if (!pg.classList.contains('long')) return;
-  const pad = parseFloat(getComputedStyle(tx).paddingTop);
-  starts(lines(tx).map(([t, b]) => [t - pad, b - pad]), H - 2 * pad).slice(1).forEach(off => {
+  const cs = getComputedStyle(tx), pad = parseFloat(cs.paddingTop);
+  starts(lines(tx).map(([t, b]) => [t - pad, b - pad]), H - pad - parseFloat(cs.paddingBottom)).slice(1).forEach(off => {
     const m = ph.cloneNode(); m.classList.add('more'); m.style.top = (pad + off) + 'px'; ph.after(m);
   });
 }
@@ -240,7 +275,7 @@ function fitText(el) {
     photoTiles(pg, tx);
     // 쓰는 화면: 저장할 때 나뉠 자리(줄 사이)에 점선. 저장과 같은 방법으로 재서 장 수가 같아요
     if (pg.classList.contains('long') && el.classList.contains('edit')) {
-      const pad = parseFloat(getComputedStyle(tx).paddingTop), st = starts(lines(tx).map(([t, b]) => [t - pad, b - pad]), pg.offsetWidth * 1.25 - 2 * pad);
+      const cs = getComputedStyle(tx), pad = parseFloat(cs.paddingTop), st = starts(lines(tx).map(([t, b]) => [t - pad, b - pad]), pg.offsetWidth * (+el.dataset.ar || 1.25) - pad - parseFloat(cs.paddingBottom));
       st.slice(1).forEach((off, k) => pg.insertAdjacentHTML('beforeend', `<div class="brk" style="top:${(pad + off - 4).toFixed(1)}px"><span>${k + 2}</span></div>`));
     }
   });
@@ -283,6 +318,8 @@ export const FORMATS = {
   },
 };
 export const ORDER = ['rebus', 'art', 'photo', 'text'];
+// 피드 · 쓰기 위에 보이는 '종류 · 템플릿'
+export const LABEL = { text: '글 · 기본', rebus: '디자인 · 그림 문장', art: '아트 · 번지는 빛', photo: '포토 · 기본' };
 
 export function blank(fmt, date) {
   if (fmt === 'photo') return { fmt, date, place: '', pages: [''], bg: { id: 'photo', dim: 'dark' }, filter: 'none', align: { h: 'l', v: 'b' }, datePos: 'none', font: 'serif', size: 'm' };
@@ -301,6 +338,7 @@ export const cardText = c => c.fmt === 'rebus' ? plain(rebusHtmlOf(c)) : (c.page
 // 피드 바탕에 은은하게 번지는 색: 카드의 대표 색
 export function toneOf(c) {
   if (c.fmt === 'rebus') return V;
+  if (c.bg?.id === 'hex' && c.bg.hex) return c.bg.hex;
   const b = findBg(c.bg?.id);
   if (b.photo) return c.bg.tone || b.tone;
   return b.tone || (b.css.match(/#[0-9a-fA-F]{6}/g) || ['#444444'])[b.css.startsWith('#') ? 0 : 1] || '#444444';
