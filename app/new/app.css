@@ -251,7 +251,8 @@ html:not(.kb-open):not(.pan) .wr.inf.ki { bottom: var(--kbh, 40vh); }   /* í‚¤ë³
 .ipn .wide { height: 44px; }
 .ipn .dt span { white-space: nowrap; overflow: hidden; }
 .wr.dsel .ipn .dt, .ipn .wide:focus-within { box-shadow: inset 0 0 0 1.5px #fff; }
-.ipn .k { aspect-ratio: auto; height: 44px; }
+.ipn .ok { justify-content: center; font: 700 15px var(--ui); color: #fff; }
+.wr.inf .area { align-items: center; }
 .ipn input { flex: 1; min-width: 0; background: none; border: 0; outline: none; color: #fff; font: 600 16px var(--ui); }
 .ipn input::placeholder { color: var(--mut); }
 html:not(.kb-open):not(.pan) .wr.inf:not(.ki) .ipn { padding-bottom: max(8px, var(--safe-b)); }

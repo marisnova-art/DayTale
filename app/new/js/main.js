@@ -303,9 +303,10 @@ function viewWrite({ fmt, id }) {
       <button class="wide w4 inf" aria-label="날짜 · 장소 · 서명"><span></span></button><button class="k dpc" aria-label="날짜 줄 자리"></button><button class="k sgc" aria-label="서명 자리"></button><button class="wide w2 vio svb" aria-label="이미지 저장">${ic('save')}<span>이미지 저장</span></button>
     </div>
     <div class="ipn">
-      <div class="g6"><button class="wide w7 dt" aria-label="날짜">${ic('date')}<span></span></button><button class="k on ok" aria-label="확인">${ic('check')}</button></div>
+      <div class="g6"><button class="wide w8 dt" aria-label="날짜">${ic('date')}<span></span></button></div>
       <div class="g6"><label class="wide w8 pl">${ic('pin')}<input class="pi" maxlength="20" placeholder="장소" aria-label="장소" enterkeyhint="next"></label></div>
       <div class="g6"><label class="wide w8 sl">${ic('pen')}<input class="si" maxlength="24" placeholder="서명" aria-label="서명" enterkeyhint="done"></label></div>
+      <div class="g6"><button class="wide w8 ok" aria-label="닫기">닫기</button></div>
     </div>
     <div class="recent"></div>
     <div class="panel"></div></div>`;
@@ -329,6 +330,7 @@ function viewWrite({ fmt, id }) {
     if (open && st.waitKb) endWait();
     // 아이폰 키보드의 내림 단추로 내려도 스타일 보기로 (글 칸에 커서만 남아 있지 않게)
     if (wasOpen && !open && !st.panel && !st.waitKb && document.activeElement?.matches?.('.wr .body')) document.activeElement.blur();
+    if (wasOpen && !open && !st.panel && infOpen() && !document.activeElement?.matches?.('.ipn input')) closeInf();   // 키보드 위 ✓로 내려도 날짜 · 장소 · 서명 화면을 닫아요
     wasOpen = open;
     if (!open && (scrollY || vv.offsetTop)) scrollTo(0, 0);   // 아이폰이 키보드를 내린 뒤 화면을 밀어 둔 채로 두지 않게
     applySize(); keepCaret();
@@ -361,7 +363,8 @@ function viewWrite({ fmt, id }) {
   }
   function applySize(force) {
     const writing = wr.classList.contains('typ') || wr.classList.contains('inf') || root.classList.contains('kb-open') || root.classList.contains('pan');
-    const cw = writing ? sizes.w : sizes.v;
+    let cw = writing ? sizes.w : sizes.v;
+    if (wr.classList.contains('inf')) { const ah = $('.area').clientHeight; if (ah > 40) cw = Math.max(80, Math.min(sizes.w, Math.floor((ah - 12) / arOf(card)))); }   // 날짜 · 장소 · 서명 화면: 카드 한 장이 다 보이게 줄여요
     if (!force && wr.style.getPropertyValue('--cw') === cw + 'px') return;
     wr.style.setProperty('--cw', cw + 'px'); wr.style.setProperty('--ar', arOf(card));
     if (el) { fitCard(el, card); scrollToPage(st.pg, false); requestAnimationFrame(keepCaret); }
