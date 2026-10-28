@@ -172,6 +172,7 @@ function feedItem(c) {
       : `<div class="l"><button class="cb ${c.mark ? 'on' : ''}" data-a="mark" aria-label="책갈피">${ic('bookmark')}</button><button class="cb" data-a="save" aria-label="사진에 저장">${ic('save')}</button><button class="cb" data-a="edit" aria-label="고치기">${ic('pen')}</button><button class="cb" data-a="del" aria-label="삭제">${ic('trash')}</button><span class="pc" hidden></span></div>`}</div>
     <p class="ex"></p>`;
   const fx = $('.fx', it), view = $('.view', it), pc = $('.pc', it);
+  if (arOf(c) > 1.5) fx.classList.add('tall');   // 9:16은 자르지 않고 4:5 높이에 맞춰 폭만 줄여 가운데로
   $('.ex', it).textContent = cardText(c).replace(/\s+/g, ' ').trim();   // 글 첫머리 한 줄 (길면 …)
   mount(view, c);
   pageInto(view, c, (i, n) => { if (pc) { pc.hidden = false; pc.textContent = `${i}/${n}`; } });
@@ -699,7 +700,7 @@ function viewWrite({ fmt, id }) {
   function paintHue(what) {
     const pb = ps().bg, ink = what === 'ink', pos = ink ? card.inkPos : pb.id === 'hex' ? pb.pos : null;
     row2.className = 'st2 g6 hur';
-    row2.innerHTML = `<button class="k" data-x="back" aria-label="돌아가기">${ic('back')}</button>${ink ? `<button class="k rt ${card.ink ? '' : 'on'}" data-x="auto">자동</button>` : ''}<div class="hbar" style="grid-column:span ${ink ? 6 : 7}"><i ${pos == null ? 'hidden' : ''} style="left:${(pos ?? .5) * 100}%"></i></div>`;
+    row2.innerHTML = `<button class="k" data-x="back" aria-label="돌아가기">${ic('back')}</button>${ink ? `<button class="k rt ${card.ink ? '' : 'on'}" data-x="auto">자동</button>` : ''}<div class="hbar" style="grid-column:span ${ink ? 6 : 7}"><i ${pos == null ? 'hidden' : ''} style="left:${Math.max(0, Math.min(1, pos ?? .5)) * 100}%"></i></div>`;
     $$('button', row2).forEach(x => x.addEventListener('pointerdown', e => e.preventDefault()));
     $('[data-x=back]', row2).onclick = () => { st.tab = ink ? 'fmt' : 'bg'; paintRow2(); };
     if (ink) $('[data-x=auto]', row2).onclick = () => { flush(); card.ink = null; delete card.inkPos; push(); draw(); paintRow2(); pop('자동', null, '글자색'); };
@@ -716,7 +717,7 @@ function viewWrite({ fmt, id }) {
     bar.addEventListener('pointermove', e => { if (d && e.pointerId === d.id) d.c = live(d.p = at(e)); });
     const end = () => {
       if (!d) return; const { c, p } = d; d = null; flush();
-      if (ink) { card.ink = c; card.inkPos = p; }
+      if (ink) { card.ink = c; card.inkPos = Math.max(0, Math.min(1, p)); }   // 막대 끝 밖으로 밀어도 끝에
       else { clearPhoto(pb); pb.id = 'hex'; pb.hex = c; pb.pos = Math.max(0, Math.min(1, p)); S.setPref('hexes', [c, ...S.pref('hexes', []).filter(x => x !== c)].slice(0, 6)); syncFirst(); }
       push(); draw(); paintRow2(); pop(ink ? '글자색' : '직접 색', null, ink ? null : pgLab());
     };

@@ -93,6 +93,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .day { font-size: 13px; font-weight: 700; color: var(--mut); margin: 6px 0 -16px; letter-spacing: .02em; }
 .fi { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; min-width: 0; }   /* 옆 장들 때문에 넓어지지 않게 */
 .fi .fx { position: relative; cursor: pointer; border-radius: 6px; }
+.fi .fx.tall { width: 70.3125%; justify-self: center; }   /* 9:16 = 4:5 카드와 같은 높이 (1.25 / 1.778) */
 .fi .view { position: relative; border-radius: 6px; overflow: hidden; }
 .fi .pgs { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
 .fi .pgs::-webkit-scrollbar { display: none; }
