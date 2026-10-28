@@ -402,6 +402,7 @@ html.pan .wr .panel { display: grid; }
 /* 9:16: 카드 자체를 9:16으로. 글 · 날짜 · 서명은 스토리 · 릴스 · 쇼츠가 덮는 자리(위 13% · 아래 22% · 오른쪽 12%) 안쪽에만 */
 .cd.r916 .pg, .cd.rebus.r916 { aspect-ratio: 9 / 16; }
 .cd.r916 .pg.long, .cd.r916 .pg.long .tx { min-height: 177.78cqw; }
+.cd.r916 .pg.long, .cd.r11 .pg.long { aspect-ratio: auto; }   /* 긴 장은 9:16 · 1:1에서도 글 길이만큼 늘어나요 (서명이 글에 겹치지 않게) */
 .cd.r916 .tx { padding: 28cqw 12cqw 44cqw 9.63cqw; }
 .cd.r916 .sgn { bottom: 39.1cqw; } .cd.r916 .sgn[data-h=r] { right: 12cqw; }
 .cd.r916 .pg.hsg .tx { padding-bottom: calc(39.1cqw + 1.2 * var(--dl) + 4.5cqw); }
