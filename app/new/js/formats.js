@@ -170,10 +170,11 @@ export const pageBg = (c, i) => c.pst?.[i]?.bg || c.bg;
 export const pageAlign = (c, i) => c.pst?.[i]?.align || c.align || {};
 const PH_ICON = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="15" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.5"/><path d="m18 15-4-4-8 8"/><path d="M21 3v6M18 6h6"/></svg>';
 // 직접 고른 색(hex): 밝은 색이면 글이 어둡게
-const lum = h => { const [r, g, b] = [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255); return .2126 * r + .7152 * g + .0722 * b; };
+const lum = h => { if (/^#[0-9a-f]{3}$/i.test(h)) h = '#' + [...h.slice(1)].map(x => x + x).join('');   // #fff 같은 짧은 색도
+  const [r, g, b] = [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255); return .2126 * r + .7152 * g + .0722 * b; };
 export const inkOn = hex => lum(hex) > .62 ? '#1E1D1B' : '#fff';
 export const hexBg = hex => ({ id: 'hex', name: '직접 색', css: hex, tone: hex, ink: inkOn(hex), dim: ['all', '0,0,0', 0] });
-// 딤: 약(배경마다 정해 둔 딤) · 중 · 강. 글이 흰색이면 어둡게, 어두운 글이면 밝게 덮어서 글이 또렷해져요
+// 딤: 약(배경마다 정해 둔 딤) · 중 · 강. 중 · 강은 검게 한 겹 더 덮어요
 export const dimLv = d => d === 'd3' ? 3 : d === 'd2' ? 2 : 1;
 const EXTRA = { 1: 0, 2: .2, 3: .4 };
 function bgLayer(c, page, pages) {
@@ -196,8 +197,8 @@ function bgLayer(c, page, pages) {
   else if (b.code) base = `<canvas class="bgc" data-seed="${cb.seed || 1}" data-shift="${shift}"${cb.grain === false ? ' data-gr="0"' : ''}></canvas>`;
   else base = `<div class="bgi" style="background:${b.css}"></div>`;
   const gfx = c.fmt === 'photo' && GRAPHIC.has(c.filter) && cb?.dim !== 'light' ? '<div class="dimL" style="background:rgba(0,0,0,.18)"></div>' : '';   // 그래픽 필터는 점이 굵어 글 뒤를 조금 더
-  const tink = (b.img || b.code || b.photo || cb?.dim === 'light') ? ink : b.ink, ex = EXTRA[dimLv(cb?.dim)], dark = lum(c.ink || tink) > .5;
-  const more = ex ? `<div class="dimL" style="background:${dark ? `rgba(0,0,0,${ex})` : `rgba(255,255,255,${ex * 1.2})`}"></div>` : '';
+  const tink = (b.img || b.code || b.photo || cb?.dim === 'light') ? ink : b.ink, ex = EXTRA[dimLv(cb?.dim)];
+  const more = ex ? `<div class="dimL" style="background:rgba(0,0,0,${ex})"></div>` : '';   // 딤은 늘 어둡게 덮어요 (앤드류 10-28)
   return { html: base + `<div class="dimL" style="background:${dim}"></div>` + gfx + more, ink: tink };
 }
 
@@ -210,7 +211,7 @@ function text(c, { edit = false } = {}) {
   const info = esc([dateOn(c) ? dateLine(c.date) : '', placeOn(c) ? c.place.trim() : ''].filter(Boolean).join(' · '));
   const ff = fontCssOf(fo).replace(/"/g, '&quot;'), ls = fo.id === 'sans' ? '' : ';letter-spacing:.04em';
   shape(el, arOf(c));
-  const ex = (FORMATS[c.fmt] || FORMATS.text).sample.pages[0].replace(/<[^>]+>/g, '');
+  const ex = c.ex?.t || (FORMATS[c.fmt] || FORMATS.text).sample.pages[0].replace(/<[^>]+>/g, '');   // 새 카드마다 고른 질문 · 문장 (prompts.js)
   el.innerHTML = pages.map((h, i) => {
     const { html, ink } = bgLayer(c, i, pages.length);
     const date = info ? `<div class="dt ${dp === 'top' ? 'dup' : 'ddn'}" style="text-align:${dhOf(c)};font-size:${dl}cqw;font-family:${ff}${ls}">${info}</div>` : '';   // 날짜 줄도 카드 글꼴 · 글자 크기를 따라가요 (글꼴마다 크기 보정)

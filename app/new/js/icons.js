@@ -64,6 +64,7 @@ const P = {
   d2: '<rect x="4" y="9.33" width="16" height="10.67" rx="0" fill="currentColor" stroke="none" opacity=".85"/><rect x="4" y="4" width="16" height="16" rx="3"/>',
   d3: '<rect x="4" y="4.00" width="16" height="16.00" rx="3" fill="currentColor" stroke="none" opacity=".85"/><rect x="4" y="4" width="16" height="16" rx="3"/>',
   trash: '<path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13"/>',
+  one: '<rect x="5" y="4" width="14" height="12" rx="1.5"/><path d="M5 20h14"/>',
   grid: '<rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/>',
   fold: '<path d="m7 15 5-5 5 5"/>',
   dtop: '<path d="M4 4h16"/><path d="M12 20V9M8 13l4-4 4 4"/>',

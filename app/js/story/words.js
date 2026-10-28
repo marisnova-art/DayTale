@@ -99,4 +99,4 @@ function todayWord(ctx, lang) {
   return pick;
 }
 
-export { hasWords, setWordsRemote, todayWord, wordById, wordDay };
+export { PACKS as WORD_PACKS, hasWords, setWordsRemote, todayWord, wordById, wordDay };
