@@ -1,6 +1,6 @@
 // 포토 포맷 영상: 소리 없이 고른 10초가 계속 돌아요. 카드에는 영상 번호(vd)와 커버 사진(ph)을 적어요.
 // 커버는 보통 사진과 똑같이 그려져서(필터 · 위치 · 저장 이미지), 영상은 그 위 캔버스(.bgv)에 장면마다 필터를 걸어 그려요.
-// 한 번에 하나만 재생해요: 쓰기 화면은 보고 있는 장, 피드는 가운데 카드
+// 쓰기 화면은 보고 있는 장 하나(start), 피드는 화면에 보이는 카드들(sync, 최대 4개)
 import * as P from './photos.js';
 import { apply, filterOf, levels } from './filters.js';
 
@@ -48,15 +48,35 @@ export async function add(file) {
   await prime(v);
   if (!v.videoWidth) throw new Error('video size');
   const dur = isFinite(v.duration) ? v.duration : MAX;
-  v.pause(); await seekTo(v, 0);
-  const cover = await P.addCanvas(v, v.videoWidth, v.videoHeight);
+  v.pause();
+  const cover = await P.addCanvas(await shown(v, 0, dur), v.videoWidth, v.videoHeight);
   return { ...cover, w: v.videoWidth, h: v.videoHeight, vd, dur, t0: 0 };
 }
 // 지금 장면(또는 t초 장면)을 커버 사진으로
 export async function capture(b, t) {
   const v = videoOf(b.vd); await prime(v);
-  if (t != null) await seekTo(v, t);
-  return { ...(await P.addCanvas(v, v.videoWidth, v.videoHeight)), w: v.videoWidth, h: v.videoHeight };
+  const src = t != null ? await shown(v, t, b.dur) : v;
+  return { ...(await P.addCanvas(src, v.videoWidth, v.videoHeight)), w: v.videoWidth, h: v.videoHeight };
+}
+// 거의 검은 그림인지 (8×8로 줄여서 밝기 평균)
+const probe = document.createElement('canvas'); probe.width = probe.height = 8;
+const pc = probe.getContext('2d', { willReadFrequently: true });
+export function dark(src) {
+  try { pc.clearRect(0, 0, 8, 8); pc.drawImage(src, 0, 0, 8, 8); const d = pc.getImageData(0, 0, 8, 8).data; let s = 0; for (let i = 0; i < d.length; i += 4) s += d[i] + d[i + 1] + d[i + 2]; return s / 192 < 10; } catch { return false; }
+}
+// t초 장면을 실제로 그려진 뒤에 떠요. 아이폰은 되감은 직후 장면을 검게 주기도 해서, 검으면 잠깐 기다렸다가 0.1초씩 뒤로 옮겨 다시
+// (원래 어두운 영상이면 몇 번 뒤에 그대로 써요). 돌려주는 것: 그 장면을 담은 캔버스
+async function shown(v, t, dur = MAX) {
+  const cv = document.createElement('canvas'); cv.width = v.videoWidth; cv.height = v.videoHeight; const c = cv.getContext('2d');
+  for (let i = 0; i < 6; i++) {
+    await seekTo(v, Math.min(Math.max(0, (dur || MAX) - .05), t + i * .1));
+    for (let k = 0; k < 3; k++) {
+      await new Promise(ok => v.requestVideoFrameCallback ? (v.requestVideoFrameCallback(() => ok()), setTimeout(ok, 250)) : setTimeout(ok, 120));
+      c.drawImage(v, 0, 0, cv.width, cv.height);
+      if (!dark(cv)) return cv;
+    }
+  }
+  return cv;
 }
 
 // 타임라인 띠: 영상 전체를 작은 장면 n개로 (한 번 만들면 기억해요). 따로 된 영상 요소로 만들어 재생을 방해하지 않아요
@@ -77,49 +97,75 @@ export function strip(b, n, fw, fh) {
   return strips.get(k);
 }
 
-// ── 재생 (하나만) ─────────────────────────────────────
-// cur = { cv, v, b, fid, paused, lv, raf, onTick }
+// ── 재생 ─────────────────────────────────────────────
+// 재생 하나 = { cv, v, b, fid, paused, lv, raf, onTick, dead }. cur = 쓰기 화면에서 조작하는 재생 (재생/정지 · 타임라인)
 let cur = null;
+const live = new Set();
 const work = document.createElement('canvas'), wc = work.getContext('2d');
 export const playing = () => cur;
-export function stop() {
-  if (!cur) return;
-  cancelAnimationFrame(cur.raf); cur.v.pause(); cur.v.style.cssText = 'width:1px;height:1px;'; shelfEl().appendChild(cur.v);
-  const c = cur.cv.getContext('2d'); c.clearRect(0, 0, cur.cv.width, cur.cv.height); cur.cv.style.visibility = ''; cur.cv.style.opacity = '';   // 멈춘 카드는 커버 사진이 보여요
-  cur = null;
+export const players = () => [...live];   // 지금 재생 중인 칸들 (피드)
+function kill(me) {
+  me.dead = true; live.delete(me); if (cur === me) cur = null;
+  cancelAnimationFrame(me.raf); me.v.pause(); me.v.style.cssText = 'width:1px;height:1px;'; shelfEl().appendChild(me.v);
+  const c = me.cv.getContext('2d'); c.clearRect(0, 0, me.cv.width, me.cv.height); me.cv.style.visibility = ''; me.cv.style.opacity = '';   // 멈춘 카드는 커버 사진이 보여요
 }
-// cv = 카드 안 영상 캔버스, b = 그 장 배경 값, fid = 카드 필터
+export function stop() { [...live].forEach(kill); }
+// 쓰기 화면 · 크게 보기: 이 장 하나만
 export function start(cv, b, fid, { paused = false, onTick } = {}) {
-  if (cur && cur.cv === cv && cur.b === b && cur.fid === fid) { cur.onTick = onTick; setPaused(paused); return cur; }
+  if (cur && cur.cv === cv && cur.b === b && cur.fid === fid && !cur.dead) { cur.onTick = onTick; setPaused(paused); return cur; }
   const keep = cur && cur.b.vd === b.vd ? cur.v.currentTime : null;
   stop();
-  const v = videoOf(b.vd), me = { cv, v, b, fid, paused, lv: { lo: 0, hi: 1 }, raf: 0, onTick, key: '', fr: 0, live: false, ar: +(cv.closest('[data-ar]')?.dataset.ar) || 1.25 };
-  cur = me;
+  return (cur = spawn(cv, b, fid, { paused, onTick, keep }));
+}
+// 피드: 화면에 보이는 영상 칸들을 재생하고, 목록에 없는 건 멈춰요. list = [{ cv, b, fid, onCover }]
+export const MAXN = 4;
+export function sync(list) {
+  const want = list.slice(0, MAXN);
+  [...live].forEach(me => { if (!want.some(w => w.cv === me.cv && w.b.vd === me.b.vd && w.fid === me.fid)) kill(me); });
+  want.forEach(w => { if (![...live].some(me => me.cv === w.cv) && ![...live].some(me => me.b.vd === w.b.vd)) spawn(w.cv, w.b, w.fid, { onCover: w.onCover }); });   // 같은 영상 파일은 한 칸에서만
+}
+const coverDark = new Map();   // 커버 사진이 원래 어두운지 (어두운 영상이면 검은 장면도 그대로 보여요)
+function darkCover(b) {
+  if (!b.ph) return Promise.resolve(true);
+  if (!coverDark.has(b.ph)) coverDark.set(b.ph, new Promise(ok => { const i = new Image(); i.onload = () => ok(dark(i)); i.onerror = () => ok(true); i.src = P.url(b.ph); }));
+  return coverDark.get(b.ph);
+}
+function spawn(cv, b, fid, { paused = false, onTick, keep = null, onCover } = {}) {
+  const v = videoOf(b.vd), me = { cv, v, b, fid, paused, lv: { lo: 0, hi: 1 }, raf: 0, onTick, key: '', fr: 0, live: false, shown: false, dead: false, ar: +(cv.closest('[data-ar]')?.dataset.ar) || 1.25 };
+  live.add(me);
   // 새 장면이 올 때만 그려요 (화면은 초당 120번이어도 영상은 30장 정도라 필터 일이 크게 줄어요)
-  if (v.requestVideoFrameCallback) { const nf = () => { if (cur !== me) return; me.fr++; v.requestVideoFrameCallback(nf); }; v.requestVideoFrameCallback(nf); }
+  if (v.requestVideoFrameCallback) { const nf = () => { if (me.dead) return; me.fr++; v.requestVideoFrameCallback(nf); }; v.requestVideoFrameCallback(nf); }
   // 화면에 보이는 자리에 있어야 아이폰이 계속 재생해요 (위 캔버스가 덮어요).
-  // 처음엔 거의 투명하게: 맞는 장면이 올 때까지 커버 사진이 보이고, 장면이 오면 0.25초에 걸쳐 나타나요 (검은 화면 · 앞 영상 장면 · 깜빡임 없이)
+  // 처음엔 거의 투명하게: 제대로 된 장면이 올 때까지 커버 사진이 보이고, 장면이 오면 0.25초에 걸쳐 나타나요 (검은 화면 · 앞 영상 장면 · 깜빡임 없이)
   v.style.cssText = `position:absolute;left:0;top:0;width:100%;height:${Math.round((cv.clientWidth || cv.parentNode.clientWidth) * me.ar)}px;object-fit:cover;background:transparent;object-position:${b.x ?? 50}% ${b.y ?? 50}%;pointer-events:none;opacity:.01;transition:opacity .25s ease;`; cv.before(v);
   cv.style.transition = 'opacity .25s ease'; cv.style.opacity = '0';
   levels(b).then(l => { me.lv = l; me.key = ''; });
   const t0 = b.t0 || 0, len = lenOf(b);
+  let cd = true; darkCover(b).then(x => { cd = x; });
   (async () => {
     if (keep == null || keep < t0 - .05 || keep > t0 + len) await seekTo(v, t0);
-    if (cur !== me) return;
+    if (me.dead) return;
     if (!me.paused) v.play().catch(() => {});
     await frame(v, me.paused);
-    if (cur !== me) return;
-    me.live = true; me.key = ''; paint(me); show(me);
+    if (me.dead) return;
+    me.live = true; me.key = ''; paint(me);
+    cd = await darkCover(b);
+    // 저장된 카드의 커버가 검게 떠져 있으면(커버를 따로 안 고른 카드) 처음 제대로 그려진 장면으로 바꿔 둬요
+    if (cd && onCover && b.cvt == null && b.ph) {
+      for (let i = 0; i < 12 && !me.dead && dark(cv); i++) { await new Promise(ok => setTimeout(ok, 150)); me.key = ''; paint(me); }
+      if (!me.dead && !dark(cv)) { try { const c = await capture(b, b.t0 || 0); if (!dark(await new Promise(ok => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => ok(probe); i.src = P.url(c.ph); }))) { coverDark.set(c.ph, Promise.resolve(false)); onCover(c); } } catch {} if (!me.paused) v.play().catch(() => {}); }
+    }
   })();
   const loop = () => {
-    if (cur !== me) return;
+    if (me.dead) return;
     me.raf = requestAnimationFrame(loop);
-    if (!cv.isConnected) return stop();
+    if (!cv.isConnected) return kill(me);
     if (document.hidden) { if (!v.paused) v.pause(); return; }   // 앱이 뒤로 가거나 화면이 꺼지면 멈춰요 (돌아오면 아래에서 다시 재생)
     const s = me.b.t0 || 0, l = lenOf(me.b);
     if (!me.paused && !me.scrub && (v.currentTime >= s + l - .04 || v.currentTime < s - .3)) { v.currentTime = s; v.play().catch(() => {}); }
     if (!me.paused && !me.scrub && v.paused && v.readyState >= 2) v.play().catch(() => {});
     paint(me);
+    if (me.live && !me.shown && (cd || !dark(cv))) { me.shown = true; show(me); }   // 검은 장면은 띄우지 않아요 (커버가 그대로 보여요)
     me.onTick?.(Math.max(0, Math.min(l, v.currentTime - s)), l);
   };
   loop();

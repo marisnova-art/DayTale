@@ -50,6 +50,7 @@ function route() {
   cleanup?.(); cleanup = null;
   const [r, a] = location.hash.replace(/^#\/?/, '').split('/');
   window.scrollTo(0, 0);
+  if (r !== 'write') pickEx = null;   // 포맷 고르기에서 보여 준 예시 글은 바로 이어지는 쓰기에서만
   if (r === 'pick') return viewPick();
   if (r === 'write') return viewWrite({ fmt: a });
   if (r === 'edit') return viewWrite({ id: a });
@@ -75,6 +76,14 @@ function bindNav() {
 }
 
 // 피드: 위 줄은 흐림 없이 같이 스크롤돼요. 화면 가운데 카드만 움직이고, 그 카드 색이 바탕에 은은하게 번져요
+// 예전에 검게 떠진 영상 커버(커버를 따로 안 고른 카드): 피드에서 처음 제대로 재생될 때 그 장면으로 바꿔 저장해요
+function fixCover(c, i, b, cov) {
+  if (!c.id) return;
+  Object.assign(b, { ph: cov.ph, tone: cov.tone });
+  if (c.pst?.[i]?.bg && c.pst[i].bg !== b) Object.assign(c.pst[i].bg, { ph: cov.ph, tone: cov.tone });
+  if (i === 0 && c.bg?.vd === b.vd) Object.assign(c.bg, { ph: cov.ph, tone: cov.tone });
+  S.saveCard(c);
+}
 // 1열(카드 크게 · 아이콘 줄 · 글 한 줄)과 2열(핀터레스트처럼 카드마다 제 비율, 아래는 쓴 때 · ⋯만). 로고 줄 알림 왼쪽 버튼으로 바꾸고, 고른 걸 기억해요 (처음은 2열)
 function viewFeed(fresh, quiet) {
   const mine = S.cards(), two = S.pref('cols', 2) === 2;
@@ -90,13 +99,13 @@ function viewFeed(fresh, quiet) {
   } else list.forEach(c => feed.appendChild(feedItem(c)));
   // 1열 ↔ 2열: 보던 카드가 바뀐 화면에서도 가운데에 오게
   $('[data-a=cols]').onclick = () => {
-    const k = cur?.dataset.k; S.setPref('cols', two ? 1 : 2);
-    cleanup?.(); cleanup = null; viewFeed(null);
-    const it = k && $(`.feed .fi[data-k="${k}"]`);
+    const k = scrollY > 40 ? cur?.dataset.k : null; S.setPref('cols', two ? 1 : 2);   // 맨 위에서 바꾸면 맨 위 그대로
+    cleanup?.(); cleanup = null; viewFeed(null); scrollTo(0, 0);
+    const it = k && $(`.feed .fi[data-k="${k}"]`);   // 첫 카드면 맨 위 그대로
     if (it && it !== $('.feed .fi')) { const put = () => it.scrollIntoView({ block: 'center' }); put(); setTimeout(put, 400); }
   };
 
-  // 가운데 카드 찾기: 그 카드만 재생 + 바탕 색
+  // 화면에 보이는 카드는 모두 움직이고(아트 · 그림 문장 · 영상), 밖으로 나가면 멈춰요. 바탕 색은 가운데 카드
   // 오로라: 화면 가운데에 고정된 둥근 번짐. 두 겹을 번갈아 켜서 색이 천천히 바뀌어요 (아이폰도 모서리 없이)
   const amb = $('.amb'), gl = $$('i', amb); let gi = 0, gc = '';
   const glow = t => { if (!t || t === gc) return; gc = t; gi ^= 1; gl[gi].style.background = `radial-gradient(closest-side, ${t}, transparent)`; gl[gi].classList.add('on'); gl[gi ^ 1].classList.remove('on'); };
@@ -104,12 +113,15 @@ function viewFeed(fresh, quiet) {
   const pickMid = () => {
     raf = 0;
     const mid = innerHeight * .45; let best = null, bd = 1e9;
-    $$('.feed .fi').forEach(it => { const r = it.querySelector('.fx').getBoundingClientRect(), d = Math.abs((r.top + r.bottom) / 2 - mid); if (d < bd) { bd = d; best = it; } });
+    $$('.feed .fi').forEach(it => {
+      const r = it.querySelector('.fx').getBoundingClientRect(), d = Math.abs((r.top + r.bottom) / 2 - mid), on = r.bottom > 0 && r.top < innerHeight;
+      if (d < bd) { bd = d; best = it; }
+      if (on === it.classList.contains('play')) return;
+      it.classList.toggle('play', on);
+      if (on && !it.dataset.seen) { it.dataset.seen = 1; it.classList.add('intro'); setTimeout(() => it.classList.remove('intro'), 1800); }
+    });
     if (best === cur) return;
-    cur?.classList.remove('play'); cur = best;
-    if (!cur) return;
-    cur.classList.add('play'); glow(cur.dataset.tone);
-    if (!cur.dataset.seen) { cur.dataset.seen = 1; cur.classList.add('intro'); setTimeout(() => cur?.classList.remove('intro'), 1800); }
+    cur = best; if (cur) glow(cur.dataset.tone);
   };
   const onScroll = () => { if (!raf) raf = requestAnimationFrame(pickMid); };
   addEventListener('scroll', onScroll, { passive: true });
@@ -117,22 +129,27 @@ function viewFeed(fresh, quiet) {
   document.addEventListener('visibilitychange', onVis);
   // 아트 배경은 가운데 카드만 그림 자체가 흘러요: 빛줄기가 천천히 일렁이고 색이 줄기를 따라 흘러요 (그래픽 칩으로 화면 속도대로)
   let anim = 0, feedTimer = 0; const t0 = performance.now(), still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let nt = 0;
   const tick = now => {
     anim = requestAnimationFrame(tick);
     if (document.hidden) return;
+    if (++nt % 20 === 0) pickMid();   // 스크롤 없이 카드가 화면에 들어와도 (장 나누기 · 사진이 늦게 오면)
     $$('.fi.play .view canvas.bgc').forEach(cv => cv.width && drawCode(cv, +cv.dataset.seed, +cv.dataset.shift || 0, (now - t0) / 1000 + .01));
     feedVideo();
   };
-  // 영상도 가운데 카드만 (여러 장이면 보이는 장). 크게 보기 중에는 그 카드. 나머지는 커버 장면
+  // 영상도 화면에 보이는 카드들 (여러 장이면 보이는 장, 가운데에 가까운 순서로 최대 4개). 크게 보기 중에는 그 카드만. 나머지는 커버 장면
+  const one = (cv, c) => { const pg = cv.closest('.pg'), i = +(pg?.dataset.i || 0), b = pageBg(c, i); return b?.vd ? { cv, b, fid: c.filter, onCover: cov => fixCover(c, i, b, cov) } : null; };
   const feedVideo = () => {
-    let cv = null, c = null;
-    if (focus) { cv = $('canvas.bgv', focus.box); c = focus.c; }
-    else if (cur && !document.hidden) { c = cur._card; cv = $$('.view canvas.bgv', cur).find(x => { const r = x.getBoundingClientRect(); return r.width && r.left > -r.width / 2 && r.left < innerWidth / 2; }); }
-    if (!cv || !c) return V.playing() && V.stop();
-    const pg = cv.closest('.pg'), b = pageBg(c, +(pg?.dataset.i || 0));
-    if (b?.vd) V.start(cv, b, c.filter);
+    if (document.hidden) return V.sync([]);
+    if (focus) { const cv = $('canvas.bgv', focus.box); return V.sync(cv ? [one(cv, focus.c)].filter(Boolean) : []); }
+    const mid = innerHeight * .45, out = [];
+    $$('.feed .fi.play').forEach(it => {
+      const cv = $$('.view canvas.bgv', it).find(x => { const r = x.getBoundingClientRect(), w = x.closest('.view').getBoundingClientRect(); return r.width && r.bottom > 0 && r.top < innerHeight && r.left > w.left - r.width / 2 && r.left < w.left + r.width / 2; });
+      const o = cv && one(cv, it._card); if (o) { const r = cv.getBoundingClientRect(); o.d = Math.abs((r.top + r.bottom) / 2 - mid); out.push(o); }
+    });
+    V.sync(out.sort((a, b) => a.d - b.d));
   };
-  if (!still) anim = requestAnimationFrame(tick); else feedTimer = setInterval(feedVideo, 300);
+  if (!still) anim = requestAnimationFrame(tick); else feedTimer = setInterval(() => { pickMid(); feedVideo(); }, 300);
   cleanup = () => { cancelAnimationFrame(anim); clearInterval(feedTimer); V.stop(); removeEventListener('scroll', onScroll); document.removeEventListener('visibilitychange', onVis); closeFocus(true); };
   setTimeout(pickMid, 80);
 
@@ -180,7 +197,7 @@ function pageInto(view, c, onCount) {
 }
 
 // 카드 한 장. 긴 카드는 4:5 장들을 옆으로 밀어 봐요. 누르면 그 카드 전체를 화면 가득(다시 누르면 피드로).
-// 아래: 책갈피 · 저장 · 쓰기 · 삭제 · 장 수(여러 장일 때) / 글 첫머리 한 줄 / 언제 썼는지
+// 1열 아래: 책갈피 · 저장 · 고치기 · 이 포맷으로 쓰기 · 지우기 · 장 수(여러 장일 때) / 글 첫머리 한 줄 / 언제 썼는지
 // tile = 2열 칸: 카드 + [쓴 때 · ⋯] (여러 장이면 카드 위 오른쪽에 1/N). 우리 카드는 [NEW 이름 · ✎]
 function feedItem(c, tile) {
   const it = document.createElement('article'); it.className = 'fi' + (tile ? ' tile' : ''); it.dataset.tone = toneOf(c); if (c.id) it.dataset.id = c.id; it.dataset.k = c.id || 's:' + c.fmt; it._card = c;
@@ -192,7 +209,7 @@ function feedItem(c, tile) {
     : `${c.sample ? '' : `<p class="when"><span>${ago(c)}</span><i>${LABEL[c.fmt] || ''}</i></p>`}<div class="fx"><div class="view"></div></div>
     <div class="row">${c.sample
       ? `<div class="ours">${f.name}<i>NEW</i></div><button class="cb" data-a="use" aria-label="이 포맷으로 쓰기">${ic('pen')}</button>`
-      : `<div class="l"><button class="cb ${c.mark ? 'on' : ''}" data-a="mark" aria-label="책갈피">${ic('bookmark')}</button><button class="cb" data-a="save" aria-label="사진에 저장">${ic('save')}</button><button class="cb" data-a="edit" aria-label="고치기">${ic('pen')}</button><button class="cb" data-a="more" aria-label="더 보기">${ic('more')}</button><span class="pc" hidden></span></div>`}</div>
+      : `<div class="l"><button class="cb ${c.mark ? 'on' : ''}" data-a="mark" aria-label="책갈피">${ic('bookmark')}</button><button class="cb" data-a="save" aria-label="사진에 저장">${ic('save')}</button><button class="cb" data-a="edit" aria-label="고치기">${ic('pen')}</button><button class="cb" data-a="like" aria-label="이 포맷으로 쓰기">${ic('grid')}</button><button class="cb" data-a="del" aria-label="지우기">${ic('trash')}</button><span class="pc" hidden></span></div>`}</div>
     <p class="ex"></p>`;
   const fx = $('.fx', it), view = $('.view', it), pc = $('.pc', it);
   // 9:16은 자르지 않고 4:5 높이에 맞춰 가운데로. 양옆은 같은 카드 배경을 흐리고 조금 어둡게 깔아요 (글 · 날짜 · 서명은 빼고, 1열 피드에서만)
@@ -214,7 +231,7 @@ function feedItem(c, tile) {
     if (!(await ask('이 카드를 지울까요?', '삭제'))) return;
     S.removeCard(c.id); it.remove();
   };
-  on('mark', mark);
+  on('mark', mark); on('del', del); on('like', () => go(`#/like/${c.id}`));
   // ⋯: 책갈피 · 이미지 저장 · 고치기 · 이 포맷으로 쓰기 | 지우기. 위에 날짜 · 종류
   on('more', () => sheet(`${+c.date.slice(5, 7)}월 ${+c.date.slice(8, 10)}일 · ${LABEL[c.fmt] || ''}`, [[
     { icon: 'bookmark', label: c.mark ? '책갈피 빼기' : '책갈피', run: mark },
@@ -269,9 +286,13 @@ function closeFocus(now) {
 }
 
 /* ── 포맷 고르기 ─────────────────────────────────────── */
+// 예시 글을 하나 골라 글 · 아트 · 포토 카드에 보여 주고, 쓰기로 들어가면 같은 글이 흐리게 이어져요 (그림 문장은 정해 둔 예시)
+let pickEx = null;
 function viewPick() {
   const d = S.draft();
-  const items = [...(d ? [{ key: 'draft', card: d.card, label: '이어 쓰기' }] : []), ...ORDER.map(f => ({ key: f, card: sampleCard(f, S.today()), label: FORMATS[f].name }))];
+  pickEx = exampleText();
+  const sample = f => { const c = sampleCard(f, S.today()); if (FORMATS[f].rich) c.pages = [esc(pickEx.t)]; return c; };
+  const items = [...(d ? [{ key: 'draft', card: d.card, label: '이어 쓰기' }] : []), ...ORDER.map(f => ({ key: f, card: sample(f), label: FORMATS[f].name }))];
   let sel = items[0].key;
   app.innerHTML = `<header class="top"><button class="cb" data-a="x" aria-label="닫기">${ic('close')}</button><button class="cb" data-a="find" aria-label="포맷 검색">${ic('search')}</button></header>
     <main class="pick"><div class="big"></div><div><div class="nm"></div><div class="inf"></div></div>
@@ -321,7 +342,8 @@ function viewWrite({ fmt, id, like }) {
     if (card.fmt === 'text') { card.font = fontOf(S.pref('font', card.font)).id; const dp = S.pref('datePos', ''); if (dp === 'top' || dp === 'bottom') card.datePos = dp; const dh = S.pref('dh', ''); if (dh) card.dh = dh; }
     card.showDate = S.pref('showDate:' + card.fmt, dateOn(card));
     card.ratio = S.pref('ratio', '45'); card.sg = S.pref('sg', ''); card.signTxt = S.pref('sign', '');
-    if (FORMATS[card.fmt]?.rich) card.ex = exampleText();   // 흐린 예시 글: 질문 7 · 문장 3 (디자인 포맷은 정해 둔 예시)
+    if (FORMATS[card.fmt]?.rich) card.ex = pickEx || exampleText();   // 흐린 예시 글: 질문 7 · 문장 3 (디자인 포맷은 정해 둔 예시). 포맷 고르기에서 본 그 글
+    pickEx = null;
   }
   if (!card || !FORMATS[card.fmt]) return go('#/');
   const f = FORMATS[card.fmt], rich = !!f.rich;   // 장으로 쓰는 포맷(글 · 아트)
