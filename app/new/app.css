@@ -83,8 +83,10 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .cd.rebus.edit.empty::after { background: rgba(46,45,43,.12); color: #6b6862; bottom: auto; top: 3cqw; left: auto; right: 4cqw; transform: none; }
 
 /* 피드: 위 줄은 같이 스크롤(흐림 없음). 가운데 카드 색이 바탕에 번지고, 그 카드만 움직여요 */
-.amb { position: fixed; left: -30%; right: -30%; top: calc(var(--safe-t) + 90px); height: 80vh; z-index: -1; background-color: #333; opacity: .32; pointer-events: none;
-  -webkit-mask-image: radial-gradient(closest-side, #000 0%, transparent 100%); mask-image: radial-gradient(closest-side, #000 0%, transparent 100%); transition: background-color 1.2s ease; }
+.amb { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.amb i { position: absolute; left: -35%; right: -35%; top: 8%; height: 80%; opacity: 0; transition: opacity 1.2s ease; }
+.amb i.on { opacity: .32; }
+.ftop, .feed { position: relative; z-index: 1; }
 .ftop { display: flex; align-items: center; justify-content: space-between; padding: calc(var(--safe-t) + 30px) var(--gut) 20px; }   /* 시계 줄 블러 아래 */
 .ftop .logo { font-size: 32px; font-weight: 800; letter-spacing: -.035em; line-height: 40px; }
 .feed { padding: 0 var(--gut) calc(120px + var(--safe-b)); display: grid; grid-template-columns: minmax(0, 1fr); gap: 44px; }   /* 카드 세트 사이 */
@@ -93,7 +95,11 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .day { font-size: 13px; font-weight: 700; color: var(--mut); margin: 6px 0 -16px; letter-spacing: .02em; }
 .fi { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; min-width: 0; }   /* 옆 장들 때문에 넓어지지 않게 */
 .fi .fx { position: relative; cursor: pointer; border-radius: 6px; }
-.fi .fx.tall { width: 70.3125%; justify-self: center; }   /* 9:16 = 4:5 카드와 같은 높이 (1.25 / 1.778) */
+.fi .fx.tall { aspect-ratio: 4 / 5; overflow: hidden; border-radius: 6px; }
+.fi .fx.tall > .view { width: 70.3125%; margin: 0 auto; }   /* 9:16 = 4:5 카드와 같은 높이 (1.25 / 1.778) */
+.fi .fx.tall > .blr { position: absolute; inset: -8%; display: flex; align-items: center; filter: blur(18px) brightness(.75); transform: translateZ(0); }   /* 양옆: 같은 배경을 흐리고 25% 어둡게 */
+.fi .fx.tall > .blr > .cd { width: 100%; flex: none; border-radius: 0; }
+.fi .fx.tall > .blr .pg ~ .pg { display: none; }
 .fi .view { position: relative; border-radius: 6px; overflow: hidden; }
 .fi .pgs { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
 .fi .pgs::-webkit-scrollbar { display: none; }

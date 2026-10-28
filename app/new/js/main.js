@@ -72,7 +72,7 @@ function bindNav() {
 // 피드: 위 줄은 흐림 없이 같이 스크롤돼요. 화면 가운데 카드만 움직이고, 그 카드 색이 바탕에 은은하게 번져요
 function viewFeed(fresh, quiet) {
   const mine = S.cards();
-  app.innerHTML = `<div class="amb"></div><header class="ftop"><div class="logo">dayzine</div><button class="cb" data-a="bell" aria-label="알림">${ic('bell')}</button></header>
+  app.innerHTML = `<div class="amb"><i></i><i></i></div><header class="ftop"><div class="logo">dayzine</div><button class="cb" data-a="bell" aria-label="알림">${ic('bell')}</button></header>
     <main class="feed"></main>${nav('home')}`;
   bindNav(); $('[data-a=bell]').onclick = soon;
   const feed = $('.feed');
@@ -81,7 +81,9 @@ function viewFeed(fresh, quiet) {
   if (mine.length < 6) ORDER.forEach(f => feed.appendChild(feedItem(sampleCard(f, S.today()))));
 
   // 가운데 카드 찾기: 그 카드만 재생 + 바탕 색
-  const amb = $('.amb');
+  // 오로라: 화면 가운데에 고정된 둥근 번짐. 두 겹을 번갈아 켜서 색이 천천히 바뀌어요 (아이폰도 모서리 없이)
+  const amb = $('.amb'), gl = $$('i', amb); let gi = 0, gc = '';
+  const glow = t => { if (!t || t === gc) return; gc = t; gi ^= 1; gl[gi].style.background = `radial-gradient(closest-side, ${t}, transparent)`; gl[gi].classList.add('on'); gl[gi ^ 1].classList.remove('on'); };
   let raf = 0, cur = null;
   const pickMid = () => {
     raf = 0;
@@ -90,7 +92,7 @@ function viewFeed(fresh, quiet) {
     if (best === cur) return;
     cur?.classList.remove('play'); cur = best;
     if (!cur) return;
-    cur.classList.add('play'); amb.style.backgroundColor = cur.dataset.tone;
+    cur.classList.add('play'); glow(cur.dataset.tone);
     if (!cur.dataset.seen) { cur.dataset.seen = 1; cur.classList.add('intro'); setTimeout(() => cur?.classList.remove('intro'), 1800); }
   };
   const onScroll = () => { if (!raf) raf = requestAnimationFrame(pickMid); };
@@ -102,14 +104,14 @@ function viewFeed(fresh, quiet) {
   const tick = now => {
     anim = requestAnimationFrame(tick);
     if (document.hidden) return;
-    $$('.fi.play canvas.bgc').forEach(cv => cv.width && drawCode(cv, +cv.dataset.seed, +cv.dataset.shift || 0, (now - t0) / 1000 + .01));
+    $$('.fi.play .view canvas.bgc').forEach(cv => cv.width && drawCode(cv, +cv.dataset.seed, +cv.dataset.shift || 0, (now - t0) / 1000 + .01));
     feedVideo();
   };
   // 영상도 가운데 카드만 (여러 장이면 보이는 장). 크게 보기 중에는 그 카드. 나머지는 커버 장면
   const feedVideo = () => {
     let cv = null, c = null;
     if (focus) { cv = $('canvas.bgv', focus.box); c = focus.c; }
-    else if (cur && !document.hidden) { c = cur._card; cv = $$('canvas.bgv', cur).find(x => { const r = x.getBoundingClientRect(); return r.width && r.left > -r.width / 2 && r.left < innerWidth / 2; }); }
+    else if (cur && !document.hidden) { c = cur._card; cv = $$('.view canvas.bgv', cur).find(x => { const r = x.getBoundingClientRect(); return r.width && r.left > -r.width / 2 && r.left < innerWidth / 2; }); }
     if (!cv || !c) return V.playing() && V.stop();
     const pg = cv.closest('.pg'), b = pageBg(c, +(pg?.dataset.i || 0));
     if (b?.vd) V.start(cv, b, c.filter);
@@ -172,7 +174,12 @@ function feedItem(c) {
       : `<div class="l"><button class="cb ${c.mark ? 'on' : ''}" data-a="mark" aria-label="책갈피">${ic('bookmark')}</button><button class="cb" data-a="save" aria-label="사진에 저장">${ic('save')}</button><button class="cb" data-a="edit" aria-label="고치기">${ic('pen')}</button><button class="cb" data-a="del" aria-label="삭제">${ic('trash')}</button><span class="pc" hidden></span></div>`}</div>
     <p class="ex"></p>`;
   const fx = $('.fx', it), view = $('.view', it), pc = $('.pc', it);
-  if (arOf(c) > 1.5) fx.classList.add('tall');   // 9:16은 자르지 않고 4:5 높이에 맞춰 폭만 줄여 가운데로
+  // 9:16은 자르지 않고 4:5 높이에 맞춰 가운데로. 양옆은 같은 카드 배경을 흐리고 조금 어둡게 깔아요 (글 · 날짜 · 서명은 빼고, 피드에서만)
+  if (arOf(c) > 1.5) {
+    fx.classList.add('tall');
+    const blr = document.createElement('div'); blr.className = 'blr'; blr.setAttribute('aria-hidden', 'true'); fx.prepend(blr);
+    mount(blr, { ...c, pages: c.pages ? [''] : c.pages, pst: c.pst ? [c.pst[0]].filter(Boolean) : c.pst, html: c.html != null ? '&nbsp;' : c.html, place: '', showDate: false, datePos: 'none', sg: '', signTxt: '' });
+  }
   $('.ex', it).textContent = cardText(c).replace(/\s+/g, ' ').trim();   // 글 첫머리 한 줄 (길면 …)
   mount(view, c);
   pageInto(view, c, (i, n) => { if (pc) { pc.hidden = false; pc.textContent = `${i}/${n}`; } });
