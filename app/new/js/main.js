@@ -2,9 +2,9 @@
 import { ic } from './icons.js';
 import * as S from './store.js';
 import { exampleText } from './prompts.js';
-import { FORMATS, ORDER, LABEL, blank, sampleCard, renderCard, fitCard, cardText, newSeed, placeObjects, dateChip, weekday, toneOf, pageBg, AR, RATIOS, arOf, dateOn, placeOn, infoPos, signOf, SIZE5, V5, dimLv, inkOn } from './formats.js';
+import { FORMATS, ORDER, LABEL, blank, sampleCard, renderCard, fitCard, cardText, newSeed, placeObjects, dateChip, weekday, toneOf, pageBg, AR, RATIOS, arOf, dateOn, placeOn, infoPos, signOf, SIZE5, V5, dimLv, inkOn, dateLine, DATE_FMT } from './formats.js';
 import { FREE, KIND, find as findBg, drawCode } from './bg.js';
-import { buildPages } from './export.js';
+import { buildPages, saveImages } from './export.js';
 import { saveCard, pill } from './save.js';
 import { clean, offsetsOf, rangeAt } from './rich.js';
 import { FONTS, fontOf, fontCssOf } from './fonts.js';
@@ -71,7 +71,9 @@ function route() {
   if (r === 'at') return viewFeed(a, true);
   if (r === 'search') return viewSearch(a === 'pick');
   if (r === 'shelf') return viewShelf();
-  if (r === 'cal') return viewCal();
+  if (r === 'cal') return viewCal(a);
+  if (r === 'me') return viewMe();
+  if (r === 'set') return viewSet(a);
   if (r === 'book') return viewBook(decodeURIComponent(a || ''));
   return viewFeed();
 }
@@ -85,13 +87,14 @@ function nav(on) {
     <button class="nb ${on === 'search' ? 'on' : ''}" data-n="search" aria-label="검색">${ic('search')}</button>
     <button class="nb nw" data-n="write" aria-label="쓰기">${ic('pen')}</button>
     <button class="nb ${on === 'shelf' ? 'on' : ''}" data-n="shelf" aria-label="책장">${ic('drawer')}</button>
-    <button class="nb" data-n="me" aria-label="프로필"><span class="av"></span></button></nav>`;
+    <button class="nb ${on === 'me' ? 'on' : ''}" data-n="me" aria-label="프로필"><span class="av"${avStyle()}></span></button></nav>`;
 }
 function bindNav() {
   const home = () => $('main.feed') ? window.scrollTo({ top: 0, behavior: 'smooth' }) : go('#/');   // 검색 결과 칸도 .feed 모양을 써서 main만
   const find = () => $('.srch') ? ($('.srch .fld input').focus(), window.scrollTo({ top: 0, behavior: 'smooth' })) : (kbNow(), go('#/search'));
   const shelf = () => $('.shv:not(.bkv)') ? window.scrollTo({ top: 0, behavior: 'smooth' }) : go(S.pref('shelfView') === 'cal' ? '#/cal' : '#/shelf');   // 마지막에 본 쪽 (책장 | 달력)
-  $$('.nb').forEach(b => b.onclick = () => ({ home, search: find, write: () => go('#/pick'), shelf }[b.dataset.n] || soon)());
+  const me = () => $('.mev') ? window.scrollTo({ top: 0, behavior: 'smooth' }) : go('#/me');
+  $$('.nb').forEach(b => b.onclick = () => ({ home, search: find, write: () => go('#/pick'), shelf, me }[b.dataset.n] || soon)());
 }
 // 아이폰은 누른 그 순간에만 키보드를 올려 줘요: 화면이 바뀌기 전에 빈 칸에 먼저 커서를 두고, 새 화면의 검색 칸이 이어받아요
 function kbNow() {
@@ -807,7 +810,7 @@ function pickOut(b, list) {
 const weekStart = () => S.pref('weekStart', (() => { try { return ['KR', 'JP', 'US', 'CA', 'TW', 'BR', 'MX', 'IL', 'PH', 'IN'].includes(new Intl.Locale(navigator.language).maximize().region) ? 0 : 1; } catch { return 0; } })());
 const weekOf = (d, ws) => addDays(d, -((dayOf(d).getDay() - ws + 7) % 7));
 const nextMonth = m => { const [y, mo] = m.split('-').map(Number); return mo === 12 ? `${y + 1}-01` : `${y}-${p2(mo + 1)}`; };
-function viewCal() {
+function viewCal(month) {
   S.setPref('shelfView', 'cal');
   const all = byDate(S.cards().filter(c => c.date)), T = S.today(), ws = weekStart();
   const cnt = new Map(); all.forEach(c => cnt.set(c.date, (cnt.get(c.date) || 0) + 1));
@@ -815,7 +818,7 @@ function viewCal() {
   const first = days.at(-1) || T, last = days[0] > T ? days[0] : T;
   const weeks = []; for (let w = weekOf(first, ws); w <= last; w = addDays(w, 7)) weeks.push(w);
   const months = []; for (let m = first.slice(0, 7); m <= last.slice(0, 7); m = nextMonth(m)) months.push(m);
-  let act = cnt.has(T) ? T : days.find(d => d <= T) || days[0] || T;
+  let act = (month && days.find(d => d.startsWith(month))) || (cnt.has(T) ? T : days.find(d => d <= T) || days[0] || T);   // 프로필 달 카드에서 오면 그달
   const cell = (d, wd) => { const n = cnt.get(d) || 0; return `<button data-d="${d}" class="${d === act ? 'on' : ''}" ${n ? '' : 'disabled'}>${wd ? `<i>${WD[dayOf(d).getDay()]}</i>` : ''}<b>${+d.slice(8)}</b><small>${n || ''}</small></button>`; };
   const monthGrid = m => {
     const d1 = `${m}-01`, start = weekOf(d1, ws), end = nextMonth(m) + '-01'; let h = '';
@@ -1850,5 +1853,269 @@ function viewWrite({ fmt, id, like }) {
 }
 
 // 카드에 쓰인 내 사진을 먼저 읽어 두고 시작해요
+/* ── 프로필 · 설정 ──────────────────────────────────── */
+// 나: 이름 · 아이디 · 사진(256px)은 지금은 이 기기에만 (계정 연결 후 서버로)
+const meOf = () => ({ name: '', id: '', photo: '', ...S.pref('me', {}) });
+const setMe = o => S.setPref('me', { ...meOf(), ...o });
+function avStyle() { const p = meOf().photo; return p ? ` style="background-image:url(${p})"` : ''; }
+
+// 프로필 한 줄: 저작권이 끝난 작가의 짧은 문장 (종교 · 정치 인물은 빼요). 한 줄에 들어가는 길이만. 하루에 하나, 누르면 지은이
+const LINES = [
+  ['내일은 아직 새날이에요.', '몽고메리 · 빨간 머리 앤'],
+  ['상상할 여지가 있잖아요.', '몽고메리 · 빨간 머리 앤'],
+  ['폭풍은 두렵지 않아요.', '올컷 · 작은 아씨들'],
+  ['단순하게, 단순하게.', '소로 · 월든'],
+  ['꿈 쪽으로 당당히 걸어요.', '소로 · 월든'],
+  ['지금 바로 살기 시작해요.', '세네카 · 루킬리우스에게 보낸 편지'],
+  ['오늘이 가장 좋은 날이에요.', '에머슨 · 일과 날'],
+];
+
+// 통계: 쓴 날 · 카드 · 글자 · 자주 쓴 종류 · 곳 · 때 · 색 (쌓인 값만, 연속 기록은 안 세요)
+const SLOT = h => h < 5 ? '새벽' : h < 11 ? '아침' : h < 17 ? '오후' : h < 21 ? '저녁' : '밤';
+const slotOf = c => c.created ? SLOT(new Date(c.created).getHours()) : '';
+const kindOf = c => (LABEL[c.fmt] || '').replace(' · ', ' ');
+const placeOf = c => (c.place || '').trim();
+function bgName(c) {
+  const b = c.bg; if (!b) return '';
+  if (b.id === 'hex') return '직접 색';
+  const f = findBg(b.id); return f.photo ? '내 사진' : f.name || '';
+}
+// 카드 배경만 꺼내 써요 (사진 · 그라데이션 · 단색 · 작품). 코드 배경은 그 색으로
+function bgCss(c) {
+  const cb = c.bg; if (!cb) return '';
+  if (cb.id === 'hex') return cb.hex || '';
+  const b = findBg(cb.id);
+  if (b.photo) { const u = P.url(cb.ph); return u ? `url(${u}) ${cb.x ?? 50}% ${cb.y ?? 50}%/cover` : ''; }
+  if (b.img) return `url(${b.img}) center/cover`;
+  return b.css || `linear-gradient(160deg, ${b.tone}, #141416)`;
+}
+const most = xs => { const m = new Map(); let top = '', n = 0; xs.forEach(x => { if (!x) return; const k = (m.get(x) || 0) + 1; m.set(x, k); if (k > n) { n = k; top = x; } }); return top; };
+const chars = n => n < 1e4 ? `${n.toLocaleString('ko-KR')}자` : `${(n / 1e4).toFixed(1).replace(/\.0$/, '')}만 자`;
+const statsOf = list => ({
+  days: new Set(list.map(c => c.date).filter(Boolean)).size, n: list.length,
+  chars: list.reduce((s, c) => s + cardText(c).replace(/\s/g, '').length, 0),
+  kind: most(list.map(kindOf)), place: most(list.map(placeOf)), when: most(list.map(slotOf)), col: most(list.map(bgName)),
+});
+const anyBg = (list, f = () => true) => { const xs = list.filter(f).map(bgCss).filter(Boolean); return xs[Math.floor(Math.random() * xs.length)] || ''; };
+const FALL = [7, 15, 5, 0, 4, 18, 3].map(i => FREE[i].css);   // 카드가 없을 때는 우리 그라데이션
+
+// 프로필 (10-29 v11): 위 판 = 홈 무드 + 고운 노이즈 (아래만 둥글게). 사진 · 이름 · @아이디 · 칩 / 한 줄 / 통계 카드 7장 (옆으로 밀어요)
+// 통계 카드 바탕은 들어올 때마다 내 카드 배경에서 새로 골라요 (값 · 순서는 그대로). 아래는 달마다 돌아보기 (누르면 책장 달력 그달)
+function viewMe() {
+  const all = S.cards(), st = statsOf(all), me = meOf();
+  const ln = LINES[Math.floor((Date.now() - new Date().getTimezoneOffset() * 6e4) / 864e5) % LINES.length];
+  const tiles = [
+    [`${st.days}일`, '쓴 날', anyBg(all)], [`${st.n}장`, '카드', anyBg(all)], [chars(st.chars), '글자', anyBg(all)],
+    [st.kind, '자주 쓴 종류', anyBg(all, c => kindOf(c) === st.kind)], [st.place, '자주 쓴 곳', anyBg(all, c => placeOf(c) === st.place)],
+    [st.when, '자주 쓴 때', anyBg(all, c => slotOf(c) === st.when)], [st.col, '자주 쓴 색', anyBg(all, c => bgName(c) === st.col)],
+  ];
+  const by = new Map(); all.filter(c => c.date).forEach(c => { const m = c.date.slice(0, 7); by.has(m) ? by.get(m).push(c) : by.set(m, [c]); });
+  const months = [...by.keys()].sort().reverse();
+  const month = (m, i) => {
+    const l = by.get(m), s = statsOf(l);
+    const items = [`쓴 날 ${s.days}일`, `카드 ${s.n}장`, `글자 ${chars(s.chars)}`, s.kind && `종류 ${s.kind}`, s.place && `곳 ${s.place}`, s.when && `때 ${s.when}`, s.col && `색 ${s.col}`].filter(Boolean);
+    const bg = anyBg(l, c => bgName(c) === s.col) || anyBg(l) || FALL[i % FALL.length];
+    return `<button class="mmo" data-m="${m}" style="background:${bg}"><span class="t24">${+m.slice(0, 4)}년 ${+m.slice(5)}월</span><span class="t13">${items.map((x, i) => `<span>${esc(x)}${i < items.length - 1 ? ' ·' : ''}</span>`).join(' ')}</span></button>`;
+  };
+  app.innerHTML = `<div class="shv mev"><i class="grn"></i><i class="stb"></i>
+    <header class="mpn" style="background-image:var(--grain),${panelCss()};background-size:200px,auto,auto,auto;background-blend-mode:overlay,normal,normal,normal">
+      <button class="mset" data-a="set" aria-label="설정">${ic('slide')}</button>
+      <div class="mpro"><span class="av"${avStyle()}></span><div class="who"><div class="t24">${esc(me.name || '나')}</div>
+        <div class="t13 id">${me.id ? `<span>@${esc(me.id)}</span>` : ''}<button class="chip" data-a="plan">체험 중</button></div></div></div>
+      <button class="t24 mq" data-a="q">${ln[0]}</button>
+      <div class="msr">${tiles.map(([v, l, bg], i) => `<div class="mst"><i style="background:${bg || FALL[i]}"></i><b class="t24">${esc(v || '—')}</b><span class="t13">${l}</span></div>`).join('')}</div>
+      <div class="mdots"></div>
+    </header>
+    ${months.length ? `<p class="t13 mh">달마다 돌아보기</p>${months.map(month).join('')}` : ''}</div>${nav('me')}`;
+  bindNav();
+  $('[data-a=set]').onclick = () => go('#/set');
+  $('[data-a=plan]').onclick = () => go('#/set/plan');
+  $('[data-a=q]').onclick = () => toast(ln[1]);
+  $$('.mmo').forEach(b => b.onclick = () => go('#/cal/' + b.dataset.m));
+  // 점: 밀어서 볼 수 있는 쪽 수만큼, 지금 쪽은 길게
+  const row = $('.msr'), dots = $('.mdots');
+  const paintDots = () => {
+    const n = Math.max(1, Math.ceil(row.scrollWidth / row.clientWidth - .05)), k = Math.min(n - 1, Math.round(row.scrollLeft / Math.max(1, row.scrollWidth - row.clientWidth) * (n - 1)) || 0);
+    dots.innerHTML = n > 1 ? Array.from({ length: n }, (_, i) => `<i class="${i === k ? 'on' : ''}"></i>`).join('') : '';
+  };
+  paintDots(); row.addEventListener('scroll', paintDots, { passive: true });
+  const onSc = () => $('.mev')?.classList.toggle('sc', scrollY > 8);
+  addEventListener('scroll', onSc, { passive: true });
+  cleanup = () => removeEventListener('scroll', onSc);
+}
+
+// 설정 줄 (목록 시트 줄과 같은 모양): › = 다음 화면, 스위치는 그 자리에서
+const srow = (icon, label, val = '', o = {}) => `<button class="srw${o.red ? ' red' : ''}"${o.go ? ` data-go="${o.go}"` : ''}${o.a ? ` data-a="${o.a}"` : ''}>${icon ? ic(icon) : ''}<span class="l">${label}</span>${
+  o.tg != null ? `<span class="tg${o.tg ? ' on' : ''}"></span>` : o.ck != null ? (o.ck ? `<span class="ck">${ic('check')}</span>` : '') : o.end != null ? o.end : `<span class="v"><span>${val}</span>${ic('next')}</span>`}</button>`;
+const sgrp = (...r) => `<div class="sgp">${r.join('')}</div>`;
+const LANGS = { ko: '한국어', en: 'English', ja: '日本語', es: 'Español', fr: 'Français' };
+const TIMES = [['08:00', '아침 8:00'], ['12:00', '낮 12:00'], ['18:00', '저녁 6:00'], ['21:00', '밤 9:00'], ['23:00', '밤 11:00']];
+const soonLogin = () => toast('로그인 단계에서 열려요');
+
+// 설정 화면 틀: 뒤로 · 가운데 이름 (+ 오른쪽 버튼). 바탕 = 어두운 색 + 고운 노이즈 (책장과 같음)
+function setShell(title, body, o = {}) {
+  app.innerHTML = `<div class="shv setv${o.cls ? ' ' + o.cls : ''}"><i class="grn"></i><i class="stb"></i>
+    <header class="stop2"><button class="cb" data-a="back" aria-label="뒤로">${ic('back')}</button><h2>${title}</h2>${o.right || '<span class="sp0"></span>'}</header>${body}</div>`;
+  $('[data-a=back]').onclick = () => lastHash ? history.back() : location.replace(o.up || '#/set');
+  $$('[data-go]').forEach(b => b.onclick = () => go(b.dataset.go));
+}
+// 하나만 고르는 화면 (한 주의 시작 · 날짜 표시 · 언어 · 알림 시간): 누르면 바로 바뀌고 위에 1초 알림
+function setPick(title, opts, cur, put) {
+  setShell(title, sgrp(...opts.map(([v, label]) => srow('', label, '', { ck: String(v) === String(cur), a: 'v' }).replace('data-a="v"', `data-v="${v}"`))));
+  $$('[data-v]').forEach(b => b.onclick = () => {
+    const o = opts.find(x => String(x[0]) === b.dataset.v); put(o[0]);
+    $$('[data-v]').forEach(x => { const ck = x.querySelector('.ck'); if (x === b && !ck) x.insertAdjacentHTML('beforeend', `<span class="ck">${ic('check')}</span>`); if (x !== b) ck?.remove(); });
+    pill(o[1], 'check');
+  });
+}
+
+function viewSet(sub) {
+  if (sub === 'account') return setAccount();
+  if (sub === 'name' || sub === 'id') return setField(sub);
+  if (sub === 'sign') return setSign();
+  if (sub === 'date') return setPick('날짜 표시', DATE_FMT.map(f => [f, dateLine(S.today(), f)]), S.pref('dateFmt', 'dot'), v => S.setPref('dateFmt', v));
+  if (sub === 'week') return setPick('한 주의 시작', [[0, '일요일'], [1, '월요일']], weekStart(), v => S.setPref('weekStart', v));
+  if (sub === 'lang') return setPick('언어', Object.entries(LANGS), S.pref('lang', 'ko'), v => S.setPref('lang', v));
+  if (sub === 'alarmtime') return setPick('알림 시간', TIMES, S.pref('remindAt', '21:00'), v => S.setPref('remindAt', v));
+  if (sub === 'backup') return setBackup();
+  if (sub === 'trash') return setTrash();
+  if (sub === 'alarm') return setAlarm();
+  if (sub === 'plan') return setPlan();
+  const me = meOf(), n = S.trash().length;
+  setShell('설정', `${sgrp(`<button class="srw acc" data-go="#/set/account"><span class="av"${avStyle()}></span><span class="t"><b>${esc(me.name || '나')}</b><small>${me.id ? '@' + esc(me.id) : '로그인 전'}</small></span><span class="v"><i class="schip">체험 중</i>${ic('next')}</span></button>`)}
+    ${sgrp(srow('pin', '장소 자동', '', { tg: S.pref('autoPlace', false), a: 'place' }), srow('sign', '서명', esc(S.pref('sign', '')) || '없음', { go: '#/set/sign' }), srow('date', '날짜 표시', dateLine(S.today()), { go: '#/set/date' }), srow('week', '한 주의 시작', weekStart() ? '월요일' : '일요일', { go: '#/set/week' }))}
+    ${sgrp(srow('backup', '백업', '', { go: '#/set/backup' }), srow('trash', '휴지통', n || '', { go: '#/set/trash' }))}
+    ${sgrp(srow('bell', '알림', S.pref('remind', false) ? '켜짐' : '', { go: '#/set/alarm' }), srow('globe', '언어', LANGS[S.pref('lang', 'ko')], { go: '#/set/lang' }))}
+    ${sgrp(srow('help', '도움말', '', { a: 'help' }), srow('doc', '이용약관', '', { a: 'terms' }), srow('shield', '개인정보 처리방침', '', { a: 'privacy' }), srow('lic', '라이선스', '', { a: 'lic' }))}
+    ${sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' }))}<p class="sver">dayzine 1.0.0 · 테스트</p>`, { up: '#/me' });
+  $('[data-a=place]').onclick = e => { const on = !S.pref('autoPlace', false); S.setPref('autoPlace', on); e.currentTarget.querySelector('.tg').classList.toggle('on', on); };
+  $('[data-a=terms]').onclick = () => { location.href = '../legal/terms.ko.html'; };
+  $('[data-a=privacy]').onclick = () => { location.href = '../legal/privacy.ko.html'; };
+  $('[data-a=help]').onclick = $('[data-a=lic]').onclick = soon;
+  $('[data-a=out]').onclick = soonLogin;
+}
+
+// 계정: 사진(카메라) · 이름 · 아이디 / 구독 · 이용권 / 탈퇴 (로그인 · 탈퇴 · 이용권은 로그인 단계에서)
+function setAccount() {
+  const me = meOf();
+  setShell('계정', `<div class="ahd"><button class="avw" data-a="ph" aria-label="사진 바꾸기"><span class="av"${avStyle()}></span><span class="cam">${ic('cam')}</span></button><input type="file" accept="image/*" hidden>
+    <b>${esc(me.name || '나')}</b><small>${me.id ? '@' + esc(me.id) : '로그인 전'}</small></div>
+    ${sgrp(srow('user', '이름', esc(me.name) || '정하기', { go: '#/set/name' }), srow('sign', '아이디', me.id ? '@' + esc(me.id) : '정하기', { go: '#/set/id' }), srow('key', '로그인', '로그인 전', { a: 'login' }))}
+    ${sgrp(srow('star', '구독', '체험 중', { go: '#/set/plan' }), srow('ticket', '이용권 코드 넣기', '', { a: 'code' }))}
+    ${sgrp(srow('trash', '탈퇴', '', { end: '', red: 1, a: 'bye' }))}`);
+  const inp = $('.ahd input');
+  $('[data-a=ph]').onclick = () => inp.click();
+  inp.onchange = async () => {
+    const f = inp.files?.[0]; if (!f) return;
+    try { setMe({ photo: await avatarOf(f) }); route(); } catch { toast('사진을 못 읽었어요'); }
+  };
+  $('[data-a=login]').onclick = $('[data-a=code]').onclick = $('[data-a=bye]').onclick = soonLogin;
+}
+// 프로필 사진: 가운데를 정사각형으로 잘라 256px JPEG (사진 속 위치 정보는 다시 그리며 빠져요)
+async function avatarOf(file) {
+  let img; try { img = await createImageBitmap(file, { imageOrientation: 'from-image' }); }
+  catch { img = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = URL.createObjectURL(file); }); }
+  const w = img.width, h = img.height, s = Math.min(w, h), cv = document.createElement('canvas'); cv.width = cv.height = 256;
+  const c = cv.getContext('2d'); c.imageSmoothingQuality = 'high'; c.drawImage(img, (w - s) / 2, (h - s) / 2, s, s, 0, 0, 256, 256);
+  img.close?.(); return cv.toDataURL('image/jpeg', .86);
+}
+// 이름 · 아이디: 적는 대로 바로 저장. 아이디는 영문 소문자 · 숫자 · . _ 만
+function setField(k) {
+  const me = meOf(), id = k === 'id';
+  setShell(id ? '아이디' : '이름', `<input class="sinp" maxlength="20" value="${esc(me[k])}" placeholder="${id ? '영문 · 숫자' : '이름'}" ${id ? 'autocapitalize="off" autocorrect="off" spellcheck="false"' : ''}><p class="shint">${id ? '서명 · 프로필에 @아이디로 보여요' : '프로필에 보여요'}</p>`, { up: '#/set/account' });
+  const inp = $('.sinp');
+  inp.oninput = () => {
+    if (id) { const v = inp.value.toLowerCase().replace(/[^a-z0-9._]/g, ''); if (v !== inp.value) inp.value = v; }
+    setMe({ [k]: inp.value.trim() });
+    if (id && S.pref('signMode') === 'id') S.setPref('sign', inp.value.trim() ? '@' + inp.value.trim() : '');
+  };
+  inp.focus();
+}
+// 서명: [@아이디 | 직접 쓰기] + 칸 + 작은 카드 미리 보기. 새 카드부터 이 서명으로 시작해요
+function setSign() {
+  const me = meOf(); let mode = me.id ? S.pref('signMode', 'own') : 'own';
+  setShell('서명', `${me.id ? `<div class="sseg"><button data-m="id">@아이디</button><button data-m="own">직접 쓰기</button></div>` : ''}
+    <input class="sinp" maxlength="24" placeholder="서명"><div class="smini"></div>`);
+  const inp = $('.sinp'), mini = $('.smini');
+  const draw = () => { mini.innerHTML = ''; mount(mini, { ...sampleCard('text', S.today()), sg: inp.value.trim() ? 'r' : '', signTxt: inp.value.trim() }); };
+  const paint = () => {
+    $$('.sseg button').forEach(b => b.classList.toggle('on', b.dataset.m === mode));
+    inp.value = mode === 'id' ? '@' + me.id : S.pref('signOwn', S.pref('signMode') === 'id' ? '' : S.pref('sign', ''));
+    inp.readOnly = mode === 'id'; draw();
+  };
+  $$('.sseg button').forEach(b => b.onclick = () => { mode = b.dataset.m; S.setPref('signMode', mode); paint(); S.setPref('sign', inp.value.trim()); });
+  inp.oninput = () => { S.setPref('sign', inp.value.trim()); S.setPref('signOwn', inp.value.trim()); draw(); };
+  paint();
+}
+
+// 백업: 백업 파일(되살리기용 · 무료) · 텍스트(무료) · PDF(유료) / 백업 파일로 되살리기. 휴지통 카드는 빼요
+function setBackup() {
+  setShell('백업', `${sgrp(srow('backup', '백업 파일 받기', '', { a: 'file' }), srow('txt', '텍스트로 받기', '', { a: 'txt' }), srow('doc', 'PDF로 받기', '', { a: 'pdf', end: `<span class="v">${ic('lock')}${ic('next')}</span>` }))}
+    ${sgrp(srow('restore', '백업 파일로 되살리기', '', { a: 'in' }))}<input type="file" accept="application/json,.json" hidden><p class="shint">사진은 들어가고 영상은 빠져요</p>`);
+  const give = async files => {
+    const r = await saveImages(files);
+    if (r === 'again') return pill('준비됐어요 · 눌러서 저장', 'save', { tap: () => give(files) });
+    if (r !== 'cancel') pill('저장했어요', 'check');
+  };
+  $('[data-a=file]').onclick = async () => {
+    pill('만드는 중', '', { keep: true });
+    const d = S.dump(), photos = {};
+    const ids = [...new Set(d.cards.flatMap(c => [c.bg, ...(c.pst || []).map(p => p?.bg)]).map(b => b?.ph).filter(Boolean))];
+    for (const id of ids) { const b = await P.blob(id); if (b) photos[id] = await new Promise(ok => { const r = new FileReader(); r.onload = () => ok(r.result); r.readAsDataURL(b); }); }
+    give([new File([JSON.stringify({ app: 'dayzine', v: 1, at: new Date().toISOString(), ...d, photos })], `dayzine-${S.today()}.json`, { type: 'application/json' })]);
+  };
+  $('[data-a=txt]').onclick = () => {
+    const t = byDate(S.cards()).map(c => `${c.date ? ymd(c.date) : ''}\n${cardText(c).trim()}`).join('\n\n');
+    give([new File([t + '\n'], `dayzine-${S.today()}.txt`, { type: 'text/plain' })]);
+  };
+  $('[data-a=pdf]').onclick = soon;
+  const inp = $('.setv input[type=file]');
+  $('[data-a=in]').onclick = () => inp.click();
+  inp.onchange = async () => {
+    const f = inp.files?.[0]; inp.value = ''; if (!f) return;
+    try {
+      const d = JSON.parse(await f.text()); if (d.app !== 'dayzine' || !Array.isArray(d.cards)) throw 0;
+      for (const [id, u] of Object.entries(d.photos || {})) await P.put(id, await (await fetch(u)).blob());
+      const n = S.merge(d); pill(n ? `카드 ${n}장을 되살렸어요` : '새로 더할 카드가 없어요', 'check');
+    } catch { pill('백업 파일이 아니에요'); }
+  };
+}
+
+// 휴지통: 2열, 흐리게 · 'N일 남음' · ⋯ (되살리기 / 지금 지우기). 오른쪽 위 '모두 비우기' (확인 창)
+function setTrash() {
+  const list = S.trash(), left = c => Math.max(1, 30 - Math.floor((Date.now() - Date.parse(c.deleted)) / 864e5));
+  setShell('휴지통', list.length ? `<div class="trg">${[0, 1].map(k => `<div class="col">${list.filter((_, i) => i % 2 === k).map(c => `<div class="trk" data-id="${c.id}"><div class="th"></div><div class="tm"><span>${left(c)}일 남음</span><button data-a="more" aria-label="더 보기">${ic('more')}</button></div></div>`).join('')}</div>`).join('')}</div>`
+    : `<div class="empty"><span class="i">${ic('trash')}</span><b>휴지통이 비어 있어요</b><span>지운 카드는 30일 동안 여기 있어요</span></div>`,
+  { right: list.length ? '<button class="tbtn" data-a="all">모두 비우기</button>' : '' });
+  $$('.trk').forEach(el => {
+    const c = list.find(x => x.id === el.dataset.id); mount($('.th', el), c);
+    $('[data-a=more]', el).onclick = () => sheet(null, [[{ icon: 'undo2', label: '되살리기', run: () => { S.restoreCard(c.id); toast('되살렸어요'); route(); } }],
+      [{ icon: 'trash', label: '지금 지우기', red: true, run: async () => { if (!(await ask('이 카드를 지울까요?<small>되살릴 수 없어요</small>', '지우기'))) return; S.purge(c.id); route(); } }]]);
+  });
+  $('[data-a=all]')?.addEventListener('click', async () => {
+    if (!(await ask(`카드 ${list.length}장을 모두 지울까요?<small>되살릴 수 없어요</small>`, '모두 비우기'))) return;
+    S.emptyTrash(); route();
+  });
+}
+
+// 알림: 쓰기 알림 + 시간, 새 포맷 소식 (지금은 고른 것만 기억해요. 보내기는 출시 전에)
+function setAlarm() {
+  const on = S.pref('remind', false), t = TIMES.find(x => x[0] === S.pref('remindAt', '21:00'))?.[1] || '밤 9:00';
+  setShell('알림', `${sgrp(srow('pen', '쓰기 알림', '', { tg: on, a: 'remind' }), srow('clock', '시간', t, { go: '#/set/alarmtime' }))}${sgrp(srow('spark', '새 포맷 소식', '', { tg: S.pref('news', false), a: 'news' }))}`);
+  [['remind', 'remind'], ['news', 'news']].forEach(([a, k]) => $(`[data-a=${a}]`).onclick = e => { const v = !S.pref(k, false); S.setPref(k, v); e.currentTarget.querySelector('.tg').classList.toggle('on', v); });
+}
+
+// 구독 (구독 전 · 체험 중): 열리는 것 4줄 · 월간 / 연간(추천). 아래 흰 '구독하기' → 결제 (금액 · 결제는 출시 전에)
+function setPlan() {
+  let sel = 'y';
+  setShell('구독', `<div class="sbh"><span class="schip">체험 중</span><h3>하루를 더 예쁘게 담아요</h3></div>
+    ${sgrp(srow('grid', '디자인 · 아트 · 포토 포맷', '', { end: '' }), srow('photo', '내 사진 · 영상 배경', '', { end: '' }), srow('doc', 'PDF로 받기', '', { end: '' }), srow('spark', '새 포맷 먼저 쓰기', '', { end: '' }))}
+    <div class="plans"><button class="pl" data-p="m"><small>월간</small><b>$ —</b><i>매달</i></button><button class="pl" data-p="y"><span class="tag">추천</span><small>연간</small><b>$ —</b><i>한 달 $ —</i></button></div>
+    <div class="scta"><button data-a="buy">구독하기</button><p>언제든 해지할 수 있어요</p></div>`, { cls: 'plan' });
+  const paint = () => $$('.pl').forEach(b => b.classList.toggle('on', b.dataset.p === sel));
+  $$('.pl').forEach(b => b.onclick = () => { sel = b.dataset.p; paint(); }); paint();
+  $('[data-a=buy]').onclick = () => toast('결제는 출시 전에 열려요');
+}
+
 const usedPhotos = () => [...S.cards(), ...S.trash(), S.draft()?.card].filter(Boolean).flatMap(c => [c.bg, ...(c.pst || []).map(p => p.bg)]).flatMap(b => [b?.ph, b?.vd]).filter(Boolean);   // 영상 파일도
 P.boot(usedPhotos()).then(route);

@@ -49,3 +49,18 @@ export function saveBook(b) {
   return write(K_BOOKS, all);
 }
 export const removeBook = id => write(K_BOOKS, read(K_BOOKS, []).filter(b => b.id !== id));
+
+// 휴지통에서 바로 지우기 · 모두 비우기
+export const purge = id => write(K_TRASH, trash().filter(c => c.id !== id));
+export const emptyTrash = () => write(K_TRASH, []);
+
+// 백업 파일: 카드 · 책 · 설정 (휴지통은 빼요). 되살리기는 이미 있는 카드는 두고 없는 것만 더해요
+export const dump = () => ({ cards: read(K_CARDS, []), books: read(K_BOOKS, []), prefs: read(K_PREF, {}) });
+export function merge(d) {
+  const cs = read(K_CARDS, []), have = new Set(cs.map(c => c.id)), add = (d.cards || []).filter(c => c?.id && !have.has(c.id));
+  write(K_CARDS, [...cs, ...add]);
+  const bs = read(K_BOOKS, []), hb = new Set(bs.map(b => b.id));
+  write(K_BOOKS, [...bs, ...(d.books || []).filter(b => b?.id && !hb.has(b.id))]);
+  if (d.prefs && !Object.keys(read(K_PREF, {})).length) write(K_PREF, d.prefs);
+  return add.length;
+}

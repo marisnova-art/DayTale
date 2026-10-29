@@ -65,3 +65,11 @@ async function decode(file) {
   try { return await createImageBitmap(file, { imageOrientation: 'from-image' }); } catch {}
   return new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = URL.createObjectURL(file); });
 }
+
+// 백업: 사진 하나를 꺼내거나(Blob) 같은 번호로 다시 넣어요
+export const blob = id => tx('readonly', s => s.get(id)).catch(() => null);
+export async function put(id, b) {
+  if (urls.has(id)) return;
+  await tx('readwrite', s => s.put(b, id));
+  urls.set(id, URL.createObjectURL(b));
+}

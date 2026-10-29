@@ -14,7 +14,11 @@ export const newSeed = () => Math.floor(Math.random() * 1e9);
 const WD = ['일', '월', '화', '수', '목', '금', '토'];
 const WDL = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
 const parse = d => { const [y, m, dd] = d.split('-').map(Number); return new Date(y, m - 1, dd); };
-export const dateLine = d => { const x = parse(d); return `${x.getFullYear()}. ${x.getMonth() + 1}. ${x.getDate()} · ${WD[x.getDay()]}`; };
+// 카드 날짜 줄: 설정 '날짜 표시'에서 고른 모양 (dot 2026. 10. 29 · 목 / ko 2026년 10월 29일 목요일 / md 10월 29일 목)
+export const DATE_FMT = ['dot', 'ko', 'md'];
+export const dateFmt = () => { try { return JSON.parse(localStorage.getItem('dz.pref.v1') || '{}').dateFmt || 'dot'; } catch { return 'dot'; } };
+export const dateLine = (d, f = dateFmt()) => { const x = parse(d), y = x.getFullYear(), m = x.getMonth() + 1, dd = x.getDate(), w = x.getDay();
+  return f === 'ko' ? `${y}년 ${m}월 ${dd}일 ${WDL[w]}` : f === 'md' ? `${m}월 ${dd}일 ${WD[w]}` : `${y}. ${m}. ${dd} · ${WD[w]}`; };
 export const weekday = d => WDL[parse(d).getDay()];
 export const dateChip = d => { const x = parse(d); return `${x.getMonth() + 1}.${String(x.getDate()).padStart(2, '0')} ${WD[x.getDay()]}`; };
 
