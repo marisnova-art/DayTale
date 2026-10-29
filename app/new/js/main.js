@@ -74,7 +74,7 @@ function nav(on) {
     <button class="nb" data-n="me" aria-label="프로필"><span class="av"></span></button></nav>`;
 }
 function bindNav() {
-  const home = () => $('.feed') ? window.scrollTo({ top: 0, behavior: 'smooth' }) : go('#/');
+  const home = () => $('main.feed') ? window.scrollTo({ top: 0, behavior: 'smooth' }) : go('#/');   // 검색 결과 칸도 .feed 모양을 써서 main만
   const find = () => $('.srch') ? ($('.srch .fld input').focus(), window.scrollTo({ top: 0, behavior: 'smooth' })) : (kbNow(), go('#/search'));
   $$('.nb').forEach(b => b.onclick = () => ({ home, search: find, write: () => go('#/pick') }[b.dataset.n] || soon)());
 }
@@ -366,6 +366,11 @@ function ask(msg, yes) {
 // 크게 보기: 카드 전체를 나누지 않은 긴 한 장으로. 피드 카드 자리에서 커지며 나오고, 길면 위아래로 밀어 읽어요.
 // 짧으면 화면 가운데. 누르면 제자리로 줄어들며 피드로
 let focus = null;
+// 화면 첫 줄 자리(--top = 시계 줄 + 30px)를 실제 픽셀로. env()는 글자로만 읽혀서 재 봐요
+function topGap() {
+  const p = document.createElement('div'); p.style.cssText = 'position:fixed;visibility:hidden;height:var(--top)'; document.body.appendChild(p);
+  const h = p.offsetHeight; p.remove(); return h;
+}
 // opt.found = { q, list }: 검색에서 열면 끝에 비슷한 카드 대신 검색 결과 전부 (순서 그대로, 지금 보는 줄만 밝게 + 몇 번째인지)
 function openFocus(it, c, opt = {}) {
   if (focus) return;
@@ -377,7 +382,7 @@ function openFocus(it, c, opt = {}) {
   const el = renderCard(c); box.appendChild(el); fitCard(el, c);
   const T = box.clientWidth, H = box.offsetHeight;
   // 짧으면 가운데, 길면 시계 줄 아래부터
-  const top = Math.max((innerHeight - H) / 2, (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--safe-t')) || 0) + 16);
+  const top = Math.max((innerHeight - H) / 2, topGap());
   box.style.marginTop = top + 'px';
   // 피드 칸 크기로 줄이면서 칸 밖(긴 카드의 아래쪽)은 같은 움직임으로 잘라요: 위 · 아래가 함께 들어가요
   const clip = () => `inset(0 0 ${Math.max(0, H - r.height * T / r.width)}px 0 round ${6 * T / r.width}px)`;
@@ -397,7 +402,7 @@ function openFocus(it, c, opt = {}) {
     };
     const swap = m => {
       box.innerHTML = ''; const el2 = renderCard(m); box.appendChild(el2); fitCard(el2, m);
-      box.style.marginTop = Math.max((innerHeight - box.offsetHeight - 120) / 2, (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--safe-t')) || 0) + 16) + 'px';
+      box.style.marginTop = Math.max((innerHeight - box.offsetHeight - 120) / 2, topGap()) + 'px';
       focus.c = m; focus.swapped = true; fill(m); sc.scrollTo(0, 0);
     };
     fill(c);
@@ -550,7 +555,7 @@ function viewSearch(fromPick) {
   function openCard(c) {
     closeCard();
     const list = found.slice(), q = inp.value.trim(), w = words.slice();
-    sv = document.createElement('div'); sv.className = 'sv';
+    sv = document.createElement('div'); sv.className = 'scv';
     sv.innerHTML = `<header class="svt"><button class="cb" data-a="x" aria-label="닫기">${ic('close')}</button></header><div class="svb"></div>`;
     const it = feedItem(c, false, { open: (el, cc) => openFocus(el, cc, { found: { q, list, hl: t => hl(t, w) } }), ex: () => snip(c), onDel: () => { closeCard(); run(); } });
     it.classList.add('play'); $('.svb', sv).appendChild(it);
@@ -581,7 +586,7 @@ function viewSearch(fromPick) {
     anim = requestAnimationFrame(tick);
     if (document.hidden) return V.sync([]);
     const host = focus?.box || sv; if (!host) return V.sync([]);
-    if (!still) $$('.fi.play canvas.bgc', host.closest('.fv, .sv') || host).forEach(cv => cv.width && drawCode(cv, +cv.dataset.seed, +cv.dataset.shift || 0, (now - t0) / 1000 + .01));
+    if (!still) $$('.fi.play canvas.bgc', host.closest('.fv, .scv') || host).forEach(cv => cv.width && drawCode(cv, +cv.dataset.seed, +cv.dataset.shift || 0, (now - t0) / 1000 + .01));
     const cv = $$('canvas.bgv', host).find(x => { const r = x.getBoundingClientRect(); return r.width && r.left > -r.width / 2 && r.left < innerWidth - r.width / 2; });
     const cc = focus?.c || sv?.querySelector('.fi')?._card, pg = cv?.closest('.pg'), i = +(pg?.dataset.i || 0), b = cv && cc && pageBg(cc, i);
     V.sync(b?.vd ? [{ cv, b, fid: cc.filter }] : []);
