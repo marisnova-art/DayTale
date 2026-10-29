@@ -74,6 +74,8 @@ const P = {
   kb: '<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/>',
   font: '<path d="M5 5h14v2"/><path d="M9.5 5v14"/><path d="M9.5 12h6.5"/><path d="M16 10.5v3"/><path d="M6.5 19h6"/>',   // F (서식 T처럼 끝이 꺾인 명조 느낌)
   size: '<path d="M3 6h11M8.5 6v13"/><path d="M14 12h7M17.5 12v7"/>',
+  drawer: '<rect x="3" y="4" width="18" height="16" rx="2.5"/><path class="hd" d="M3 12h18M10 8h4M10 16h4"/>',   // 메뉴 책장: 모아 두는 서랍 (켜지면 칸 · 손잡이만 비어요)
+  spines: '<rect x="4" y="3.5" width="15" height="5" rx="1"/><rect x="6" y="9.5" width="15" height="5" rx="1"/><rect x="3" y="15.5" width="17" height="5" rx="1"/>',   // 가로로 쌓은 책 (책장 보기)
   cal: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
   out: '<rect x="5" y="5" width="14" height="14" rx="3"/><path d="M9 12h6"/>',

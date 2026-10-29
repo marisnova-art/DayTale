@@ -657,15 +657,41 @@ mark { background: rgba(255,255,255,.32); color: #fff; border-radius: 0; padding
 .cpn .mon span { font-size: 16px; font-weight: 700; opacity: .85; display: inline-flex; align-items: center; gap: 2px; }
 .cpn .mon em { font-style: normal; font-variant-numeric: tabular-nums; }
 .cpn .mon .ic { width: 16px; height: 16px; transform: rotate(-90deg); stroke-width: 2.6; }
-.cpn .wkw { margin-top: 18px; touch-action: pan-y; overflow: hidden; }
-.cpn .wk { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; transition: transform .28s cubic-bezier(.2,.8,.2,1), opacity .28s; }
-.cpn .wk button { height: 74px; border-radius: 14px; display: grid; justify-items: center; align-content: center; gap: 4px; color: #fff; }
-.cpn .wk i { font: 700 11px var(--ui); font-style: normal; opacity: .75; }
-.cpn .wk b { font-size: 19px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.cpn .wk small { font-size: 11px; font-weight: 700; opacity: .75; height: 13px; }
-.cpn .wk .on { background: #fff; color: var(--bg); }
-.cpn .wk .on i, .cpn .wk .on small { opacity: .6; }
-.cpn .wk .f { opacity: .35; }
+.cpn { padding-bottom: 0; }
+.cpn .wks { display: flex; margin: 18px calc(-1 * var(--gut)) 0; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; }
+.cpn .wks::-webkit-scrollbar, .cpn .mos::-webkit-scrollbar { display: none; }
+.cpn .wk { flex: 0 0 100%; scroll-snap-align: start; scroll-snap-stop: always; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; padding: 0 var(--gut); }
+.cpn [data-d] { border-radius: 14px; display: grid; justify-items: center; align-content: center; gap: 4px; color: #fff; transition: background-color .22s ease, color .22s ease; }
+.cpn .wk [data-d] { height: 74px; }
+.cpn [data-d] i { font: 700 11px var(--ui); font-style: normal; opacity: .75; }
+.cpn [data-d] b { font-size: 19px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.cpn [data-d] small { font-size: 11px; font-weight: 700; opacity: .75; height: 13px; }
+.cpn [data-d][disabled] { opacity: .35; }
+.cpn [data-d].on { background: #fff; color: var(--bg); opacity: 1; animation: cpop .26s cubic-bezier(.2,1.4,.4,1); }
+.cpn [data-d].on i, .cpn [data-d].on small { opacity: .6; }
+@keyframes cpop { from { transform: scale(.82); } }
+/* 월간: 손잡이로 펼쳐요 */
+.cpn .mow { display: none; margin-top: 14px; }
+.cpn.mo .wks { display: none; }
+.cpn.mo .mow { display: block; }
+.cpn .mwd { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin-bottom: 4px; }
+.cpn .mwd i { font: 700 11px var(--ui); font-style: normal; opacity: .75; text-align: center; }
+.cpn .mos { display: flex; margin: 0 calc(-1 * var(--gut)); overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; }
+.cpn .mo1 { flex: 0 0 100%; scroll-snap-align: start; scroll-snap-stop: always; padding: 0 var(--gut); }
+.cpn .mg2 { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.cpn .mg2 [data-d] { height: 48px; gap: 1px; }
+.cpn .mg2 [data-d] b { font-size: 16px; }
+.cpn .mg2 [data-d] small { font-size: 10px; height: 11px; }
+.cpn .grip { display: block; width: 100%; height: 26px; }
+.cpn .grip i { display: block; width: 36px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.55); margin: 0 auto; }
+/* 날짜 머리: 그날로 오면 잠깐 밝게 */
+.days .dh { margin: 18px 8px 6px; padding: 4px 8px; border-radius: 10px; }
+.days .dh.flash { animation: dhf 1.3s ease; }
+@keyframes dhf { 0%, 35% { background: rgba(255,255,255,.16); } 100% { background: rgba(255,255,255,0); } }
+.days .firstd { margin: 36px 16px 0; text-align: center; font-size: 13px; font-weight: 600; color: var(--mut); }
+.fi.dt .mt { padding-left: 4px; }
+/* 메뉴 서랍 아이콘: 켜지면 칸 · 손잡이만 비어 보여요 */
+.nb.on .ic .hd { stroke: #26262a; fill: none; }
 /* 우리 시트 (연 · 월, 새 책, 책에 담기) */
 .bks { gap: 12px; grid-template-columns: minmax(0, 1fr); }
 .bks .sh { font-size: 13px; font-weight: 600; color: var(--mut); text-align: center; }
@@ -704,8 +730,15 @@ mark { background: rgba(255,255,255,.32); color: #fff; border-radius: 0; padding
 .runv .fvs { overflow-anchor: none; }
 .runv .runl { width: min(100%, 480px); margin: 0 auto; padding: calc(var(--top) + 52px) 0 calc(var(--safe-b) + 40px); }
 .runv .ri { padding-bottom: 26px; }
-.runv .dl { font-size: 13px; font-weight: 700; color: #c9c9cf; padding: 0 var(--gut) 10px; }
+.runv .dl { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; font-weight: 700; color: #c9c9cf; padding: 0 6px 4px var(--gut); }
+.runv .dl .cb { background: none; color: #c9c9cf; flex: none; }
+.runv .ri.gone { overflow: hidden; opacity: 0; transition: height .3s ease, opacity .2s ease, padding .3s ease; padding-bottom: 0; }
 .runv .fvb { margin: 0; width: 100%; transform: none; transition: none; }
 .runv .fvb .cd { border-radius: 0; }
 .runv .rtop { position: absolute; top: 0; left: 0; right: 0; height: calc(var(--top) + 52px); background: linear-gradient(rgb(12,12,13) 55%, rgba(12,12,13,0)); pointer-events: none; z-index: 2; }
 .runv .rx { position: absolute; top: var(--top); left: var(--gut); z-index: 3; }
+/* 큰 화면(책장 · 달력) 위에서도 시트 · 확인 창 · 알림이 보이게 */
+.sheet-bg { z-index: 110; }
+.ask-bg { z-index: 120; }
+.toast { z-index: 130; }
+.rv { z-index: 105; }
