@@ -840,7 +840,7 @@ function viewCal() {
   // 그날 머리줄로 (패널 바로 아래)
   const jump = (d, smooth = true) => {
     const el = $(`.dh[data-d="${d}"]`, list); if (!el) return;
-    const y = el.getBoundingClientRect().top + scrollY - panel.offsetHeight - 2;
+    const y = el.getBoundingClientRect().top + scrollY - panel.offsetHeight - 16;   // 패널 아래 16px 띄워서
     listLock = performance.now() + (smooth ? 900 : 150);
     scrollTo({ top: Math.max(0, y), behavior: smooth ? 'smooth' : 'instant' });
   };
@@ -872,7 +872,7 @@ function viewCal() {
     if (locked(listLock) || raf) return;
     raf = requestAnimationFrame(() => {
       raf = 0; if (locked(listLock)) return;
-      const edge = panel.getBoundingClientRect().bottom + 12;
+      const edge = panel.getBoundingClientRect().bottom + 24;
       let d = null; for (const h of $$('.dh', list)) { if (h.getBoundingClientRect().top <= edge) d = h.dataset.d; else break; }
       if (d && d !== act) { mark(d); if (!panel.classList.contains('mo')) toWeek(d, true); }
     });

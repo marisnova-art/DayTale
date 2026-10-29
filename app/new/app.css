@@ -604,7 +604,7 @@ mark { background: rgba(255,255,255,.32); color: #fff; border-radius: 0; padding
 .shv .empty > .i .ic { width: 28px; height: 28px; }
 .shv .empty b { font-size: 16px; font-weight: 700; color: #fff; }
 /* 위 줄 (책장 · 달력 같은 높이): 왼쪽 제목 · 버튼, 오른쪽 캡슐 */
-.shtop { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: var(--top) var(--gut) 14px; }
+.shtop { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: var(--top) var(--gut) 24px; }
 .shtop .tl { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .shtop h1 { font-size: 34px; line-height: 40px; font-weight: 800; letter-spacing: -.02em; margin-right: 6px; white-space: nowrap; }
 .shtop .cb { background: var(--srf); flex: none; }
@@ -625,7 +625,7 @@ mark { background: rgba(255,255,255,.32); color: #fff; border-radius: 0; padding
 .sp .tt > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sp .tt .ic { width: 18px; height: 18px; stroke-width: 2.4; }
 .sp .tt .ic.f { fill: currentColor; }
-.sp .mt { flex: none; text-align: right; font: 700 10px/1.5 var(--ui); opacity: .85; font-variant-numeric: tabular-nums; }
+.sp .mt { flex: none; text-align: right; font: 700 12px/1.4 var(--ui); opacity: .85; font-variant-numeric: tabular-nums; }
 .sp.du { opacity: .45; }
 .sp.ph .tt { opacity: .5; }
 /* 책 열기 */
