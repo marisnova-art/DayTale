@@ -47,8 +47,19 @@ export function weather() {
 }
 const wet = k => k === 'rain' || k === 'snow' || k === 'thunder';
 
+// 테스트 동안만: 앱을 열 때마다 24가지 전부에서 하나 (시간대 무시, 최근 7번은 피해요). 출시 전에 false
+const TEST_RANDOM = true;
+let session = null;
 // 오늘 이 시간대의 무드: 한 번 고르면 시간대가 바뀔 때까지 그대로
 export function pick(now = new Date(), wx = cachedWx()) {
+  if (TEST_RANDOM) {
+    if (session) return session;
+    const all = Object.values(PAL).flat(), recent = S.pref('moods', []);
+    const pool = all.filter(p => !recent.includes(p[0]));
+    session = pool[Math.floor(Math.random() * pool.length)];
+    S.setPref('moods', [session[0], ...recent].slice(0, 7));
+    return session;
+  }
   const slot = slotOf(now.getHours()), key = S.today() + ':' + slot, keep = S.pref('mood');
   if (keep?.key === key) { const p = PAL[slot].find(x => x[0] === keep.name); if (p) return p; }
   const recent = S.pref('moods', []);

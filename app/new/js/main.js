@@ -88,7 +88,7 @@ function fixCover(c, i, b, cov) {
 // 1열(카드 크게 · 아이콘 줄 · 글 한 줄)과 2열(핀터레스트처럼 카드마다 제 비율, 아래는 쓴 때 · ⋯만). 로고 줄 알림 왼쪽 버튼으로 바꾸고, 고른 걸 기억해요 (처음은 2열)
 function viewFeed(fresh, quiet) {
   const mine = S.cards(), two = S.pref('cols', 2) === 2;
-  app.innerHTML = `<div class="amb"><div class="mo"></div><b></b><b></b><b></b><i></i><i></i><s></s></div><header class="ftop"><div class="logo">dayzine</div><div class="rt"><button class="cb" data-a="cols" aria-label="${two ? '1열로 보기' : '2열로 보기'}">${ic(two ? 'one' : 'grid')}</button><button class="cb" data-a="bell" aria-label="알림">${ic('bell')}</button></div></header><div class="bn" hidden></div>
+  app.innerHTML = `<div class="amb"><div class="mo"></div><b></b><b></b><b></b><i></i><i></i><s></s></div><header class="ftop"><div class="logo">dayzine</div><div class="rt"><button class="cb" data-a="cols" aria-label="${two ? '1열로 보기' : '2열로 보기'}">${ic(two ? 'one' : 'grid')}</button><button class="cb" data-a="bell" aria-label="알림">${ic('bell')}</button></div></header><div class="bn${two ? ' two' : ''}" hidden></div>
     <main class="feed${two ? ' two' : ''}">${two ? '<div class="mc"></div><div class="mc"></div>' : ''}</main>${nav('home')}`;
   bindNav(); $('[data-a=bell]').onclick = soon;
   const feed = $('.feed');
@@ -270,8 +270,12 @@ function feedItem(c, tile, x = {}) {
 function recallOf(mine) {
   const t = S.today(), md = t.slice(5), y = +t.slice(0, 4);
   const c = mine.find(m => m.date?.slice(5) === md && +m.date.slice(0, 4) < y);
-  return c ? { c, n: y - +c.date.slice(0, 4) } : null;
+  if (c) return { c, n: y - +c.date.slice(0, 4) };
+  // 테스트 동안만: 맞는 카드가 없으면 가장 오래된 내 카드를 1년 전 오늘로 (출시 전에 TEST_RECALL = false)
+  const old = TEST_RECALL && mine.filter(m => m.date && m.date < t).at(-1);
+  return old ? { c: old, n: 1 } : null;
 }
+const TEST_RECALL = true;
 // NEW 포맷 카드: 아직 안 써 본 포맷만, 하루에 한 번씩 세서 3번 보면 더는 안 나와요
 function promoFormats(mine) {
   const seen = S.pref('promo', {});
@@ -378,7 +382,7 @@ function openFocus(it, c) {
     const rel = document.createElement('div'); rel.className = 'rel'; sc.appendChild(rel);
     const fill = cc => {
       rel.innerHTML = relHtml(related(cc));
-      $$('.rr', rel).forEach(b => { const m = S.card(b.dataset.id); mount($('.th', b), m); b.onclick = e => { e.stopPropagation(); swap(m); }; });
+      $$('.rr', rel).forEach(b => { const m = S.card(b.dataset.id), th = $('.th', b); th.style.background = toneOf(m); th.classList.toggle('short', arOf(m) < 1.25); mount(th, m); b.onclick = e => { e.stopPropagation(); swap(m); }; });
     };
     const swap = m => {
       box.innerHTML = ''; const el2 = renderCard(m); box.appendChild(el2); fitCard(el2, m);

@@ -472,7 +472,9 @@ html.pan .wr .panel { display: grid; }
 .ftop::before { content: ''; position: absolute; inset: 0; background: rgba(16,16,18,.62); -webkit-backdrop-filter: blur(22px) saturate(1.2); backdrop-filter: blur(22px) saturate(1.2); opacity: 0; transition: opacity .3s; pointer-events: none; z-index: -1; }   /* 피드 위에 떠 있을 땐 흐린 판 위에 */
 .ftop.stuck::before { opacity: 1; }
 /* 위 배너: 로고 아래, 피드와 같이 스크롤. 1년 전 오늘(맞는 카드가 있을 때만) 또는 공지 하나, 하루 한 번 */
-.bn { margin: -6px var(--gut) 18px; height: 56px; border-radius: 14px; background: rgba(30,30,33,.86); display: flex; align-items: center; gap: 12px; padding: 0 4px 0 8px; cursor: pointer; transition: transform .25s, opacity .25s; touch-action: pan-y; }
+.bn { margin: -6px var(--gut) 18px; height: 56px; border-radius: 6px; background: rgba(30,30,33,.86); display: flex; align-items: center; gap: 12px; padding: 0 4px 0 8px; cursor: pointer; transition: transform .25s, opacity .25s; touch-action: pan-y; }
+.bn[hidden] { display: none; }
+.bn.two { margin-left: 8px; margin-right: 8px; }   /* 2열은 피드 양끝(8px)에 맞춰요 */
 .bn .th { width: 32px; height: 40px; border-radius: 4px; overflow: hidden; flex: none; pointer-events: none; }
 .bn .th .cd { width: 32px; }
 .bn .tx { flex: 1; min-width: 0; font-size: 14px; font-weight: 700; line-height: 1.3; }
@@ -505,7 +507,9 @@ html.pan .wr .panel { display: grid; }
 .rel .rl { background: #1E1E21; border-radius: 14px; overflow: hidden; }
 .rel .rr { display: flex; width: 100%; text-align: left; gap: 14px; align-items: center; padding: 12px 14px; border-top: 1px solid #2a2a2e; }
 .rel .rr:first-child { border-top: 0; }
-.rel .rr .th { width: 52px; flex: none; border-radius: 6px; overflow: hidden; pointer-events: none; }
+.rel .rr .th { width: 52px; aspect-ratio: 4 / 5; flex: none; border-radius: 6px; overflow: hidden; pointer-events: none; display: flex; align-items: center; }   /* 모두 4:5, 첫 장만 (긴 카드는 아래를 잘라요) */
+.rel .rr .th > .cd { flex: none; align-self: flex-start; }
+.rel .rr .th.short > .cd { align-self: center; }
 .rel .rr .th .cd { border-radius: 0; }
 .rel .rr .th .pg ~ .pg { display: none; }
 .rel .rr .m { min-width: 0; flex: 1; }
