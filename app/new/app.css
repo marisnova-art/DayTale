@@ -86,7 +86,24 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .amb { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
 .amb i { position: absolute; left: -35%; right: -35%; top: 8%; height: 80%; opacity: 0; transition: opacity 1.2s ease; }
 .amb i.on { opacity: .32; }
-.ftop, .feed { position: relative; z-index: 1; }
+/* 무드 바탕 (mood.js): 시간대 그라데이션이 화면 위아래 끝까지 + 빛 덩어리 셋이 40~60초에 한 바퀴 천천히. 날씨 흐림 · 비는 채도 낮게 */
+.amb .mo, .amb b, .amb s { position: absolute; display: none; }
+.amb:not(.old) .mo { display: block; inset: 0; background: var(--mo); transition: filter 2s ease; }
+.amb:not(.old) b { display: block; border-radius: 50%; filter: blur(48px); opacity: .62; will-change: transform; transition: opacity 2s ease; }
+.amb:not(.old) b:nth-of-type(1) { left: -22%; top: -8%; width: 78%; height: 36%; background: var(--b1); animation: drift1 52s ease-in-out infinite alternate; }
+.amb:not(.old) b:nth-of-type(2) { right: -28%; top: 36%; width: 82%; height: 32%; background: var(--b2); animation: drift2 60s ease-in-out infinite alternate; }
+.amb:not(.old) b:nth-of-type(3) { left: -14%; bottom: -10%; width: 86%; height: 30%; background: var(--b3); animation: drift3 44s ease-in-out infinite alternate; }
+.amb:not(.old) i { top: 14%; height: 72%; }
+.amb:not(.old) i.on { opacity: .5; }
+.amb:not(.old) s { display: block; inset: 0; background: rgba(0,0,0,.1); }
+.amb[data-wx=grey] .mo { filter: saturate(.5) brightness(.9); }
+.amb[data-wx=grey] b { opacity: .4; }
+.amb[data-wx=snow] .mo { filter: saturate(.6) brightness(1.1); }
+@keyframes drift1 { to { transform: translate(18%, 22%) scale(1.15); } }
+@keyframes drift2 { to { transform: translate(-22%, -16%) scale(.9); } }
+@keyframes drift3 { to { transform: translate(14%, -20%) scale(1.1); } }
+body.paused .amb b { animation-play-state: paused; }
+.ftop, .feed, .bn { position: relative; z-index: 1; }
 .ftop { display: flex; align-items: center; justify-content: space-between; padding: calc(var(--safe-t) + 30px) var(--gut) 20px; }   /* 시계 줄 블러 아래 */
 .ftop .logo { font-size: 32px; font-weight: 800; letter-spacing: -.035em; line-height: 40px; }
 .feed { padding: 0 var(--gut) calc(120px + var(--safe-b)); display: grid; grid-template-columns: minmax(0, 1fr); gap: 44px; }   /* 카드 세트 사이 */
@@ -111,11 +128,11 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .fi .row .cb .ic { width: 24px; height: 24px; }
 .fi .row .cb.on .ic { fill: currentColor; }
 .fi .row .pc { font-size: 16px; font-weight: 800; color: #c9c9cf; margin: 0 8px 0 auto; font-variant-numeric: tabular-nums; }
-.fi .when { font-size: 13px; font-weight: 600; color: var(--mut); margin-bottom: -2px; display: flex; justify-content: space-between; gap: 12px; }
-.fi .when i { font-style: normal; color: #6b6b72; white-space: nowrap; }
+.fi .when { font-size: 13px; font-weight: 600; color: rgba(255,255,255,.75); margin-bottom: -2px; display: flex; justify-content: space-between; gap: 12px; }
+.fi .when i { font-style: normal; color: rgba(255,255,255,.6); white-space: nowrap; }
 .fi.fresh .fx { animation: fresh .7s cubic-bezier(.2,1.3,.4,1) both; }
 @keyframes fresh { from { transform: scale(.92); opacity: 0; } }
-.fi .ex { font-size: 16px; line-height: 1.45; color: #c9c9cf; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: -6px; }
+.fi .ex { font-size: 16px; line-height: 1.45; color: rgba(255,255,255,.82); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: -6px; }
 /* 카드만 화면 가득: 그 자리에서 커지며 나와요 */
 .fv { position: fixed; inset: 0; z-index: 100; background: rgba(12,12,13,0); transition: background-color .36s ease; cursor: pointer; }
 .fv.in { background: rgba(12,12,13,1); }
@@ -150,14 +167,15 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 @keyframes pulse { 50% { transform: scale(.86); } }
 @keyframes rise { 50% { transform: scaleY(.72); } }
 body.paused .fi * { animation-play-state: paused !important; }
-@media (prefers-reduced-motion: reduce) { .fi * { animation: none !important; } .amb { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .fi * { animation: none !important; } .amb, .amb * { transition: none; animation: none !important; } }
 
 /* 하단 메뉴 */
 .nav { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(6px + var(--safe-b)); z-index: 30; display: flex; gap: 6px; padding: 4px; background: #26262a; border-radius: 999px; align-items: center; }
-.nb { width: 64px; height: 52px; border-radius: 999px; display: grid; place-items: center; color: var(--mut); }
+.nb { width: 64px; height: 52px; border-radius: 999px; display: grid; place-items: center; color: #b8b8be; }
 .nb.on { color: #fff; }
 .nb.nw { background: #fff; color: var(--bg); width: 52px; height: 52px; border-radius: 50%; margin: 0 6px; }   /* 메뉴 바 60px */
-.nb .ic { width: 24px; height: 24px; }
+.nb .ic { width: 28px; height: 28px; stroke-width: 2.2; }
+.nb.on .ic { fill: currentColor; }   /* 켜지면 채운 모양 (동그라미 없이) */
 .av { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, #f4a3c4, #8a7cf0); }
 
 /* 포맷 고르기 */
@@ -428,9 +446,9 @@ html.pan .wr .panel { display: grid; }
 .feed.two .mc { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; min-width: 0; }
 .fi.tile { gap: 0; }
 .fi.tile .bd { position: absolute; top: 8px; right: 8px; z-index: 3; margin: 0; font-size: 11px; font-weight: 700; color: #fff; background: rgba(0,0,0,.5); border-radius: 999px; padding: 3px 7px; pointer-events: none; }
-.fi.tile .mt { display: flex; align-items: center; justify-content: space-between; height: 32px; padding-left: 4px; font-size: 12px; font-weight: 600; color: var(--mut); }
+.fi.tile .mt { display: flex; align-items: center; justify-content: space-between; height: 32px; padding-left: 4px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,.75); }
 .fi.tile .mt > span { display: flex; align-items: center; gap: 5px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.fi.tile .mt .cb { width: 36px; height: 32px; margin-right: -6px; background: none; color: var(--mut); }
+.fi.tile .mt .cb { width: 36px; height: 32px; margin-right: -6px; background: none; color: rgba(255,255,255,.75); }
 .fi.tile .mt .cb .ic { width: 18px; height: 18px; }
 .fi.tile .mt [data-a=use] { color: #fff; }
 .fi.tile .mt .nw { font-style: normal; font-size: 10px; font-weight: 800; color: var(--bg); background: #fff; border-radius: 5px; padding: 2px 5px; }
@@ -447,3 +465,50 @@ html.pan .wr .panel { display: grid; }
 .sheet .grp .it:first-child { border-top: 0; }
 .sheet .grp .it .ic { color: #c9c9cf; }
 .sheet .grp .it.red, .sheet .grp .it.red .ic { color: #ff5a52; }
+
+/* 로고 줄: 내리면 위로 숨고, 조금이라도 올리면 다시 내려와요 (인스타 · X처럼). 맨 위에선 늘 보여요 */
+.ftop { position: sticky; top: 0; z-index: 20; transition: transform .3s cubic-bezier(.2,.8,.2,1); }
+.ftop.up { transform: translateY(-100%); }
+.ftop::before { content: ''; position: absolute; inset: 0; background: rgba(16,16,18,.62); -webkit-backdrop-filter: blur(22px) saturate(1.2); backdrop-filter: blur(22px) saturate(1.2); opacity: 0; transition: opacity .3s; pointer-events: none; z-index: -1; }   /* 피드 위에 떠 있을 땐 흐린 판 위에 */
+.ftop.stuck::before { opacity: 1; }
+/* 위 배너: 로고 아래, 피드와 같이 스크롤. 1년 전 오늘(맞는 카드가 있을 때만) 또는 공지 하나, 하루 한 번 */
+.bn { margin: -6px var(--gut) 18px; height: 56px; border-radius: 14px; background: rgba(30,30,33,.86); display: flex; align-items: center; gap: 12px; padding: 0 4px 0 8px; cursor: pointer; transition: transform .25s, opacity .25s; touch-action: pan-y; }
+.bn .th { width: 32px; height: 40px; border-radius: 4px; overflow: hidden; flex: none; pointer-events: none; }
+.bn .th .cd { width: 32px; }
+.bn .tx { flex: 1; min-width: 0; font-size: 14px; font-weight: 700; line-height: 1.3; }
+.bn .tx small { display: block; font-size: 12px; color: var(--mut); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bn .cb { background: none; color: var(--mut); width: 40px; height: 40px; }
+.bn .cb .ic { width: 18px; height: 18px; }
+.bn.gone { opacity: 0; }
+/* N년 전 오늘 표시 */
+.rc { font-style: normal; font-size: 10px; font-weight: 800; color: #fff; background: rgba(255,255,255,.22); border-radius: 5px; padding: 2px 6px; white-space: nowrap; }
+.fi .when .rc { font-size: 11px; }
+/* 1열 글만보기: 요약 한 줄이 그 자리에서 글 전체로 */
+.fi .row .cb[data-a=read].on .ic { fill: currentColor; }
+.fi .row .cb[data-a=read].on .ic path + path { stroke: var(--bg); }
+.fi .ex.open { white-space: pre-line; overflow: visible; text-overflow: clip; line-height: 1.65; color: rgba(255,255,255,.9); }
+/* 글만보기 화면 (2열 ⋯): 글만, 한 가지 글꼴 · 크기. 바탕은 우리 배경 중 하나 + 살짝 어둡게. 누르면 닫혀요 */
+.rv { position: fixed; inset: 0; z-index: 100; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; scrollbar-width: none; cursor: pointer; opacity: 0; transition: opacity .3s ease; }
+.rv::-webkit-scrollbar { display: none; }
+.rv.in { opacity: 1; }
+.rv .rbg { position: fixed; inset: 0; }
+.rv .rbg::after { content: ''; position: absolute; inset: 0; background: rgba(10,10,14,.42); }
+.rv .rin { position: relative; max-width: 480px; margin: 0 auto; padding: calc(var(--safe-t) + 64px) 30px calc(var(--safe-b) + 48px); color: #fff; transform: translateY(14px); transition: transform .4s cubic-bezier(.2,.8,.2,1); }
+.rv.in .rin { transform: none; }
+.rv .dl { font-size: 13px; font-weight: 700; opacity: .8; margin-bottom: 26px; }
+.rv .tx { font-size: 18px; line-height: 1.8; font-weight: 500; letter-spacing: -.01em; white-space: pre-line; overflow-wrap: break-word; }
+.rv .pb { height: 1px; background: #fff; opacity: .2; margin: 24px 0; }
+/* 크게 보기 끝: 비슷한 카드 5줄 (왼쪽 카드 · 오른쪽 날짜 · 종류 + 글 두 줄). 누르면 그 카드로 바뀌어요 */
+.rel { width: min(100%, 480px); margin: 4px auto calc(var(--safe-b) + 28px); padding: 0 var(--gut); opacity: 0; transition: opacity .3s ease .2s; cursor: default; }
+.fv.in .rel { opacity: 1; }
+.rel h4 { font-size: 13px; font-weight: 700; color: var(--mut); margin: 0 4px 10px; }
+.rel .rl { background: #1E1E21; border-radius: 14px; overflow: hidden; }
+.rel .rr { display: flex; width: 100%; text-align: left; gap: 14px; align-items: center; padding: 12px 14px; border-top: 1px solid #2a2a2e; }
+.rel .rr:first-child { border-top: 0; }
+.rel .rr .th { width: 52px; flex: none; border-radius: 6px; overflow: hidden; pointer-events: none; }
+.rel .rr .th .cd { border-radius: 0; }
+.rel .rr .th .pg ~ .pg { display: none; }
+.rel .rr .m { min-width: 0; flex: 1; }
+.rel .rr small { display: block; font-size: 12px; color: var(--mut); font-weight: 600; margin-bottom: 3px; }
+.rel .rr p { font-size: 14px; line-height: 1.4; color: #e2e2e6; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.fv.fade { transition: opacity .3s ease, background-color .36s ease; opacity: 0; }

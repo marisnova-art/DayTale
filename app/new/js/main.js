@@ -12,6 +12,7 @@ import { NAMES as STK, hydrate, preloadAll } from './stickers.js';
 import * as P from './photos.js';
 import { FILTERS, filterOf, thumb as fthumb } from './filters.js';
 import * as V from './video.js';
+import { paint as paintMood } from './mood.js';
 
 const app = document.getElementById('app');
 const $ = (s, r = document) => r.querySelector(s);
@@ -87,16 +88,21 @@ function fixCover(c, i, b, cov) {
 // 1열(카드 크게 · 아이콘 줄 · 글 한 줄)과 2열(핀터레스트처럼 카드마다 제 비율, 아래는 쓴 때 · ⋯만). 로고 줄 알림 왼쪽 버튼으로 바꾸고, 고른 걸 기억해요 (처음은 2열)
 function viewFeed(fresh, quiet) {
   const mine = S.cards(), two = S.pref('cols', 2) === 2;
-  app.innerHTML = `<div class="amb"><i></i><i></i></div><header class="ftop"><div class="logo">dayzine</div><div class="rt"><button class="cb" data-a="cols" aria-label="${two ? '1열로 보기' : '2열로 보기'}">${ic(two ? 'one' : 'grid')}</button><button class="cb" data-a="bell" aria-label="알림">${ic('bell')}</button></div></header>
+  app.innerHTML = `<div class="amb"><div class="mo"></div><b></b><b></b><b></b><i></i><i></i><s></s></div><header class="ftop"><div class="logo">dayzine</div><div class="rt"><button class="cb" data-a="cols" aria-label="${two ? '1열로 보기' : '2열로 보기'}">${ic(two ? 'one' : 'grid')}</button><button class="cb" data-a="bell" aria-label="알림">${ic('bell')}</button></div></header><div class="bn" hidden></div>
     <main class="feed${two ? ' two' : ''}">${two ? '<div class="mc"></div><div class="mc"></div>' : ''}</main>${nav('home')}`;
   bindNav(); $('[data-a=bell]').onclick = soon;
   const feed = $('.feed');
-  // 내 카드가 적으면 우리 카드(포맷 예시)를 아래에
-  const list = [...mine, ...(mine.length < 6 ? ORDER.map(f => sampleCard(f, S.today())) : [])];
+  // 내 카드가 적으면 우리 카드(포맷 예시)를 아래에. N년 전 오늘 카드는 위에서 두 번째, NEW 포맷 카드는 8장마다 하나
+  const list = mine.map(c => ({ c }));
+  const rec = recallOf(mine);
+  if (rec) list.splice(Math.min(1, list.length), 0, { c: rec.c, x: { recall: rec.n } });
+  if (mine.length >= 8) promoFormats(mine).forEach((f, i) => { const at = (i + 1) * 9 - 1; if (at <= list.length) list.splice(at, 0, { c: sampleCard(f, S.today()), x: { promo: true } }); });
+  if (mine.length < 6) list.push(...ORDER.map(f => ({ c: sampleCard(f, S.today()) })));
   if (two) {   // 더 짧은 열에 차례로 (높이 = 비율 + 아래 줄)
     const cols = $$('.mc', feed), h = [0, 0];
-    list.forEach(c => { const i = h[1] < h[0] ? 1 : 0; cols[i].appendChild(feedItem(c, true)); h[i] += arOf(c) + .16; });
-  } else list.forEach(c => feed.appendChild(feedItem(c)));
+    list.forEach(({ c, x }) => { const i = h[1] < h[0] ? 1 : 0; cols[i].appendChild(feedItem(c, true, x)); h[i] += arOf(c) + .16; });
+  } else list.forEach(({ c, x }) => feed.appendChild(feedItem(c, false, x)));
+  banner(rec);
   // 1열 ↔ 2열: 보던 카드가 바뀐 화면에서도 가운데에 오게
   $('[data-a=cols]').onclick = () => {
     const k = scrollY > 40 ? cur?.dataset.k : null; S.setPref('cols', two ? 1 : 2);   // 맨 위에서 바꾸면 맨 위 그대로
@@ -108,6 +114,7 @@ function viewFeed(fresh, quiet) {
   // 화면에 보이는 카드는 모두 움직이고(아트 · 그림 문장 · 영상), 밖으로 나가면 멈춰요. 바탕 색은 가운데 카드
   // 오로라: 화면 가운데에 고정된 둥근 번짐. 두 겹을 번갈아 켜서 색이 천천히 바뀌어요 (아이폰도 모서리 없이)
   const amb = $('.amb'), gl = $$('i', amb); let gi = 0, gc = '';
+  const stopMood = paintMood(amb);
   const glow = t => { if (!t || t === gc) return; gc = t; gi ^= 1; gl[gi].style.background = `radial-gradient(closest-side, ${t}, transparent)`; gl[gi].classList.add('on'); gl[gi ^ 1].classList.remove('on'); };
   let raf = 0, cur = null;
   const pickMid = () => {
@@ -118,12 +125,20 @@ function viewFeed(fresh, quiet) {
       if (d < bd) { bd = d; best = it; }
       if (on === it.classList.contains('play')) return;
       it.classList.toggle('play', on);
-      if (on && !it.dataset.seen) { it.dataset.seen = 1; it.classList.add('intro'); setTimeout(() => it.classList.remove('intro'), 1800); }
+      if (on && !it.dataset.seen) { it.dataset.seen = 1; it.classList.add('intro'); setTimeout(() => it.classList.remove('intro'), 1800); if (it.dataset.promo) promoSeen(it._card.fmt); }
     });
     if (best === cur) return;
     cur = best; if (cur) glow(cur.dataset.tone);
   };
-  const onScroll = () => { if (!raf) raf = requestAnimationFrame(pickMid); };
+  // 로고 줄: 내리면 숨고, 올리면 바로 다시 (맨 위에선 늘 보여요)
+  const head = $('.ftop'); let lastY = scrollY;
+  const onHead = () => {
+    const y = scrollY, dy = y - lastY; lastY = y;
+    if (focus) return;
+    head.classList.toggle('stuck', y > 8);
+    if (y <= 8) head.classList.remove('up'); else if (dy > 6) head.classList.add('up'); else if (dy < -2) head.classList.remove('up');
+  };
+  const onScroll = () => { onHead(); if (!raf) raf = requestAnimationFrame(pickMid); };
   addEventListener('scroll', onScroll, { passive: true });
   const onVis = () => document.body.classList.toggle('paused', document.hidden);
   document.addEventListener('visibilitychange', onVis);
@@ -150,7 +165,7 @@ function viewFeed(fresh, quiet) {
     V.sync(out.sort((a, b) => a.d - b.d));
   };
   if (!still) anim = requestAnimationFrame(tick); else feedTimer = setInterval(() => { pickMid(); feedVideo(); }, 300);
-  cleanup = () => { cancelAnimationFrame(anim); clearInterval(feedTimer); V.stop(); removeEventListener('scroll', onScroll); document.removeEventListener('visibilitychange', onVis); closeFocus(true); };
+  cleanup = () => { stopMood(); cancelAnimationFrame(anim); clearInterval(feedTimer); V.stop(); removeEventListener('scroll', onScroll); document.removeEventListener('visibilitychange', onVis); closeFocus(true); };
   setTimeout(pickMid, 80);
 
   // 방금 쓰거나 고친 카드: 그 자리로 가서 살짝 커지며 나와요. 고치다 뒤로 오면 그 자리로만 (주소는 홈으로 되돌려 둬요)
@@ -197,19 +212,21 @@ function pageInto(view, c, onCount) {
 }
 
 // 카드 한 장. 긴 카드는 4:5 장들을 옆으로 밀어 봐요. 누르면 그 카드 전체를 화면 가득(다시 누르면 피드로).
-// 1열 아래: 책갈피 · 저장 · 고치기 · 이 포맷으로 쓰기 · 지우기 · 장 수(여러 장일 때) / 글 첫머리 한 줄 / 언제 썼는지
+// 1열 아래: 책갈피 · 저장 · 고치기 · 이 포맷으로 쓰기 · 글만보기 · 지우기 · 장 수(여러 장일 때) / 글 첫머리 한 줄 / 언제 썼는지
 // tile = 2열 칸: 카드 + [쓴 때 · ⋯] (여러 장이면 카드 위 오른쪽에 1/N). 우리 카드는 [NEW 이름 · ✎]
-function feedItem(c, tile) {
-  const it = document.createElement('article'); it.className = 'fi' + (tile ? ' tile' : ''); it.dataset.tone = toneOf(c); if (c.id) it.dataset.id = c.id; it.dataset.k = c.id || 's:' + c.fmt; it._card = c;
-  const f = FORMATS[c.fmt];
+// x.recall = N년 전 오늘로 위에 한 번 더 나온 카드, x.promo = 피드 중간의 NEW 포맷 카드
+function feedItem(c, tile, x = {}) {
+  const it = document.createElement('article'); it.className = 'fi' + (tile ? ' tile' : ''); it.dataset.tone = toneOf(c); if (c.id && !x.recall) it.dataset.id = c.id; it.dataset.k = x.recall ? 'r:' + c.id : x.promo ? 'p:' + c.fmt : c.id || 's:' + c.fmt; it._card = c;
+  if (x.promo) it.dataset.promo = 1;
+  const f = FORMATS[c.fmt], when = x.recall ? `<i class="rc">${x.recall}년 전 오늘</i>` : ago(c);
   it.innerHTML = tile
     ? `<div class="fx"><div class="view"></div><span class="pc bd" hidden></span></div>
       <p class="mt">${c.sample ? `<span><i class="nw">NEW</i>${f.name}</span><button class="cb" data-a="use" aria-label="이 포맷으로 쓰기">${ic('pen')}</button>`
-        : `<span>${ago(c)}</span><button class="cb" data-a="more" aria-label="더 보기">${ic('more')}</button>`}</p>`
-    : `${c.sample ? '' : `<p class="when"><span>${ago(c)}</span><i>${LABEL[c.fmt] || ''}</i></p>`}<div class="fx"><div class="view"></div></div>
+        : `<span>${when}</span><button class="cb" data-a="more" aria-label="더 보기">${ic('more')}</button>`}</p>`
+    : `${c.sample ? '' : `<p class="when"><span>${when}</span><i>${LABEL[c.fmt] || ''}</i></p>`}<div class="fx"><div class="view"></div></div>
     <div class="row">${c.sample
       ? `<div class="ours">${f.name}<i>NEW</i></div><button class="cb" data-a="use" aria-label="이 포맷으로 쓰기">${ic('pen')}</button>`
-      : `<div class="l"><button class="cb ${c.mark ? 'on' : ''}" data-a="mark" aria-label="책갈피">${ic('bookmark')}</button><button class="cb" data-a="save" aria-label="사진에 저장">${ic('save')}</button><button class="cb" data-a="edit" aria-label="고치기">${ic('pen')}</button><button class="cb" data-a="like" aria-label="이 포맷으로 쓰기">${ic('grid')}</button><button class="cb" data-a="del" aria-label="지우기">${ic('trash')}</button><span class="pc" hidden></span></div>`}</div>
+      : `<div class="l"><button class="cb ${c.mark ? 'on' : ''}" data-a="mark" aria-label="책갈피">${ic('bookmark')}</button><button class="cb" data-a="save" aria-label="사진에 저장">${ic('save')}</button><button class="cb" data-a="edit" aria-label="고치기">${ic('pen')}</button><button class="cb" data-a="like" aria-label="이 포맷으로 쓰기">${ic('grid')}</button><button class="cb" data-a="read" aria-label="글만보기">${ic('read')}</button><button class="cb" data-a="del" aria-label="지우기">${ic('trash')}</button><span class="pc" hidden></span></div>`}</div>
     <p class="ex"></p>`;
   const fx = $('.fx', it), view = $('.view', it), pc = $('.pc', it);
   // 9:16은 자르지 않고 4:5 높이에 맞춰 가운데로. 양옆은 같은 카드 배경을 흐리고 조금 어둡게 깔아요 (글 · 날짜 · 서명은 빼고, 1열 피드에서만)
@@ -218,7 +235,8 @@ function feedItem(c, tile) {
     const blr = document.createElement('div'); blr.className = 'blr'; blr.setAttribute('aria-hidden', 'true'); fx.prepend(blr);
     mount(blr, { ...c, pages: c.pages ? [''] : c.pages, pst: c.pst ? [c.pst[0]].filter(Boolean) : c.pst, html: c.html != null ? '&nbsp;' : c.html, place: '', showDate: false, datePos: 'none', sg: '', signTxt: '' });
   }
-  if (!tile) $('.ex', it).textContent = cardText(c).replace(/\s+/g, ' ').trim();   // 글 첫머리 한 줄 (길면 …)
+  const ex = $('.ex', it), line = () => cardText(c).replace(/\s+/g, ' ').trim();
+  if (!tile) ex.textContent = line();   // 글 첫머리 한 줄 (길면 …)
   mount(view, c);
   pageInto(view, c, (i, n) => { if (pc) { pc.hidden = false; pc.textContent = `${i}/${n}`; } });
   fx.addEventListener('click', () => openFocus(it, c));
@@ -229,8 +247,14 @@ function feedItem(c, tile) {
   const mark = () => { c.mark = !c.mark; S.saveCard(c); $('[data-a=mark]', it)?.classList.toggle('on', c.mark); toast(c.mark ? '책갈피에 넣었어요' : '책갈피에서 뺐어요'); };
   const del = async () => {   // 한 번 물어보고 지워요. 지운 카드는 휴지통에 30일
     if (!(await ask('이 카드를 지울까요?', '삭제'))) return;
-    S.removeCard(c.id); it.remove();
+    S.removeCard(c.id); $$(`.feed .fi[data-k="${c.id}"], .feed .fi[data-k="r:${c.id}"]`).forEach(x => x.remove());
   };
+  // 글만보기 (1열): 요약 한 줄 ↔ 글 전체. 다시 누르면 접혀요
+  on('read', () => {
+    const open = !ex.classList.contains('open');
+    ex.classList.toggle('open', open); ex.textContent = open ? cardText(c).replace(/\n{3,}/g, '\n\n').trim() : line();
+    $('[data-a=read]', it).classList.toggle('on', open);
+  });
   on('mark', mark); on('del', del); on('like', () => go(`#/like/${c.id}`));
   // ⋯: 책갈피 · 이미지 저장 · 고치기 · 이 포맷으로 쓰기 | 지우기. 위에 날짜 · 종류
   on('more', () => sheet(`${+c.date.slice(5, 7)}월 ${+c.date.slice(8, 10)}일 · ${LABEL[c.fmt] || ''}`, [[
@@ -238,9 +262,84 @@ function feedItem(c, tile) {
     { icon: 'save', label: '이미지 저장', run: () => saveCard(c) },
     { icon: 'pen', label: '고치기', run: () => go(`#/edit/${c.id}`) },
     { icon: 'grid', label: '이 포맷으로 쓰기', run: () => go(`#/like/${c.id}`) },
+    { icon: 'read', label: '글만보기', run: () => openRead(c) },
   ], [{ icon: 'trash', label: '지우기', red: true, run: del }]]));
   return it;
 }
+// N년 전 오늘: 오늘과 같은 월 · 일에 예전 해에 쓴 카드 (가장 최근 해 하나)
+function recallOf(mine) {
+  const t = S.today(), md = t.slice(5), y = +t.slice(0, 4);
+  const c = mine.find(m => m.date?.slice(5) === md && +m.date.slice(0, 4) < y);
+  return c ? { c, n: y - +c.date.slice(0, 4) } : null;
+}
+// NEW 포맷 카드: 아직 안 써 본 포맷만, 하루에 한 번씩 세서 3번 보면 더는 안 나와요
+function promoFormats(mine) {
+  const seen = S.pref('promo', {});
+  return ORDER.filter(f => !mine.some(m => m.fmt === f) && (seen[f]?.n || 0) < 3);
+}
+function promoSeen(f) {
+  const seen = S.pref('promo', {}), d = S.today(), o = seen[f] || { n: 0 };
+  if (o.d === d) return;
+  seen[f] = { n: o.n + 1, d }; S.setPref('promo', seen);
+}
+
+// 위 배너: 지금은 N년 전 오늘 (맞는 카드가 있을 때만). 공지가 생기면 같은 자리 · 같은 모양으로 공지가 먼저 (한 번에 하나).
+// 하루 한 번: 누르거나 옆으로 밀거나 ✕ 하면 그날은 끝. 누르면 그 카드가 크게 열려요
+function banner(rec) {
+  const el = $('.bn'), day = S.today();
+  if (!el || !rec || S.pref('bnDay') === day) return;
+  const c = rec.c;
+  el.hidden = false;
+  el.innerHTML = `<div class="th"></div><div class="tx">${rec.n}년 전 오늘<small>${esc(cardText(c).replace(/\s+/g, ' ').trim() || LABEL[c.fmt] || '')}</small></div><button class="cb" data-a="x" aria-label="닫기">${ic('close')}</button>`;
+  mount($('.th', el), c);
+  const done = () => { S.setPref('bnDay', day); el.classList.add('gone'); setTimeout(() => { el.hidden = true; el.classList.remove('gone'); el.style.transform = ''; }, 260); };
+  $('[data-a=x]', el).onclick = e => { e.stopPropagation(); done(); };
+  let x0 = null, dx = 0;
+  el.addEventListener('pointerdown', e => { x0 = e.clientX; dx = 0; });
+  el.addEventListener('pointermove', e => { if (x0 == null) return; dx = e.clientX - x0; if (Math.abs(dx) > 6) { el.style.transition = 'none'; el.style.transform = `translateX(${dx}px)`; } });
+  const up = () => {
+    if (x0 == null) return; x0 = null; el.style.transition = '';
+    if (Math.abs(dx) > 70) { el.style.transform = `translateX(${dx > 0 ? 110 : -110}%)`; done(); } else el.style.transform = '';
+  };
+  el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+  el.addEventListener('click', e => {
+    if (Math.abs(dx) > 6 || e.target.closest('[data-a=x]')) return;
+    const it = $(`.feed .fi[data-k="r:${c.id}"]`) || $(`.feed .fi[data-k="${c.id}"]`);
+    done(); if (it) openFocus(it, c);
+  });
+}
+
+// 글만보기 (2열 ⋯): 포맷과 상관없이 글만, 한 가지 글꼴 · 크기. 바탕은 무료 그라데이션 중 하나 + 살짝 어둡게. 누르면 닫혀요
+function openRead(c) {
+  const gs = FREE.filter(b => b.kind === 'g'), b = gs[Math.floor(Math.random() * gs.length)];
+  const parts = c.fmt === 'rebus' ? [cardText(c)] : (c.pages || []).map(h => cardText({ ...c, pages: [h] }));
+  const d = c.date || S.today(), place = (c.place || '').trim();
+  const rv = document.createElement('div'); rv.className = 'rv';
+  rv.innerHTML = `<div class="rbg" style="background:${b.css}"></div><div class="rin"><p class="dl">${+d.slice(0, 4)}년 ${+d.slice(5, 7)}월 ${+d.slice(8, 10)}일${place ? ' · ' + esc(place) : ''}</p>
+    ${parts.map(t => t.replace(/\n{3,}/g, '\n\n').trim()).filter(Boolean).map(t => `<div class="tx">${esc(t)}</div>`).join('<div class="pb"></div>')}</div>`;
+  document.body.appendChild(rv);
+  requestAnimationFrame(() => requestAnimationFrame(() => rv.classList.add('in')));
+  rv.addEventListener('click', () => { rv.classList.remove('in'); setTimeout(() => rv.remove(), 300); });
+}
+
+// 비슷한 카드 (크게 보기 끝): 내 카드 중 다른 해 같은 날 → 같은 장소 → 같은 종류 · 배경 → 가까운 날짜 순으로 5장
+function related(c) {
+  const day = x => Date.parse((x.date || '') + 'T12:00:00') / 864e5;
+  const t = day(c), place = (c.place || '').trim();
+  return S.cards().filter(m => m.id !== c.id).map(m => {
+    let sc = 0;
+    if (m.date?.slice(5) === c.date?.slice(5) && m.date !== c.date) sc += 100;
+    if (place && (m.place || '').trim() === place) sc += 50;
+    if (m.fmt === c.fmt) sc += 15;
+    if (c.bg?.id && m.bg?.id === c.bg.id) sc += 20;
+    sc += Math.max(0, 10 - Math.abs(day(m) - t) / 3);
+    return { m, sc };
+  }).sort((a, b) => b.sc - a.sc).slice(0, 5).map(x => x.m);
+}
+function relHtml(list) {
+  return list.length ? `<h4>비슷한 카드</h4><div class="rl">${list.map(m => `<button class="rr" data-id="${m.id}"><div class="th"></div><div class="m"><small>${+m.date.slice(0, 4)}년 ${+m.date.slice(5, 7)}월 ${+m.date.slice(8, 10)}일 · ${LABEL[m.fmt] || ''}</small><p>${esc(cardText(m).replace(/\s+/g, ' ').trim())}</p></div></button>`).join('')}</div>` : '';
+}
+
 // 확인 창: 취소 · 빨간 버튼. 바깥을 누르면 취소
 function ask(msg, yes) {
   return new Promise(done => {
@@ -275,12 +374,26 @@ function openFocus(it, c) {
   requestAnimationFrame(() => requestAnimationFrame(() => { box.style.transition = ''; ov.classList.add('in'); box.style.transform = ''; box.style.clipPath = 'inset(0 0 0 0 round 0px)'; }));
   ov.addEventListener('click', () => closeFocus());
   focus = { ov, box, view, from, clip, y: scrollY, c };
+  if (!c.sample && c.id) {   // 끝에 비슷한 카드: 누르면 그 카드가 이 화면에서 바뀌고, 닫으면 처음 연 카드 자리로
+    const rel = document.createElement('div'); rel.className = 'rel'; sc.appendChild(rel);
+    const fill = cc => {
+      rel.innerHTML = relHtml(related(cc));
+      $$('.rr', rel).forEach(b => { const m = S.card(b.dataset.id); mount($('.th', b), m); b.onclick = e => { e.stopPropagation(); swap(m); }; });
+    };
+    const swap = m => {
+      box.innerHTML = ''; const el2 = renderCard(m); box.appendChild(el2); fitCard(el2, m);
+      box.style.marginTop = Math.max((innerHeight - box.offsetHeight - 120) / 2, (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--safe-t')) || 0) + 16) + 'px';
+      focus.c = m; focus.swapped = true; fill(m); sc.scrollTo(0, 0);
+    };
+    fill(c);
+  }
 }
 function closeFocus(now) {
   if (!focus || focus.closing) return;
   const f = focus; f.closing = true;
   const done = () => { f.view.style.visibility = ''; f.ov.remove(); if (scrollY !== f.y) scrollTo(0, f.y); focus = null; };
   if (now) return done();
+  if (f.swapped) { f.view.style.visibility = ''; f.ov.classList.add('fade'); return setTimeout(done, 300); }   // 다른 카드로 바꿨으면 그냥 사라지고 처음 자리 그대로
   f.ov.classList.remove('in'); f.box.style.transform = f.from(); f.box.style.clipPath = f.clip();
   setTimeout(done, 380);
 }

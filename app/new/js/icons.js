@@ -40,6 +40,7 @@ const P = {
   shelf: '<path d="M4 4h4v16H4zM10 4h4v16h-4z"/><path d="m16 5 3.8-1 3 15.5-3.8 1z"/>',
   bell: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/>',
   bookmark: '<path d="M6 3h12v18l-6-4-6 4z"/>',
+  read: '<path d="M6 3h9l4 4v14H6z"/><path d="M9 10h7M9 14h7M9 18h4"/>',   // 글만보기: 글 줄이 있는 종이 (켜지면 종이만 채워요)
   more: '<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
   save: '<rect x="3" y="7" width="18" height="14" rx="2.5"/><path d="M12 2v10M8.5 8.5 12 12l3.5-3.5"/><path d="m5.5 18 4-3.5 3 2.5 2.5-2 3.5 3"/>',   // 사진 저장: 액자 + 화살표
   lh: '<path d="M10 6h10M10 12h10M10 18h10"/><path d="M5 4v16M3 6.5 5 4l2 2.5M3 17.5 5 20l2-2.5"/>',
