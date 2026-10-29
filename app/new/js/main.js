@@ -92,7 +92,7 @@ function nav(on) {
 function bindNav() {
   const home = () => $('main.feed') ? window.scrollTo({ top: 0, behavior: 'smooth' }) : go('#/');   // 검색 결과 칸도 .feed 모양을 써서 main만
   const find = () => $('.srch') ? ($('.srch .fld input').focus(), window.scrollTo({ top: 0, behavior: 'smooth' })) : (kbNow(), go('#/search'));
-  const shelf = () => $('.shv:not(.bkv)') ? window.scrollTo({ top: 0, behavior: 'smooth' }) : go(S.pref('shelfView') === 'cal' ? '#/cal' : '#/shelf');   // 마지막에 본 쪽 (책장 | 달력)
+  const shelf = () => $('.shv:not(.bkv):not(.mev):not(.setv)') ? window.scrollTo({ top: 0, behavior: 'smooth' }) : go(S.pref('shelfView') === 'cal' ? '#/cal' : '#/shelf');   // 마지막에 본 쪽 (책장 | 달력)
   const me = () => $('.mev') ? window.scrollTo({ top: 0, behavior: 'smooth' }) : go('#/me');
   $$('.nb').forEach(b => b.onclick = () => ({ home, search: find, write: () => go('#/pick'), shelf, me }[b.dataset.n] || soon)());
 }
