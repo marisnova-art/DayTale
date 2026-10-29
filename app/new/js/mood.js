@@ -85,3 +85,9 @@ export function paint(amb) {
   const t = setInterval(draw, 60e3);   // 시간대가 바뀌면 새 무드로
   return () => { clearInterval(t); document.documentElement.style.backgroundColor = ''; };
 }
+
+// 달력 패널: 홈과 같은 무드를 한 장의 그라데이션으로 (빛 덩어리 두 개를 겹쳐요)
+export function panelCss() {
+  const [, d, hot, warm, mid, deep] = pick();
+  return `radial-gradient(120% 90% at 85% 0%, ${dk(warm, .85)} 0%, transparent 60%), radial-gradient(90% 80% at 10% 100%, ${dk(hot, .8)} 0%, transparent 60%), linear-gradient(160deg, ${d}, ${dk(mid, .9)} 55%, ${deep})`;
+}

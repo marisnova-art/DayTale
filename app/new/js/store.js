@@ -38,3 +38,14 @@ export const clearDraft = () => { try { localStorage.removeItem(K_DRAFT); } catc
 
 export const pref = (k, d) => (read(K_PREF, {})[k] ?? d);
 export const setPref = (k, v) => { const p = read(K_PREF, {}); p[k] = v; write(K_PREF, p); };
+
+// 책: 내가 만든 책만 저장해요 (올해 · 지난해 · 책갈피 책은 카드에서 바로 계산). 카드는 책에 넣어도 한 장 그대로, 책은 id만 가져요
+const K_BOOKS = 'dz.books.v1';
+export const books = () => read(K_BOOKS, []).sort((a, b) => b.created.localeCompare(a.created));   // 최근에 만든 책이 위
+export const book = id => read(K_BOOKS, []).find(b => b.id === id) || null;
+export function saveBook(b) {
+  const all = read(K_BOOKS, []), i = all.findIndex(x => x.id === b.id);
+  if (i < 0) all.push(b); else all[i] = b;
+  return write(K_BOOKS, all);
+}
+export const removeBook = id => write(K_BOOKS, read(K_BOOKS, []).filter(b => b.id !== id));
