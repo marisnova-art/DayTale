@@ -682,12 +682,10 @@ mark { background: rgba(255,255,255,.32); color: #fff; border-radius: 0; padding
 .cpn .mg2 [data-d] { height: 48px; gap: 1px; }
 .cpn .mg2 [data-d] b { font-size: 16px; }
 .cpn .mg2 [data-d] small { font-size: 10px; height: 11px; }
-.cpn .grip { display: block; width: 100%; height: 26px; }
-.cpn .grip i { display: block; width: 36px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.55); margin: 0 auto; }
-/* 날짜 머리: 그날로 오면 잠깐 밝게 */
+.cpn .grip { display: grid; place-items: center; width: 100%; height: 32px; margin-top: 8px; color: rgba(255,255,255,.75); }   /* 띠와 사이를 띄운 작은 ⌄ (펼치면 ⌃) */
+.cpn .grip .ic { width: 20px; height: 20px; stroke-width: 2.4; transform: rotate(90deg); transition: transform .25s ease; }
+.cpn.mo .grip .ic { transform: rotate(-90deg); }
 .days .dh { margin: 18px 8px 6px; padding: 4px 8px; border-radius: 10px; }
-.days .dh.flash { animation: dhf 1.3s ease; }
-@keyframes dhf { 0%, 35% { background: rgba(255,255,255,.16); } 100% { background: rgba(255,255,255,0); } }
 .days .firstd { margin: 36px 16px 0; text-align: center; font-size: 13px; font-weight: 600; color: var(--mut); }
 .fi.dt .mt { padding-left: 4px; }
 /* 메뉴 서랍 아이콘: 켜지면 칸 · 손잡이만 비어 보여요 */
