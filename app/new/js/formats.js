@@ -1,6 +1,6 @@
 // 포맷 = 데이터 + 그리기. 카드는 가로 1080 기준으로 디자인하고 cqw 단위로 그려서, 화면 크기와 저장 이미지가 같은 모양이에요
 import { find as findBg, dimCss, drawCode } from './bg.js';
-import { bgUrl, keyOf, fidOf, GRAPHIC } from './filters.js';
+import { bgUrl, keyOf, fidOf, grainLv, GRAPHIC } from './filters.js';
 import { rangeAt } from './rich.js';
 import { hydrate } from './stickers.js';
 import { fontOf, fontCssOf, SIZES } from './fonts.js';
@@ -184,26 +184,37 @@ const EXTRA = { 1: 0, 2: .2, 3: .4 };
 // 사진 키우기 (b.z 1~2배, 줄이기는 없어요): 꽉 채운 크기에서 그만큼 크게. 칸(가로:세로 = 1:ar)보다 옆으로 긴 사진은 높이 기준
 export const zoomOf = b => Math.max(1, Math.min(2, +b?.z || 1));
 export const zoomCss = (b, ar) => { const z = zoomOf(b); if (z === 1 || !b.w || !b.h) return ''; const p = (z * 100).toFixed(1) + '%'; return `;background-size:${b.w / b.h > 1 / ar ? 'auto ' + p : p + ' auto'}`; };
+// 색 배경 노이즈: 한 번 만든 고운 점 그림을 깔아요 (약 · 중 · 강 = 진하기). 저장 이미지에도 그대로 들어가요
+let grainPng = '';
+const grainUrl = () => {
+  if (grainPng || typeof document === 'undefined') return grainPng;
+  const n = 256, cv = document.createElement('canvas'); cv.width = cv.height = n;
+  const x = cv.getContext('2d'), im = x.createImageData(n, n), r = rng(20261030);
+  for (let i = 0; i < n * n; i++) { const v = r() < .5 ? 0 : 255; im.data.set([v, v, v, Math.round(r() * 46)], i * 4); }
+  x.putImageData(im, 0, 0); return (grainPng = cv.toDataURL('image/png'));
+};
+const GR_OP = [0, .55, .8, 1];
+const grainLayer = cb => { const lv = grainLv(cb); return lv ? `<div class="bgi grn" style="background-image:url(${grainUrl()});background-size:24cqw;opacity:${GR_OP[lv]}"></div>` : ''; };
 function bgLayer(c, page, pages) {
   const cb = pageBg(c, page), b = cb?.id === 'hex' && cb.hex ? hexBg(cb.hex) : findBg(cb?.id);
   const { layer, ink } = dimCss(b, cb?.dim === 'light' ? 'light' : 'dark');
   let dim = layer;   // 그라데이션도 배경마다 정해 둔 딤을 깔아 글이 잘 읽혀요
-  if (c.fmt === 'photo' && cb?.dim !== 'light') {   // 포토 포맷: 사진이 주인공이라 글이 놓인 쪽만 어둡게
+  if (b.photo && cb?.dim !== 'light') {   // 내 사진 · 영상인 장: 사진이 주인공이라 글이 놓인 쪽만 어둡게
     const v = { tm: 't', bm: 'b' }[pageAlign(c, page).v] || pageAlign(c, page).v || 'b';
     dim = v === 'm' ? 'rgba(0,0,0,.28)' : `linear-gradient(${v === 't' ? '180deg' : '0deg'}, rgba(0,0,0,.52), rgba(0,0,0,.1) 62%)`;
   }
   const shift = pages > 1 ? page / (pages - 1) : .5;
   let base = '';
-  if (b.photo) {   // 내 사진: 고른 위치 그대로 (장으로 나뉘어도). 포토 포맷은 카드 필터 · 노이즈를 건 사진으로
-    const fid = c.fmt === 'photo' ? fidOf(c) : null, u = bgUrl(cb, fid);
+  if (b.photo) {   // 내 사진: 고른 위치 그대로 (장으로 나뉘어도). 카드 필터 · 노이즈를 건 사진으로
+    const fid = fidOf(c), u = bgUrl(cb, fid);
     base = u ? `<div class="bgi ph" data-fk="${keyOf(cb, fid)}" style="background-image:url(${u});background-position:${cb.x ?? 50}% ${cb.y ?? 50}%${zoomCss(cb, arOf(c))}"></div>`
-      : `<div class="bgi ph none"></div>${c.fmt === 'photo' ? `<button class="phadd" type="button" aria-label="사진 고르기">${PH_ICON}</button>` : ''}`;   // 아직 사진이 없는 장
+      : `<div class="bgi ph none"></div><button class="phadd" type="button" aria-label="사진 고르기">${PH_ICON}</button>`;   // 아직 사진이 없는 장
     if (u && cb.vd) base += '<canvas class="bgv"></canvas>';   // 영상: 커버 위에서 재생 (재생 중인 카드만 그려요)
   }
   else if (b.img) base = `<div class="bgi" style="background-image:url(${b.img});background-position:50% ${Math.round(shift * 100)}%"></div>`;
   else if (b.code) base = `<canvas class="bgc" data-seed="${cb.seed || 1}" data-shift="${shift}"${cb.grain === false ? ' data-gr="0"' : ''}></canvas>`;
-  else base = `<div class="bgi" style="background:${b.css}"></div>`;
-  const gfx = c.fmt === 'photo' && GRAPHIC.has(c.filter) && cb?.dim !== 'light' ? '<div class="dimL" style="background:rgba(0,0,0,.18)"></div>' : '';   // 그래픽 필터는 점이 굵어 글 뒤를 조금 더
+  else base = `<div class="bgi" style="background:${b.css}"></div>${grainLayer(cb)}`;   // 색 배경도 노이즈 (사진은 사진에 구워 넣어요)
+  const gfx = b.photo && GRAPHIC.has(c.filter) && cb?.dim !== 'light' ? '<div class="dimL" style="background:rgba(0,0,0,.18)"></div>' : '';   // 그래픽 필터는 점이 굵어 글 뒤를 조금 더
   const ex = EXTRA[dimLv(cb?.dim)];
   let tink = (b.img || b.code || b.photo || cb?.dim === 'light') ? ink : b.ink;
   if (ex >= .4 && tink !== '#fff') tink = '#fff';   // 파스텔 · 밝은 색도 딤 강이면 흰 글
@@ -307,9 +318,10 @@ export const FORMATS = {
     sample: { html: '친구랑 통화를 <b>오래</b> 했다. 별일 없는 이야기에 <mark>웃음</mark>이 많은 밤.', seed: 7 },
     render: rebus, fit: fitRebus,
   },
+  // 기본: 글 + 포토 (10-30 합침). 색 배경은 무료, 내 사진 · 영상은 저장 양에 따라 유료(결제 붙일 때). 필터는 사진 · 영상인 장에서만
   text: {
-    id: 'text', name: '글', info: '모든 길이 · 배경 고르기 · 무료', paid: false,
-    tools: { photo: false, emo: true, page: true, shuf: 'code', style: true, font: true, bg: true, dp: true },
+    id: 'text', name: '기본', info: '모든 길이 · 색 · 내 사진 · 영상', paid: false,
+    tools: { photo: false, emo: true, page: true, shuf: 'code', filter: 'photo', style: true, font: true, bg: true, dp: true },
     sample: { pages: ['출근길에 버스를 한 대 놓쳤는데 덕분에 하늘을 오래 봤다. 오늘은 그걸로 됐다.'], bg: { id: 'g1', dim: 'dark' } },
     render: text, fit: fitText, rich: true,
   },
@@ -320,20 +332,12 @@ export const FORMATS = {
     sample: { pages: ['창밖 불빛이 번져 보이는 밤. 오늘 하루도 천천히 흘러갔다.'], bg: { id: 'bands', dim: 'dark', seed: 11 } },
     render: text, fit: fitText,
   },
-  // 포토 포맷 #1: 내 사진 · 영상이 카드를 가득 채우고 글은 그 위에. 틀 없이 필터가 핵심 (영상은 소리 없이 10초)
-  photo: {
-    id: 'photo', name: '포토', info: '내 사진 · 영상 · 필터 20개', paid: true, rich: true,
-    tools: { photo: true, emo: true, page: true, shuf: false, filter: true, style: true, font: true, bg: 'photo', dp: true },
-    sample: { pages: ['퇴근 전에 옥상에 올라가 구름이 노을빛으로 물드는 걸 끝까지 봤다.'], bg: { id: 'photo', src: 'bg/photo-sample.webp', w: 1080, h: 1350, dim: 'dark', tone: '#5b7fae' }, filter: 'none', align: { h: 'l', v: 't' } },
-    render: text, fit: fitText,
-  },
 };
-export const ORDER = ['rebus', 'art', 'photo', 'text'];
+export const ORDER = ['rebus', 'art', 'text'];
 // 피드 · 쓰기 위에 보이는 '종류 · 템플릿'
-export const LABEL = { text: '글 · 기본', rebus: '디자인 · 그림 문장', art: '아트 · 번지는 빛', photo: '포토 · 기본' };
+export const LABEL = { text: '기본', rebus: '디자인 · 그림 문장', art: '아트 · 번지는 빛' };
 
 export function blank(fmt, date) {
-  if (fmt === 'photo') return { fmt, date, place: '', pages: [''], bg: { id: 'photo', dim: 'dark' }, filter: 'none', align: { h: 'l', v: 'b' }, datePos: 'none', font: 'serif', size: 'm' };
   if (fmt === 'art') return { fmt, date, place: '', pages: [''], bg: { id: 'bands', dim: 'dark', seed: newSeed() }, align: { h: 'l', v: 'm' }, datePos: 'none', font: 'sans', size: 'm' };
   return fmt === 'rebus'
     ? { fmt, date, place: '', html: '', seed: newSeed(), size: 'm', align: { h: 'l', v: 't' }, datePos: 'bottom' }

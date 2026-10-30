@@ -3,12 +3,15 @@ const K_CARDS = 'dz.cards.v1', K_DRAFT = 'dz.draft.v1', K_PREF = 'dz.pref.v1', K
 
 const read = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
 const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } };
+// 글 · 포토 포맷은 '기본' 하나로 합쳤어요 (10-30). 예전 포토 카드도 기본 카드로 읽어요 (사진 · 필터 · 영상은 그대로)
+const norm = c => { if (c?.fmt === 'photo') c.fmt = 'text'; return c; };
+const readCards = k => read(k, []).map(norm);
 
 export const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 export const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 
-export function cards() { return read(K_CARDS, []).sort((a, b) => (b.created || b.date).localeCompare(a.created || a.date)); }   // 쓴 순서(최근이 위)
-export function card(id) { return read(K_CARDS, []).find(c => c.id === id) || null; }
+export function cards() { return readCards(K_CARDS).sort((a, b) => (b.created || b.date).localeCompare(a.created || a.date)); }   // 쓴 순서(최근이 위)
+export function card(id) { return readCards(K_CARDS).find(c => c.id === id) || null; }
 export function saveCard(c) {
   const all = read(K_CARDS, []), i = all.findIndex(x => x.id === c.id);
   c.updated = new Date().toISOString();
@@ -23,7 +26,7 @@ export function removeCard(id) {
   write(K_CARDS, all.filter(x => x.id !== id));
 }
 export function trash() {
-  const all = read(K_TRASH, []), keep = all.filter(c => Date.now() - Date.parse(c.deleted) < 30 * DAY);
+  const all = readCards(K_TRASH), keep = all.filter(c => Date.now() - Date.parse(c.deleted) < 30 * DAY);
   if (keep.length !== all.length) write(K_TRASH, keep);
   return keep;
 }
@@ -32,7 +35,7 @@ export function restoreCard(id) {
   delete c.deleted; write(K_TRASH, trash().filter(x => x.id !== id)); saveCard(c); return c;
 }
 
-export const draft = () => read(K_DRAFT, null);
+export const draft = () => { const d = read(K_DRAFT, null); norm(d?.card); return d; };
 export const saveDraft = d => write(K_DRAFT, d);
 export const clearDraft = () => { try { localStorage.removeItem(K_DRAFT); } catch {} };
 
@@ -57,7 +60,7 @@ export const emptyTrash = () => write(K_TRASH, []);
 // 백업 파일: 카드 · 책 · 설정 (휴지통은 빼요). 되살리기는 이미 있는 카드는 두고 없는 것만 더해요
 export const dump = () => ({ cards: read(K_CARDS, []), books: read(K_BOOKS, []), prefs: read(K_PREF, {}) });
 export function merge(d) {
-  const cs = read(K_CARDS, []), have = new Set(cs.map(c => c.id)), add = (d.cards || []).filter(c => c?.id && !have.has(c.id));
+  const cs = read(K_CARDS, []), have = new Set(cs.map(c => c.id)), add = (d.cards || []).filter(c => c?.id && !have.has(c.id)).map(norm);
   write(K_CARDS, [...cs, ...add]);
   const bs = read(K_BOOKS, []), hb = new Set(bs.map(b => b.id));
   write(K_BOOKS, [...bs, ...(d.books || []).filter(b => b?.id && !hb.has(b.id))]);

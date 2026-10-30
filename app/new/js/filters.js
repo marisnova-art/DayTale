@@ -1,4 +1,4 @@
-// 포토 포맷 필터: 그래픽 칩(WebGL)으로 사진에 걸어요. 결과는 사진 한 장(JPEG)으로 만들어 두고 배경 그림으로 써요
+// 사진 필터 (기본 포맷의 내 사진 · 영상 장): 그래픽 칩(WebGL)으로 사진에 걸어요. 결과는 사진 한 장(JPEG)으로 만들어 두고 배경 그림으로 써요
 // (그래서 끌어서 위치 맞추기 · 긴 장 · 저장 이미지가 내 사진 배경과 똑같이 움직여요). 영상에도 같은 셰이더를 쓸 거예요
 import { url as photoUrl } from './photos.js';
 
@@ -140,7 +140,7 @@ function make(b, fid) {
 }
 // 저장 전에: 카드가 쓰는 필터 사진을 모두 만들어 둬요
 export async function prep(c) {
-  if (c.fmt !== 'photo') return;
+  if (c.fmt === 'rebus') return;
   const bs = [c.bg, ...(c.pst || []).map(p => p.bg)].filter(b => b && srcOf(b) && ((c.filter && c.filter !== 'none') || grainLv(b)));
   await Promise.all(bs.map(b => make(b, fidOf(c))));
 }
