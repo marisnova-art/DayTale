@@ -828,7 +828,7 @@ function viewCal(month) {
       <div class="crow"><button class="mon" data-a="ym"><b></b><span><em></em>${ic('back')}</span></button>${capsule('cal')}</div>
       <div class="wks">${weeks.map(w => `<div class="wk" data-w="${w}">${Array.from({ length: 7 }, (_, i) => cell(addDays(w, i), 1)).join('')}</div>`).join('')}</div>
       <div class="mow"><div class="mwd">${Array.from({ length: 7 }, (_, i) => `<i>${WD[(ws + i) % 7]}</i>`).join('')}</div><div class="mos">${months.map(monthGrid).join('')}</div></div>
-      <button class="grip" aria-label="월간으로 펼치기">${ic('next')}</button></header>
+      <button class="grip" aria-label="월간으로 펼치기"></button></header>
     <main class="days"></main></div>${nav('shelf')}`;
   bindNav(); bindCap();
   const panel = $('.cpn'), wks = $('.wks'), mos = $('.mos'), list = $('.days');
@@ -860,13 +860,21 @@ function viewCal(month) {
     }, 140);
   }, { passive: true });
   mos.addEventListener('scroll', () => { clearTimeout(st); st = setTimeout(() => { const m = months[Math.round(mos.scrollLeft / mos.clientWidth)]; if (m) label(m + '-01'); }, 120); }, { passive: true });
-  // ⌄: 누르거나 아래로 끌면 월간, ⌃를 누르거나 위로 끌면 주간
+  // 손잡이: 누르거나 아래로 당기면 월간, 다시 누르거나 위로 밀면 주간. 주간 띠 · 월간 달력을 아래위로 끌어도 같아요 (옆으로는 넘기기)
   const fold = open => { panel.classList.toggle('mo', open); $('.grip').setAttribute('aria-label', open ? '주간으로 접기' : '월간으로 펼치기'); if (open) toMonth(act); else { label(act); toWeek(act, false); } };
   const grip = $('.grip'); let gy = null, gd = 0;
   grip.addEventListener('pointerdown', e => { gy = e.clientY; gd = 0; grip.setPointerCapture?.(e.pointerId); });
   grip.addEventListener('pointermove', e => { if (gy != null) gd = e.clientY - gy; });
   grip.addEventListener('pointerup', () => { if (gy == null) return; gy = null; const open = panel.classList.contains('mo'); if (Math.abs(gd) < 8) fold(!open); else if (gd > 24 && !open) fold(true); else if (gd < -24 && open) fold(false); });
   grip.addEventListener('pointercancel', () => { gy = null; });
+  [wks, mos].forEach(el => {
+    let p0 = null;
+    el.addEventListener('pointerdown', e => { p0 = { x: e.clientX, y: e.clientY }; });
+    el.addEventListener('pointermove', e => { if (!p0) return; const dx = e.clientX - p0.x, dy = e.clientY - p0.y;
+      if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy)) { p0 = null; return; }   // 옆으로 = 넘기기
+      if (Math.abs(dy) > 28) { const open = panel.classList.contains('mo'); if (dy > 0 && !open) fold(true); else if (dy < 0 && open) fold(false); p0 = null; } });
+    ['pointerup', 'pointercancel'].forEach(t => el.addEventListener(t, () => { p0 = null; }));
+  });
   // 목록을 내리면: 패널 바로 아래 걸친 날짜가 띠에서 흰색, 주가 바뀌면 띠도 넘어가요
   let raf = 0;
   const onScroll = () => {
@@ -1879,6 +1887,7 @@ function bgName(c) {
   const f = findBg(b.id); return f.photo ? '내 사진' : f.name || '';
 }
 // 카드 배경만 꺼내 써요 (사진 · 그라데이션 · 단색 · 작품). 코드 배경은 그 색으로
+// 사진 · 작품은 원본(1440px)을 그대로 깔면 들어올 때 디코딩하느라 넘기기가 멈춰요 → 작은 사본(짧은 변 480px)을 한 번 만들어 써요
 function bgCss(c) {
   const cb = c.bg; if (!cb) return '';
   if (cb.id === 'hex') return cb.hex || '';
@@ -1887,6 +1896,30 @@ function bgCss(c) {
   if (b.img) return `url(${b.img}) center/cover`;
   return b.css || `linear-gradient(160deg, ${b.tone}, #141416)`;
 }
+const THUMB = new Map();
+function thumb(src) {
+  if (!THUMB.has(src)) THUMB.set(src, (async () => {
+    const im = new Image(); im.decoding = 'async'; im.src = src; await im.decode();
+    const k = Math.min(1, 480 / Math.min(im.naturalWidth, im.naturalHeight)), cv = document.createElement('canvas');
+    cv.width = Math.round(im.naturalWidth * k); cv.height = Math.round(im.naturalHeight * k);
+    cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height);
+    return URL.createObjectURL(await new Promise(r => cv.toBlob(r, 'image/jpeg', .82)));
+  })().catch(() => src));
+  return THUMB.get(src);
+}
+// 바탕 한 칸: 사진 · 작품은 그 색으로 먼저 깔고 작은 사본이 오면 바꿔요. lt = 밝은 단색 (더 어둡게 덮어요)
+function bgTile(c, fb) {
+  const cb = c?.bg, b = cb && cb.id !== 'hex' ? findBg(cb.id) : null;
+  const src = b?.photo ? P.url(cb.ph) : b?.img || '', pos = b?.photo ? `${cb.x ?? 50}% ${cb.y ?? 50}%` : 'center';
+  const css = src ? (b.tone || '#2a2a2e') : (c && bgCss(c)) || fb;
+  return { attr: ` style="background:${css}"${src ? ` data-th="${esc(src)}" data-pos="${pos}"` : ''}`, lt: /^#[0-9a-f]{3,6}$/i.test(css) && inkOn(css) !== '#fff' };
+}
+const fillThumbs = root => $$('[data-th]', root).forEach(el => thumb(el.dataset.th).then(u => { el.style.background = `url(${u}) ${el.dataset.pos}/cover`; }));
+const pickCard = (list, f = () => true) => { const xs = list.filter(f).filter(c => bgCss(c)); return xs[Math.floor(Math.random() * xs.length)] || null; };
+const FALL = [7, 15, 5, 0, 4, 18, 3].map(i => FREE[i].css);   // 카드가 없을 때는 우리 그라데이션
+// 넘기는 줄 아래 점 · 대시: 쪽이 많아도 점은 5개까지, 지금 쪽 = 대시
+const dotsHtml = (n, k) => { if (n < 2) return ''; const a = Math.max(0, Math.min(n - 5, k - 2)); return Array.from({ length: Math.min(n, 5) }, (_, i) => `<i class="${a + i === k ? 'on' : ''}"></i>`).join(''); };
+
 const most = xs => { const m = new Map(); let top = '', n = 0; xs.forEach(x => { if (!x) return; const k = (m.get(x) || 0) + 1; m.set(x, k); if (k > n) { n = k; top = x; } }); return top; };
 const chars = n => n < 1e4 ? `${n.toLocaleString('ko-KR')}자` : `${(n / 1e4).toFixed(1).replace(/\.0$/, '')}만 자`;
 const statsOf = list => ({
@@ -1894,34 +1927,39 @@ const statsOf = list => ({
   chars: list.reduce((s, c) => s + cardText(c).replace(/\s/g, '').length, 0),
   kind: most(list.map(kindOf)), place: most(list.map(placeOf)), when: most(list.map(slotOf)), col: most(list.map(bgName)),
 });
-const anyBg = (list, f = () => true) => { const xs = list.filter(f).map(bgCss).filter(Boolean); return xs[Math.floor(Math.random() * xs.length)] || ''; };
-const FALL = [7, 15, 5, 0, 4, 18, 3].map(i => FREE[i].css);   // 카드가 없을 때는 우리 그라데이션
 
 // 프로필 (10-29 v11): 위 판 = 홈 무드 + 고운 노이즈 (아래만 둥글게). 사진 · 이름 · @아이디 · 칩 / 한 줄 / 통계 카드 7장 (옆으로 밀어요)
 // 통계 카드 바탕은 들어올 때마다 내 카드 배경에서 새로 골라요 (값 · 순서는 그대로). 아래는 달마다 돌아보기 (누르면 책장 달력 그달)
 function viewMe() {
   const all = S.cards(), st = statsOf(all), me = meOf();
   const ln = LINES[Math.floor((Date.now() - new Date().getTimezoneOffset() * 6e4) / 864e5) % LINES.length];
+  const NONE = '없어요';
   const tiles = [
-    [`${st.days}일`, '쓴 날', anyBg(all)], [`${st.n}장`, '카드', anyBg(all)], [chars(st.chars), '글자', anyBg(all)],
-    [st.kind, '자주 쓴 종류', anyBg(all, c => kindOf(c) === st.kind)], [st.place, '자주 쓴 곳', anyBg(all, c => placeOf(c) === st.place)],
-    [st.when, '자주 쓴 때', anyBg(all, c => slotOf(c) === st.when)], [st.col, '자주 쓴 색', anyBg(all, c => bgName(c) === st.col)],
+    [`${st.days}일`, '쓴 날', pickCard(all)], [`${st.n}장`, '카드', pickCard(all)], [chars(st.chars), '글자', pickCard(all)],
+    [st.kind || NONE, '자주 쓴 종류', pickCard(all, c => kindOf(c) === st.kind)], [st.place || NONE, '자주 쓴 곳', pickCard(all, c => placeOf(c) === st.place)],
+    [st.when || NONE, '자주 쓴 때', pickCard(all, c => slotOf(c) === st.when)], [st.col || NONE, '자주 쓴 색', pickCard(all, c => bgName(c) === st.col)],
   ];
   const by = new Map(); all.filter(c => c.date).forEach(c => { const m = c.date.slice(0, 7); by.has(m) ? by.get(m).push(c) : by.set(m, [c]); });
-  const months = [...by.keys()].sort().reverse();
-  // 그래프: 6달씩 (옆으로 밀면 그 전 6달). 쓴 날 · 카드 · 글자 중 하나 (캡슐로 바꿔요)
-  const T = S.today().slice(0, 7), prevM = m => { const [y, mo] = m.split('-').map(Number); return mo === 1 ? `${y - 1}-12` : `${y}-${p2(mo - 1)}`; };
-  const AM = [T]; while (AM.length < 6 || (months.length && AM[0] > months.at(-1))) AM.unshift(prevM(AM[0]));   // 처음 쓴 달(최소 6달)부터 이번 달까지
-  const ms = Object.fromEntries(AM.map(m => [m, statsOf(by.get(m) || [])]));
-  let we = AM.length - 1;   // 보이는 6달의 마지막 자리
+  const months = [...by.keys()].sort();   // 오래된 달 → 이번 달
+  // 그래프: 5달씩, 처음엔 이번 달이 가운데 (지난 2달 · 이번 달 · 다음 2달). 옆으로 밀면 5달씩 지난 쪽으로, 처음 쓴 달이 든 쪽까지
+  const T = S.today().slice(0, 7);
+  const addM = (m, k) => { const [y, mo] = m.split('-').map(Number), t = y * 12 + mo - 1 + k; return `${Math.floor(t / 12)}-${p2(t % 12 + 1)}`; };
+  const diffM = (a, b) => { const [y1, m1] = a.split('-').map(Number), [y2, m2] = b.split('-').map(Number); return (y1 - y2) * 12 + m1 - m2; };
+  const first = months[0] || T, pageOf = m => Math.round(diffM(m, T) / 5) || 0, pMin = pageOf(first);
+  let pg = 0;
+  const win = () => Array.from({ length: 5 }, (_, i) => addM(T, pg * 5 - 2 + i));
+  const ms = m => statsOf(by.get(m) || []);
+  // 막대 높이 기준 = 내 기록에서 가장 많이 쓴 달이 들어가는 단계 (쓴 날은 한 달 30일). 왼쪽 수치는 0 · 1/3 · 2/3 · 끝
+  const STEP = { days: [30], n: [30, 60, 120, 300, 600, 1200], chars: [15000, 30000, 60000, 150000, 300000] };
   const MET = { days: ['쓴 날', s => s.days, v => `${v}일`], n: ['카드', s => s.n, v => `${v}장`], chars: ['글자', s => s.chars, chars] };
+  const topOf = k => { const f = MET[k][1], hi = Math.max(0, ...months.map(m => f(ms(m)))); let t = STEP[k].find(x => x >= hi); if (!t) { t = STEP[k].at(-1); while (t < hi) t *= 2; } return t; };
+  const axis = v => v >= 1e4 ? `${+(v / 1e4).toFixed(1)}만` : v >= 1000 ? `${+(v / 1000).toFixed(1)}천` : `${v}`;
   let met = S.pref('meGraph', 'n'); if (!MET[met]) met = 'n';
-  let sel = months[0] || T;
+  let sel = T;
   const cap = (icon, t) => `<span class="mcp">${icon ? ic(icon) : ''}${esc(t)}</span>`;
   const month = (m, i) => {
-    const l = by.get(m), s = statsOf(l);
-    const bg = anyBg(l, c => bgName(c) === s.col) || anyBg(l) || FALL[i % FALL.length];
-    return `<button class="mmo${(bg => /^#[0-9a-f]{3,6}$/i.test(bg || '') && inkOn(bg) !== '#fff' ? ' lt' : '')(bg)}" data-m="${m}"><i style="background:${bg}"></i><span class="t24">${+m.slice(0, 4)}년 ${+m.slice(5)}월</span><span class="mcps">${cap('', `쓴 날 ${s.days}일`)}${cap('', `카드 ${s.n}장`)}${cap('', `글자 ${chars(s.chars)}`)}${s.kind ? cap('grid', s.kind) : ''}${s.place ? cap('pin', s.place) : ''}${s.when ? cap('clock', s.when) : ''}${s.col ? cap('bg', s.col) : ''}</span></button>`;
+    const l = by.get(m), s = statsOf(l), t = bgTile(pickCard(l, c => bgName(c) === s.col) || pickCard(l), FALL[i % FALL.length]);
+    return `<button class="mmo${t.lt ? ' lt' : ''}" data-m="${m}"><i${t.attr}></i><span class="t24">${+m.slice(0, 4)}년 ${+m.slice(5)}월</span><span class="mcps">${cap('', `쓴 날 ${s.days}일`)}${cap('', `카드 ${s.n}장`)}${cap('', `글자 ${chars(s.chars)}`)}${s.kind ? cap('grid', s.kind) : ''}${s.place ? cap('pin', s.place) : ''}${s.when ? cap('clock', s.when) : ''}${s.col ? cap('bg', s.col) : ''}</span></button>`;
   };
   app.innerHTML = `<div class="shv mev"><i class="grn"></i><i class="stb"></i>
     <header class="mpn" style="background-image:var(--grain),${panelCss()};background-size:200px,auto,auto,auto;background-blend-mode:overlay,normal,normal,normal">
@@ -1929,62 +1967,69 @@ function viewMe() {
         <div class="t13 id">${me.id ? `<span>@${esc(me.id)}</span>` : ''}<button class="chip" data-a="plan">체험 중</button></div></div>
         <button class="mset" data-a="set" aria-label="설정">${ic('slide')}</button></div>
       <button class="t24 mq" data-a="q">${ln[0]}</button>
-      <div class="msr">${tiles.map(([v, l, bg], i) => `<div class="mst${(bg => /^#[0-9a-f]{3,6}$/i.test(bg || '') && inkOn(bg) !== '#fff' ? ' lt' : '')(bg)}"><i style="background:${bg || FALL[i]}"></i><b class="t24">${esc(v || '—')}</b><span class="mlb">${l}</span></div>`).join('')}</div>
-      <div class="mdots"></div>
+      <div class="msr">${tiles.map(([v, l, c], i) => { const t = bgTile(c, FALL[i]); return `<div class="mst${t.lt ? ' lt' : ''}"><i${t.attr}></i><b class="t24">${esc(v)}</b><span class="mlb">${l}</span></div>`; }).join('')}</div>
+      <div class="mdots" data-for="msr"></div>
     </header>
-    <section class="mgc"><div class="mgh"><p class="t13">달마다 돌아보기</p><div class="mseg">${Object.entries(MET).map(([k, [n]]) => `<button data-g="${k}">${n}</button>`).join('')}</div></div>
-    <div class="mgr"></div>
+    <section class="mgc"><div class="mseg">${Object.entries(MET).map(([k, [n]]) => `<button data-g="${k}">${n}</button>`).join('')}</div>
+    <div class="mgw"><div class="may"></div><div class="mgr"></div></div>
     ${all.length ? '' : '<p class="t13 mg0">첫 카드를 쓰면 막대가 자라요</p>'}</section>
-    ${months.length ? `<div class="mcr">${months.slice().reverse().map(month).join('')}</div>` : ''}</div>${nav('me')}`;
-  bindNav();
+    <div class="mdots" data-for="mgr"></div>
+    ${months.length ? `<p class="mct">달마다 돌아보기</p><div class="mcr${months.length === 1 ? ' one' : ''}">${months.map(month).join('')}</div><div class="mdots" data-for="mcr"></div>` : ''}</div>${nav('me')}`;
+  bindNav(); fillThumbs(app);
   $('[data-a=set]').onclick = () => go('#/set');
   $('[data-a=plan]').onclick = () => go('#/set/plan');
   $('[data-a=q]').onclick = () => toast(ln[1]);
   $$('.mmo').forEach(b => b.onclick = () => go('#/cal/' + b.dataset.m));
   // 막대: 고른 지표로 높이, 고른 달만 선명한 색 + 값 하나. 막대를 누르면 그 달 카드로, 카드를 넘기면 그 달 막대로
-  // 막대 색: 0이면 회색, 쓴 만큼 아래 → 위 그라데이션. 많이 쓴 달일수록 위가 뜨거운 색 (산호 · 주황, 빨강은 지우기에만)
+  // 막대 색: 쓴 만큼 아래 → 위 그라데이션. 많이 쓴 달일수록 위가 뜨거운 색 (산호 · 주황, 빨강은 지우기에만)
+  // 안 쓴 달 = 막대 없이 달 이름만. 처음 쓴 달 전 · 아직 안 온 달 = 이름도 흐리게, 누를 수 없어요
   const mix = (a, b, t) => '#' + [1, 3, 5].map(i => Math.round(parseInt(a.slice(i, i + 2), 16) * (1 - t) + parseInt(b.slice(i, i + 2), 16) * t).toString(16).padStart(2, '0')).join('');
   const heat = t => t < .5 ? mix('#6F7BF7', '#C86AD8', t * 2) : mix('#C86AD8', '#FF7A45', (t - .5) * 2);
-  const gr = $('.mgr'), car = $('.mcr');
-  const vis = () => AM.slice(we - 5, we + 1);
+  const gr = $('.mgr'), car = $('.mcr'), H = 96;
   const paintGraph = () => {
-    const [, f, fmt] = MET[met], max = Math.max(1, ...AM.map(m => f(ms[m])));
+    const [, f, fmt] = MET[met], top = topOf(met);
     $$('.mseg [data-g]').forEach(b => b.classList.toggle('on', b.dataset.g === met));
-    $$('[data-m]', gr).forEach(b => { const v = f(ms[b.dataset.m]), on = b.dataset.m === sel, t = v / max, bar = b.querySelector('i');
-      bar.style.height = Math.max(6, Math.round(t * 96)) + 'px';
+    $('.may').innerHTML = [3, 2, 1, 0].map(k => `<span>${axis(Math.round(top * k / 3))}</span>`).join('');
+    $$('[data-m]', gr).forEach(b => { const m = b.dataset.m, v = f(ms(m)), on = m === sel, t = Math.min(1, v / top), bar = b.querySelector('i');
+      bar.style.height = v ? Math.max(6, Math.round(t * H)) + 'px' : '0px';
       bar.style.background = !v ? '' : (on ? 'repeating-linear-gradient(135deg, rgba(255,255,255,.22) 0 2px, transparent 2px 7px), ' : '') + `linear-gradient(to top, #3A3F7A, ${heat(t)})`;   // 고른 달 = 선명 + 빗금
       b.classList.toggle('on', on); b.querySelector('em').textContent = on ? fmt(v) : ''; });
   };
-  // 6달 막대를 새로 그려요 (넘길 때마다). 처음 · 넘길 때는 막대가 아래에서 차올라요
+  // 5달 막대를 새로 그려요 (넘길 때마다). 처음 · 넘길 때는 막대가 아래에서 차올라요
   const drawBars = () => {
-    gr.innerHTML = `${vis().map(m => `<button data-m="${m}"><em></em><i></i><span>${+m.slice(5)}월</span></button>`).join('')}`;
-    $$('[data-m]', gr).forEach(b => b.onclick = () => { sel = b.dataset.m; paintGraph(); toCard(); });
-    $$('i', gr).forEach(i => i.style.height = '6px');
+    gr.innerHTML = win().map(m => { const off = m > T || m < first; return `<button data-m="${m}"${off ? ' disabled' : ''}${m === T ? ' class="now"' : ''}><em></em><i></i><span>${+m.slice(5)}월</span></button>`; }).join('');
+    $$('[data-m]:not([disabled])', gr).forEach(b => b.onclick = () => { sel = b.dataset.m; paintGraph(); toCard(); });
+    $$('i', gr).forEach(i => i.style.height = '0px');
+    $('[data-for=mgr]').innerHTML = dotsHtml(1 - pMin, pg - pMin);
     requestAnimationFrame(() => requestAnimationFrame(paintGraph));
   };
   let jump = 0;   // 막대를 눌러 카드로 넘어가는 동안은 지나가는 달을 무시해요
   const toCard = () => { const c = car?.querySelector(`[data-m="${sel}"]`); if (!c) return; clearTimeout(jump); jump = setTimeout(() => { jump = 0; }, 700); car.scrollTo({ left: c.offsetLeft - (car.clientWidth - c.offsetWidth) / 2, behavior: 'smooth' }); };
-  const showSel = () => { const k = AM.indexOf(sel); if (k < 0) return paintGraph(); if (k > we) { we = k; drawBars(); } else if (k < we - 5) { we = Math.max(5, k + 5); drawBars(); } else paintGraph(); };
+  const showSel = () => { const p = pageOf(sel); if (p !== pg) { pg = p; drawBars(); } else paintGraph(); };
   $$('.mseg [data-g]').forEach(b => b.onclick = () => { met = b.dataset.g; S.setPref('meGraph', met); paintGraph(); });
-  // 그래프를 옆으로 밀면 6달씩 (오른쪽으로 밀면 그 전 6달)
+  // 그래프를 옆으로 밀면 5달씩 (오른쪽으로 밀면 그 전 5달)
   let sx = null;
   gr.addEventListener('pointerdown', e => { sx = e.clientX; });
   gr.addEventListener('pointerup', e => { if (sx == null) return; const dx = e.clientX - sx; sx = null;
-    if (Math.abs(dx) < 40) return; const n = Math.min(AM.length - 1, Math.max(5, we + (dx > 0 ? -6 : 6))); if (n !== we) { we = n; drawBars(); } });
+    if (Math.abs(dx) < 40) return; const n = Math.min(0, Math.max(pMin, pg + (dx > 0 ? -1 : 1))); if (n !== pg) { pg = n; drawBars(); } });
+  // 달 카드: 높이는 캡슐이 가장 많은 달에 맞춰 모두 같게 (아래가 비지 않게)
+  const carDots = () => { if (!car) return; const n = car.children.length, k = Math.round(car.scrollLeft / Math.max(1, car.scrollWidth - car.clientWidth) * (n - 1)) || 0; $('[data-for=mcr]').innerHTML = dotsHtml(n, k); };
+  if (car) { const hs = [...car.children].map(x => x.offsetHeight); car.style.setProperty('--mh', Math.max(...hs) + 'px'); }
   car?.addEventListener('scroll', () => {
-    if (jump) return;
+    carDots(); if (jump) return;
     const mid = car.scrollLeft + car.clientWidth / 2;
     const c = [...car.children].reduce((a, x) => Math.abs(x.offsetLeft + x.offsetWidth / 2 - mid) < Math.abs(a.offsetLeft + a.offsetWidth / 2 - mid) ? x : a);
     if (c.dataset.m && c.dataset.m !== sel) { sel = c.dataset.m; showSel(); }
   }, { passive: true });
-  if (car) car.scrollLeft = car.scrollWidth;   // 달 카드도 그래프처럼 왼쪽이 지난달, 처음엔 이번 달(오른쪽 끝)
-  drawBars();
+  if (car) car.scrollLeft = car.scrollWidth;   // 달 카드도 그래프처럼 왼쪽이 지난달, 처음엔 가장 최근 달(오른쪽 끝)
+  if (months.length && !by.has(T)) sel = months.at(-1);
+  pg = pageOf(sel); drawBars(); carDots();
 
-  // 점: 밀어서 볼 수 있는 쪽 수만큼, 지금 쪽은 길게
-  const row = $('.msr'), dots = $('.mdots');
+  // 통계 카드 줄 점: 밀어서 볼 수 있는 쪽 수만큼, 지금 쪽은 대시
+  const row = $('.msr'), dots = $('[data-for=msr]');
   const paintDots = () => {
     const n = Math.max(1, Math.ceil(row.scrollWidth / row.clientWidth - .05)), k = Math.min(n - 1, Math.round(row.scrollLeft / Math.max(1, row.scrollWidth - row.clientWidth) * (n - 1)) || 0);
-    dots.innerHTML = n > 1 ? Array.from({ length: n }, (_, i) => `<i class="${i === k ? 'on' : ''}"></i>`).join('') : '';
+    dots.innerHTML = dotsHtml(n, k);
   };
   paintDots(); row.addEventListener('scroll', paintDots, { passive: true });
   const onSc = () => $('.mev')?.classList.toggle('sc', scrollY > 8);
