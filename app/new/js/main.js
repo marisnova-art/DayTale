@@ -10,7 +10,7 @@ import { clean, offsetsOf, rangeAt } from './rich.js';
 import { FONTS, fontOf, fontCssOf } from './fonts.js';
 import { NAMES as STK, hydrate, preloadAll } from './stickers.js';
 import * as P from './photos.js';
-import { FILTERS, filterOf, fidOf, grainLv, thumb as fthumb } from './filters.js';
+import { FILTERS, filterOf, fidOf, grainLv, srcOf, thumb as fthumb } from './filters.js';
 import * as V from './video.js';
 import { paint as paintMood, panelCss } from './mood.js';
 
@@ -1116,9 +1116,8 @@ function viewWrite({ fmt, id, like }) {
   };
   const syncFirst = () => { if (rich && card.pst?.[0]) { card.bg = clone(card.pst[0].bg); card.align = clone(card.pst[0].align); } };
   const pgLab = () => rich && card.pages.length > 1 ? `${st.pg + 1}장` : null;   // 여러 장이면 몇째 장이 바뀌었는지
-  // 기본 포맷(글 + 포토): 보고 있는 장이 내 사진 · 영상이면 6번째 칸이 필터, 색이면 셔플. 칸 수는 그대로예요
-  const photoPg = () => rich && ps().bg?.id === 'photo';
-  const sixK = () => f.tools.filter === true || (f.tools.filter === 'photo' && photoPg()) ? 'filter' : 'shuf';
+  // 기본 포맷(글 + 포토): 6번째 칸 = 이미지 탭 (사진 · 딤 · 노이즈 · 필터 + 영상 칸). 배경 탭은 색만
+  const photoPg = () => rich && ps().bg?.id === 'photo' && !!srcOf(ps().bg);
 
   root.classList.add('wmode');
   // 키보드를 내린 스타일 보기(큰 카드 + 3줄)와 키보드를 올린 쓰기 보기(1줄). 모든 줄은 같은 7칸이라 세로로 맞아요 (늘어도 최대 8칸)
@@ -1127,7 +1126,7 @@ function viewWrite({ fmt, id, like }) {
   // 포토 포맷은 쓰는 중 줄에 사진 칸이 없어요 (팔레트 1칸 · 빈 장 가운데 버튼에서 골라요)
   // 8칸: 스타일 보기 = 키보드 · 비율 · 서식 · 글꼴 · 배경 · 셔플/필터 · ↶ · ↷ / 쓰기 보기 = 키보드 · 이모티콘 · 새 장 · 사진 · 빈칸 · 빈칸 · ↶ · ↷.
   // 지금 못 쓰는 칸은 숨겨요(빈칸). 되돌리기 · 다시하기만 흐리게 남아요
-  const T1 = [['kb', ''], ['ratio', 's'], ['fmt', 's'], ['font', 's'], ['bg', 's'], [sixK(), 's six'], ['emo', 'w'], ['page', 'w'], [f.tools.bg === 'photo' ? '' : 'photo', 'w'], ['', 'w'], ['', 'w'], ['undo', ''], ['redo', '']];
+  const T1 = [['kb', ''], ['ratio', 's'], ['fmt', 's'], ['font', 's'], ['bg', 's'], [f.tools.filter ? 'img' : 'shuf', 's'], ['emo', 'w'], ['page', 'w'], [f.tools.bg === 'photo' ? '' : 'photo', 'w'], ['', 'w'], ['', 'w'], ['undo', ''], ['redo', '']];
   app.innerHTML = `<div class="wr ${rich ? 'rich' : 'plain'}">
     <header class="top"><button class="cb" data-a="back" aria-label="뒤로">${ic('back')}</button><div class="nm stt"></div><button class="cb w" data-a="ok" aria-label="완료">${ic('check')}</button></header>
     <div class="area"><section class="stage"></section></div>
@@ -1438,20 +1437,19 @@ function viewWrite({ fmt, id, like }) {
     if (k === 'photo' || k === 'emo' || k === 'page') return !!f.tools[k];
     if (k === 'fmt') return !!f.tools.style;
     if (k === 'font') return !!(f.tools.style && f.tools.font);
-    if (k === 'filter') return sixK() === 'filter';
+    if (k === 'img') return !!f.tools.filter;
     const v = f.tools[k]; return k === 'shuf' && v === 'code' ? !!findBg(ps().bg?.id).code : !!v;
   };
   function tools() {
     const typ = wr.classList.contains('typ');
     $$('.tb .t').forEach(b => {
-      if (b.classList.contains('six') && b.dataset.t !== sixK()) { b.dataset.t = sixK(); b.innerHTML = ic(b.dataset.t); b.setAttribute('aria-label', b.dataset.t); }
       const k = b.dataset.t;
       if (k === 'undo') return b.classList.toggle('off', st.hi <= 0 && !st.timer);
       if (k === 'redo') return b.classList.toggle('off', st.hi >= st.hist.length - 1);
       b.classList.toggle('hid', !enabled(k));
       if (k === 'ratio') b.textContent = RATIOS.find(r => r[0] === (card.ratio || '45'))[1];
-      const tab = { ink: 'fmt', hue: 'bg' }[st.tab] || st.tab;
-      b.classList.toggle('on', k === 'kb' ? typ && !st.panel : ['fmt', 'font', 'bg', 'filter'].includes(k) ? tab === k && enabled(k) : st.panel === k);
+      const tab = { ink: 'fmt', hue: 'bg', filter: 'img' }[st.tab] || st.tab;
+      b.classList.toggle('on', k === 'kb' ? typ && !st.panel : ['fmt', 'font', 'bg', 'img'].includes(k) ? tab === k && enabled(k) : st.panel === k);
     });
     $('[data-a=ok]').disabled = !hasText();
   }
@@ -1486,7 +1484,8 @@ function viewWrite({ fmt, id, like }) {
         push(); draw(); scrollToPage(st.pg);
         if (st.panel) closePanel(false); caretEnd(st.pg); return;
       }
-      if (k === 'fmt' || k === 'font' || k === 'bg' || k === 'filter') { st.tab = k; paintRow2(); return tools(); }
+      if (k === 'fmt' || k === 'font' || k === 'bg') { st.tab = k; paintRow2(); return tools(); }
+      if (k === 'img') { st.tab = 'img'; paintRow2(); if (!photoPg()) pickPhoto(); return; }   // 사진이 없는 장이면 바로 사진첩
       if (k === 'photo') return pickPhoto();   // 쓰는 중에도 이 장의 사진을 고를 수 있어요 (포토 포맷)
       if (k === 'emo') return st.panel === k ? closePanel(true) : openPanel(k);
       pop('다음 단계에서 열려요');
@@ -1500,15 +1499,15 @@ function viewWrite({ fmt, id, like }) {
   const AH = { l: ['c', '가운데'], c: ['r', '오른쪽'], r: ['l', '왼쪽'] }, VN = { t: '위', tm: '위쪽', m: '가운데', bm: '아래쪽', b: '아래' };
   const next = (list, v) => list[(list.indexOf(v) + 1) % list.length];
   function paintRow2() {
-    if (st.tab === 'filter' && !enabled('filter')) st.tab = 'bg';   // 사진 장 → 색 장으로 바뀌면 필터 대신 배경 줄
+    if (st.tab === 'filter' && !photoPg()) st.tab = 'img';   // 사진 장 → 색 장으로 바뀌면 필터 줄 대신 이미지 줄
     paintRow(); tools();
   }
   function paintRow() {
     if (st.tab === 'ink') return paintHue('ink');
     if (st.tab === 'hue') return paintHue('bg');
     if (st.tab === 'bg' && f.tools.bg === 'art') return paintArtRow();
-    if (st.tab === 'bg' && (f.tools.bg === 'photo' || (f.tools.bg && photoPg() && ps().bg.vd))) return paintPhotoRow();   // 영상인 장: 사진 · 딤 · 노이즈 · 재생 · 구간 · 커버 · 색으로
-    if (st.tab === 'filter' && enabled('filter')) return paintFilterRow();
+    if (st.tab === 'img' && f.tools.filter) return paintPhotoRow();
+    if (st.tab === 'filter' && f.tools.filter) return paintFilterRow();
     if (st.tab === 'bg' && f.tools.bg) return paintBgRow();
     if (st.tab === 'font' && f.tools.font) return paintFontRow();
     const a = ps().align || { h: 'l', v: rich ? 'm' : 't' };
@@ -1583,7 +1582,7 @@ function viewWrite({ fmt, id, like }) {
   function paintFilterRow() {
     const cur = filterOf(card.filter).id, pb = ps().bg;
     row2.className = 'st2 g6 bgr flr';
-    row2.innerHTML = `<button class="k" data-x="prev" aria-label="이전 필터">${ic('prev')}</button><button class="k" data-x="next" aria-label="다음 필터">${ic('next')}</button>
+    row2.innerHTML = `<button class="k" data-x="back" aria-label="돌아가기">${ic('back')}</button>
       <div class="swp">${FILTERS.map(o => `<button class="k sw ft ${o.id === cur ? 'sel' : ''}" data-fl="${o.id}" aria-label="${o.name}"><span>${o.name}</span></button>`).join('')}<span class="end"></span></div>`;
     const sw = $('.swp', row2);
     const thumbs = () => $$('[data-fl]', row2).forEach(x => fthumb(pb, x.dataset.fl === 'leak' ? 'leak' + ((card.leak | 0) % 4) : x.dataset.fl).then(u => { if (u) x.style.backgroundImage = `url(${u})`; }));
@@ -1598,27 +1597,24 @@ function viewWrite({ fmt, id, like }) {
     };
     toCur(false);
     $$('button', row2).forEach(x => x.addEventListener('pointerdown', e => e.preventDefault()));
-    const step = d => { const c = FILTERS.findIndex(o => o.id === filterOf(card.filter).id), i = (c + d + FILTERS.length) % FILTERS.length; pick(FILTERS[i], Math.abs(i - c) === 1); };
-    $('[data-x=prev]', row2).onclick = () => step(-1); $('[data-x=next]', row2).onclick = () => step(1);
+    $('[data-x=back]', row2).onclick = () => { st.tab = 'img'; paintRow2(); };
     $$('[data-fl]', row2).forEach(x => x.onclick = () => pick(filterOf(x.dataset.fl), true));
   }
-  // 포토 포맷 배경 줄(팔레트): 이 장 사진 바꾸기 · 밝게/어둡게 · 노이즈 (노이즈는 기본 꺼짐: 사진 그대로가 먼저)
-  // 영상인 장은 4칸부터: 재생/정지 · 타임라인(2칸) · 커버. 사진인 장에서는 이 칸들이 없어요
+  // 이미지 줄: 이 장 사진 · 영상 고르기 · 딤 · 노이즈 · 필터(누르면 필터 줄). 영상인 장은 5칸부터: 재생/정지 · 구간(2칸) · 커버.
+  // 사진이 없는 장은 사진 칸 · 딤 · 노이즈만 (필터는 사진이 생기면)
   const PLAY = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5z" fill="currentColor" stroke="none"/></svg>';
   const PAUSE = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h3.2v14H7zM13.8 5H17v14h-3.2z" fill="currentColor" stroke="none"/></svg>';
   function paintPhotoRow() {
-    const pb = ps().bg, gl = grainLv(pb), has = !!P.url(pb.ph), vid = has && !!pb.vd;
+    const pb = ps().bg, has = pb.id === 'photo' && !!srcOf(pb), vid = has && !!pb.vd;
     row2.className = 'st2 g6';
-    row2.innerHTML = `<button class="k tl ${has ? 'phb sel' : ''}" data-x="photo" aria-label="사진 · 영상" ${has ? `style="background-image:url(${P.url(pb.ph)})"` : ''}>${has ? (vid ? '<span class="vb"><svg viewBox="0 0 10 10"><path d="M2.6 1.3l6 3.7-6 3.7z"/></svg></span>' : '') : ic('scene')}</button>${dimBtn(pb)}<button class="k" data-x="grain" aria-label="노이즈">${ic(gl ? 'gr' + gl : 'nograin')}</button>${vid
+    row2.innerHTML = `<button class="k tl ${has ? 'phb sel' : ''}" data-x="photo" aria-label="사진 · 영상" ${has ? `style="background-image:url(${srcOf(pb)})"` : ''}>${has ? (vid ? '<span class="vb"><svg viewBox="0 0 10 10"><path d="M2.6 1.3l6 3.7-6 3.7z"/></svg></span>' : '') : ic('scene')}</button>${dimBtn(pb)}${grainBtn(pb)}${has ? `<button class="k" data-x="filter" aria-label="필터">${ic('filter')}</button>` : '<span></span>'}${vid
       ? `<button class="k" data-x="play" aria-label="재생 정지">${st.vpause ? PLAY : PAUSE}</button><div class="tlc" aria-label="구간"><div class="trk"></div><div class="sh2 l"></div><div class="sh2 r"></div><div class="wn"><div class="fl"></div><b></b></div></div>${pb.cvt != null ? `<button class="k cv sel" data-x="cover" aria-label="커버" style="background-image:url(${P.url(pb.ph)})"></button>` : `<button class="k" data-x="cover" aria-label="커버">${ic('cover')}</button>`}`
-      : '<span></span><span></span><span></span><span></span>'}${f.tools.bg === true ? `<button class="k bset g" data-x="col" aria-label="색 배경"><i></i></button>` : '<span></span>'}`;
+      : '<span></span><span></span><span></span><span></span>'}`;
     $$('button', row2).forEach(x => x.addEventListener('pointerdown', e => e.preventDefault()));
     $('[data-x=photo]', row2).onclick = pickPhoto;
     dimOn(pb, paintPhotoRow);
     grainOn(pb, paintPhotoRow);
-    // 기본 포맷: 영상 장에서 색 배경으로 (영상이 빠지고 고르기 전 색으로). 사진 장은 색 칸을 누르면 바로 바뀌어요
-    const col = $('[data-x=col]', row2);
-    if (col) col.onclick = () => { flush(); clearPhoto(pb); Object.assign(pb, st.colBg || { id: 'g1' }); syncFirst(); push(); draw(); paintRow2(); pop(pb.id === 'hex' ? '직접 색' : findBg(pb.id).name, null, pgLab()); };
+    const fl = $('[data-x=filter]', row2); if (fl) fl.onclick = () => { st.tab = 'filter'; paintRow2(); };
     if (!vid) return;
     $('[data-x=play]', row2).onclick = () => { st.vpause = !st.vpause; V.setPaused(st.vpause); $('[data-x=play]', row2).innerHTML = st.vpause ? PLAY : PAUSE; };
     // 커버: 지금 보이는 장면이 커버로 (재생 중이면 멈추고 그 장면). 피드에서 멈춰 있을 때 · 사진 저장에 쓰여요
@@ -1690,13 +1686,13 @@ function viewWrite({ fmt, id, like }) {
     const isPh = pb.id === 'photo' && P.url(pb.ph), hexes = S.pref('hexes', []);
     if (!st.bset) st.bset = pb.id === 'hex' || findBg(pb.id).kind === 's' ? 's' : 'g';   // 그라데이션 ↔ 솔리드: 처음엔 고른 배경이 있는 쪽
     const sol = st.bset === 's';
-    row2.innerHTML = `<button class="k tl ${isPh ? 'phb sel' : ''}" data-x="photo" aria-label="내 사진" ${isPh ? `style="background-image:url(${P.url(pb.ph)})"` : ''}>${isPh ? '' : ic('scene')}</button>${dimBtn(pb)}${grainBtn(pb)}<button class="k hue" data-x="hue" aria-label="직접 색"><i></i></button><button class="k bset ${sol ? 's' : 'g'}" data-x="bset" aria-label="${sol ? '솔리드' : '그라데이션'}"><i></i></button>
+    row2.innerHTML = `${f.tools.filter ? '' : `<button class="k tl ${isPh ? 'phb sel' : ''}" data-x="photo" aria-label="내 사진" ${isPh ? `style="background-image:url(${P.url(pb.ph)})"` : ''}>${isPh ? '' : ic('scene')}</button>`}${dimBtn(pb)}${grainBtn(pb)}<button class="k hue" data-x="hue" aria-label="직접 색"><i></i></button><button class="k bset ${sol ? 's' : 'g'}" data-x="bset" aria-label="${sol ? '솔리드' : '그라데이션'}"><i></i></button>
       <div class="swp">${sol ? hexes.map(h => `<button class="k sw ${pb.id === 'hex' && pb.hex === h ? 'sel' : ''}" data-h="${h}" style="background:${h}"></button>`).join('') : ''}${FREE.filter(b => b.kind === st.bset).map(b => `<button class="k sw ${b.id === pb.id ? 'sel' : ''}" data-b="${b.id}" style="${b.css ? `background:${b.css}` : ''}">${b.code ? '<canvas width="88" height="88"></canvas>' : ''}</button>`).join('')}<span class="end"></span></div>`;
     $$('canvas', row2).forEach(cv => drawCode(cv, pb.seed || 1, .5));
     const sw = $('.swp', row2), sel = $('.sel', sw);
     if (keep != null) sw.scrollLeft = keep; else if (sel) sw.scrollLeft = Math.max(0, sel.offsetLeft - sw.offsetLeft);
     $$('button', row2).forEach(x => x.addEventListener('pointerdown', e => e.preventDefault()));
-    $('[data-x=photo]', row2).onclick = pickPhoto;   // 폰 사진첩(PC는 파일 찾기)이 열려요. 사진 칸을 다시 누르면 다른 사진으로
+    const phb = $('[data-x=photo]', row2); if (phb) phb.onclick = pickPhoto;   // 폰 사진첩(PC는 파일 찾기)이 열려요. 사진 칸을 다시 누르면 다른 사진으로
     dimOn(pb, paintBgRow); grainOn(pb, paintBgRow);
     $('[data-x=hue]', row2).onclick = () => { st.tab = 'hue'; paintRow2(); };
     $('[data-x=bset]', row2).onclick = () => { st.bset = sol ? 'g' : 's'; $('.swp', row2).scrollLeft = 0; paintBgRow(); $('.swp', row2).scrollLeft = 0; pop(KIND[st.bset]); };
@@ -1719,8 +1715,8 @@ function viewWrite({ fmt, id, like }) {
       else try { p = await P.add(file); } catch (e) { if (!f.tools.filter || /^image\//.test(file.type)) throw e; vid = true; wait(); p = await V.add(file); }   // 사진으로 안 열리면 영상으로 한 번 더
       clearInterval(busy);
       const pb = ps().bg;
-      if (pb.id !== 'photo') st.colBg = pb.id === 'hex' ? { id: 'hex', hex: pb.hex } : { id: pb.id, seed: pb.seed };   // 영상 장에서 '색으로' 누르면 돌아갈 색
       flush(); clearPhoto(pb); Object.assign(pb, { id: 'photo', ...p, x: 50, y: 50 }); if (!pb.dim) pb.dim = 'dark';
+      if (f.tools.filter && st.tab !== 'filter') st.tab = 'img';   // 고른 뒤엔 이미지 줄 (필터 · 영상 칸)
       if (vid) st.vpause = false;
       syncFirst(); push(); draw(); paintRow2(); pop(vid ? '내 영상' : '내 사진', null, pgLab());
     } catch (e) { clearInterval(busy); console.error(e); pop(vid ? '영상을 열지 못했어요' : '사진을 열지 못했어요', null, vid ? String(e?.message || e).slice(0, 40) : null); }   // 원인을 작게 (고칠 때 보려고)
