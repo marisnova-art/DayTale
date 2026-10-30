@@ -1972,8 +1972,7 @@ function viewMe() {
     </header>
     <section class="mgc"><div class="mseg">${Object.entries(MET).map(([k, [n]]) => `<button data-g="${k}">${n}</button>`).join('')}</div>
     <div class="mgw"><div class="may"></div><div class="mgr"></div></div>
-    ${all.length ? '' : '<p class="t13 mg0">첫 카드를 쓰면 막대가 자라요</p>'}</section>
-    <div class="mdots" data-for="mgr"></div>
+    ${all.length ? '' : '<p class="t13 mg0">첫 카드를 쓰면 막대가 자라요</p>'}<div class="mdots" data-for="mgr"></div></section>
     ${months.length ? `<p class="mct">달마다 돌아보기</p><div class="mcr${months.length === 1 ? ' one' : ''}">${months.map(month).join('')}</div><div class="mdots" data-for="mcr"></div>` : ''}</div>${nav('me')}`;
   bindNav(); fillThumbs(app);
   $('[data-a=set]').onclick = () => go('#/set');
