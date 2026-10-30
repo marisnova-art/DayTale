@@ -770,9 +770,7 @@ function viewBook(id) {
     <main class="days"></main></div>${nav('shelf')}`;
   bindNav();
   $('[data-a=back]').onclick = () => /^#\/(shelf|cal)/.test(lastHash || '') ? history.back() : location.replace('#/shelf');
-  // 제목: 44px에서 두 줄 안에 들어올 때까지 작아져요 (최소 30)
-  const h2 = $('.bh h2'), fitT = () => { let fs = 44; h2.style.fontSize = fs + 'px'; while (h2.scrollHeight > fs * 1.15 * 2 + 2 && fs > 30) h2.style.fontSize = (fs -= 2) + 'px'; };
-  fitT(); document.fonts?.ready.then(fitT);
+  // 제목: 아주 큰 글(34) 두 줄까지
   const days = $('.days');
   let stop = () => {};
   const open = c => openRun(list, c, { book: b });
