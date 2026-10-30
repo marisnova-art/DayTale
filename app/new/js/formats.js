@@ -1,6 +1,6 @@
 // 포맷 = 데이터 + 그리기. 카드는 가로 1080 기준으로 디자인하고 cqw 단위로 그려서, 화면 크기와 저장 이미지가 같은 모양이에요
 import { find as findBg, dimCss, drawCode } from './bg.js';
-import { bgUrl, keyOf, GRAPHIC } from './filters.js';
+import { bgUrl, keyOf, fidOf, GRAPHIC } from './filters.js';
 import { rangeAt } from './rich.js';
 import { hydrate } from './stickers.js';
 import { fontOf, fontCssOf, SIZES } from './fonts.js';
@@ -181,6 +181,9 @@ export const hexBg = hex => ({ id: 'hex', name: '직접 색', css: hex, tone: he
 // 딤: 약(배경마다 정해 둔 딤) · 중 · 강. 중 · 강은 검게 한 겹 더 덮어요
 export const dimLv = d => d === 'd3' ? 3 : d === 'd2' ? 2 : 1;
 const EXTRA = { 1: 0, 2: .2, 3: .4 };
+// 사진 키우기 (b.z 1~2배, 줄이기는 없어요): 꽉 채운 크기에서 그만큼 크게. 칸(가로:세로 = 1:ar)보다 옆으로 긴 사진은 높이 기준
+export const zoomOf = b => Math.max(1, Math.min(2, +b?.z || 1));
+export const zoomCss = (b, ar) => { const z = zoomOf(b); if (z === 1 || !b.w || !b.h) return ''; const p = (z * 100).toFixed(1) + '%'; return `;background-size:${b.w / b.h > 1 / ar ? 'auto ' + p : p + ' auto'}`; };
 function bgLayer(c, page, pages) {
   const cb = pageBg(c, page), b = cb?.id === 'hex' && cb.hex ? hexBg(cb.hex) : findBg(cb?.id);
   const { layer, ink } = dimCss(b, cb?.dim === 'light' ? 'light' : 'dark');
@@ -192,8 +195,8 @@ function bgLayer(c, page, pages) {
   const shift = pages > 1 ? page / (pages - 1) : .5;
   let base = '';
   if (b.photo) {   // 내 사진: 고른 위치 그대로 (장으로 나뉘어도). 포토 포맷은 카드 필터 · 노이즈를 건 사진으로
-    const fid = c.fmt === 'photo' ? c.filter : null, u = bgUrl(cb, fid);
-    base = u ? `<div class="bgi ph" data-fk="${keyOf(cb, fid)}" style="background-image:url(${u});background-position:${cb.x ?? 50}% ${cb.y ?? 50}%"></div>`
+    const fid = c.fmt === 'photo' ? fidOf(c) : null, u = bgUrl(cb, fid);
+    base = u ? `<div class="bgi ph" data-fk="${keyOf(cb, fid)}" style="background-image:url(${u});background-position:${cb.x ?? 50}% ${cb.y ?? 50}%${zoomCss(cb, arOf(c))}"></div>`
       : `<div class="bgi ph none"></div>${c.fmt === 'photo' ? `<button class="phadd" type="button" aria-label="사진 고르기">${PH_ICON}</button>` : ''}`;   // 아직 사진이 없는 장
     if (u && cb.vd) base += '<canvas class="bgv"></canvas>';   // 영상: 커버 위에서 재생 (재생 중인 카드만 그려요)
   }
@@ -201,7 +204,9 @@ function bgLayer(c, page, pages) {
   else if (b.code) base = `<canvas class="bgc" data-seed="${cb.seed || 1}" data-shift="${shift}"${cb.grain === false ? ' data-gr="0"' : ''}></canvas>`;
   else base = `<div class="bgi" style="background:${b.css}"></div>`;
   const gfx = c.fmt === 'photo' && GRAPHIC.has(c.filter) && cb?.dim !== 'light' ? '<div class="dimL" style="background:rgba(0,0,0,.18)"></div>' : '';   // 그래픽 필터는 점이 굵어 글 뒤를 조금 더
-  const tink = (b.img || b.code || b.photo || cb?.dim === 'light') ? ink : b.ink, ex = EXTRA[dimLv(cb?.dim)];
+  const ex = EXTRA[dimLv(cb?.dim)];
+  let tink = (b.img || b.code || b.photo || cb?.dim === 'light') ? ink : b.ink;
+  if (ex >= .4 && tink !== '#fff') tink = '#fff';   // 파스텔 · 밝은 색도 딤 강이면 흰 글
   const more = ex ? `<div class="dimL" style="background:rgba(0,0,0,${ex})"></div>` : '';   // 딤은 늘 어둡게 덮어요 (앤드류 10-28)
   return { html: base + `<div class="dimL" style="background:${dim}"></div>` + gfx + more, ink: tink };
 }

@@ -12,6 +12,9 @@ const P = {
   filter: '<circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/>',   // 반쪽 렌즈
   cover: '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M12.00 6.60L13.47 10.38L17.52 10.61L14.38 13.17L15.41 17.09L12.00 14.90L8.59 17.09L9.62 13.17L6.48 10.61L10.53 10.38z" fill="currentColor" stroke-width="1"/>',   // 커버: 이 장면을 대표로
   grain: '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M7.5 8h.01M12 7h.01M16.5 8.5h.01M9 12h.01M14 11.5h.01M7 16h.01M11.5 16.5h.01M16 15.5h.01"/>',
+  gr1: '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 9h.01M15.5 10h.01M11 15.5h.01"/>',   // 노이즈 약 · 중 · 강 = 점 수
+  gr2: '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M7.5 8h.01M12.5 7.5h.01M16.5 9h.01M8.5 13h.01M14 12.5h.01M11 16.5h.01"/>',
+  gr3: '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M7 7.5h.01M12 7h.01M17 7.5h.01M9.5 10.5h.01M14.5 11h.01M7 14h.01M12 13.5h.01M17 14.5h.01M9.5 17h.01M14.5 17h.01"/>',
   nograin: '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M7.5 8h.01M16.5 8.5h.01M9 12h.01M11.5 16.5h.01"/><path d="M4 20 20 4"/>',
   page: '<rect x="6" y="3" width="13" height="17" rx="2"/><path d="M3 7v12a2 2 0 0 0 2 2h9"/><path d="M12.5 8.5v6M9.5 11.5h6"/>',
   shuf: '<path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="m15 15 6 6"/><path d="M4 4l5 5"/>',

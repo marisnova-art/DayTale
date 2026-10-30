@@ -2,18 +2,23 @@
 // (그래서 끌어서 위치 맞추기 · 긴 장 · 저장 이미지가 내 사진 배경과 똑같이 움직여요). 영상에도 같은 셰이더를 쓸 거예요
 import { url as photoUrl } from './photos.js';
 
-// 사진 톤 13 · 그래픽 5 · 흐름 2. m = 셰이더 안 번호
+// 사진 톤 7 · 흑백 3 · 그래픽 5 · 흐름 2 (10-30: 톤을 진하게, 서로 겹치지 않게). m = 셰이더 안 번호
 export const FILTERS = [
-  ['none', '원본'], ['film', '필름'], ['faded', '바랜'], ['polar', '폴라로이드'], ['cine', '영화'], ['dream', '꿈결'], ['leak', '빛 샘'], ['vig', '비네트'],
-  ['dusk', '노을'], ['dawn', '새벽'], ['mono', '흑백'], ['mono2', '진한 흑백'], ['mono3', '거친 흑백'],
-  ['dot', '도트'], ['pixel', '픽셀'], ['halftone', '하프톤'], ['duo', '듀오톤'], ['sketch', '스케치'],
-  ['motion', '모션 블러'], ['zoom', '줌 블러'],
-].map(([id, name], m) => ({ id, name, m }));
-export const filterOf = id => FILTERS.find(f => f.id === id) || FILTERS[0];
+  ['none', '원본', 0], ['film', '필름', 1], ['faded', '바랜', 2], ['cine', '영화', 4], ['vivid', '선명', 3], ['dusk', '노을', 8], ['dawn', '새벽', 9], ['leak', '빛 샘', 6],
+  ['mono', '흑백', 10], ['mono2', '진한 흑백', 11], ['mono3', '거친 흑백', 12],
+  ['dot', '도트', 13], ['pixel', '픽셀', 14], ['halftone', '하프톤', 15], ['duo', '듀오톤', 16], ['sketch', '스케치', 17],
+  ['motion', '모션 블러', 18], ['zoom', '줌 블러', 19],
+].map(([id, name, m]) => ({ id, name, m, d: 0 }));
+// 빛 샘은 네 모서리 중 한 곳에서 (카드에 c.leak 0~3: 왼쪽 위 · 오른쪽 위 · 오른쪽 아래 · 왼쪽 아래). 필터 이름에 붙여 다녀요 ('leak2')
+export const filterOf = id => { const m = /^leak([0-3])$/.exec(id || ''); if (m) return { ...FILTERS.find(f => f.id === 'leak'), d: +m[1] }; return FILTERS.find(f => f.id === id) || FILTERS[0]; };
+export const fidOf = c => c?.filter === 'leak' ? 'leak' + ((c.leak | 0) % 4) : c?.filter;
+// 노이즈: 끔 · 약 · 중 · 강 (b.grain 0~3, 예전 true = 약)
+export const grainLv = b => b?.grain === true ? 1 : Math.max(0, Math.min(3, b?.grain | 0));
+const GRS = [0, .14, .21, .28];
 export const GRAPHIC = new Set(['dot', 'pixel', 'halftone', 'duo', 'sketch']);   // 점이 굵어 글 뒤를 조금 더 받쳐 줘요
 
 const FS = `precision highp float;
-uniform sampler2D T; uniform vec2 R; uniform int M; uniform float K, LO, HI, GR; varying vec2 v;
+uniform sampler2D T; uniform vec2 R; uniform int M, LD; uniform float K, LO, HI, GR; varying vec2 v;
 float lum(vec3 c){ return dot(c, vec3(.299,.587,.114)); }
 float h12(vec2 p){ vec3 q = fract(vec3(p.xyx)*.1031); q += dot(q, q.yzx+33.33); return fract((q.x+q.y)*q.z); }
 vec3 tex(vec2 u){ return texture2D(T, clamp(u, 0., 1.)).rgb; }
@@ -21,18 +26,18 @@ vec3 sc(vec3 c, float k){ return mix(c, smoothstep(0., 1., c), k); }
 vec3 sat(vec3 c, float s){ return mix(vec3(lum(c)), c, s); }
 vec3 split(vec3 c, vec3 sh, vec3 hi, float k){ float l = lum(c); return c + k * (mix(sh, hi, smoothstep(.2, .8, l)) - .5) * .5; }
 float lev(float l){ return clamp((l - LO) / max(HI - LO, .05), 0., 1.); }   // 사진의 밝기 범위를 0~1로 (안개 사진도 또렷하게)
+vec3 curve(vec3 c, float k){ return mix(c, c * c * (3. - 2. * c), k); }
+float gr2(vec2 p){ vec2 q = floor(p / 2.); return h12(q) + h12(q + 17.) - 1.; }   // 굵은 입자 (노이즈)
 vec3 blur(vec2 u, float r){ vec3 a = vec3(0.); float w = 0.; for (int i = -4; i <= 4; i++) for (int j = -4; j <= 4; j++) { vec2 o = vec2(float(i), float(j)); float k = exp(-dot(o,o)/10.); a += tex(u + o * r / R) * k; w += k; } return a / w; }
 void main(){
   vec2 u = v, px = u * R; vec3 c = tex(u); float l = lum(c), g = h12(px) - .5;
-  if (M == 1) { c = sc(c, .35); c = sat(c, .88); c = split(c, vec3(.35,.5,.6), vec3(.65,.55,.42), .5); c = .03 + c * .96; c += g * .05; }
-  else if (M == 2) { c = sat(c, .6); c = .14 + c * .8; c = c * vec3(1.03, 1., .9); c += g * .04; }
-  else if (M == 3) { c = sat(c, .82); c = split(c, vec3(.3,.6,.55), vec3(.7,.6,.45), .7); c = .07 + c * .9; c.g += .015; c += g * .04; }
-  else if (M == 4) { c = sc(c, .5); c = split(c, vec3(.2,.55,.6), vec3(.8,.55,.3), 1.1); c = sat(c, .9); }
-  else if (M == 5) { vec3 b = blur(u, 7. * K); c = mix(c, b, .35) + max(b - .62, 0.) * .7; c = sat(c, 1.05); }
-  else if (M == 6) { float d = 1. - smoothstep(0., .75, u.x + .25 * sin(u.y * 3.)); c = c + vec3(1., .42, .12) * d * .7 + vec3(1., .85, .5) * pow(d, 3.) * .35; c = sc(c, .2); }
-  else if (M == 7) { vec2 q = u - .5; float vg = smoothstep(.85, .2, length(q * vec2(1., .9))); c = sc(c, .4) * (.25 + .75 * vg); }
-  else if (M == 8) { c = sat(c, 1.15); c = split(c, vec3(.6,.4,.35), vec3(.95,.6,.2), 1.4); c *= vec3(1.06, .98, .86); c = sc(c, .25); }
-  else if (M == 9) { c = sat(c, .75); c = split(c, vec3(.25,.35,.7), vec3(.6,.65,.8), .9); c = .05 + c * .95; }
+  if (M == 1) { c = curve(c, .55); c = sat(c, .85); c = c * vec3(1.08, 1.0, .86) + vec3(.0, .02, .0) * (1. - l); c = .10 + c * .86; vec2 q = u - .5; c *= 1. - .35 * dot(q, q) * 2.; c += gr2(px) * .05; }
+  else if (M == 2) { c = sat(c, .38); c = .24 + c * .66; c *= vec3(1.06, 1.02, .92); }
+  else if (M == 3) { c = curve(c, .75); c = sat(c, 1.55); c = c * 1.04 - .02; }
+  else if (M == 4) { c = curve(c, .7); float t = smoothstep(.15, .85, lum(c)); c = mix(c * vec3(.62, .95, 1.05) + vec3(0., .05, .08), c * vec3(1.18, .98, .78), t); c = sat(c, 1.05); }
+  else if (M == 6) { vec2 w = vec2(LD == 1 || LD == 2 ? 1. - u.x : u.x, LD >= 2 ? 1. - u.y : u.y); float d = 1. - smoothstep(0., .9, w.x * .8 + w.y * .35); vec3 lk = vec3(1., .45, .18) * d * .95 + vec3(1., .82, .6) * pow(d, 3.) * .5; c = 1. - (1. - c) * (1. - clamp(lk, 0., 1.)); c = curve(c, .3); }
+  else if (M == 8) { c = curve(c, .35); c = sat(c, 1.15); c = c * vec3(1.22, .98, .72) + vec3(.06, .0, .03); }
+  else if (M == 9) { c = sat(c, .7); c = c * vec3(.78, .92, 1.22) + vec3(0., .02, .06); c = .04 + c * .94; }
   else if (M == 10) { c = vec3(.04 + l * .92); }
   else if (M == 11) { c = vec3(smoothstep(.08, .92, lev(l))); c = sc(c, .45); }
   else if (M == 12) { c = vec3(sc(vec3(lev(l)), .3).r * .9 + .05 + (h12(floor(px / (1.5 * K))) - .5) * .28); }
@@ -45,7 +50,7 @@ void main(){
     float ed = length(vec2(tr + 2. * ri + br - tl - 2. * le - bl, bl + 2. * b + br - tl - 2. * t - tr)); c = vec3(.96, .94, .9) * (1. - smoothstep(.08, .4, ed) * .85) - (1. - lev(l)) * .14; c += g * .03; }
   else if (M == 18) { vec3 a = vec3(0.); for (int i = -12; i <= 12; i++) a += tex(u + vec2(float(i) * 2.2 * K / R.x, 0.)); c = a / 25.; }
   else if (M == 19) { vec3 a = vec3(0.); vec2 q = u - .5; for (int i = 0; i < 24; i++) a += tex(.5 + q * (1. - float(i) * .009)); c = a / 24.; }
-  if (GR > 0.) c += (h12(px) + h12(px + vec2(37., 91.)) - 1.) * GR * (1. - .6 * smoothstep(.15, .9, lum(c)));   // 노이즈 (팔레트 탭)
+  if (GR > 0.) c += gr2(px) * GR * (1. - .4 * smoothstep(.15, .9, lum(c)));   // 노이즈 (팔레트 탭, 3단계)
   gl_FragColor = vec4(clamp(c, 0., 1.), 1.);
 }`;
 
@@ -62,7 +67,7 @@ function gl() {
     g.attachShader(pr, sh(g.FRAGMENT_SHADER, FS)); g.linkProgram(pr); g.useProgram(pr);
     g.bindBuffer(g.ARRAY_BUFFER, g.createBuffer()); g.bufferData(g.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), g.STATIC_DRAW);
     const a = g.getAttribLocation(pr, 'a'); g.enableVertexAttribArray(a); g.vertexAttribPointer(a, 2, g.FLOAT, false, 0, 0);
-    const u = {}; ['T', 'R', 'M', 'K', 'LO', 'HI', 'GR'].forEach(k => { u[k] = g.getUniformLocation(pr, k); });
+    const u = {}; ['T', 'R', 'M', 'LD', 'K', 'LO', 'HI', 'GR'].forEach(k => { u[k] = g.getUniformLocation(pr, k); });
     const tx = g.createTexture(); g.bindTexture(g.TEXTURE_2D, tx);
     [g.TEXTURE_WRAP_S, g.TEXTURE_WRAP_T].forEach(k => g.texParameteri(g.TEXTURE_2D, k, g.CLAMP_TO_EDGE));
     g.texParameteri(g.TEXTURE_2D, g.TEXTURE_MIN_FILTER, g.LINEAR); g.texParameteri(g.TEXTURE_2D, g.TEXTURE_MAG_FILTER, g.LINEAR);
@@ -102,7 +107,7 @@ export function apply(src, f, grain, lo = 0, hi = 1) {
   if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
   g.viewport(0, 0, w, h);
   g.texImage2D(g.TEXTURE_2D, 0, g.RGBA, g.RGBA, g.UNSIGNED_BYTE, src);
-  g.uniform1i(u.T, 0); g.uniform2f(u.R, w, h); g.uniform1i(u.M, f.m); g.uniform1f(u.K, Math.max(1, Math.min(w, h) / 400)); g.uniform1f(u.LO, lo); g.uniform1f(u.HI, hi); g.uniform1f(u.GR, grain ? .07 : 0);
+  g.uniform1i(u.T, 0); g.uniform2f(u.R, w, h); g.uniform1i(u.M, f.m); g.uniform1i(u.LD, f.d | 0); g.uniform1f(u.K, Math.max(1, Math.min(w, h) / 400)); g.uniform1f(u.LO, lo); g.uniform1f(u.HI, hi); g.uniform1f(u.GR, GRS[grain === true ? 1 : grain | 0] || 0);
   g.drawArrays(g.TRIANGLES, 0, 3);
   return cv;
 }
@@ -112,10 +117,10 @@ export const levels = async b => { try { const im = await image(srcOf(b)); retur
 // 배경에 쓸 주소. 아직 없으면 원본 주소를 주고 뒤에서 만들어, 다 되면 그 사진을 쓰는 칸을 모두 바꿔요
 const done = new Map(), work = new Map();
 export const srcOf = b => b?.ph ? photoUrl(b.ph) : b?.src || '';
-export const keyOf = (b, fid) => `${b?.ph || b?.src}|${fid || 'none'}|${b?.grain ? 1 : 0}`;
+export const keyOf = (b, fid) => `${b?.ph || b?.src}|${fid || 'none'}|${grainLv(b)}`;
 export function bgUrl(b, fid) {
   const src = srcOf(b); if (!src) return '';
-  if ((!fid || fid === 'none') && !b.grain) return src;
+  if ((!fid || fid === 'none') && !grainLv(b)) return src;
   const k = keyOf(b, fid);
   if (done.has(k)) return done.get(k);
   make(b, fid);
@@ -125,7 +130,7 @@ function make(b, fid) {
   const k = keyOf(b, fid);
   if (!work.has(k)) work.set(k, (async () => {
     const im = await image(srcOf(b)), w = im.i.naturalWidth, h = im.i.naturalHeight;
-    const cv = run(im, filterOf(fid), w, h, !!b.grain, false);
+    const cv = run(im, filterOf(fid), w, h, grainLv(b), false);
     const blob = await new Promise(r => cv.toBlob(r, 'image/jpeg', .9)), url = URL.createObjectURL(blob);
     done.set(k, url);
     document.querySelectorAll('.bgi.ph').forEach(e => { if (e.dataset.fk === k) e.style.backgroundImage = `url(${url})`; });
@@ -136,8 +141,8 @@ function make(b, fid) {
 // 저장 전에: 카드가 쓰는 필터 사진을 모두 만들어 둬요
 export async function prep(c) {
   if (c.fmt !== 'photo') return;
-  const bs = [c.bg, ...(c.pst || []).map(p => p.bg)].filter(b => b && srcOf(b) && ((c.filter && c.filter !== 'none') || b.grain));
-  await Promise.all(bs.map(b => make(b, c.filter)));
+  const bs = [c.bg, ...(c.pst || []).map(p => p.bg)].filter(b => b && srcOf(b) && ((c.filter && c.filter !== 'none') || grainLv(b)));
+  await Promise.all(bs.map(b => make(b, fidOf(c))));
 }
 // 필터 줄 미리보기 (작은 정사각형)
 const th = new Map();

@@ -2,7 +2,7 @@
 // 커버는 보통 사진과 똑같이 그려져서(필터 · 위치 · 저장 이미지), 영상은 그 위 캔버스(.bgv)에 장면마다 필터를 걸어 그려요.
 // 쓰기 화면은 보고 있는 장 하나(start), 피드는 화면에 보이는 카드들(sync, 최대 4개)
 import * as P from './photos.js';
-import { apply, filterOf, levels } from './filters.js';
+import { apply, filterOf, levels, grainLv } from './filters.js';
 
 export const MAX = 10;   // 한 영상에서 쓰는 길이(초)
 export const lenOf = b => Math.min(MAX, b.dur || MAX);
@@ -203,13 +203,13 @@ function paint(me) {
   // 카드 크기에 맞춘 해상도 (가로 최대 720): 필요 이상으로 크게 그리지 않아요
   const W = Math.min(720, Math.round(cv.clientWidth * Math.min(2, devicePixelRatio || 1))); if (!W) return;
   const H = Math.round(W * me.ar);
-  const key = [v.requestVideoFrameCallback ? me.fr : Math.round(v.currentTime * 30), v.paused ? v.currentTime : '', W, b.x, b.y, me.fid, b.grain, me.lv.lo].join();
+  const key = [v.requestVideoFrameCallback ? me.fr : Math.round(v.currentTime * 30), v.paused ? v.currentTime : '', W, b.x, b.y, b.z, me.fid, b.grain, me.lv.lo].join();
   if (key === me.key) return;   // 새 장면도 바뀐 것도 없으면 다시 안 그려요
   me.key = key;
   if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
   if (work.width !== W || work.height !== H) { work.width = W; work.height = H; }
-  const s = Math.max(W / v.videoWidth, H / v.videoHeight), dw = v.videoWidth * s, dh = v.videoHeight * s;
+  const s = Math.max(W / v.videoWidth, H / v.videoHeight) * Math.max(1, Math.min(2, +b.z || 1)), dw = v.videoWidth * s, dh = v.videoHeight * s;
   wc.drawImage(v, (W - dw) * (b.x ?? 50) / 100, (H - dh) * (b.y ?? 50) / 100, dw, dh);
-  const out = apply(work, f, !!b.grain, me.lv.lo, me.lv.hi);
+  const out = apply(work, f, grainLv(b), me.lv.lo, me.lv.hi);
   cv.getContext('2d').drawImage(out || work, 0, 0);
 }

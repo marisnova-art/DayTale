@@ -243,9 +243,9 @@ html:not(.kb-open):not(.pan) .wr.inf.ki { bottom: var(--kbh, 40vh); }   /* 키�
 .st3 .wide > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .wr .tb { padding-top: 0; }
 /* 배경 줄: 앞 2칸 고정, 나머지 4칸 자리에서 색 칸이 옆으로 밀려요(한 칸씩 멈춤, 오른쪽 끝은 흐리게). 고른 표시는 칸 안쪽에 */
-.st2.bgr .swp { grid-column: 4 / span 5; display: flex; gap: 4px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; -webkit-mask-image: linear-gradient(90deg, #000 78%, transparent); mask-image: linear-gradient(90deg, #000 78%, transparent); }
+.st2.bgr .swp { grid-column: 5 / span 4; display: flex; gap: 4px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; -webkit-mask-image: linear-gradient(90deg, #000 78%, transparent); mask-image: linear-gradient(90deg, #000 78%, transparent); }
 .st2.bgr .swp::-webkit-scrollbar { display: none; }
-.st2.bgr .sw { flex: 0 0 calc((100% - 16px) / 5); scroll-snap-align: start; overflow: hidden; background-size: cover; }
+.st2.bgr .sw { flex: 0 0 calc((100% - 12px) / 4); scroll-snap-align: start; overflow: hidden; background-size: cover; }
 .cd .bgi.ph.none { background: #2a2a2e; }
 .cd .phadd { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 20cqw; height: 20cqw; border-radius: 50%; background: rgba(255,255,255,.14); color: #fff; display: grid; place-items: center; z-index: 3; }
 .cd .phadd .ic { width: 8cqw; height: 8cqw; }
@@ -256,7 +256,11 @@ html:not(.kb-open):not(.pan) .wr.inf.ki { bottom: var(--kbh, 40vh); }   /* 키�
 .st2.bgr .sw.sel::after { content: ''; position: absolute; inset: 3px; border-radius: 11px; box-shadow: inset 0 0 0 2px #fff, 0 0 0 1px rgba(0,0,0,.25); }
 .st2.bgr .phb { background-size: cover; background-position: center; overflow: hidden; }
 .st2.bgr .phb.sel::after { content: ''; position: absolute; inset: 3px; border-radius: 11px; box-shadow: inset 0 0 0 2px #fff, 0 0 0 1px rgba(0,0,0,.25); }
-.st2.bgr .end { flex: 0 0 calc((100% - 16px) / 5 * 4 + 12px); }
+.st2.bgr .end { flex: 0 0 calc((100% - 12px) / 4 * 3 + 8px); }
+/* 그라데이션 ↔ 솔리드 칸: 지금 보이는 쪽 모양 (그라데이션 네모 / 칠한 네모) */
+.g6 .k.bset i { width: 20px; height: 20px; border-radius: 8px; }
+.g6 .k.bset.g i { background: linear-gradient(180deg, #FFB3A7, #7B4BD6 60%, #26124F); }
+.g6 .k.bset.s i { background: #F3EADB; }
 .st2.flr .swp { grid-column: 3 / span 6; } .st2.flr .sw { flex-basis: calc((100% - 20px) / 6); } .st2.flr .end { flex-basis: calc((100% - 20px) / 6 * 5 + 16px); }
 .st2.fnr .fst { grid-column: 3 / span 6; display: flex; gap: 4px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; -webkit-mask-image: linear-gradient(90deg, #000 78%, transparent); mask-image: linear-gradient(90deg, #000 78%, transparent); }
 .st2.fnr .fst::-webkit-scrollbar { display: none; }
