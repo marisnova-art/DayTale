@@ -1932,54 +1932,40 @@ function viewMe() {
       <div class="msr">${tiles.map(([v, l, bg], i) => `<div class="mst${(bg => /^#[0-9a-f]{3,6}$/i.test(bg || '') && inkOn(bg) !== '#fff' ? ' lt' : '')(bg)}"><i style="background:${bg || FALL[i]}"></i><b class="t24">${esc(v || '—')}</b><span class="mlb">${l}</span></div>`).join('')}</div>
       <div class="mdots"></div>
     </header>
-    <div class="mgh"><p class="t13">달마다 돌아보기</p><div class="mseg">${Object.entries(MET).map(([k, [n]]) => `<button data-g="${k}">${n}</button>`).join('')}</div></div>
+    <section class="mgc"><div class="mgh"><p class="t13">달마다 돌아보기</p><div class="mseg">${Object.entries(MET).map(([k, [n]]) => `<button data-g="${k}">${n}</button>`).join('')}</div></div>
     <div class="mgr"></div>
-    ${all.length ? '' : '<p class="t13 mg0">첫 카드를 쓰면 막대가 자라요</p>'}
+    ${all.length ? '' : '<p class="t13 mg0">첫 카드를 쓰면 막대가 자라요</p>'}</section>
     ${months.length ? `<div class="mcr">${months.slice().reverse().map(month).join('')}</div>` : ''}</div>${nav('me')}`;
   bindNav();
   $('[data-a=set]').onclick = () => go('#/set');
   $('[data-a=plan]').onclick = () => go('#/set/plan');
   $('[data-a=q]').onclick = () => toast(ln[1]);
   $$('.mmo').forEach(b => b.onclick = () => go('#/cal/' + b.dataset.m));
-  // 막대: 고른 지표로 높이, 고른 달만 흰색 + 값 하나. 막대를 누르면 그 달 카드로, 카드를 넘기면 그 달 막대로
+  // 막대: 고른 지표로 높이, 고른 달만 선명한 색 + 값 하나. 막대를 누르면 그 달 카드로, 카드를 넘기면 그 달 막대로
   // 막대 색: 0이면 회색, 쓴 만큼 아래 → 위 그라데이션. 많이 쓴 달일수록 위가 뜨거운 색 (산호 · 주황, 빨강은 지우기에만)
   const mix = (a, b, t) => '#' + [1, 3, 5].map(i => Math.round(parseInt(a.slice(i, i + 2), 16) * (1 - t) + parseInt(b.slice(i, i + 2), 16) * t).toString(16).padStart(2, '0')).join('');
   const heat = t => t < .5 ? mix('#6F7BF7', '#C86AD8', t * 2) : mix('#C86AD8', '#FF7A45', (t - .5) * 2);
   const gr = $('.mgr'), car = $('.mcr');
   const vis = () => AM.slice(we - 5, we + 1);
-  // 곡선: 값을 짚는 선이 아니라 흐름만 — 막대 뒤, 아래쪽 절반 안에서 옅게 출렁여요
-  const curve = (anim) => {
-    const svg = gr.querySelector('.mcv'), box = gr.getBoundingClientRect(), [, f] = MET[met], max = Math.max(1, ...AM.map(m => f(ms[m])));
-    const pts = $$('[data-m] i', gr).map((i, k) => { const r = i.getBoundingClientRect(), base = r.bottom - box.top; return [r.left + r.width / 2 - box.left, base - 10 - f(ms[vis()[k]]) / max * 40]; });
-    pts.unshift([0, pts[0][1]]); pts.push([box.width, pts.at(-1)[1]]);
-    let d = `M${pts[0][0]},${pts[0][1]}`;
-    for (let k = 0; k < pts.length - 1; k++) {
-      const p0 = pts[k - 1] || pts[k], p1 = pts[k], p2 = pts[k + 1], p3 = pts[k + 2] || p2;
-      d += ` C${p1[0] + (p2[0] - p0[0]) / 6},${p1[1] + (p2[1] - p0[1]) / 6} ${p2[0] - (p3[0] - p1[0]) / 6},${p2[1] - (p3[1] - p1[1]) / 6} ${p2[0]},${p2[1]}`;
-    }
-    svg.setAttribute('viewBox', `0 0 ${box.width} ${box.height}`); svg.innerHTML = `<path d="${d}"/>`;
-    if (anim) { const pa = svg.firstChild, L = pa.getTotalLength(); pa.style.strokeDasharray = L; pa.style.strokeDashoffset = L; requestAnimationFrame(() => { pa.style.transition = 'stroke-dashoffset .8s ease-out'; pa.style.strokeDashoffset = 0; }); }
-  };
-  const paintGraph = (grow) => {
+  const paintGraph = () => {
     const [, f, fmt] = MET[met], max = Math.max(1, ...AM.map(m => f(ms[m])));
     $$('.mseg [data-g]').forEach(b => b.classList.toggle('on', b.dataset.g === met));
     $$('[data-m]', gr).forEach(b => { const v = f(ms[b.dataset.m]), on = b.dataset.m === sel, t = v / max, bar = b.querySelector('i');
       bar.style.height = Math.max(6, Math.round(t * 96)) + 'px';
-      bar.style.background = v ? `linear-gradient(to top, #3A3F7A, ${heat(t)})` : '';
+      bar.style.background = !v ? '' : (on ? 'repeating-linear-gradient(135deg, rgba(255,255,255,.22) 0 2px, transparent 2px 7px), ' : '') + `linear-gradient(to top, #3A3F7A, ${heat(t)})`;   // 고른 달 = 선명 + 빗금
       b.classList.toggle('on', on); b.querySelector('em').textContent = on ? fmt(v) : ''; });
-    curve(grow);
   };
   // 6달 막대를 새로 그려요 (넘길 때마다). 처음 · 넘길 때는 막대가 아래에서 차올라요
   const drawBars = () => {
-    gr.innerHTML = `<svg class="mcv"></svg>${vis().map(m => `<button data-m="${m}"><em></em><i></i><span>${+m.slice(5)}월</span></button>`).join('')}`;
+    gr.innerHTML = `${vis().map(m => `<button data-m="${m}"><em></em><i></i><span>${+m.slice(5)}월</span></button>`).join('')}`;
     $$('[data-m]', gr).forEach(b => b.onclick = () => { sel = b.dataset.m; paintGraph(); toCard(); });
     $$('i', gr).forEach(i => i.style.height = '6px');
-    requestAnimationFrame(() => requestAnimationFrame(() => paintGraph(true)));
+    requestAnimationFrame(() => requestAnimationFrame(paintGraph));
   };
   let jump = 0;   // 막대를 눌러 카드로 넘어가는 동안은 지나가는 달을 무시해요
   const toCard = () => { const c = car?.querySelector(`[data-m="${sel}"]`); if (!c) return; clearTimeout(jump); jump = setTimeout(() => { jump = 0; }, 700); car.scrollTo({ left: c.offsetLeft - (car.clientWidth - c.offsetWidth) / 2, behavior: 'smooth' }); };
   const showSel = () => { const k = AM.indexOf(sel); if (k < 0) return paintGraph(); if (k > we) { we = k; drawBars(); } else if (k < we - 5) { we = Math.max(5, k + 5); drawBars(); } else paintGraph(); };
-  $$('.mseg [data-g]').forEach(b => b.onclick = () => { met = b.dataset.g; S.setPref('meGraph', met); paintGraph(true); });
+  $$('.mseg [data-g]').forEach(b => b.onclick = () => { met = b.dataset.g; S.setPref('meGraph', met); paintGraph(); });
   // 그래프를 옆으로 밀면 6달씩 (오른쪽으로 밀면 그 전 6달)
   let sx = null;
   gr.addEventListener('pointerdown', e => { sx = e.clientX; });
