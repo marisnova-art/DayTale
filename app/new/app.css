@@ -777,12 +777,16 @@ mark { background: rgba(255,255,255,.32); color: #fff; border-radius: 0; padding
 .mseg { display: flex; padding: 3px; border-radius: 999px; background: var(--srf); }
 .mseg button { height: 30px; padding: 0 12px; border-radius: 999px; font-size: var(--fs-s); color: var(--mut); }
 .mseg button.on { background: #fff; color: var(--bg); }
-.mgr { display: grid; grid-template-columns: repeat(12, 1fr); gap: 6px; margin: 16px var(--gut) 0; }
+.mgr { position: relative; display: grid; grid-template-columns: repeat(12, 1fr); gap: 6px; margin: 16px var(--gut) 0; }
+.mcv { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.mcv path { fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; opacity: .85; }
+.mcv circle { fill: #fff; }
 .mgr button { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 150px; gap: 6px; min-width: 0; }
-.mgr em { font-style: normal; font-size: var(--fs-s); white-space: nowrap; min-height: 18px; }
-.mgr i { width: 100%; border-radius: 6px; background: rgba(255,255,255,.16); transition: height .3s, background .2s; }
+.mgr em { font-style: normal; font-size: var(--fs-s); white-space: nowrap; min-height: 22px; margin-bottom: 6px; }
+.mgr .on em { height: 22px; padding: 0 8px; border-radius: 999px; background: #fff; color: var(--bg); display: flex; align-items: center; }   /* 고른 달 값 말풍선 */
+.mgr i { width: 100%; border-radius: 6px; background: rgba(255,255,255,.16); transition: height .6s cubic-bezier(.2,.8,.2,1), box-shadow .2s; }
 .mgr span { font-size: var(--fs-s); color: var(--mut); }
-.mgr .on i { background: #fff; } .mgr .on span { color: #fff; }
+.mgr .on i { box-shadow: inset 0 0 0 2px #fff; } .mgr .on span { color: #fff; }
 .mg0 { margin: 10px 20px 0; text-align: center; }
 .mcr { display: flex; gap: 10px; margin-top: 20px; padding: 0 28px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding: 0 28px; scrollbar-width: none; overscroll-behavior-x: contain; }
 .mcr::-webkit-scrollbar { display: none; }

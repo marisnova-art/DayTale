@@ -1940,12 +1940,31 @@ function viewMe() {
   $('[data-a=q]').onclick = () => toast(ln[1]);
   $$('.mmo').forEach(b => b.onclick = () => go('#/cal/' + b.dataset.m));
   // 막대: 고른 지표로 높이, 고른 달만 흰색 + 값 하나. 막대를 누르면 그 달 카드로, 카드를 넘기면 그 달 막대로
+  // 막대 색: 0이면 회색, 쓴 만큼 아래 → 위 그라데이션. 많이 쓴 달일수록 위가 뜨거운 색 (산호 · 주황, 빨강은 지우기에만)
+  const mix = (a, b, t) => '#' + [1, 3, 5].map(i => Math.round(parseInt(a.slice(i, i + 2), 16) * (1 - t) + parseInt(b.slice(i, i + 2), 16) * t).toString(16).padStart(2, '0')).join('');
+  const heat = t => t < .5 ? mix('#6F7BF7', '#C86AD8', t * 2) : mix('#C86AD8', '#FF7A45', (t - .5) * 2);
+  const gr = $('.mgr'), svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.classList.add('mcv'); gr.appendChild(svg);
+  let drawn = false;
+  const curve = () => {
+    const box = gr.getBoundingClientRect(), pts = $$('.mgr [data-m] i').map(i => { const r = i.getBoundingClientRect(); return [r.left + r.width / 2 - box.left, r.top - box.top - 4]; });
+    let d = `M${pts[0][0]},${pts[0][1]}`;
+    for (let k = 0; k < pts.length - 1; k++) {   // 부드러운 곡선 (이웃 점으로 기울기)
+      const p0 = pts[k - 1] || pts[k], p1 = pts[k], p2 = pts[k + 1], p3 = pts[k + 2] || p2;
+      d += ` C${p1[0] + (p2[0] - p0[0]) / 6},${p1[1] + (p2[1] - p0[1]) / 6} ${p2[0] - (p3[0] - p1[0]) / 6},${p2[1] - (p3[1] - p1[1]) / 6} ${p2[0]},${p2[1]}`;
+    }
+    const k = M12.indexOf(sel), dot = pts[k];
+    svg.setAttribute('viewBox', `0 0 ${box.width} ${box.height}`);
+    svg.innerHTML = `<path d="${d}"/>${dot ? `<circle cx="${dot[0]}" cy="${dot[1]}" r="4"/>` : ''}`;
+    if (!drawn) { drawn = true; const pa = svg.querySelector('path'), L = pa.getTotalLength(); pa.style.strokeDasharray = L; pa.style.strokeDashoffset = L; requestAnimationFrame(() => { pa.style.transition = 'stroke-dashoffset .7s ease-out'; pa.style.strokeDashoffset = 0; }); }
+  };
   const paintGraph = () => {
     const [, f, fmt] = MET[met], max = Math.max(1, ...M12.map(m => f(ms[m])));
     $$('.mseg [data-g]').forEach(b => b.classList.toggle('on', b.dataset.g === met));
-    $$('.mgr [data-m]').forEach(b => { const v = f(ms[b.dataset.m]), on = b.dataset.m === sel;
-      b.querySelector('i').style.height = Math.max(6, Math.round(v / max * 96)) + 'px';
+    $$('.mgr [data-m]').forEach(b => { const v = f(ms[b.dataset.m]), on = b.dataset.m === sel, t = v / max, bar = b.querySelector('i');
+      bar.style.height = Math.max(6, Math.round(t * 96)) + 'px';
+      bar.style.background = v ? `linear-gradient(to top, #3A3F7A, ${heat(t)})` : '';
       b.classList.toggle('on', on); b.querySelector('em').textContent = on ? fmt(v) : ''; });
+    setTimeout(curve, 650);   // 막대가 다 자란 뒤에 곡선 자리를 재요
   };
   $$('.mseg [data-g]').forEach(b => b.onclick = () => { met = b.dataset.g; S.setPref('meGraph', met); paintGraph(); });
   const car = $('.mcr');
@@ -1955,7 +1974,7 @@ function viewMe() {
     const c = [...car.children].reduce((a, x) => Math.abs(x.offsetLeft + x.offsetWidth / 2 - mid) < Math.abs(a.offsetLeft + a.offsetWidth / 2 - mid) ? x : a);
     if (c.dataset.m !== sel && M12.includes(c.dataset.m)) { sel = c.dataset.m; paintGraph(); }
   }, { passive: true });
-  paintGraph();
+  $$('.mgr i').forEach(i => i.style.height = '6px'); requestAnimationFrame(() => requestAnimationFrame(paintGraph));
   // 점: 밀어서 볼 수 있는 쪽 수만큼, 지금 쪽은 길게
   const row = $('.msr'), dots = $('.mdots');
   const paintDots = () => {
