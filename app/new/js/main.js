@@ -1941,13 +1941,13 @@ function viewMe() {
   ];
   const by = new Map(); all.filter(c => c.date).forEach(c => { const m = c.date.slice(0, 7); by.has(m) ? by.get(m).push(c) : by.set(m, [c]); });
   const months = [...by.keys()].sort();   // 오래된 달 → 이번 달
-  // 그래프: 5달씩, 처음엔 이번 달이 가운데 (지난 2달 · 이번 달 · 다음 2달). 옆으로 밀면 5달씩 지난 쪽으로, 처음 쓴 달이 든 쪽까지
+  // 그래프: 7달씩, 처음엔 이번 달이 가운데 (지난 3달 · 이번 달 · 다음 3달). 옆으로 밀면 7달씩 지난 쪽으로, 처음 쓴 달이 든 쪽까지
   const T = S.today().slice(0, 7);
   const addM = (m, k) => { const [y, mo] = m.split('-').map(Number), t = y * 12 + mo - 1 + k; return `${Math.floor(t / 12)}-${p2(t % 12 + 1)}`; };
   const diffM = (a, b) => { const [y1, m1] = a.split('-').map(Number), [y2, m2] = b.split('-').map(Number); return (y1 - y2) * 12 + m1 - m2; };
-  const first = months[0] || T, pageOf = m => Math.round(diffM(m, T) / 5) || 0, pMin = pageOf(first);
+  const first = months[0] || T, pageOf = m => Math.round(diffM(m, T) / 7) || 0, pMin = pageOf(first);
   let pg = 0;
-  const win = () => Array.from({ length: 5 }, (_, i) => addM(T, pg * 5 - 2 + i));
+  const win = () => Array.from({ length: 7 }, (_, i) => addM(T, pg * 7 - 3 + i));
   const ms = m => statsOf(by.get(m) || []);
   // 막대 높이 기준 = 내 기록에서 가장 많이 쓴 달이 들어가는 단계 (쓴 날은 한 달 30일). 왼쪽 수치는 0 · 1/3 · 2/3 · 끝
   const STEP = { days: [30], n: [30, 60, 120, 300, 600, 1200], chars: [15000, 30000, 60000, 150000, 300000] };
@@ -1994,7 +1994,7 @@ function viewMe() {
       bar.style.background = !v ? '' : (on ? 'repeating-linear-gradient(135deg, rgba(255,255,255,.22) 0 2px, transparent 2px 7px), ' : '') + `linear-gradient(to top, #3A3F7A, ${heat(t)})`;   // 고른 달 = 선명 + 빗금
       b.classList.toggle('on', on); b.querySelector('em').textContent = on ? fmt(v) : ''; });
   };
-  // 5달 막대를 새로 그려요 (넘길 때마다). 처음 · 넘길 때는 막대가 아래에서 차올라요
+  // 7달 막대를 새로 그려요 (넘길 때마다). 처음 · 넘길 때는 막대가 아래에서 차올라요
   const drawBars = () => {
     gr.innerHTML = win().map(m => { const off = m > T || m < first; return `<button data-m="${m}"${off ? ' disabled' : ''}${m === T ? ' class="now"' : ''}><em></em><i></i><span>${+m.slice(5)}월</span></button>`; }).join('');
     $$('[data-m]:not([disabled])', gr).forEach(b => b.onclick = () => { sel = b.dataset.m; paintGraph(); toCard(); });
@@ -2006,7 +2006,7 @@ function viewMe() {
   const toCard = () => { const c = car?.querySelector(`[data-m="${sel}"]`); if (!c) return; clearTimeout(jump); jump = setTimeout(() => { jump = 0; }, 700); car.scrollTo({ left: c.offsetLeft - (car.clientWidth - c.offsetWidth) / 2, behavior: 'smooth' }); };
   const showSel = () => { const p = pageOf(sel); if (p !== pg) { pg = p; drawBars(); } else paintGraph(); };
   $$('.mseg [data-g]').forEach(b => b.onclick = () => { met = b.dataset.g; S.setPref('meGraph', met); paintGraph(); });
-  // 그래프를 옆으로 밀면 5달씩 (오른쪽으로 밀면 그 전 5달)
+  // 그래프를 옆으로 밀면 7달씩 (오른쪽으로 밀면 그 전 7달)
   let sx = null;
   gr.addEventListener('pointerdown', e => { sx = e.clientX; });
   gr.addEventListener('pointerup', e => { if (sx == null) return; const dx = e.clientX - sx; sx = null;

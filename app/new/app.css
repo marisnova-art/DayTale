@@ -783,12 +783,12 @@ mark { background: rgba(255,255,255,.32); color: #fff; border-radius: 0; padding
 .may { flex: none; width: 42px; height: 150px; position: relative; }   /* 왼쪽 수치: 가로줄 4개 옆 */
 .may span { position: absolute; right: 8px; white-space: nowrap; font-size: var(--fs-s); line-height: 18px; color: var(--mut); transform: translateY(50%); }
 .may span:nth-child(1) { bottom: 120px; } .may span:nth-child(2) { bottom: 88px; } .may span:nth-child(3) { bottom: 56px; } .may span:nth-child(4) { bottom: 24px; }
-.mgr { position: relative; flex: 1; min-width: 0; display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; touch-action: pan-y; }
+.mgr { position: relative; flex: 1; min-width: 0; display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; touch-action: pan-y; }
 .mgr::before { content: ''; position: absolute; left: 0; right: 0; bottom: 24px; height: 97px; background: repeating-linear-gradient(to top, rgba(255,255,255,.07) 0 1px, transparent 1px 32px); pointer-events: none; }   /* 옅은 가로 줄 4개 */
 .mgr button { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 150px; gap: 6px; min-width: 0; }
 .mgr em { font-style: normal; font-size: var(--fs-s); white-space: nowrap; min-height: 22px; margin-bottom: 6px; }
 .mgr .on em { height: 22px; padding: 0 8px; border-radius: 999px; background: #fff; color: var(--bg); display: flex; align-items: center; }   /* 고른 달 값 말풍선 */
-.mgr i { width: 100%; max-width: 40px; border-radius: 6px; background: rgba(255,255,255,.16); transition: height .6s cubic-bezier(.2,.8,.2,1), box-shadow .2s; }
+.mgr i { width: 100%; max-width: 32px; border-radius: 6px; background: rgba(255,255,255,.16); transition: height .6s cubic-bezier(.2,.8,.2,1), box-shadow .2s; }
 .mgr span { font-size: var(--fs-s); color: var(--mut); }
 .mgr .on span { color: #fff; }
 .mgr button:not(.on) i { opacity: .6; }   /* 고른 달만 선명하게 */
