@@ -4,7 +4,6 @@
   --gut: 16px; --btn: 48px; --ui: 'Pretendard Variable', -apple-system, 'Apple SD Gothic Neo', sans-serif;
   --safe-b: env(safe-area-inset-bottom, 0px); --safe-t: env(safe-area-inset-top, 0px);
   --top: calc(var(--safe-t) + 30px);   /* 모든 화면 첫 줄: 시계 줄 흐림 아래 (홈 로고 줄과 같은 자리) */
-  --hi: #FFE45C;   /* 강조 노랑: 지금은 프로필 그래프에만 (브랜드 색 정할 때 다시) */
   --fs-s: 13px; --fs-m: 17px; --fs-l: 24px; --fs-xl: 34px; --fw: 500;   /* 글자: 작은 13 · 중간 17 · 아주 큰 34 (+ 프로필만 24), 굵기는 500 하나 (앤드류 10-30) */
   color-scheme: dark;
 }
@@ -783,11 +782,10 @@ mark { background: rgba(255,255,255,.32); color: #fff; border-radius: 0; padding
 .mgr::before { content: ''; position: absolute; left: 0; right: 0; bottom: 24px; height: 97px; background: repeating-linear-gradient(to top, rgba(255,255,255,.07) 0 1px, transparent 1px 32px); pointer-events: none; }   /* 옅은 가로 줄 4개 */
 .mgr button { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 150px; gap: 6px; min-width: 0; }
 .mgr em { font-style: normal; font-size: var(--fs-s); white-space: nowrap; min-height: 22px; margin-bottom: 6px; }
-.mgr .on em { height: 22px; padding: 0 8px; border-radius: 999px; background: var(--hi); color: #141416; display: flex; align-items: center; }   /* 고른 달 값 말풍선 */
-.mgr i { width: 100%; max-width: 34px; border-radius: 6px; background: rgba(255,255,255,.2); transition: height .6s cubic-bezier(.2,.8,.2,1), box-shadow .2s; }
+.mgr .on em { height: 22px; padding: 0 8px; border-radius: 999px; background: #fff; color: var(--bg); display: flex; align-items: center; }   /* 고른 달 값 말풍선 */
+.mgr i { width: 100%; max-width: 34px; border-radius: 6px; background: rgba(255,255,255,.16); transition: height .6s cubic-bezier(.2,.8,.2,1), box-shadow .2s; }
 .mgr span { font-size: var(--fs-s); color: var(--mut); }
-.mgr .on span { color: #fff; }
-.mgr .on i { background: repeating-linear-gradient(135deg, rgba(20,20,22,.28) 0 2px, transparent 2px 7px), var(--hi); }   /* 고른 달 = 노랑 + 빗금 */
+.mgr button:not(.on) i { opacity: .45; }   /* 고른 달만 선명하게 */ .mgr .on span { color: #fff; }
 .mg0 { margin: 10px 20px 0; text-align: center; }
 .mcr { display: flex; gap: 10px; margin-top: 20px; padding: 0 28px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding: 0 28px; scrollbar-width: none; overscroll-behavior-x: contain; }
 .mcr::-webkit-scrollbar { display: none; }

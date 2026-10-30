@@ -1942,6 +1942,9 @@ function viewMe() {
   $('[data-a=q]').onclick = () => toast(ln[1]);
   $$('.mmo').forEach(b => b.onclick = () => go('#/cal/' + b.dataset.m));
   // 막대: 고른 지표로 높이, 고른 달만 선명한 색 + 값 하나. 막대를 누르면 그 달 카드로, 카드를 넘기면 그 달 막대로
+  // 막대 색: 0이면 회색, 쓴 만큼 아래 → 위 그라데이션. 많이 쓴 달일수록 위가 뜨거운 색 (산호 · 주황, 빨강은 지우기에만)
+  const mix = (a, b, t) => '#' + [1, 3, 5].map(i => Math.round(parseInt(a.slice(i, i + 2), 16) * (1 - t) + parseInt(b.slice(i, i + 2), 16) * t).toString(16).padStart(2, '0')).join('');
+  const heat = t => t < .5 ? mix('#6F7BF7', '#C86AD8', t * 2) : mix('#C86AD8', '#FF7A45', (t - .5) * 2);
   const gr = $('.mgr'), car = $('.mcr');
   const vis = () => AM.slice(we - 5, we + 1);
   const paintGraph = () => {
@@ -1949,7 +1952,7 @@ function viewMe() {
     $$('.mseg [data-g]').forEach(b => b.classList.toggle('on', b.dataset.g === met));
     $$('[data-m]', gr).forEach(b => { const v = f(ms[b.dataset.m]), on = b.dataset.m === sel, t = v / max, bar = b.querySelector('i');
       bar.style.height = Math.max(6, Math.round(t * 96)) + 'px';
-      bar.style.background = '';   // 색은 CSS: 고른 달 = 노랑 + 빗금, 나머지 = 회색
+      bar.style.background = !v ? '' : (on ? 'repeating-linear-gradient(135deg, rgba(255,255,255,.22) 0 2px, transparent 2px 7px), ' : '') + `linear-gradient(to top, #3A3F7A, ${heat(t)})`;   // 고른 달 = 선명 + 빗금
       b.classList.toggle('on', on); b.querySelector('em').textContent = on ? fmt(v) : ''; });
   };
   // 6달 막대를 새로 그려요 (넘길 때마다). 처음 · 넘길 때는 막대가 아래에서 차올라요
