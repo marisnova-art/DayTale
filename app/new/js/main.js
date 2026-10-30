@@ -1593,7 +1593,7 @@ function viewWrite({ fmt, id, like }) {
       flush();
       if (o.id === 'leak') { card.leak = card.filter === 'leak' ? ((card.leak | 0) + 1) % 4 : Math.floor(Math.random() * 4); thumbs(); }   // 빛 샘: 처음엔 아무 모서리, 다시 누르면 다음 모서리로
       card.filter = o.id; push(); draw(); pop(o.name, null, o.id === 'leak' ? '필터 · ' + CORNER[card.leak] : '필터');
-      $$('[data-fl]', row2).forEach(x => x.classList.toggle('sel', x.dataset.fl === o.id)); toCur(smooth);
+      $$('[data-fl]', row2).forEach(x => x.classList.toggle('sel', x.dataset.fl === o.id));   // 줄은 그 자리 그대로, 테두리만 옮겨요
     };
     toCur(false);
     $$('button', row2).forEach(x => x.addEventListener('pointerdown', e => e.preventDefault()));
@@ -1607,7 +1607,7 @@ function viewWrite({ fmt, id, like }) {
   function paintPhotoRow() {
     const pb = ps().bg, has = pb.id === 'photo' && !!srcOf(pb), vid = has && !!pb.vd;
     row2.className = 'st2 g6';
-    row2.innerHTML = `<button class="k tl ${has ? 'phb sel' : ''}" data-x="photo" aria-label="사진 · 영상" ${has ? `style="background-image:url(${srcOf(pb)})"` : ''}>${has ? (vid ? '<span class="vb"><svg viewBox="0 0 10 10"><path d="M2.6 1.3l6 3.7-6 3.7z"/></svg></span>' : '') : ic('scene')}</button>${dimBtn(pb)}${grainBtn(pb)}${has ? `<button class="k" data-x="filter" aria-label="필터">${ic('filter')}</button>` : '<span></span>'}${vid
+    row2.innerHTML = `<button class="k" data-x="photo" aria-label="사진 · 영상 고르기">${ic(vid ? 'video' : 'album')}</button>${dimBtn(pb)}${grainBtn(pb)}${has ? `<button class="k" data-x="filter" aria-label="필터">${ic('filter')}</button>` : '<span></span>'}${vid
       ? `<button class="k" data-x="play" aria-label="재생 정지">${st.vpause ? PLAY : PAUSE}</button><div class="tlc" aria-label="구간"><div class="trk"></div><div class="sh2 l"></div><div class="sh2 r"></div><div class="wn"><div class="fl"></div><b></b></div></div>${pb.cvt != null ? `<button class="k cv sel" data-x="cover" aria-label="커버" style="background-image:url(${P.url(pb.ph)})"></button>` : `<button class="k" data-x="cover" aria-label="커버">${ic('cover')}</button>`}`
       : '<span></span><span></span><span></span><span></span>'}`;
     $$('button', row2).forEach(x => x.addEventListener('pointerdown', e => e.preventDefault()));
