@@ -1865,7 +1865,7 @@ const meOf = () => ({ name: '', id: '', photo: '', ...S.pref('me', {}) });
 const setMe = o => S.setPref('me', { ...meOf(), ...o });
 function avStyle() { const p = meOf().photo; return p ? ` style="background-image:url(${p})"` : ''; }
 
-// 프로필 한 줄: 저작권이 끝난 작가의 짧은 문장 (종교 · 정치 인물은 빼요). 한 줄에 들어가는 길이만. 하루에 하나, 누르면 지은이
+// 프로필 한 줄: 저작권이 끝난 작가의 짧은 문장 (종교 · 정치 인물은 빼요). 한 줄에 들어가는 길이만. 들어올 때마다 하나씩 차례로, 누르면 지은이
 const LINES = [
   ['내일은 아직 새날이에요.', '몽고메리 · 빨간 머리 앤'],
   ['상상할 여지가 있잖아요.', '몽고메리 · 빨간 머리 앤'],
@@ -1932,7 +1932,7 @@ const statsOf = list => ({
 // 통계 카드 바탕은 들어올 때마다 내 카드 배경에서 새로 골라요 (값 · 순서는 그대로). 아래는 달마다 돌아보기 (누르면 책장 달력 그달)
 function viewMe() {
   const all = S.cards(), st = statsOf(all), me = meOf();
-  const ln = LINES[Math.floor((Date.now() - new Date().getTimezoneOffset() * 6e4) / 864e5) % LINES.length];
+  const li = (S.pref('meLine', -1) + 1) % LINES.length, ln = LINES[li]; S.setPref('meLine', li);   // 들어올 때마다 다음 문장 (끝까지 보면 처음부터)
   const NONE = '없어요';
   const tiles = [
     [`${st.days}일`, '쓴 날', pickCard(all)], [`${st.n}장`, '카드', pickCard(all)], [chars(st.chars), '글자', pickCard(all)],
