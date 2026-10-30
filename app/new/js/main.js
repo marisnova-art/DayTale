@@ -1909,12 +1909,14 @@ function viewMe() {
   ];
   const by = new Map(); all.filter(c => c.date).forEach(c => { const m = c.date.slice(0, 7); by.has(m) ? by.get(m).push(c) : by.set(m, [c]); });
   const months = [...by.keys()].sort().reverse();
-  // 그래프: 이번 달까지 12달. 쓴 날 · 카드 · 글자 중 하나 (캡슐로 바꿔요)
-  const T = S.today().slice(0, 7), M12 = []; for (let m = T, k = 0; k < 12; k++) { M12.unshift(m); const [y, mo] = m.split('-').map(Number); m = mo === 1 ? `${y - 1}-12` : `${y}-${p2(mo - 1)}`; }
-  const ms = Object.fromEntries(M12.map(m => [m, statsOf(by.get(m) || [])]));
+  // 그래프: 6달씩 (옆으로 밀면 그 전 6달). 쓴 날 · 카드 · 글자 중 하나 (캡슐로 바꿔요)
+  const T = S.today().slice(0, 7), prevM = m => { const [y, mo] = m.split('-').map(Number); return mo === 1 ? `${y - 1}-12` : `${y}-${p2(mo - 1)}`; };
+  const AM = [T]; while (AM.length < 6 || (months.length && AM[0] > months.at(-1))) AM.unshift(prevM(AM[0]));   // 처음 쓴 달(최소 6달)부터 이번 달까지
+  const ms = Object.fromEntries(AM.map(m => [m, statsOf(by.get(m) || [])]));
+  let we = AM.length - 1;   // 보이는 6달의 마지막 자리
   const MET = { days: ['쓴 날', s => s.days, v => `${v}일`], n: ['카드', s => s.n, v => `${v}장`], chars: ['글자', s => s.chars, chars] };
   let met = S.pref('meGraph', 'n'); if (!MET[met]) met = 'n';
-  let sel = months[0] && M12.includes(months[0]) ? months[0] : T;
+  let sel = months[0] || T;
   const cap = (icon, t) => `<span class="mcp">${icon ? ic(icon) : ''}${esc(t)}</span>`;
   const month = (m, i) => {
     const l = by.get(m), s = statsOf(l);
@@ -1931,9 +1933,9 @@ function viewMe() {
       <div class="mdots"></div>
     </header>
     <div class="mgh"><p class="t13">달마다 돌아보기</p><div class="mseg">${Object.entries(MET).map(([k, [n]]) => `<button data-g="${k}">${n}</button>`).join('')}</div></div>
-    <div class="mgr">${M12.map(m => `<button data-m="${m}"><em></em><i></i><span>${+m.slice(5)}</span></button>`).join('')}</div>
+    <div class="mgr"></div>
     ${all.length ? '' : '<p class="t13 mg0">첫 카드를 쓰면 막대가 자라요</p>'}
-    ${months.length ? `<div class="mcr">${months.map(month).join('')}</div>` : ''}</div>${nav('me')}`;
+    ${months.length ? `<div class="mcr">${months.slice().reverse().map(month).join('')}</div>` : ''}</div>${nav('me')}`;
   bindNav();
   $('[data-a=set]').onclick = () => go('#/set');
   $('[data-a=plan]').onclick = () => go('#/set/plan');
@@ -1943,38 +1945,55 @@ function viewMe() {
   // 막대 색: 0이면 회색, 쓴 만큼 아래 → 위 그라데이션. 많이 쓴 달일수록 위가 뜨거운 색 (산호 · 주황, 빨강은 지우기에만)
   const mix = (a, b, t) => '#' + [1, 3, 5].map(i => Math.round(parseInt(a.slice(i, i + 2), 16) * (1 - t) + parseInt(b.slice(i, i + 2), 16) * t).toString(16).padStart(2, '0')).join('');
   const heat = t => t < .5 ? mix('#6F7BF7', '#C86AD8', t * 2) : mix('#C86AD8', '#FF7A45', (t - .5) * 2);
-  const gr = $('.mgr'), svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.classList.add('mcv'); gr.appendChild(svg);
-  let drawn = false;
-  const curve = () => {
-    const box = gr.getBoundingClientRect(), pts = $$('.mgr [data-m] i').map(i => { const r = i.getBoundingClientRect(); return [r.left + r.width / 2 - box.left, r.top - box.top - 4]; });
+  const gr = $('.mgr'), car = $('.mcr');
+  const vis = () => AM.slice(we - 5, we + 1);
+  // 곡선: 값을 짚는 선이 아니라 흐름만 — 막대 뒤, 아래쪽 절반 안에서 옅게 출렁여요
+  const curve = (anim) => {
+    const svg = gr.querySelector('.mcv'), box = gr.getBoundingClientRect(), [, f] = MET[met], max = Math.max(1, ...AM.map(m => f(ms[m])));
+    const pts = $$('[data-m] i', gr).map((i, k) => { const r = i.getBoundingClientRect(), base = r.bottom - box.top; return [r.left + r.width / 2 - box.left, base - 10 - f(ms[vis()[k]]) / max * 40]; });
+    pts.unshift([0, pts[0][1]]); pts.push([box.width, pts.at(-1)[1]]);
     let d = `M${pts[0][0]},${pts[0][1]}`;
-    for (let k = 0; k < pts.length - 1; k++) {   // 부드러운 곡선 (이웃 점으로 기울기)
+    for (let k = 0; k < pts.length - 1; k++) {
       const p0 = pts[k - 1] || pts[k], p1 = pts[k], p2 = pts[k + 1], p3 = pts[k + 2] || p2;
       d += ` C${p1[0] + (p2[0] - p0[0]) / 6},${p1[1] + (p2[1] - p0[1]) / 6} ${p2[0] - (p3[0] - p1[0]) / 6},${p2[1] - (p3[1] - p1[1]) / 6} ${p2[0]},${p2[1]}`;
     }
-    const k = M12.indexOf(sel), dot = pts[k];
-    svg.setAttribute('viewBox', `0 0 ${box.width} ${box.height}`);
-    svg.innerHTML = `<path d="${d}"/>${dot ? `<circle cx="${dot[0]}" cy="${dot[1]}" r="4"/>` : ''}`;
-    if (!drawn) { drawn = true; const pa = svg.querySelector('path'), L = pa.getTotalLength(); pa.style.strokeDasharray = L; pa.style.strokeDashoffset = L; requestAnimationFrame(() => { pa.style.transition = 'stroke-dashoffset .7s ease-out'; pa.style.strokeDashoffset = 0; }); }
+    svg.setAttribute('viewBox', `0 0 ${box.width} ${box.height}`); svg.innerHTML = `<path d="${d}"/>`;
+    if (anim) { const pa = svg.firstChild, L = pa.getTotalLength(); pa.style.strokeDasharray = L; pa.style.strokeDashoffset = L; requestAnimationFrame(() => { pa.style.transition = 'stroke-dashoffset .8s ease-out'; pa.style.strokeDashoffset = 0; }); }
   };
-  const paintGraph = () => {
-    const [, f, fmt] = MET[met], max = Math.max(1, ...M12.map(m => f(ms[m])));
+  const paintGraph = (grow) => {
+    const [, f, fmt] = MET[met], max = Math.max(1, ...AM.map(m => f(ms[m])));
     $$('.mseg [data-g]').forEach(b => b.classList.toggle('on', b.dataset.g === met));
-    $$('.mgr [data-m]').forEach(b => { const v = f(ms[b.dataset.m]), on = b.dataset.m === sel, t = v / max, bar = b.querySelector('i');
+    $$('[data-m]', gr).forEach(b => { const v = f(ms[b.dataset.m]), on = b.dataset.m === sel, t = v / max, bar = b.querySelector('i');
       bar.style.height = Math.max(6, Math.round(t * 96)) + 'px';
       bar.style.background = v ? `linear-gradient(to top, #3A3F7A, ${heat(t)})` : '';
       b.classList.toggle('on', on); b.querySelector('em').textContent = on ? fmt(v) : ''; });
-    setTimeout(curve, 650);   // 막대가 다 자란 뒤에 곡선 자리를 재요
+    curve(grow);
   };
-  $$('.mseg [data-g]').forEach(b => b.onclick = () => { met = b.dataset.g; S.setPref('meGraph', met); paintGraph(); });
-  const car = $('.mcr');
-  $$('.mgr [data-m]').forEach(b => b.onclick = () => { sel = b.dataset.m; paintGraph(); const c = car?.querySelector(`[data-m="${sel}"]`); if (c) car.scrollTo({ left: c.offsetLeft - (car.clientWidth - c.offsetWidth) / 2, behavior: 'smooth' }); });
+  // 6달 막대를 새로 그려요 (넘길 때마다). 처음 · 넘길 때는 막대가 아래에서 차올라요
+  const drawBars = () => {
+    gr.innerHTML = `<svg class="mcv"></svg>${vis().map(m => `<button data-m="${m}"><em></em><i></i><span>${+m.slice(5)}월</span></button>`).join('')}`;
+    $$('[data-m]', gr).forEach(b => b.onclick = () => { sel = b.dataset.m; paintGraph(); toCard(); });
+    $$('i', gr).forEach(i => i.style.height = '6px');
+    requestAnimationFrame(() => requestAnimationFrame(() => paintGraph(true)));
+  };
+  let jump = 0;   // 막대를 눌러 카드로 넘어가는 동안은 지나가는 달을 무시해요
+  const toCard = () => { const c = car?.querySelector(`[data-m="${sel}"]`); if (!c) return; clearTimeout(jump); jump = setTimeout(() => { jump = 0; }, 700); car.scrollTo({ left: c.offsetLeft - (car.clientWidth - c.offsetWidth) / 2, behavior: 'smooth' }); };
+  const showSel = () => { const k = AM.indexOf(sel); if (k < 0) return paintGraph(); if (k > we) { we = k; drawBars(); } else if (k < we - 5) { we = Math.max(5, k + 5); drawBars(); } else paintGraph(); };
+  $$('.mseg [data-g]').forEach(b => b.onclick = () => { met = b.dataset.g; S.setPref('meGraph', met); paintGraph(true); });
+  // 그래프를 옆으로 밀면 6달씩 (오른쪽으로 밀면 그 전 6달)
+  let sx = null;
+  gr.addEventListener('pointerdown', e => { sx = e.clientX; });
+  gr.addEventListener('pointerup', e => { if (sx == null) return; const dx = e.clientX - sx; sx = null;
+    if (Math.abs(dx) < 40) return; const n = Math.min(AM.length - 1, Math.max(5, we + (dx > 0 ? -6 : 6))); if (n !== we) { we = n; drawBars(); } });
   car?.addEventListener('scroll', () => {
+    if (jump) return;
     const mid = car.scrollLeft + car.clientWidth / 2;
     const c = [...car.children].reduce((a, x) => Math.abs(x.offsetLeft + x.offsetWidth / 2 - mid) < Math.abs(a.offsetLeft + a.offsetWidth / 2 - mid) ? x : a);
-    if (c.dataset.m !== sel && M12.includes(c.dataset.m)) { sel = c.dataset.m; paintGraph(); }
+    if (c.dataset.m && c.dataset.m !== sel) { sel = c.dataset.m; showSel(); }
   }, { passive: true });
-  $$('.mgr i').forEach(i => i.style.height = '6px'); requestAnimationFrame(() => requestAnimationFrame(paintGraph));
+  if (car) car.scrollLeft = car.scrollWidth;   // 달 카드도 그래프처럼 왼쪽이 지난달, 처음엔 이번 달(오른쪽 끝)
+  drawBars();
+
   // 점: 밀어서 볼 수 있는 쪽 수만큼, 지금 쪽은 길게
   const row = $('.msr'), dots = $('.mdots');
   const paintDots = () => {
