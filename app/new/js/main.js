@@ -1161,9 +1161,8 @@ function viewIntro(id) {
   // 카드 높이 = 위 버튼 아래 ~ 설명 글 위 40px (글 줄 수 · 기기마다 달라서 직접 재요)
   const room = () => { const tv = $('.tiv'), c = $('.tpg:not(.full) .tcd') || $('.tcd'); tv.style.setProperty('--room', Math.max(120, $('.tlow').getBoundingClientRect().top - 40 - c.getBoundingClientRect().top) + 'px'); };
   room();
-  let lastH = 0;
-  const ro = () => { const h = Math.round($('.tlow').getBoundingClientRect().top); if (h === lastH) return; lastH = h; room(); $$('.tpg .tcd').forEach((el, i) => { el.innerHTML = ''; mount(el, cards[i]); }); };
-  lastH = Math.round($('.tlow').getBoundingClientRect().top);
+  let lastH = '';
+  const ro = () => { const c = $('.tpg:not(.full) .tcd') || $('.tcd'), h = Math.round($('.tlow').getBoundingClientRect().top) + '|' + Math.round(c.getBoundingClientRect().top); if (h === lastH) return; lastH = h; room(); $$('.tpg .tcd').forEach((el, i) => { el.innerHTML = ''; mount(el, cards[i]); }); };
   // 글꼴이 늦게 들어와 설명 줄 수가 바뀌어도 (아이폰) · 화면이 바뀌어도 카드를 다시 맞춰요
   const obs = new ResizeObserver(ro); obs.observe($('.tlow')); addEventListener('resize', ro); document.fonts?.ready.then(ro);
   cards.forEach((c, i) => mount($$('.tpg .tcd')[i], c));
@@ -1177,7 +1176,8 @@ function viewIntro(id) {
   $('[data-a=go]').onclick = () => go('#/write/' + t.fmt);   // 유료 · 오늘 무료 확인은 결제를 붙일 때
   // 지금 보이는 예시의 아트 그림만 움직여요
   let anim = 0; const t0 = performance.now(), still = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const tick = now => { anim = requestAnimationFrame(tick); if (still) return; const p = $$('.tpg')[k()]; p && $$('canvas.bgc', p).forEach(cv => cv.width && drawCode(cv, +cv.dataset.seed, +cv.dataset.shift || 0, (now - t0) / 1000 + .01)); };
+  // ro: 설명 글 · 카드 위치가 바뀌면 (아이폰 글꼴 · 화면) 매 프레임 확인해서 카드를 다시 맞춰요
+  const tick = now => { anim = requestAnimationFrame(tick); ro(); if (still) return; const p = $$('.tpg')[k()]; p && $$('canvas.bgc', p).forEach(cv => cv.width && drawCode(cv, +cv.dataset.seed, +cv.dataset.shift || 0, (now - t0) / 1000 + .01)); };
   anim = requestAnimationFrame(tick);
   document.documentElement.classList.add('blk');   // 아이폰 홈 막대 자리까지 검정 (html · body 바탕)
   cleanup = () => { cancelAnimationFrame(anim); removeEventListener('resize', ro); obs.disconnect(); document.documentElement.classList.remove('blk'); };

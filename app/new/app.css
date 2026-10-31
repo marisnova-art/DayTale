@@ -1012,3 +1012,7 @@ html:has(.setv.plan), html:has(.setv.plan) body { background: #2B2650; }
 .setv.plan .stop2 { background: linear-gradient(#2B2650 80%, rgba(43,38,80,0)); }
 .setv.plan .stop2 .cb, .setv.plan .schip { background: rgba(255,255,255,.12); }
 .setv.plan .pl { background: rgba(255,255,255,.08); }
+/* 10-31 책 위 판: 이름 · 기간은 예전처럼 가운데 (뒤로 · ⋯ 는 양 끝) */
+.bkv .bh .bt { text-align: center; }
+/* 10-31 바탕 노이즈: 달력 · 책 · 프로필처럼 바탕이 드러나는 화면은 약하게 */
+body:has(.shv.mood) .tgr { opacity: .2; }

@@ -17,6 +17,16 @@ export const TEMPLATES = [
     ex: [['창밖 불빛이 번지는 밤.', 11, '916'], ['퇴근길 하늘이 보라색이었다.', 42, '45'], ['오늘은 아무것도 하지 않아도 괜찮았다.', 77, '11']] },
 ];
 
+// 테스트용 더미 (10-31 앤드류: 2개로는 전체 볼륨을 몰라요). 같은 두 템플릿을 그림 · 태그 · 날짜만 바꿔 채워요. 오픈 전에 false
+const DUMMY = true;
+if (DUMMY) {
+  const TG = [['밤', '감성'], ['비', '짧은글'], ['아침', '감성'], ['겨울', '밤'], ['가을', '짧은글'], ['눈', '감성'], ['봄', '아침'], ['여름', '비']];
+  for (let i = 0; i < 16; i++) {
+    const b = TEMPLATES[i % 2], ex = b.fmt === 'art' ? b.ex.map(([t, sd, r]) => [t, (sd + i * 23) % 97, r]) : [...b.ex.slice(i % 3), ...b.ex.slice(0, i % 3)];
+    TEMPLATES.push({ ...b, id: `${b.id}-${i + 1}`, pop: 3 + ((i * 7) % 16), added: `2026-10-${String(20 - i).padStart(2, '0')}`, tags: TG[i % TG.length], ex, dummy: true });
+  }
+}
+
 // 칩 · 메인 줄 키워드. when = 이때 앞으로 와요 (날씨 · 시간 · 계절)
 export const TAGS = [
   { id: '밤', when: { time: ['evening', 'night'] } },
