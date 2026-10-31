@@ -1077,3 +1077,6 @@ html:has(.setv.plan), html:has(.setv.plan) body { background: #2B2650; }
 /* 10-31 바탕 솔리드 · 다크: 빛 덩어리 · 카드 번짐 없이 단색 + 고운 노이즈 */
 .amb.flat b, .amb.flat i { display: none !important; }
 .amb.flat s { background: none; }
+/* 10-31 로고 = SVG 손글씨 (시안 1). 글자 로고와 같은 줄 높이 40 안에서 */
+.ftop .logo { display: flex; align-items: center; height: 40px; }
+.ftop .logo .lgo { display: block; height: 38px; width: auto; color: #fff; }

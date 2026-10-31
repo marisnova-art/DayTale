@@ -12,6 +12,7 @@ import { NAMES as STK, hydrate, preloadAll } from './stickers.js';
 import * as P from './photos.js';
 import { FILTERS, filterOf, fidOf, grainLv, srcOf, thumb as fthumb } from './filters.js';
 import * as V from './video.js';
+import { LOGO } from './logo.js';
 import { paint as paintMood, panelCss, MODES as BG_MODES, mode as bgMode, reset as resetMood } from './mood.js';
 import * as T from './templates.js';
 
@@ -119,7 +120,7 @@ function fixCover(c, i, b, cov) {
 // 1열(카드 크게 · 아이콘 줄 · 글 한 줄)과 2열(핀터레스트처럼 카드마다 제 비율, 아래는 쓴 때 · ⋯만). 로고 줄 알림 왼쪽 버튼으로 바꾸고, 고른 걸 기억해요 (처음은 2열)
 function viewFeed(fresh, quiet) {
   const mine = S.cards(), two = S.pref('cols', 2) === 2;
-  app.innerHTML = `<div class="amb"><div class="mo"></div><b></b><b></b><b></b><i></i><i></i><s></s></div><header class="ftop"><button class="logo" data-a="top" aria-label="맨 위로">dayzine</button><div class="rt"><button class="cb" data-a="cols" aria-label="${two ? '1열로 보기' : '2열로 보기'}">${ic(two ? 'one' : 'grid')}</button><button class="cb" data-a="bell" aria-label="알림">${ic('bell')}</button><button class="cb me" data-a="me" aria-label="프로필"><span class="av"${avStyle()}></span></button></div></header><div class="bn${two ? ' two' : ''}" hidden></div>
+  app.innerHTML = `<div class="amb"><div class="mo"></div><b></b><b></b><b></b><i></i><i></i><s></s></div><header class="ftop"><button class="logo" data-a="top" aria-label="맨 위로">${LOGO}</button><div class="rt"><button class="cb" data-a="cols" aria-label="${two ? '1열로 보기' : '2열로 보기'}">${ic(two ? 'one' : 'grid')}</button><button class="cb" data-a="bell" aria-label="알림">${ic('bell')}</button><button class="cb me" data-a="me" aria-label="프로필"><span class="av"${avStyle()}></span></button></div></header><div class="bn${two ? ' two' : ''}" hidden></div>
     <main class="feed${two ? ' two' : ''}">${two ? '<div class="mc"></div><div class="mc"></div>' : ''}</main>${nav('home')}`;
   bindNav(); $('[data-a=bell]').onclick = soon;
   $('[data-a=top]').onclick = () => window.scrollTo({ top: 0, behavior: 'smooth' });
