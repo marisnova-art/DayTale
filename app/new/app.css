@@ -756,7 +756,7 @@ mark { background: rgba(255,255,255,.32); color: #fff; border-radius: 0; padding
 .mev .t13 { font-size: var(--fs-s); font-weight: var(--fw); line-height: 18px; }
 .mpn { position: relative; border-radius: 0 0 32px 32px; padding: var(--top) 0 28px var(--gut); overflow: hidden; color: #fff; }
 .mset { flex: none; width: 40px; height: 40px; margin-right: -7px; display: grid; place-items: center; color: #fff; }   /* 사진 줄 오른쪽 끝 (홈 알림 자리) */
-.mset .ic { width: 26px; height: 26px; stroke-width: 2.2; }
+.mset .ic { width: 28px; height: 28px; stroke-width: 2.2; }
 .mpro { display: flex; align-items: center; gap: 12px; padding-right: var(--gut); }
 .mpro .av { width: 56px; height: 56px; flex: none; }
 .mpro .who { flex: 1; min-width: 0; }
@@ -870,8 +870,10 @@ mark { background: rgba(255,255,255,.32); color: #fff; border-radius: 0; padding
 
 /* 홈 위 줄 (10-31): 1열/2열 · 알림은 동그라미 없이 아이콘만 조금 크게, 프로필은 둥근 사진 그대로 */
 .ftop .cb { background: none; }
-.ftop .cb .ic { width: 26px; height: 26px; }
-.ftop .cb.me .av { width: 30px; height: 30px; }
+.ftop .rt { gap: 0; margin-right: -6px; }   /* 아이콘끼리 조금 붙여요 */
+.ftop .cb .ic { width: 28px; height: 28px; stroke-width: 2.2; }   /* 아래 메뉴 아이콘과 같은 크기 */
+.ftop .cb.me .av { width: 32px; height: 32px; }
+.ftop .logo { padding: 0; text-align: left; }
 .nb.on .ic .lo { fill: none; }   /* 템플릿 탭: 켜지면 맨 위 판만 채워요 */
 
 /* 템플릿 메인 (10-31 시안 4): 무드 바탕 + 고운 노이즈. 검색 · 칩 · 위 판만 글라스, 위치 · 크기는 그대로 */
@@ -880,7 +882,9 @@ mark { background: rgba(255,255,255,.32); color: #fff; border-radius: 0; padding
 .tmv { position: relative; z-index: 1; min-height: 100vh; padding-bottom: calc(120px + var(--safe-b)); }
 .tmv .shtop { padding-bottom: 16px; }
 .tmv .hb { width: 40px; height: 40px; display: grid; place-items: center; flex: none; }
-.tmv .hb .ic, .tiv .hb .ic { width: 26px; height: 26px; }
+.tmv .hb { margin-right: -6px; }
+.tmv .hb .ic { width: 28px; height: 28px; stroke-width: 2.2; }   /* 위 줄 아이콘 = 홈 위 줄과 같은 크기 */
+.tiv .hb .ic { width: 26px; height: 26px; }
 .hb.on .ic { fill: currentColor; }
 .tsf { margin: 0 var(--gut); height: 44px; border-radius: 999px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 16px; color: rgba(255,255,255,.6); }
 .tsf .ic { width: 20px; height: 20px; }
@@ -900,8 +904,8 @@ mark { background: rgba(255,255,255,.32); color: #fff; border-radius: 0; padding
 .tday { flex: 0 0 100%; scroll-snap-align: start; border-radius: 14px; display: flex; gap: 20px; padding: 16px; align-items: center; text-align: left; }
 .tday .th { width: 104px; flex: none; border-radius: 8px; overflow: hidden; pointer-events: none; }
 .tday .tdx { flex: 1; min-width: 0; }
-.tday .tdx em { display: block; font-style: normal; font-size: var(--fs-s); color: rgba(255,255,255,.7); }
-.tday .tdx b { display: block; font-size: var(--fs-m); font-weight: var(--fw); margin: 10px 0 8px; }
+.tday .tdx em { display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 999px; font-style: normal; font-size: var(--fs-s); color: #fff; }
+.tday .tdx b { display: block; font-size: var(--fs-l); font-weight: var(--fw); letter-spacing: -.01em; line-height: 1.2; margin: 12px 0 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }   /* 이름 = 24 (프로필과 같은 예외 크기, 앤드류 10-31) */
 .tday .tdx p { font-size: var(--fs-s); color: rgba(255,255,255,.7); line-height: 1.6; margin: 0; }
 .thero .mdots, .tmv .trow + .mdots { margin-top: 12px; }
 .tsec { display: flex; align-items: baseline; justify-content: space-between; margin: 36px var(--gut) 12px; }
@@ -935,8 +939,10 @@ mark { background: rgba(255,255,255,.32); color: #fff; border-radius: 0; padding
 .tpg.full .tcd { transform: none; width: auto; }
 .tpg.full .tcd { left: 0; right: 0; top: 0; border-radius: 0; }
 .tpg.full .tcd .cd { border-radius: 0; }
-.tsh { position: absolute; left: 0; right: 0; bottom: 0; height: 60%; background: linear-gradient(transparent, rgba(0,0,0,.85) 45%, #000 70%); pointer-events: none; }   /* 9:16 카드 아래 끝이 보이지 않게 검정으로 이어요 */
-.tcnt { position: absolute; top: calc(var(--top) + 4px); right: calc(var(--gut) + 48px); height: 32px; padding: 0 12px; border-radius: 999px; display: flex; align-items: center; font-size: var(--fs-s); font-variant-numeric: tabular-nums; pointer-events: none; }
+.tpg .tsh { position: absolute; left: 0; right: 0; bottom: 0; height: 60%; background: linear-gradient(transparent, rgba(0,0,0,.85) 45%, #000 70%); pointer-events: none; }   /* 9:16 카드 아래 끝이 보이지 않게 검정으로 이어요 */
+.tnum { position: absolute; top: calc(var(--top) + 4px); right: calc(var(--gut) + 48px); display: flex; gap: 6px; }
+.tnum button { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-size: var(--fs-s); color: #fff; font-variant-numeric: tabular-nums; }
+.tnum button.on { background: #fff; color: var(--bg); box-shadow: none; }
 .tiv .tcl { position: absolute; top: var(--top); right: var(--gut); width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; }
 .tiv .tcl .ic { width: 20px; height: 20px; }
 .tlow { position: absolute; left: var(--gut); right: var(--gut); bottom: calc(24px + var(--safe-b)); }

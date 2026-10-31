@@ -119,9 +119,10 @@ function fixCover(c, i, b, cov) {
 // 1열(카드 크게 · 아이콘 줄 · 글 한 줄)과 2열(핀터레스트처럼 카드마다 제 비율, 아래는 쓴 때 · ⋯만). 로고 줄 알림 왼쪽 버튼으로 바꾸고, 고른 걸 기억해요 (처음은 2열)
 function viewFeed(fresh, quiet) {
   const mine = S.cards(), two = S.pref('cols', 2) === 2;
-  app.innerHTML = `<div class="amb"><div class="mo"></div><b></b><b></b><b></b><i></i><i></i><s></s></div><header class="ftop"><div class="logo">dayzine</div><div class="rt"><button class="cb" data-a="cols" aria-label="${two ? '1열로 보기' : '2열로 보기'}">${ic(two ? 'one' : 'grid')}</button><button class="cb" data-a="bell" aria-label="알림">${ic('bell')}</button><button class="cb me" data-a="me" aria-label="프로필"><span class="av"${avStyle()}></span></button></div></header><div class="bn${two ? ' two' : ''}" hidden></div>
+  app.innerHTML = `<div class="amb"><div class="mo"></div><b></b><b></b><b></b><i></i><i></i><s></s></div><header class="ftop"><button class="logo" data-a="top" aria-label="맨 위로">dayzine</button><div class="rt"><button class="cb" data-a="cols" aria-label="${two ? '1열로 보기' : '2열로 보기'}">${ic(two ? 'one' : 'grid')}</button><button class="cb" data-a="bell" aria-label="알림">${ic('bell')}</button><button class="cb me" data-a="me" aria-label="프로필"><span class="av"${avStyle()}></span></button></div></header><div class="bn${two ? ' two' : ''}" hidden></div>
     <main class="feed${two ? ' two' : ''}">${two ? '<div class="mc"></div><div class="mc"></div>' : ''}</main>${nav('home')}`;
   bindNav(); $('[data-a=bell]').onclick = soon;
+  $('[data-a=top]').onclick = () => window.scrollTo({ top: 0, behavior: 'smooth' });
   const feed = $('.feed');
   // 내 카드가 적으면 우리 카드(포맷 예시)를 아래에. N년 전 오늘 카드는 위에서 두 번째, NEW 포맷 카드는 8장마다 하나
   const list = mine.map(c => ({ c }));
@@ -1051,13 +1052,13 @@ function closeRun(now) {
 /* ── 템플릿 메인 ─────────────────────────────────────── */
 // 시안 4 (10-31): 홈 무드 바탕 + 고운 노이즈. 검색 · 칩 · 위 판만 글라스, 위치 · 크기는 다른 화면과 같아요.
 // 칩(전체 · 디자인 · 아트 · 키워드)과 ♥ 즐겨찾기는 같은 화면에서 아래만 2열로 바꿔요. 카드를 누르면 템플릿 소개
-const tstate = { f: '전체', q: '' };   // 소개에서 돌아오면 보던 그대로
+const tstate = { f: '홈', q: '' };   // 소개에서 돌아오면 보던 그대로
 const isPaidUser = () => S.pref('plan', 'free') === 'paid';
 const HEART = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>';
 function viewTpl() {
   const free = T.heroes()[0].t, paid = isPaidUser();
   const lock = t => t.paid && !paid && t !== free;   // 테스트 동안은 표시만 (모두 열려 있어요)
-  const chips = ['전체', '디자인', '아트', ...T.tagOrder()];
+  const chips = ['홈', '디자인', '아트', ...T.tagOrder()];
   app.innerHTML = `<div class="amb"><div class="mo"></div></div><div class="tgr"></div><div class="tmv">
     <header class="shtop"><div class="tl"><h1>템플릿</h1></div><button class="hb" data-a="fav" aria-label="즐겨찾기">${HEART}</button></header>
     <label class="tsf gls">${ic('search')}<input type="search" placeholder="검색" enterkeyhint="search" autocomplete="off"><button class="x" data-a="clr" aria-label="지우기" hidden>${ic('close')}</button></label>
@@ -1076,7 +1077,7 @@ function viewTpl() {
     $('[data-a=clr]').hidden = !q;
     const body = $('.tbody'); body.innerHTML = '';
     const cardOf = t => T.exCard(t, 0, true);
-    if (f === '전체' && !q) {   // 메인: 위 판 → 줄들 → 모든 템플릿
+    if (f === '홈' && !q) {   // 메인: 위 판 → 줄들 → 모든 템플릿
       const hs = T.heroes().map(h => ({ ...h, label: h.k === 'free' ? (paid ? '오늘 추천' : '오늘 무료') : h.k === 'now' ? '지금 추천' : '새로 나온' }));
       const seen = new Set(), rows = [];
       const row = (title, list, c) => { const l = list.filter(t => !seen.has(t)).slice(0, 8); if (l.length >= 2) { l.forEach(t => seen.add(t)); rows.push({ title, l, c }); } };
@@ -1085,7 +1086,7 @@ function viewTpl() {
       T.tagOrder().slice(0, 2).forEach(g => row(g, T.TEMPLATES.filter(t => t.tags.includes(g)), g));
       row('디자인', T.TEMPLATES.filter(t => t.kind === '디자인'), '디자인');
       row('아트', T.TEMPLATES.filter(t => t.kind === '아트'), '아트');
-      body.innerHTML = `<div class="thero"><div class="ths">${hs.map(h => `<button class="tday gls" data-t="${h.t.id}"><div class="th"></div><div class="tdx"><em>${h.label}</em><b>${esc(h.t.name)}</b><p>${esc(h.t.desc)}</p></div></button>`).join('')}</div><div class="mdots" data-for="ths"></div></div>
+      body.innerHTML = `<div class="thero"><div class="ths">${hs.map(h => `<button class="tday gls" data-t="${h.t.id}"><div class="th"></div><div class="tdx"><em class="gls">${h.label}</em><b>${esc(h.t.name)}</b><p>${esc(h.t.desc)}</p></div></button>`).join('')}</div><div class="mdots" data-for="ths"></div></div>
         ${rows.map(r => `<div class="tsec"><b>${esc(r.title)}</b><button data-c="${esc(r.c)}">모두 보기</button></div><div class="trow">${r.l.map(t => tile(t)).join('')}</div><div class="mdots"></div>`).join('')}
         <div class="tsec"><b>모든 템플릿</b></div><div class="tg2">${T.newest().map(t => tile(t)).join('')}</div>`;
       hs.forEach((h, i) => mount($$('.tday .th', body)[i], cardOf(h.t)));
@@ -1105,7 +1106,7 @@ function viewTpl() {
       if (f === 'fav') { const fv = T.favs(); l = fv.map(T.tpl).filter(Boolean); }
       else if (f === '디자인' || f === '아트') l = l.filter(t => t.kind === f);
       else if (f === 'new') l = l.filter(t => (new Date(S.today()) - new Date(t.added)) / 864e5 <= 30);
-      else if (f !== '전체') l = l.filter(t => t.tags.includes(f));
+      else if (f !== '홈') l = l.filter(t => t.tags.includes(f));
       l = l.filter(t => T.hit(t, q));
       body.innerHTML = l.length ? `<div class="tg2 solo">${l.map(t => tile(t)).join('')}</div>`
         : `<div class="tempty"><span class="i">${f === 'fav' && !q ? HEART : ic('search')}</span><b>${f === 'fav' && !q ? '하트 누른 템플릿이 여기 모여요' : '맞는 템플릿이 없어요'}</b></div>`;
@@ -1114,7 +1115,7 @@ function viewTpl() {
   };
   const setF = f => { tstate.f = f; paint(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   $('.tch').onclick = e => { const b = e.target.closest('[data-c]'); if (b) setF(b.dataset.c); };
-  $('[data-a=fav]').onclick = () => setF(tstate.f === 'fav' ? '전체' : 'fav');
+  $('[data-a=fav]').onclick = () => setF(tstate.f === 'fav' ? '홈' : 'fav');
   $('[data-a=clr]').onclick = e => { e.preventDefault(); inp.value = tstate.q = ''; paint(); inp.focus(); };
   inp.oninput = () => { tstate.q = inp.value; paint(); };
   inp.onkeydown = e => { if (e.key === 'Enter') inp.blur(); };
@@ -1135,14 +1136,15 @@ function viewIntro(id) {
   const free = T.heroes()[0].t, paid = isPaidUser();
   const sub = [t.kind, t === free ? (paid ? '오늘 추천' : '오늘 무료') : ''].filter(Boolean).join(' · ');
   const cards = t.ex.map((_, i) => T.exCard(t, i));
-  app.innerHTML = `<div class="tiv"><div class="tip">${cards.map(c => `<div class="tpg${c.ratio === '916' ? ' full' : ''}" style="--ar:${arOf(c)}"><div class="tcd"></div></div>`).join('')}</div><div class="tsh"></div>
-    <span class="tcnt gls">예시 1/${cards.length}</span><button class="tcl gls" data-a="x" aria-label="닫기">${ic('close')}</button>
+  app.innerHTML = `<div class="tiv"><div class="tip">${cards.map(c => `<div class="tpg${c.ratio === '916' ? ' full' : ''}" style="--ar:${arOf(c)}"><div class="tcd"></div>${c.ratio === '916' ? '<div class="tsh"></div>' : ''}</div>`).join('')}</div>
+    <div class="tnum">${cards.map((_, i) => `<button class="gls${i ? '' : ' on'}" data-i="${i}" aria-label="예시 ${i + 1}">${i + 1}</button>`).join('')}</div><button class="tcl gls" data-a="x" aria-label="닫기">${ic('close')}</button>
     <div class="tlow"><em>${sub}</em><h2>${esc(t.name)}</h2><p>${esc(t.desc)}</p>
     <div class="tcta"><button class="w" data-a="go">${ic('pen')}이 템플릿으로 쓰기</button><button class="hb gls" data-a="heart" aria-label="즐겨찾기">${HEART}</button></div></div></div>`;
   cards.forEach((c, i) => mount($$('.tpg .tcd')[i], c));
-  const pg = $('.tip'), cnt = $('.tcnt');
+  const pg = $('.tip');
   const k = () => Math.round(pg.scrollLeft / Math.max(1, pg.clientWidth));
-  pg.addEventListener('scroll', () => { cnt.textContent = `예시 ${k() + 1}/${cards.length}`; }, { passive: true });
+  pg.addEventListener('scroll', () => $$('.tnum button').forEach((b, i) => b.classList.toggle('on', i === k())), { passive: true });
+  $$('.tnum button').forEach(b => b.onclick = () => pg.scrollTo({ left: +b.dataset.i * pg.clientWidth, behavior: 'smooth' }));
   const hb = $('[data-a=heart]'); hb.classList.toggle('on', T.isFav(t.id));
   hb.onclick = () => { const on = T.toggleFav(t.id); hb.classList.toggle('on', on); toast(on ? '즐겨찾기에 담았어요' : '즐겨찾기에서 뺐어요'); };
   $('[data-a=x]').onclick = () => lastHash ? history.back() : location.replace('#/tpl');
@@ -1151,7 +1153,8 @@ function viewIntro(id) {
   let anim = 0; const t0 = performance.now(), still = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const tick = now => { anim = requestAnimationFrame(tick); if (still) return; const p = $$('.tpg')[k()]; p && $$('canvas.bgc', p).forEach(cv => cv.width && drawCode(cv, +cv.dataset.seed, +cv.dataset.shift || 0, (now - t0) / 1000 + .01)); };
   anim = requestAnimationFrame(tick);
-  cleanup = () => cancelAnimationFrame(anim);
+  document.documentElement.style.backgroundColor = '#000';   // 아이폰 홈 막대 자리까지 검정
+  cleanup = () => { cancelAnimationFrame(anim); document.documentElement.style.backgroundColor = ''; };
 }
 
 /* ── 포맷 고르기 ─────────────────────────────────────── */
@@ -1990,12 +1993,14 @@ function viewWrite({ fmt, id, like }) {
 
   // 책장 · 달력에서 고치러 왔으면 끝나고 그 화면으로 (큰 화면도 그 카드로 다시)
   const from = !isNew && editFrom?.id === card.id ? editFrom.hash : null;
+  const came = lastHash;   // 템플릿 소개에서 들어왔으면 뒤로 = 그 소개
   const backTo = () => { reopen = card.id; editFrom = null; if (lastHash === from) history.back(); else location.replace(from); };
   $('[data-a=back]').onclick = () => {
     clearTimeout(st.timer);
     if (isNew) { if (hasText()) S.saveDraft({ card }); else S.clearDraft(); }
     else if (hasText()) S.saveCard(card);
     if (from) return backTo();
+    if (isNew && /^#\/ti\//.test(came || '')) return history.back();
     go(isNew ? '#/pick' : `#/at/${card.id}`);   // 바로 앞 화면으로: 새로 쓰기는 포맷 고르기, 고치기는 피드의 그 카드
   };
   $('[data-a=ok]').onclick = () => {
