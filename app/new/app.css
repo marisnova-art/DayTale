@@ -1058,3 +1058,16 @@ html:has(.setv.plan), html:has(.setv.plan) body { background: #2B2650; }
 .tstk.sc .tsf { margin-top: 8px; }
 /* 10-31 한 줄 소개: 20자 한 줄 (아주 좁은 폰에서 넘치면 … 처리, 랜덤 문장과 같은 .mq 규칙) */
 .sinp.sbio { height: auto; min-height: 52px; padding: 14px 16px; line-height: 1.45; resize: none; }
+/* 10-31 프로필 전체: 판 높이 = 월별 그래프와 같게, 막대는 0에서 자라요, 쓴 날 = 올해 점 달력 */
+.mgc.all .hb2 { min-height: 165px; align-content: start; }
+.hbr i { width: 0; transition: width .7s cubic-bezier(.2,.8,.2,1); }
+.ydot { display: grid; grid-template-columns: 22px repeat(31, minmax(0, 1fr)); grid-auto-rows: 11px; gap: 2px; align-items: center; justify-items: center; }
+.ydot span { justify-self: start; font-size: var(--fs-s); line-height: 1; color: var(--mut); }
+.ydot i { width: 7px; height: 7px; border-radius: 999px; background: rgba(255,255,255,.12); }
+.ydot i.f { background: rgba(255,255,255,.05); }
+.ydot i.x { background: none; }
+.ydot i.t { box-shadow: inset 0 0 0 1px rgba(255,255,255,.6); }
+.ydot i.w { background: rgba(255,255,255,.12); animation: ydon .35s ease-out forwards; }
+@keyframes ydon { to { background: #FF8A55; transform: scale(1.15); } }
+/* 10-31 칸 사이 넓게 */
+.mev .msr { gap: 12px; margin-top: 16px; }

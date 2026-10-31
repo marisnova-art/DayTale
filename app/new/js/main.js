@@ -2204,14 +2204,13 @@ function viewMe() {
     $('[data-for=mgr]').innerHTML = dotsHtml(1 - pMin, pg - pMin);
     requestAnimationFrame(() => requestAnimationFrame(paintGraph));
   };
-  // 전체 (10-31): 달로 나누지 않고 고른 칸의 모든 항목을 많은 순 가로 막대로. 쓴 날 · 카드 = 해마다, 한 장 평균 = 글 길이 3단
+  // 전체 (10-31): 달로 나누지 않고 고른 칸의 모든 항목을 많은 순 가로 막대로. 쓴 날 = 점 달력, 카드 = 종류마다, 한 장 평균 = 글 길이 3단
   const LEN = [['짧은 글', 0, 50], ['보통', 50, 150], ['긴 글', 150, 1e9]];
   const paintAll = () => {
     const k = met.k, len = c => cardText(c).replace(/\s/g, '').length; let rows, unit = '장', title;
-    if (k === 'days' || k === 'n') {
-      const ys = [...new Set(all.filter(c => c.date).map(c => c.date.slice(0, 4)))].sort().reverse();
-      rows = ys.map(y => { const l = all.filter(c => c.date?.startsWith(y)); return [`${y}년`, k === 'days' ? new Set(l.map(c => c.date)).size : l.length]; });
-      unit = k === 'days' ? '일' : '장'; title = `${k === 'days' ? '쓴 날' : '카드'} · 해마다`;
+    if (k === 'days') return paintYear();
+    if (k === 'n') {
+      rows = ['기본', '디자인', '아트'].map(f => [f, all.filter(c => (LABEL[c.fmt] || '').split(' · ')[0] === f).length]); title = '카드 · 종류마다';
     } else if (k === 'chars') {
       rows = LEN.map(([n, a, b]) => [n, all.filter(c => len(c) >= a && len(c) < b).length]); title = '글 길이 · 전체';
     } else {
@@ -2221,7 +2220,18 @@ function viewMe() {
     }
     $('.mgt').textContent = title;
     const mx = Math.max(1, ...rows.map(r => r[1])), hi = Math.max(...rows.map(r => r[1]));
-    $('.hb2').innerHTML = rows.length ? rows.map(([n, v]) => `<div class="hbr${v === hi && v ? ' hk' : ''}"><span>${esc(n)}</span><i style="width:${v ? Math.max(4, v / mx * 100) : 0}%"></i><b>${v}${unit}</b></div>`).join('') : '<p class="t13 mg0">첫 카드를 쓰면 막대가 자라요</p>';
+    $('.hb2').innerHTML = rows.length ? rows.map(([n, v]) => `<div class="hbr${v === hi && v ? ' hk' : ''}"><span>${esc(n)}</span><i data-w="${v ? Math.max(4, v / mx * 100) : 0}"></i><b>${v}${unit}</b></div>`).join('') : '<p class="t13 mg0">첫 카드를 쓰면 막대가 자라요</p>';
+    // 막대는 0에서 자라요 (위 줄부터 조금씩 늦게)
+    requestAnimationFrame(() => requestAnimationFrame(() => $$('.hb2 .hbr i').forEach((i, n) => { i.style.transitionDelay = n * 60 + 'ms'; i.style.width = i.dataset.w + '%'; })));
+  };
+  // 쓴 날 · 전체 (10-31): 올해 점 달력. 한 줄 = 한 달, 점 하나 = 하루, 쓴 날만 밝게. 1월부터 차례로 켜져요
+  const paintYear = () => {
+    const y = S.today().slice(0, 4), today = S.today(), days = new Set(all.filter(c => c.date?.startsWith(y)).map(c => c.date));
+    $('.mgt').textContent = `쓴 날 · ${y}년 ${days.size}일`;
+    let n = 0;
+    $('.hb2').innerHTML = `<div class="ydot">${Array.from({ length: 12 }, (_, m) => { const dim = new Date(+y, m + 1, 0).getDate();
+      return `<span>${m + 1}</span>${Array.from({ length: 31 }, (_, d) => { const ds = `${y}-${p2(m + 1)}-${p2(d + 1)}`;
+        return d >= dim ? '<i class="x"></i>' : days.has(ds) ? `<i class="w" style="animation-delay:${(n++) * 40}ms"></i>` : `<i${ds > today ? ' class="f"' : ds === today ? ' class="t"' : ''}></i>`; }).join('')}`; }).join('')}</div>`;
   };
   const showSel = () => { const p = pageOf(sel); if (p !== pg) { pg = p; drawBars(); } else paintGraph(); };
   // 칸 누르기: 값이 없는 칸(없어요)은 그대로
