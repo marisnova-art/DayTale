@@ -2360,12 +2360,12 @@ function setField(k) {
   };
   inp.focus();
 }
-// 한 줄 소개 (좌우명 등, 40자): 프로필 이름 아래 문장 자리에 나와요. 비우면 랜덤 문장
+// 한 줄 소개 (좌우명 등, 20자 = 어느 폰에서나 한 줄): 프로필 이름 아래 문장 자리에 나와요. 비우면 랜덤 문장
 function setBio() {
   const me = meOf();
-  setShell('한 줄 소개', `<textarea class="sinp sbio" maxlength="40" rows="2" placeholder="나의 소개 · 좌우명">${esc(me.bio || '')}</textarea><p class="shint"><span class="bcn"></span> · 비워 두면 오늘의 문장이 나와요</p>`, { up: '#/set/account' });
+  setShell('한 줄 소개', `<textarea class="sinp sbio" maxlength="20" rows="1" placeholder="나의 소개 · 좌우명">${esc(me.bio || '')}</textarea><p class="shint"><span class="bcn"></span> · 비워 두면 오늘의 문장이 나와요</p>`, { up: '#/set/account' });
   const inp = $('.sbio'), bn = $('.bcn');
-  const cnt = () => { bn.textContent = `${[...inp.value].length}/40`; };
+  const cnt = () => { bn.textContent = `${[...inp.value].length}/20`; };
   inp.oninput = () => { if (inp.value.includes('\n')) inp.value = inp.value.replace(/\n/g, ' '); setMe({ bio: inp.value.trim() }); cnt(); };
   cnt(); inp.focus();
 }
