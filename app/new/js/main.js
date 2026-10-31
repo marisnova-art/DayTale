@@ -2144,20 +2144,28 @@ function viewMe() {
   // 막대 높이 기준 = 내 기록에서 가장 많이 쓴 달이 들어가는 단계 (쓴 날은 한 달 30일). 왼쪽 수치는 0 · 1/3 · 2/3 · 끝
   const STEP = { days: [30], n: [30, 60, 120, 300, 600, 1200], chars: [15000, 30000, 60000, 150000, 300000] };
   const MET = { days: ['쓴 날', s => s.days, v => `${v}일`], n: ['카드', s => s.n, v => `${v}장`], chars: ['글자', s => s.chars, chars] };
-  const topOf = k => { const f = MET[k][1], hi = Math.max(0, ...months.map(m => f(ms(m)))); let t = STEP[k].find(x => x >= hi); if (!t) { t = STEP[k].at(-1); while (t < hi) t *= 2; } return t; };
+  // 10-31: 위 칸을 누르면 그래프 기준이 바뀌어요. 숫자 3칸 = 그 숫자, 나머지 = 그 값으로 쓴 카드 수 (예: 부산에서 쓴 카드)
+  const KEYS = ['days', 'n', 'chars', 'kind', 'col', 'place', 'when', 'wd'];
+  const CAT = { kind: kindOf, col: bgName, place: placeOf, when: slotOf, wd: c => c.date ? WD[dayOf(c.date).getDay()] + '요일' : '' };
+  const raw = s => [s.days, s.n, s.chars, s.kind, s.col, s.place, s.when, s.wd];
+  const valOf = (g, m) => CAT[g.k] ? (by.get(m) || []).filter(c => CAT[g.k](c) === g.v).length : MET[g.k][1](ms(m));
+  const fmtOf = g => CAT[g.k] ? v => `${v}장` : MET[g.k][2];
+  const titleOf = g => { const v = g.v, sh = v && v.replace(/^(디자인|아트) /, '');
+    return ({ days: '쓴 날', n: '카드', chars: '글자', kind: `${sh} 템플릿으로 쓴 카드`, col: `${v} 색으로 쓴 카드`, place: `${v}에서 쓴 카드`, when: `${v}에 쓴 카드`, wd: `${v}에 쓴 카드` })[g.k] + ' · 달마다'; };
+  const topOf = g => { const st0 = STEP[CAT[g.k] ? 'n' : g.k], hi = Math.max(0, ...months.map(m => valOf(g, m))); let t = st0.find(x => x >= hi); if (!t) { t = st0.at(-1); while (t < hi) t *= 2; } return t; };
   const axis = v => v >= 1e4 ? `${+(v / 1e4).toFixed(1)}만` : v >= 1000 ? `${+(v / 1000).toFixed(1)}천` : `${v}`;
-  let met = S.pref('meGraph', 'n'); if (!MET[met]) met = 'n';
+  let met = { k: MET[S.pref('meGraph', 'n')] ? S.pref('meGraph', 'n') : 'n' };
   let sel = T;
   app.innerHTML = `${MOOD}<div class="shv mev mood"><i class="stb"></i>
-    <header class="mpn" style="background-image:${panelCss()}">
+    <header class="mpn">
       <div class="mpro"><span class="av"${avStyle()}></span><div class="who"><div class="t24">${esc(me.name || '나')}</div>
         <div class="t13 id">${me.id ? `<span>@${esc(me.id)}</span>` : ''}<button class="chip" data-a="plan">체험 중</button></div></div>
         <button class="mset" data-a="set" aria-label="설정">${ic('slide')}</button></div>
       <button class="t24 mq" data-a="q">${ln[0]}</button>
       <div class="mmd"><div class="msg2"><button data-v="all">전체</button><button data-v="m">월별</button></div><div class="mmn"><button data-a="pm" aria-label="지난달">${ic('back')}</button><b></b><button data-a="nm" aria-label="다음 달">${ic('next')}</button></div></div>
-      <div class="msr">${tileBg.map(t => `<div class="mst${t.lt ? ' lt' : ''}"><i${t.attr}></i><b></b><span class="mlb"></span></div>`).join('')}</div>
+      <div class="msr">${tileBg.map((t, i) => `<button class="mst${t.lt ? ' lt' : ''}" data-k="${KEYS[i]}"><i${t.attr}></i><b></b><span class="mlb"></span></button>`).join('')}</div>
     </header>
-    <section class="mgc"><div class="mseg">${Object.entries(MET).map(([k, [n]]) => `<button data-g="${k}">${n}</button>`).join('')}</div>
+    <section class="mgc"><p class="mgt"></p>
     <div class="mgw"><div class="may"></div><div class="mgr"></div></div>
     ${all.length ? '' : '<p class="t13 mg0">첫 카드를 쓰면 막대가 자라요</p>'}<div class="mdots" data-for="mgr"></div></section>
     </div>${nav('')}`;
@@ -2173,10 +2181,11 @@ function viewMe() {
   const heat = t => t < .5 ? mix('#6F7BF7', '#C86AD8', t * 2) : mix('#C86AD8', '#FF7A45', (t - .5) * 2);
   const gr = $('.mgr'), H = 96;
   const paintGraph = () => {
-    const [, f, fmt] = MET[met], top = topOf(met);
-    $$('.mseg [data-g]').forEach(b => b.classList.toggle('on', b.dataset.g === met));
+    const fmt = fmtOf(met), top = topOf(met);
+    $('.mgt').textContent = titleOf(met);
+    $$('.msr .mst').forEach(b => b.classList.toggle('on', b.dataset.k === met.k));
     $('.may').innerHTML = [3, 2, 1, 0].map(k => `<span>${axis(Math.round(top * k / 3))}</span>`).join('');
-    $$('[data-m]', gr).forEach(b => { const m = b.dataset.m, v = f(ms(m)), on = m === sel, t = Math.min(1, v / top), bar = b.querySelector('i');
+    $$('[data-m]', gr).forEach(b => { const m = b.dataset.m, v = valOf(met, m), on = m === sel, t = Math.min(1, v / top), bar = b.querySelector('i');
       bar.style.height = v ? Math.max(6, Math.round(t * H)) + 'px' : '0px';
       bar.style.background = !v ? '' : (on ? 'repeating-linear-gradient(135deg, rgba(255,255,255,.22) 0 2px, transparent 2px 7px), ' : '') + `linear-gradient(to top, #3A3F7A, ${heat(t)})`;   // 고른 달 = 선명 + 빗금
       b.classList.toggle('on', on); b.querySelector('em').textContent = on ? fmt(v) : ''; });
@@ -2190,7 +2199,12 @@ function viewMe() {
     requestAnimationFrame(() => requestAnimationFrame(paintGraph));
   };
   const showSel = () => { const p = pageOf(sel); if (p !== pg) { pg = p; drawBars(); } else paintGraph(); };
-  $$('.mseg [data-g]').forEach(b => b.onclick = () => { met = b.dataset.g; S.setPref('meGraph', met); paintGraph(); });
+  // 칸 누르기: 값이 없는 칸(없어요)은 그대로
+  $$('.msr .mst').forEach((b, i) => b.onclick = () => {
+    const k = KEYS[i], v = raw(mode === 'm' ? ms(sel) : st)[i];
+    if (CAT[k] && !v) return;
+    met = CAT[k] ? { k, v } : { k }; if (!CAT[k]) S.setPref('meGraph', k); paintGraph();
+  });
   // 그래프를 옆으로 밀면 7달씩 (오른쪽으로 밀면 그 전 7달)
   let sx = null;
   gr.addEventListener('pointerdown', e => { sx = e.clientX; });
@@ -2199,7 +2213,7 @@ function viewMe() {
   if (months.length && !by.has(T)) sel = months.at(-1);
   pg = pageOf(sel); drawBars();
 
-  // 10칸: 전체 = 처음부터, 월별 = 고른 달 (‹ › 로 쓴 달만 오가요, 그래프 막대도 같이)
+  // 8칸: 전체 = 처음부터, 월별 = 고른 달 (‹ › 로 쓴 달만 오가요, 그래프 막대도 같이)
   let mode = 'all';
   const paintTiles = () => {
     $$('.msg2 button').forEach(b => b.classList.toggle('on', b.dataset.v === mode));
