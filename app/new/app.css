@@ -911,6 +911,10 @@ mark { background: rgba(255,255,255,.32); color: #fff; border-radius: 0; padding
 .tsec { display: flex; align-items: baseline; justify-content: space-between; margin: 36px var(--gut) 12px; }
 .tsec b { font-size: var(--fs-m); font-weight: var(--fw); }
 .tsec button { font-size: var(--fs-s); color: rgba(255,255,255,.6); }
+.tsec.tabs { align-items: center; }
+.tbs { display: flex; gap: 16px; }
+.tbs button { font-size: var(--fs-m); color: rgba(255,255,255,.45); padding: 0; }
+.tbs button.on { color: #fff; }   /* 고른 탭만 흰색 */
 .trow { display: flex; gap: 8px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-left: var(--gut); padding: 0 var(--gut); scrollbar-width: none; overscroll-behavior-x: contain; }
 .trow::-webkit-scrollbar { display: none; }
 .trow::after { content: ''; flex: 0 0 8px; }
@@ -940,7 +944,7 @@ html.blk, html.blk body { background: #000; }
 .tip { position: absolute; inset: 0; display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior: contain; }
 .tip::-webkit-scrollbar { display: none; }
 .tpg { flex: 0 0 100%; scroll-snap-align: start; position: relative; }
-.tpg .tcd { position: absolute; left: 50%; transform: translateX(-50%); top: calc(var(--top) + 56px); width: min(calc(100% - 2 * var(--gut)), calc((100vh - var(--top) - 56px - 270px - var(--safe-b)) / var(--ar))); border-radius: 14px; overflow: hidden; }   /* 아래 글 묶음 위에 다 들어가게 */
+.tpg .tcd { position: absolute; left: 50%; transform: translateX(-50%); top: calc(var(--top) + 56px); width: min(calc(100% - 2 * var(--gut)), calc((100vh - var(--top) - 56px - 340px - var(--safe-b)) / var(--ar))); border-radius: 14px; overflow: hidden; }   /* 아래 글 묶음 위에 다 들어가게 */
 .tpg.full .tcd { transform: none; width: auto; }
 .tpg.full .tcd { left: 0; right: 0; top: 0; border-radius: 0; }
 .tpg.full .tcd .cd { border-radius: 0; }
@@ -953,7 +957,7 @@ html.blk, html.blk body { background: #000; }
 .tlow { position: absolute; left: var(--gut); right: var(--gut); bottom: calc(24px + var(--safe-b)); }
 .tlow em { display: block; font-style: normal; font-size: var(--fs-s); color: rgba(255,255,255,.7); min-height: 1em; }
 .tlow h2 { font-size: var(--fs-xl); font-weight: var(--fw); letter-spacing: -.02em; margin: 16px 0 12px; line-height: 1.15; }
-.tlow p { font-size: var(--fs-m); color: rgba(255,255,255,.7); margin: 0 0 32px; }
+.tlow p { font-size: var(--fs-m); line-height: 1.5; color: rgba(255,255,255,.7); margin: 0 0 32px; }   /* 소개 3줄 */
 .tcta { display: flex; gap: 10px; }
 .tcta .w { flex: 1; height: 52px; border-radius: 999px; background: #fff; color: var(--bg); display: flex; align-items: center; justify-content: center; gap: 8px; font-size: var(--fs-m); font-weight: var(--fw); }
 .tcta .w .ic { width: 20px; height: 20px; }

@@ -312,7 +312,7 @@ function fitText(el) {
 
 export const FORMATS = {
   rebus: {
-    id: 'rebus', name: '그림 문장', info: '짧은 글 · 사진 없음 · 사계절', paid: true,
+    id: 'rebus', name: '멤피스 문장', info: '짧은 글 · 사진 없음 · 사계절', paid: true,
     // 쓰기 화면 도구: style = 서식 줄(글꼴·크기·좌우·위아래), bg = 배경 줄, dp = 날짜 위치. 디자인 포맷은 모양이 정해져 있어 대부분 꺼요
     tools: { photo: false, emo: false, page: false, shuf: true, style: true, font: false, bg: false, dp: true },
     sample: { html: '친구랑 통화를 <b>오래</b> 했다. 별일 없는 이야기에 <mark>웃음</mark>이 많은 밤.', seed: 7 },
@@ -327,7 +327,7 @@ export const FORMATS = {
   },
   // 아트 포맷 #1: 앤드류 작품(세로 오로라 빛줄기)을 코드로. 그림이 작품이라 배경은 정해 두고 셔플로 새 그림, 글꼴은 고를 수 있어요
   art: {
-    id: 'art', name: '번지는 빛', info: '아트 · 셔플할 때마다 새 그림 · 흐르는 빛', paid: true, rich: true,
+    id: 'art', name: '오로라 커튼', info: '아트 · 셔플할 때마다 새 그림 · 흐르는 빛', paid: true, rich: true,
     tools: { photo: false, emo: false, page: true, shuf: true, style: true, font: true, bg: 'art', dp: true },
     sample: { pages: ['창밖 불빛이 번져 보이는 밤. 오늘 하루도 천천히 흘러갔다.'], bg: { id: 'bands', dim: 'dark', seed: 11 } },
     render: text, fit: fitText,
@@ -335,7 +335,7 @@ export const FORMATS = {
 };
 export const ORDER = ['rebus', 'art', 'text'];
 // 피드 · 쓰기 위에 보이는 '종류 · 템플릿'
-export const LABEL = { text: '기본', rebus: '디자인 · 그림 문장', art: '아트 · 번지는 빛' };
+export const LABEL = { text: '기본', rebus: '디자인 · 멤피스 문장', art: '아트 · 오로라 커튼' };
 
 export function blank(fmt, date) {
   if (fmt === 'art') return { fmt, date, place: '', pages: [''], bg: { id: 'bands', dim: 'dark', seed: newSeed() }, align: { h: 'l', v: 'm' }, datePos: 'none', font: 'sans', size: 'm' };

@@ -1,16 +1,19 @@
-// 템플릿 목록 (10-31): 포맷(기본 · 디자인 · 아트) 안의 작품 하나하나. 나중에 관리자 '템플릿' 메뉴에서 오는 값과 같은 모양이에요.
+// 템플릿 목록 (10-31): 이름 = 그 템플릿만의 디자인 용어 · 장면, 소개 = 3줄(생김새 · 셔플로 바뀌는 것 · 언제 좋은지). pop = 인기 순서(서버 사용 수가 쌓이기 전까지 우리가 정해요).
+// 포맷(기본 · 디자인 · 아트) 안의 작품 하나하나. 나중에 관리자 '템플릿' 메뉴에서 오는 값과 같은 모양이에요.
 // 태그 = 칩 · 메인 줄에 보이는 것 (템플릿마다 2~3개, 아래 TAGS 안에서만). 검색어 = 검색에만 쓰는 비슷한 말 (안 보여요)
 import * as S from './store.js';
 import { sampleCard } from './formats.js';
 
 export const TEMPLATES = [
-  { id: 'rebus', fmt: 'rebus', name: '그림 문장', kind: '디자인', desc: '낱말 옆에 작은 그림이 붙어요', paid: true, added: '2026-10-21',
-    tags: ['짧은글', '감성'], words: ['그림', '문장', '아이콘', '귀여운', '도형', '낱말', '알록달록', '포스터'],
+  { id: 'rebus', fmt: 'rebus', name: '멤피스 문장', kind: '디자인', pop: 2, added: '2026-10-21',
+    desc: ['80년대 이탈리아 멤피스 디자인처럼 물결선, 반원, 마름모가 낱말 옆에 붙어요.', '셔플할 때마다 도형 모양과 색이 새로 바뀌어요.', '짧은 하루 한 줄을 포스터처럼 남기고 싶을 때 좋아요.'], paid: true,
+    tags: ['짧은글', '감성'], words: ['멤피스', '리버스', '그림 문장', '그림', '문장', '아이콘', '귀여운', '도형', '낱말', '알록달록', '포스터', '80년대'],
     ex: ['친구랑 통화를 <b>오래</b> 했다. 별일 없는 이야기에 <mark>웃음</mark>이 많은 밤.',
       '아침에 <b>창문</b>을 열었더니 공기가 <mark>차가웠다</mark>. 겨울이 오나 보다.',
       '<b>비</b> 오는 날엔 <mark>따뜻한</mark> 차 한 잔.'] },
-  { id: 'art', fmt: 'art', name: '번지는 빛', kind: '아트', desc: '셔플할 때마다 새 그림이 번져요', paid: true, added: '2026-10-23',
-    tags: ['밤', '감성'], words: ['빛', '오로라', '무지개', '몽환', '새벽', '네온', '번짐', '흐르는'],
+  { id: 'art', fmt: 'art', name: '오로라 커튼', kind: '아트', pop: 1, added: '2026-10-23',
+    desc: ['오로라 그라데이션으로 그린 세로 빛줄기가 커튼처럼 천천히 흘러요.', '셔플할 때마다 새 빛이 번져요.', '늦은 밤 짧은 글과 잘 어울려요.'], paid: true,
+    tags: ['밤', '감성'], words: ['오로라', '커튼', '그라데이션', '번지는 빛', '빛', '무지개', '몽환', '새벽', '네온', '번짐', '흐르는', '디지털 아트'],
     ex: [['창밖 불빛이 번지는 밤.', 11, '916'], ['퇴근길 하늘이 보라색이었다.', 42, '45'], ['오늘은 아무것도 하지 않아도 괜찮았다.', 77, '11']] },
 ];
 
@@ -67,6 +70,14 @@ export function heroes(n = now()) {
   return out;
 }
 export const newest = () => [...TEMPLATES].sort((a, b) => b.added.localeCompare(a.added));
+// 내가 쓴 카드 수 (템플릿별)
+export const mineCount = () => { const n = {}; S.cards().forEach(c => { const t = tplOfCard(c); if (t) n[t.id] = (n[t.id] || 0) + 1; }); return n; };
+// 줄 탭 순서: 새로 나온(30일 안) · 인기 · 자주 쓴(내가 쓴 것만)
+export function sorted(k) {
+  if (k === 'pop') return [...TEMPLATES].sort((a, b) => (a.pop || 99) - (b.pop || 99));
+  if (k === 'mine') { const n = mineCount(); return TEMPLATES.filter(t => n[t.id]).sort((a, b) => n[b.id] - n[a.id]); }
+  return newest().filter(t => (new Date(S.today()) - new Date(t.added)) / 864e5 <= 30);
+}
 
 // 예시 카드 (작은 칸: 아트는 글 없이, 디자인은 글 그대로). i = 몇 번째 예시
 export function exCard(t, i = 0, bare = false) {
@@ -77,7 +88,7 @@ export function exCard(t, i = 0, bare = false) {
   return c;
 }
 // 검색: 이름 · 종류 · 설명 · 태그 · 검색어
-export const hit = (t, q) => !q || [t.name, t.kind, t.desc, ...t.tags, ...t.words].some(s => s.toLowerCase().includes(q.toLowerCase()));
+export const hit = (t, q) => !q || [t.name, t.kind, ...t.desc, ...t.tags, ...t.words].some(s => s.toLowerCase().includes(q.toLowerCase()));
 
 export const favs = () => S.pref('favT', []);
 export const isFav = id => favs().includes(id);

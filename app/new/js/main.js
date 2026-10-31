@@ -1052,7 +1052,7 @@ function closeRun(now) {
 /* ── 템플릿 메인 ─────────────────────────────────────── */
 // 시안 4 (10-31): 홈 무드 바탕 + 고운 노이즈. 검색 · 칩 · 위 판만 글라스, 위치 · 크기는 다른 화면과 같아요.
 // 칩(전체 · 디자인 · 아트 · 키워드)과 ♥ 즐겨찾기는 같은 화면에서 아래만 2열로 바꿔요. 카드를 누르면 템플릿 소개
-const tstate = { f: '홈', q: '' };   // 소개에서 돌아오면 보던 그대로
+const tstate = { f: '홈', q: '', sort: 'new' };   // 소개에서 돌아오면 보던 그대로
 const isPaidUser = () => S.pref('plan', 'free') === 'paid';
 const HEART = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>';
 function viewTpl() {
@@ -1067,7 +1067,7 @@ function viewTpl() {
   bindNav();
   const stopMood = paintMood($('.amb'));
   const inp = $('.tsf input'); inp.value = tstate.q;
-  const tile = t => `<button class="tt" data-t="${t.id}"><div class="tc">${lock(t) ? `<span class="lk">${ic('lock')}</span>` : ''}</div><div class="nm"><span>${esc(t.name)} <small>· ${t.kind}</small></span>${T.isFav(t.id) ? HEART : ''}</div></button>`;
+  const tile = t => `<button class="tt" data-t="${t.id}"><div class="tc">${lock(t) ? `<span class="lk">${ic('lock')}</span>` : ''}</div><div class="nm"><span>${esc(t.name)}</span>${T.isFav(t.id) ? HEART : ''}</div></button>`;
   let timer = 0;
   const paint = () => {
     clearInterval(timer);
@@ -1081,13 +1081,15 @@ function viewTpl() {
       const hs = T.heroes().map(h => ({ ...h, label: h.k === 'free' ? (paid ? '오늘 추천' : '오늘 무료') : h.k === 'now' ? '지금 추천' : '새로 나온' }));
       const seen = new Set(), rows = [];
       const row = (title, list, c) => { const l = list.filter(t => !seen.has(t)).slice(0, 8); if (l.length >= 2) { l.forEach(t => seen.add(t)); rows.push({ title, l, c }); } };
-      const recent = T.newest().filter(t => (new Date(S.today()) - new Date(t.added)) / 864e5 <= 30);
-      row('새로 나온', recent, 'new');
       T.tagOrder().slice(0, 2).forEach(g => row(g, T.TEMPLATES.filter(t => t.tags.includes(g)), g));
       row('디자인', T.TEMPLATES.filter(t => t.kind === '디자인'), '디자인');
       row('아트', T.TEMPLATES.filter(t => t.kind === '아트'), '아트');
-      body.innerHTML = `<div class="thero"><div class="ths">${hs.map(h => `<button class="tday gls" data-t="${h.t.id}"><div class="th"></div><div class="tdx"><em class="gls">${h.label}</em><b>${esc(h.t.name)}</b><p>${esc(h.t.desc)}</p></div></button>`).join('')}</div><div class="mdots" data-for="ths"></div></div>
-        ${rows.map(r => `<div class="tsec"><b>${esc(r.title)}</b><button data-c="${esc(r.c)}">모두 보기</button></div><div class="trow">${r.l.map(t => tile(t)).join('')}</div><div class="mdots"></div>`).join('')}
+      // 첫 줄: 새로 나온 · 인기 · 자주 쓴 탭 (아래 줄만 바뀌어요). 다른 줄과 겹쳐도 돼요
+      const SORTS = [['new', '새로 나온'], ['pop', '인기'], ...(Object.keys(T.mineCount()).length ? [['mine', '자주 쓴']] : [])];
+      if (!SORTS.some(x => x[0] === tstate.sort)) tstate.sort = 'new';
+      const first = `<div class="tsec tabs"><span class="tbs">${SORTS.map(([k, n]) => `<button data-s="${k}" class="${k === tstate.sort ? 'on' : ''}">${n}</button>`).join('')}</span><button data-c="s:${tstate.sort}">모두 보기</button></div><div class="trow" data-row="sort">${T.sorted(tstate.sort).slice(0, 8).map(t => tile(t)).join('')}</div><div class="mdots"></div>`;
+      body.innerHTML = `<div class="thero"><div class="ths">${hs.map(h => `<button class="tday gls" data-t="${h.t.id}"><div class="th"></div><div class="tdx"><em class="gls">${h.label}</em><b>${esc(h.t.name)}</b><p>${esc(h.t.desc[0])}</p></div></button>`).join('')}</div><div class="mdots" data-for="ths"></div></div>
+        ${first}${rows.map(r => `<div class="tsec"><b>${esc(r.title)}</b><button data-c="${esc(r.c)}">모두 보기</button></div><div class="trow">${r.l.map(t => tile(t)).join('')}</div><div class="mdots"></div>`).join('')}
         <div class="tsec"><b>모든 템플릿</b></div><div class="tg2">${T.newest().map(t => tile(t)).join('')}</div>`;
       hs.forEach((h, i) => mount($$('.tday .th', body)[i], cardOf(h.t)));
       $$('.tt', body).forEach(b => mount($('.tc', b), cardOf(T.tpl(b.dataset.t))));
@@ -1105,7 +1107,7 @@ function viewTpl() {
       let l = T.newest();
       if (f === 'fav') { const fv = T.favs(); l = fv.map(T.tpl).filter(Boolean); }
       else if (f === '디자인' || f === '아트') l = l.filter(t => t.kind === f);
-      else if (f === 'new') l = l.filter(t => (new Date(S.today()) - new Date(t.added)) / 864e5 <= 30);
+      else if (f.startsWith('s:')) l = T.sorted(f.slice(2));
       else if (f !== '홈') l = l.filter(t => t.tags.includes(f));
       l = l.filter(t => T.hit(t, q));
       body.innerHTML = l.length ? `<div class="tg2 solo">${l.map(t => tile(t)).join('')}</div>`
@@ -1120,6 +1122,13 @@ function viewTpl() {
   inp.oninput = () => { tstate.q = inp.value; paint(); };
   inp.onkeydown = e => { if (e.key === 'Enter') inp.blur(); };
   $('.tbody').onclick = e => {
+    const sb = e.target.closest('.tbs [data-s]');
+    if (sb) {   // 탭: 그 줄만 다시 (위 판 · 다른 줄은 그대로)
+      tstate.sort = sb.dataset.s; $$('.tbs button').forEach(b => b.classList.toggle('on', b === sb));
+      $('.tabs [data-c]').dataset.c = 's:' + tstate.sort;
+      const r = $('[data-row=sort]'); r.innerHTML = T.sorted(tstate.sort).slice(0, 8).map(t => tile(t)).join(''); r.scrollLeft = 0;
+      $$('.tt', r).forEach(b => mount($('.tc', b), T.exCard(T.tpl(b.dataset.t), 0, true))); r.dispatchEvent(new Event('scroll')); return;
+    }
     const c = e.target.closest('.tsec [data-c]'); if (c) { $(`.tch [data-c="${c.dataset.c}"]`)?.scrollIntoView({ inline: 'center', block: 'nearest' }); return setF(c.dataset.c); }
     const t = e.target.closest('[data-t]'); if (t) go('#/ti/' + t.dataset.t);
   };
@@ -1142,7 +1151,7 @@ function viewIntro(id) {
   const cards = t.ex.map((_, i) => T.exCard(t, i));
   app.innerHTML = `<div class="tiv"><div class="tip">${cards.map(c => `<div class="tpg${c.ratio === '916' ? ' full' : ''}" style="--ar:${arOf(c)}"><div class="tcd"></div>${c.ratio === '916' ? '<div class="tsh"></div>' : ''}</div>`).join('')}</div>
     <div class="tnum">${cards.map((_, i) => `<button class="gls${i ? '' : ' on'}" data-i="${i}" aria-label="예시 ${i + 1}">${i + 1}</button>`).join('')}</div><button class="tcl gls" data-a="x" aria-label="닫기">${ic('close')}</button>
-    <div class="tlow"><em>${sub}</em><h2>${esc(t.name)}</h2><p>${esc(t.desc)}</p>
+    <div class="tlow"><em>${sub}</em><h2>${esc(t.name)}</h2><p>${t.desc.map(esc).join('<br>')}</p>
     <div class="tcta"><button class="w" data-a="go">${ic('pen')}이 템플릿으로 쓰기</button><button class="hb gls" data-a="heart" aria-label="즐겨찾기">${HEART}</button></div></div></div>`;
   cards.forEach((c, i) => mount($$('.tpg .tcd')[i], c));
   const pg = $('.tip');
