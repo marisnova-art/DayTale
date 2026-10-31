@@ -1127,7 +1127,11 @@ function viewTpl() {
   const y = tstate.y || 0; if (y) requestAnimationFrame(() => window.scrollTo(0, y));
   const keep = () => { tstate.y = scrollY; };
   addEventListener('scroll', keep, { passive: true });
-  cleanup = () => { clearInterval(timer); stopMood(); removeEventListener('scroll', keep); };
+  // 위 판의 아트 미리보기는 빛이 천천히 흘러요 (화면에 보일 때만)
+  let anim = 0; const t0 = performance.now(), still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const tick = now => { anim = requestAnimationFrame(tick); if (still) return; const h = $('.thero'); if (!h || h.getBoundingClientRect().bottom < 0) return; $$('canvas.bgc', h).forEach(cv => cv.width && drawCode(cv, +cv.dataset.seed, +cv.dataset.shift || 0, (now - t0) / 1000 + .01)); };
+  anim = requestAnimationFrame(tick);
+  cleanup = () => { clearInterval(timer); cancelAnimationFrame(anim); stopMood(); removeEventListener('scroll', keep); };
 }
 
 // 템플릿 소개: 큰 미리보기(아트는 흐르는 빛이 움직여요). 옆으로 넘기면 같은 템플릿의 다른 예시, X 왼쪽에 '예시 1/3'
