@@ -1189,30 +1189,59 @@ function viewIntro(id) {
 /* ── 포맷 고르기 ─────────────────────────────────────── */
 // 예시 글을 하나 골라 글 · 아트 · 포토 카드에 보여 주고, 쓰기로 들어가면 같은 글이 흐리게 이어져요 (그림 문장은 정해 둔 예시)
 let pickEx = null;
+// 쓰기 메인 (10-31 시안 write-main-1031): 카드 덱. 이어 쓰기(있으면) → 기본 → 최근 쓴 템플릿 → 즐겨찾기 → 더 보기.
+// 위아래로 밀면 다음 카드가 앞으로, 뒤 카드 띠(종류 아이콘)를 눌러도 그 카드로. 앞 카드 · 흰 버튼 = 쓰기, ↗ = 소개, 이어 쓰기는 휴지통
+const KIND_IC = { 기본: 'fmt', 디자인: 'spark', 아트: 'grad' };
+const BASE_T = { name: '기본', kind: '기본', desc: ['쓰기 화면의 색과 사진으로|내 마음대로 꾸며요.', '글꼴 · 배경 · 크기를 한 번씩 눌러 바꿔요.', '어떤 날에도 잘 어울려요.'] };
 function viewPick() {
   const d = S.draft();
   pickEx = exampleText();
-  const sample = f => { const c = sampleCard(f, S.today()); if (FORMATS[f].rich) c.pages = [esc(pickEx.t)]; return c; };
-  const items = [...(d ? [{ key: 'draft', card: d.card, label: '이어 쓰기' }] : []), ...ORDER.map(f => ({ key: f, card: sample(f), label: FORMATS[f].name }))];
-  let sel = items[0].key;
-  app.innerHTML = `<header class="top"><button class="cb" data-a="x" aria-label="닫기">${ic('close')}</button><button class="cb" data-a="find" aria-label="포맷 검색">${ic('search')}</button></header>
-    <main class="pick"><div class="big"></div><div><div class="nm"></div><div class="inf"></div></div>
-    <div class="strip">${items.map(i => `<button class="th" data-k="${i.key}"><div class="tc"></div><div class="lab">${i.label}</div></button>`).join('')}</div>
-    <button class="go">${ic('pen')}<span></span></button></main>`;
-  $('[data-a=x]').onclick = () => go('#/');
-  $('[data-a=find]').onclick = () => { kbNow(); go('#/search/pick'); };
-  items.forEach(i => mount($(`.th[data-k="${i.key}"] .tc`), i.card));
-  const show = () => {
-    const i = items.find(x => x.key === sel), f = FORMATS[i.card.fmt];
-    $('.big').innerHTML = ''; mount($('.big'), i.card);
-    $('.pick .nm').innerHTML = `${i.key === 'draft' ? '이어 쓰기 · ' : ''}${f.name}${i.key !== 'draft' ? '<i>NEW</i>' : ''}`;
-    $('.pick .inf').textContent = f.info;
-    $('.go span').textContent = i.key === 'draft' ? '이어 쓰기' : '이 포맷으로 쓰기';
-    $$('.strip .th').forEach(t => t.classList.toggle('on', t.dataset.k === sel));
+  const base = () => { const c = sampleCard('text', S.today()); c.pages = [esc(pickEx.t)]; return c; };
+  const seen = new Set(), tps = [];
+  const add = t => { if (t && !t.dummy && !seen.has(t.id)) { seen.add(t.id); tps.push(t); } };
+  [...S.cards()].sort((x, y) => (y.created || '').localeCompare(x.created || '')).forEach(c => tps.length < 4 && add(T.tplOfCard(c)));
+  const nr = tps.length; T.favs().forEach(id => add(T.tpl(id)));
+  if (!tps.length) T.sorted('pop').slice(0, 2).forEach(add);   // 처음엔 인기 템플릿 둘
+  const items = [
+    ...(d ? [{ k: 'draft', card: d.card, t: { name: '이어 쓰기', kind: LABEL[d.card.fmt]?.split(' · ')[0] || '기본', desc: ['쓰다 만 글이에요.', '눌러서 이어 쓰거나|휴지통으로 지워요.'] }, ic: 'fmt', btn: '이어 쓰기' }] : []),
+    { k: 'text', card: base(), t: BASE_T, ic: 'fmt', btn: '쓰기' },
+    ...tps.map((t, i) => ({ k: t.id, card: T.exCard(t, 0), t, ic: KIND_IC[t.kind] || 'fmt', btn: '이 템플릿으로 쓰기', fav: i >= nr })),
+    { k: 'more', t: { name: '더 많은 템플릿', kind: '', desc: ['디자인 · 아트 템플릿을|모두 볼 수 있어요.'] }, ic: 'layers', btn: '템플릿 홈으로' },
+  ];
+  let at = 0;
+  app.innerHTML = `${MOOD}<main class="wdk"><div class="dst"></div><div class="dmt"><div class="n"></div><p></p></div><div class="tcta"><button class="w" data-a="go"></button></div></main><div class="ddots"></div>${nav('write')}`;
+  bindNav();
+  const stopMood = paintMood($('.amb'));
+  const st = $('.dst');
+  const open = () => { const i = items[at]; if (i.k === 'more') return go('#/tpl'); if (i.k === 'draft') return go('#/write/draft'); go('#/write/' + (i.k === 'text' ? 'text' : i.t.fmt)); };
+  const paint = dir => {
+    const i = items[at], back = items.slice(at + 1, at + 4);
+    st.innerHTML = back.map((b, n) => { const k = back.length - n; return `<button class="dpk" data-to="${at + 1 + n}" style="--k:${n + 1};z-index:${k}" aria-label="${esc(b.t.name)}">${b.fav ? HEART : ic(b.ic)}</button>`; }).reverse().join('')
+      + (i.k === 'more' ? `<button class="dfr dmo" data-a="open">${ic('layers')}<b>더 보기</b></button>`
+        : `<div class="dfr" data-a="open"><div class="dh"></div>${i.k === 'draft' ? '<span class="dbg">쓰다 만 글</span>' : ''}${i.k === 'text' ? '' : `<button class="cx" data-a="${i.k === 'draft' ? 'del' : 'info'}" aria-label="${i.k === 'draft' ? '지우기' : '소개'}">${i.k === 'draft' ? ic('trash') : '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7"/><path d="M8 7h9v9"/></svg>'}</button>`}</div>`);   // 기본은 소개 페이지가 없어 ↗ 없음
+    if (dir) st.querySelector('.dfr').classList.add(dir > 0 ? 'in' : 'inb');
+    if (i.card) mount($('.dh', st), i.card);
+    $('.dmt .n').innerHTML = `${esc(i.t.name)}${i.t.kind ? `<i>${esc(i.t.kind)}</i>` : ''}`;
+    $('.dmt p').innerHTML = i.t.desc.map(x => `<span>${esc(T.line(x))}</span>`).join('');
+    $('[data-a=go]').innerHTML = `${ic(i.k === 'more' ? 'layers' : 'pen')}${i.btn}`;
+    $('.ddots').innerHTML = items.map((_, n) => `<i class="${n === at ? 'on' : ''}"></i>`).join('');
+    $$('.dpk', st).forEach(b => b.onclick = e => { e.stopPropagation(); to(+b.dataset.to); });
+    $('[data-a=open]', st).onclick = open;
+    const cx = $('.cx', st);
+    if (cx) cx.onclick = e => { e.stopPropagation();
+      if (i.k === 'draft') ask('쓰다 만 글을 지울까요?', '지우기').then(ok => { if (!ok) return; S.clearDraft(); items.shift(); at = 0; paint(1); pill('지웠어요', 'check'); });
+      else go('#/ti/' + i.k); };
   };
-  $$('.strip .th').forEach(t => t.onclick = () => { sel = t.dataset.k; show(); });
-  $('.go').onclick = () => go(sel === 'draft' ? '#/write/draft' : `#/write/${sel}`);
-  show();
+  const to = n => { n = Math.max(0, Math.min(items.length - 1, n)); if (n === at) return; const dir = n > at ? 1 : -1; at = n; paint(dir); };
+  $('[data-a=go]').onclick = open;
+  // 위로 밀면 다음, 아래로 밀면 이전
+  let sy = null;
+  st.addEventListener('pointerdown', e => { sy = e.clientY; });
+  st.addEventListener('pointerup', e => { if (sy == null) return; const dy = e.clientY - sy; sy = null; if (Math.abs(dy) > 40) { to(at + (dy < 0 ? 1 : -1)); st.dataset.sw = 1; setTimeout(() => delete st.dataset.sw, 0); } });
+  st.addEventListener('click', e => { if (st.dataset.sw) e.stopPropagation(); }, true);
+  let wl = 0; st.addEventListener('wheel', e => { e.preventDefault(); const t = Date.now(); if (t - wl < 400 || Math.abs(e.deltaY) < 20) return; wl = t; to(at + Math.sign(e.deltaY)); }, { passive: false });
+  paint(0);
+  cleanup = () => stopMood();
 }
 
 // 이 포맷으로 쓰기: 그 카드의 모습(배경 · 글꼴 · 크기 · 비율 · 날짜 줄 · 서명 자리)을 그대로, 글은 비우고 날짜는 오늘로.
@@ -2323,7 +2352,7 @@ function viewSet(sub) {
 const UPDATES = [
   ['1.0.0', '2026-10-31', ['템플릿 탭과 소개 페이지가 생겼어요', '책장 · 달력 · 프로필도 홈과 같은 배경이에요', '프로필에서 전체와 달마다 숫자를 함께 봐요',
     '설정 › 바탕에서 그라데이션 · 솔리드 · 다크를 고를 수 있어요', '프로필에 한 줄 소개를 쓸 수 있어요 (20자)', '쓴 날을 올해 점 달력으로 봐요',
-    '새 손글씨 로고', '설정에 서비스 소개가 생겼어요']],
+    '새 손글씨 로고', '설정에 서비스 소개가 생겼어요', '쓰기 첫 화면이 카드 덱으로 바뀌었어요']],
 ];
 // 서비스 소개 (10-31): 로고 · 한 줄 · 버전 / 운영자 정보 (유료 판매라 앱 안에 표시해야 해요). 실제 정보는 출시 전에 채워요
 const COMPANY = [['상호', ''], ['대표자', ''], ['사업자등록번호', ''], ['통신판매업 신고번호', ''], ['주소', ''], ['문의', '']];
