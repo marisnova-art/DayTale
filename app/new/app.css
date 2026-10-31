@@ -1080,3 +1080,8 @@ html:has(.setv.plan), html:has(.setv.plan) body { background: #2B2650; }
 /* 10-31 로고 = SVG 손글씨 (시안 1). 글자 로고와 같은 줄 높이 40 안에서 */
 .ftop .logo { display: flex; align-items: center; height: 40px; }
 .ftop .logo .lgo { display: block; height: 50px; width: auto; margin: -5px 0; color: #fff; }   /* 10-31 앤드류: 더 크게 (38 → 50) */
+/* 10-31 서비스 소개 */
+.abt { text-align: center; padding: 18px 0 22px; }
+.abt .lgo { display: block; height: 64px; width: auto; margin: 0 auto; color: #fff; }
+.abt p { margin: 14px 0 0; font-size: var(--fs-m); }
+.abt small { display: block; margin-top: 6px; font-size: var(--fs-s); color: var(--mut); }

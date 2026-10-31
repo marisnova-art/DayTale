@@ -2300,15 +2300,16 @@ function viewSet(sub) {
   if (sub === 'plan') return setPlan();
   if (sub === 'news') return setNews();
   if (sub === 'updates') return setUpdates();
+  if (sub === 'about') return setAbout();
   const me = meOf(), n = S.trash().length;
   setShell('설정', `${sgrp(`<button class="srw acc" data-go="#/set/account"><span class="av"${avStyle()}></span><span class="t"><b>${esc(me.name || '나')}</b><small>${me.id ? '@' + esc(me.id) : '로그인 전'}</small></span><span class="v">${ic('next')}</span></button>`)}
     <div class="sgp plan">${srow('star', '구독', '체험 중', { go: '#/set/plan' })}${srow('ticket', '이용권 코드 넣기', '', { a: 'code' })}</div>
-    ${sgrp(srow('bell', '공지사항 · 이벤트', '', { go: '#/set/news' }), srow('doc', '업데이트 소식', UPDATES[0][0], { go: '#/set/updates' }))}
     ${sgrp(srow('img', '바탕', BG_MODES.find(x => x[0] === bgMode())[1], { go: '#/set/bg' }))}
     ${sgrp(srow('pin', '장소 자동', '', { tg: S.pref('autoPlace', false), a: 'place' }), srow('sign', '서명', esc(S.pref('sign', '')) || '없음', { go: '#/set/sign' }), srow('date', '날짜 표시', dateLine(S.today()), { go: '#/set/date' }), srow('week', '한 주의 시작', weekStart() ? '월요일' : '일요일', { go: '#/set/week' }))}
     ${sgrp(srow('backup', '백업', '', { go: '#/set/backup' }), srow('trash', '휴지통', n || '', { go: '#/set/trash' }))}
     ${sgrp(srow('bell', '알림', S.pref('remind', false) ? '켜짐' : '', { go: '#/set/alarm' }), srow('globe', '언어', LANGS[S.pref('lang', 'ko')], { go: '#/set/lang' }))}
-    ${sgrp(srow('help', '도움말', '', { a: 'help' }), srow('doc', '이용약관', '', { a: 'terms' }), srow('shield', '개인정보 처리방침', '', { a: 'privacy' }), srow('lic', '라이선스', '', { a: 'lic' }))}
+    ${sgrp(srow('spark', '서비스 소개', '', { go: '#/set/about' }), srow('help', '도움말', '', { a: 'help' }), srow('bell', '공지사항 · 이벤트', '', { go: '#/set/news' }), srow('clock', '업데이트 소식', UPDATES[0][0], { go: '#/set/updates' }))}
+    ${sgrp(srow('doc', '이용약관', '', { a: 'terms' }), srow('shield', '개인정보 처리방침', '', { a: 'privacy' }), srow('lic', '라이선스', '', { a: 'lic' }))}
     ${sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' }))}<p class="sver">dayzine 1.0.0 · 테스트</p>`, { up: '#/me' });
   $('[data-a=place]').onclick = e => { const on = !S.pref('autoPlace', false); S.setPref('autoPlace', on); e.currentTarget.querySelector('.tg').classList.toggle('on', on); };
   $('[data-a=terms]').onclick = () => { location.href = '../legal/terms.ko.html'; };
@@ -2318,9 +2319,18 @@ function viewSet(sub) {
   $('[data-a=code]').onclick = soonLogin;
 }
 // 업데이트 소식: 새 버전마다 맨 위에 한 줄 (버전 · 날짜 · 바뀐 것)
+// 업데이트 위키 (10-31 앤드류): 올릴 때마다 맨 위에 한 줄씩 쌓아요 (지우지 않아요). 로그인 단계에서 서버 · 관리자로 옮겨요
 const UPDATES = [
-  ['1.0.0', '2026-10-31', ['템플릿 탭과 소개 페이지가 생겼어요', '책장 · 달력 · 프로필도 홈과 같은 배경이에요', '프로필에서 전체와 달마다 숫자를 함께 봐요']],
+  ['1.0.0', '2026-10-31', ['템플릿 탭과 소개 페이지가 생겼어요', '책장 · 달력 · 프로필도 홈과 같은 배경이에요', '프로필에서 전체와 달마다 숫자를 함께 봐요',
+    '설정 › 바탕에서 그라데이션 · 솔리드 · 다크를 고를 수 있어요', '프로필에 한 줄 소개를 쓸 수 있어요 (20자)', '쓴 날을 올해 점 달력으로 봐요',
+    '새 손글씨 로고', '설정에 서비스 소개가 생겼어요']],
 ];
+// 서비스 소개 (10-31): 로고 · 한 줄 · 버전 / 운영자 정보 (유료 판매라 앱 안에 표시해야 해요). 실제 정보는 출시 전에 채워요
+const COMPANY = [['상호', ''], ['대표자', ''], ['사업자등록번호', ''], ['통신판매업 신고번호', ''], ['주소', ''], ['문의', '']];
+function setAbout() {
+  setShell('서비스 소개', `<div class="abt">${LOGO}<p>오늘을 카드 한 장에 담아 두는 곳</p><small>버전 ${UPDATES[0][0]}</small></div>
+    ${sgrp(...COMPANY.map(([k, v]) => srow('', k, '', { end: `<span class="v"><span>${v ? esc(v) : '준비 중'}</span></span>` })))}`, { up: '#/set' });
+}
 function setUpdates() {
   setShell('업데이트 소식', UPDATES.map(([v, d, xs]) => `<div class="sgp upd"><div class="uh"><b>${v}</b><span>${d.replace(/-/g, '.')}</span></div><ul>${xs.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>`).join(''));
 }
