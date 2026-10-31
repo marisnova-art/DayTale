@@ -999,3 +999,16 @@ html.blk, html.blk body { background: #000; }
 .bkv .bh h2 { margin: 0; font-size: var(--fs-xl); line-height: 40px; -webkit-line-clamp: 1; overflow-wrap: normal; white-space: nowrap; text-overflow: ellipsis; display: block; }
 .bkv .bh p { margin: 2px 0 0; }
 .bkv .bh .cb, .bkv .bh .cb0 { flex: none; align-self: flex-start; width: 40px; height: 40px; }
+/* 10-31 칸 높이 반 · 글자 작게 (그래프가 첫 화면에 보이게): 값 17 + 이름 13, 이름 캡슐 없이 */
+.mev .mst { height: 56px; gap: 0; padding: 0 10px; }
+.mev .mst > b { font-size: var(--fs-m); line-height: 22px; }
+.mev .mst .mlb { height: auto; padding: 0; background: none; line-height: 16px; color: rgba(255,255,255,.8); }
+.mev .msr { gap: 6px; }
+/* 10-31 구독 화면 바탕 = 설정의 구독 묶음과 같은 색 (화면 내용은 나중에 다듬어요) */
+.setv.plan { background: #2B2650; min-height: 100vh; }
+.setv.plan .stb { background: rgba(43,38,80,.7); }
+.setv.plan .sgp { background: rgba(255,255,255,.08); }
+html:has(.setv.plan), html:has(.setv.plan) body { background: #2B2650; }
+.setv.plan .stop2 { background: linear-gradient(#2B2650 80%, rgba(43,38,80,0)); }
+.setv.plan .stop2 .cb, .setv.plan .schip { background: rgba(255,255,255,.12); }
+.setv.plan .pl { background: rgba(255,255,255,.08); }
