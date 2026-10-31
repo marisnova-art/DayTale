@@ -1079,4 +1079,4 @@ html:has(.setv.plan), html:has(.setv.plan) body { background: #2B2650; }
 .amb.flat s { background: none; }
 /* 10-31 로고 = SVG 손글씨 (시안 1). 글자 로고와 같은 줄 높이 40 안에서 */
 .ftop .logo { display: flex; align-items: center; height: 40px; }
-.ftop .logo .lgo { display: block; height: 38px; width: auto; color: #fff; }
+.ftop .logo .lgo { display: block; height: 50px; width: auto; margin: -5px 0; color: #fff; }   /* 10-31 앤드류: 더 크게 (38 → 50) */
