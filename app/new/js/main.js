@@ -1189,10 +1189,28 @@ function viewIntro(id) {
 /* ── 포맷 고르기 ─────────────────────────────────────── */
 // 예시 글을 하나 골라 글 · 아트 · 포토 카드에 보여 주고, 쓰기로 들어가면 같은 글이 흐리게 이어져요 (그림 문장은 정해 둔 예시)
 let pickEx = null;
-// 쓰기 메인 (10-31 시안 write-main-1031 board-v2): 맨 위 '기본으로 쓰기' 띠 → 이어 쓰기 → 최근 쓴 템플릿 → 즐겨찾기 → 오늘의 추천(큰 판) → NEW → 템플릿 더 보기.
+// 쓰기 메인 (10-31 시안 write-main-1031 board-v2, QA 10-31): 맨 위 '기본으로 쓰기' 띠 → 오늘의 추천(큰 판) → 이어 쓰기(있을 때만) → 최근 쓴 템플릿 → 즐겨찾기 → NEW → 템플릿 더 보기. 카드를 누르면 자세히 보기로 바로.
 // 줄은 옆으로 밀고 점 · 대시. 템플릿 카드를 누르면 크게 보기(이 템플릿으로 쓰기 · 자세히 보기), 이어 쓰기 카드는 바로 이어 써요. 빈 줄은 숨겨요
 const REC_T = { 밤: '밤에 쓰기 좋은', 비: '비 오는 날엔', 눈: '눈 오는 날엔', 아침: '아침에 쓰기 좋은', 겨울: '겨울에 어울리는', 봄: '봄에 어울리는', 여름: '여름에 어울리는', 가을: '가을에 어울리는', 짧은글: '짧게 남기는 날', 감성: '감성 가득한 날' };
 const whenOf = iso => { const d = iso.slice(0, 10), t = S.today(); if (d === t) return '오늘'; const y = new Date(t + 'T00:00:00'); y.setDate(y.getDate() - 1); return d === `${y.getFullYear()}-${p2(y.getMonth() + 1)}-${p2(y.getDate())}` ? '어제' : `${+d.slice(5, 7)}.${d.slice(8, 10)}`; };
+// 가로 줄: 짧게 한 번 밀어도 한 장씩 착 (CSS 스냅만으론 반 넘게 밀어야 넘어가서 2~3번 밀게 돼요)
+function snapOne(r) {
+  const items = () => [...r.children].filter(c => c.offsetWidth);
+  const pos = el => { const max = r.scrollWidth - r.clientWidth, a = getComputedStyle(el).scrollSnapAlign.split(' ').pop(), pl = parseFloat(getComputedStyle(r).scrollPaddingLeft) || 0, pr = parseFloat(getComputedStyle(r).scrollPaddingRight) || 0;
+    const x = a === 'start' ? el.offsetLeft - r.offsetLeft - pl : a === 'end' ? el.offsetLeft - r.offsetLeft + el.offsetWidth - r.clientWidth + pr : el.offsetLeft - r.offsetLeft + el.offsetWidth / 2 - r.clientWidth / 2;
+    return Math.max(0, Math.min(max, x)); };
+  const near = () => { const l = items(); let k = 0, d = 1e9; l.forEach((el, i) => { const v = Math.abs(pos(el) - r.scrollLeft); if (v < d) { d = v; k = i; } }); return k; };
+  let x0 = null, y0 = 0, k0 = 0, dx = 0, t = 0;
+  r.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; k0 = near(); dx = 0; }, { passive: true });
+  r.addEventListener('touchmove', e => { if (x0 != null) dx = e.touches[0].clientX - x0; }, { passive: true });
+  r.addEventListener('touchend', e => {
+    if (x0 == null) return; const ady = Math.abs(e.changedTouches[0].clientY - y0); x0 = null;
+    if (Math.abs(dx) < 24 || ady > Math.abs(dx)) return;
+    const dir = dx < 0 ? 1 : -1, go1 = () => { const l = items(), k = Math.max(0, Math.min(l.length - 1, k0 + dir)); if (near() === k0 && k !== k0) r.scrollTo({ left: pos(l[k]), behavior: 'smooth' }); };
+    clearTimeout(t); const wait = () => { clearTimeout(t); t = setTimeout(() => { r.removeEventListener('scroll', wait); go1(); }, 90); };
+    r.addEventListener('scroll', wait, { passive: true }); wait();
+  }, { passive: true });
+}
 function viewPick() {
   pickEx = exampleText();
   const seen = new Set(), recent = [];
@@ -1204,10 +1222,10 @@ function viewPick() {
   const drafts = () => S.drafts().map(d => `<button class="wt wd" data-d="${d.id}"><div class="wc"></div><span class="pd">${whenOf(d.at)}</span><span class="x" data-x="${d.id}" role="button" aria-label="지우기">${ic('close')}</span></button>`).join('');
   app.innerHTML = `${MOOD}<main class="wmn">
     <button class="wbn" data-a="base"><b>기본으로 쓰기</b><span>색과 사진으로 바로 써요</span><i>${ic('next')}</i></button>
+    ${recs.length ? `<section class="wsh"><div class="tsec"><b>오늘의 추천</b><button data-a="all">모두 보기</button></div><div class="whs">${recs.map(r => `<div class="whr"><b>${REC_T[r.g] || r.g}</b><p>지금 날씨와 시간에 어울리는<br>템플릿이에요</p><div class="win">${r.l.map(t => `<button class="wt wm" data-t="${t.id}"><div class="wc"></div></button>`).join('')}</div></div>`).join('')}</div><div class="mdots" data-for="whs"></div></section>` : ''}
     <div class="wdr">${S.drafts().length ? sec('이어 쓰기', drafts()) : ''}</div>
     ${recent.length ? sec('최근 쓴 템플릿', recent.map(tile).join(''), 1) : ''}
     ${favs.length ? sec('즐겨찾기', favs.map(tile).join(''), 1) : ''}
-    ${recs.length ? `<section class="wsh"><div class="tsec"><b>오늘의 추천</b><button data-a="all">모두 보기</button></div><div class="whs">${recs.map(r => `<div class="whr"><b>${REC_T[r.g] || r.g}</b><p>지금 날씨와 시간에 어울리는<br>템플릿이에요</p><div class="win">${r.l.map(t => `<button class="wt wm" data-t="${t.id}"><div class="wc"></div></button>`).join('')}</div></div>`).join('')}</div><div class="mdots" data-for="whs"></div></section>` : ''}
     ${sec('NEW', news.map(tile).join(''), 1)}
     <div class="tcta wmore"><button class="w" data-a="all">${ic('layers')}템플릿 더 보기</button></div>
   </main>${nav('write')}`;
@@ -1217,10 +1235,12 @@ function viewPick() {
   const fill = root => {
     $$('.wt[data-t]', root).forEach(b => mount($('.wc', b), cardFor(T.tpl(b.dataset.t))));
     $$('.wt[data-d]', root).forEach(b => { const d = S.draft(b.dataset.d); if (d) mount($('.wc', b), { ...d.card, ratio: '45' }); });
+    $$('.trow', root).forEach(snapOne);
     $$('.trow', root).forEach(r => { const dt = r.nextElementSibling; const p = () => { const m = Math.max(1, Math.ceil(r.scrollWidth / r.clientWidth - .05)); dt.innerHTML = dotsHtml(m, Math.round(r.scrollLeft / Math.max(1, r.scrollWidth - r.clientWidth) * (m - 1)) || 0); }; p(); r.addEventListener('scroll', p, { passive: true }); });
   };
   fill(app);
   const whs = $('.whs');
+  if (whs) snapOne(whs);
   if (whs) { const n = recs.length, dt = $('[data-for=whs]'), k = () => Math.round(whs.scrollLeft / Math.max(1, whs.clientWidth)); const pd = () => { dt.innerHTML = dotsHtml(n, k()); }; pd(); whs.addEventListener('scroll', pd, { passive: true }); }
   $('[data-a=base]').onclick = () => go('#/write/text');
   $$('[data-a=all]').forEach(b => b.onclick = () => go('#/tpl'));
@@ -1230,25 +1250,9 @@ function viewPick() {
     if (x) { e.stopPropagation(); return ask('쓰다 만 글을 지울까요?', '지우기').then(ok => { if (!ok) return; S.clearDraft(x.dataset.x); $('.wdr').innerHTML = S.drafts().length ? sec('이어 쓰기', drafts()) : ''; fill($('.wdr')); pill('지웠어요', 'check'); }); }
     const d = e.target.closest('[data-d]'); if (d) go('#/write/draft-' + d.dataset.d);
   };
-  $('.wmn').addEventListener('click', e => { const b = e.target.closest('.wt[data-t]'); if (b) bigTpl(T.tpl(b.dataset.t)); });   // app 자체에 달면 화면마다 쌓여요
-  cleanup = () => { stopMood(); $('.wbig')?.remove(); };
+  $('.wmn').addEventListener('click', e => { const b = e.target.closest('.wt[data-t]'); if (b) go('#/ti/' + b.dataset.t); });   // 카드 = 자세히 보기로 바로 (닫으면 여기로). app 자체에 달면 화면마다 쌓여요
+  cleanup = () => { stopMood(); };
 }
-// 크게 보기: 카드가 가운데 크게 (움직이는 그대로) · 이름 · 이 템플릿으로 쓰기 · 자세히 보기(소개 페이지, 닫으면 여기로)
-function bigTpl(t) {
-  if (!t) return;
-  const v = document.createElement('div'); v.className = 'wbig';
-  v.innerHTML = `<div class="wbx"><button class="cx" data-a="x" aria-label="닫기">${ic('close')}</button><div class="wbc"></div>
-    <div class="wbn2">${esc(t.name)}<small>${esc(t.kind)}</small></div>
-    <div class="tcta"><button class="w" data-a="go">${ic('pen')}이 템플릿으로 쓰기</button></div><button class="wln" data-a="info">자세히 보기 ${ic('next')}</button></div>`;
-  document.body.appendChild(v);
-  const c = T.exCard(t, 0); mount($('.wbc', v), c);
-  const close = () => { v.classList.add('out'); setTimeout(() => v.remove(), 200); };
-  v.onclick = e => { if (e.target === v || e.target.closest('[data-a=x]')) close(); };
-  $('[data-a=go]', v).onclick = () => { v.remove(); go('#/write/' + t.fmt); };
-  $('[data-a=info]', v).onclick = () => { v.remove(); go('#/ti/' + t.id); };
-  let sy = null; v.addEventListener('pointerdown', e => { sy = e.clientY; }); v.addEventListener('pointerup', e => { if (sy != null && e.clientY - sy > 80) close(); sy = null; });
-}
-
 // 이 포맷으로 쓰기: 그 카드의 모습(배경 · 글꼴 · 크기 · 비율 · 날짜 줄 · 서명 자리)을 그대로, 글은 비우고 날짜는 오늘로.
 // 내 사진 · 영상은 그 카드 것이라 빼요 (포토 포맷은 빈 사진 자리로)
 function likeCard(src) {
@@ -2357,7 +2361,7 @@ function viewSet(sub) {
 const UPDATES = [
   ['1.0.0', '2026-10-31', ['템플릿 탭과 소개 페이지가 생겼어요', '책장 · 달력 · 프로필도 홈과 같은 배경이에요', '프로필에서 전체와 달마다 숫자를 함께 봐요',
     '설정 › 바탕에서 그라데이션 · 솔리드 · 다크를 고를 수 있어요', '프로필에 한 줄 소개를 쓸 수 있어요 (20자)', '쓴 날을 올해 점 달력으로 봐요',
-    '새 손글씨 로고', '설정에 서비스 소개가 생겼어요', '쓰기 첫 화면이 새로 바뀌었어요 (기본으로 쓰기 · 이어 쓰기 · 템플릿 줄)', '쓰다 만 글을 10개까지 모아 둬요']],
+    '새 손글씨 로고', '설정에 서비스 소개가 생겼어요', '쓰기 첫 화면이 새로 바뀌었어요 (기본으로 쓰기 · 이어 쓰기 · 템플릿 줄)', '쓰다 만 글을 10개까지 모아 둬요', '템플릿 줄을 짧게 밀어도 한 장씩 넘어가요']],
 ];
 // 서비스 소개 (10-31): 로고 · 한 줄 · 버전 / 운영자 정보 (유료 판매라 앱 안에 표시해야 해요). 실제 정보는 출시 전에 채워요
 const COMPANY = [['상호', ''], ['대표자', ''], ['사업자등록번호', ''], ['통신판매업 신고번호', ''], ['주소', ''], ['문의', '']];
