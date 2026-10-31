@@ -6,13 +6,13 @@ import { sampleCard } from './formats.js';
 
 export const TEMPLATES = [
   { id: 'rebus', fmt: 'rebus', name: '멤피스 문장', kind: '디자인', pop: 2, added: '2026-10-21',
-    desc: ['80년대 이탈리아 멤피스 디자인처럼 물결선, 반원, 마름모가 낱말 옆에 붙어요.', '셔플할 때마다 도형 모양과 색이 새로 바뀌어요.', '짧은 하루 한 줄을 포스터처럼 남기고 싶을 때 좋아요.'], paid: true,
+    desc: ['80년대 이탈리아 멤피스 디자인처럼|물결선, 반원, 마름모가 낱말 옆에 붙어요.', '셔플할 때마다|도형 모양과 색이 새로 바뀌어요.', '짧은 하루 한 줄을|포스터처럼 남기고 싶을 때 좋아요.'], paid: true,
     tags: ['짧은글', '감성'], words: ['멤피스', '리버스', '그림 문장', '그림', '문장', '아이콘', '귀여운', '도형', '낱말', '알록달록', '포스터', '80년대'],
     ex: ['친구랑 통화를 <b>오래</b> 했다. 별일 없는 이야기에 <mark>웃음</mark>이 많은 밤.',
       '아침에 <b>창문</b>을 열었더니 공기가 <mark>차가웠다</mark>. 겨울이 오나 보다.',
       '<b>비</b> 오는 날엔 <mark>따뜻한</mark> 차 한 잔.'] },
   { id: 'art', fmt: 'art', name: '오로라 커튼', kind: '아트', pop: 1, added: '2026-10-23',
-    desc: ['오로라 그라데이션으로 그린 세로 빛줄기가 커튼처럼 천천히 흘러요.', '셔플할 때마다 새 빛이 번져요.', '늦은 밤 짧은 글과 잘 어울려요.'], paid: true,
+    desc: ['오로라 그라데이션으로 그린 세로 빛줄기가|커튼처럼 천천히 흘러요.', '셔플할 때마다 새 빛이 번져요.', '늦은 밤|짧은 글과 잘 어울려요.'], paid: true,
     tags: ['밤', '감성'], words: ['오로라', '커튼', '그라데이션', '번지는 빛', '빛', '무지개', '몽환', '새벽', '네온', '번짐', '흐르는', '디지털 아트'],
     ex: [['창밖 불빛이 번지는 밤.', 11, '916'], ['퇴근길 하늘이 보라색이었다.', 42, '45'], ['오늘은 아무것도 하지 않아도 괜찮았다.', 77, '11']] },
 ];
@@ -87,8 +87,10 @@ export function exCard(t, i = 0, bare = false) {
   c.pages = [bare ? '' : txt]; c.bg = { ...c.bg, seed }; if (!bare && ratio) c.ratio = ratio;
   return c;
 }
+// 소개 줄의 | = 줄이 넘칠 때 내려갈 자리 (뜻이 끊기지 않게). 화면에선 안 보여요
+export const line = d => d.replace(/\|/g, ' ');
 // 검색: 이름 · 종류 · 설명 · 태그 · 검색어
-export const hit = (t, q) => !q || [t.name, t.kind, ...t.desc, ...t.tags, ...t.words].some(s => s.toLowerCase().includes(q.toLowerCase()));
+export const hit = (t, q) => !q || [t.name, t.kind, ...t.desc.map(line), ...t.tags, ...t.words].some(s => s.toLowerCase().includes(q.toLowerCase()));
 
 export const favs = () => S.pref('favT', []);
 export const isFav = id => favs().includes(id);

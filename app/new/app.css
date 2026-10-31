@@ -110,7 +110,7 @@ body.paused .amb b { animation-play-state: paused; }
 .ftop, .feed, .bn { position: relative; z-index: 1; }
 .ftop { display: flex; align-items: center; justify-content: space-between; padding: var(--top) var(--gut) 20px; }   /* 시계 줄 블러 아래 */
 .ftop .logo { font-size: 32px; font-weight: 800; letter-spacing: -.035em; line-height: 40px; }
-.feed { padding: 0 var(--gut) calc(120px + var(--safe-b)); display: grid; grid-template-columns: minmax(0, 1fr); gap: 44px; }   /* 카드 세트 사이 */
+.feed { padding: 0 var(--gut) calc(120px + var(--safe-b)); display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; }   /* 카드 세트 사이 (10-31 44 → 28) */
 .fi .pgs.nosnap { scroll-snap-type: none; }
 .fi .pgs { overscroll-behavior-x: contain; }
 .day { font-size: var(--fs-s); font-weight: var(--fw); color: var(--mut); margin: 6px 0 -16px; letter-spacing: .02em; }
@@ -944,7 +944,7 @@ html.blk, html.blk body { background: #000; }
 .tip { position: absolute; inset: 0; display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior: contain; }
 .tip::-webkit-scrollbar { display: none; }
 .tpg { flex: 0 0 100%; scroll-snap-align: start; position: relative; }
-.tpg .tcd { position: absolute; left: 50%; transform: translateX(-50%); top: calc(var(--top) + 56px); width: min(calc(100% - 2 * var(--gut)), calc((100vh - var(--top) - 56px - 340px - var(--safe-b)) / var(--ar))); border-radius: 14px; overflow: hidden; }   /* 아래 글 묶음 위에 다 들어가게 */
+.tpg .tcd { position: absolute; left: 50%; transform: translateX(-50%); top: calc(var(--top) + 56px); width: min(calc(100% - 2 * var(--gut)), calc(var(--room, 50vh) / var(--ar))); border-radius: 14px; overflow: hidden; }   /* 높이는 JS가 잰 --room (설명 글 위 32px까지) */
 .tpg.full .tcd { transform: none; width: auto; }
 .tpg.full .tcd { left: 0; right: 0; top: 0; border-radius: 0; }
 .tpg.full .tcd .cd { border-radius: 0; }
@@ -962,3 +962,10 @@ html.blk, html.blk body { background: #000; }
 .tcta .w { flex: 1; height: 52px; border-radius: 999px; background: #fff; color: var(--bg); display: flex; align-items: center; justify-content: center; gap: 8px; font-size: var(--fs-m); font-weight: var(--fw); }
 .tcta .w .ic { width: 20px; height: 20px; }
 .tcta .hb { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; flex: none; }
+
+/* 10-31 책장 · 달력 · 프로필 = 템플릿홈과 같은 바탕. 책장 위 판 = 달력 판과 같은 모양, 위에 붙어 있어요 */
+.shv.mood { position: relative; z-index: 1; }
+.shtop.cpn { margin-bottom: 16px; padding-bottom: 28px; }   /* 둥근 아래 모서리가 버튼을 자르지 않게 */
+
+.tlow p span { display: block; }
+.tlow p i { font-style: normal; display: inline-block; }   /* 넘치면 | 자리에서만 내려가요 */
