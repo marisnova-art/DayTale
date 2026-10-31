@@ -2098,16 +2098,7 @@ function thumb(src) {
   })().catch(() => src));
   return THUMB.get(src);
 }
-// 바탕 한 칸: 사진 · 작품은 그 색으로 먼저 깔고 작은 사본이 오면 바꿔요. lt = 밝은 단색 (더 어둡게 덮어요)
-function bgTile(c, fb) {
-  const cb = c?.bg, b = cb && cb.id !== 'hex' ? findBg(cb.id) : null;
-  const src = b?.photo ? P.url(cb.ph) : b?.img || '', pos = b?.photo ? `${cb.x ?? 50}% ${cb.y ?? 50}%` : 'center';
-  const css = src ? (b.tone || '#2a2a2e') : (c && bgCss(c)) || fb;
-  return { attr: ` style="background:${css}"${src ? ` data-th="${esc(src)}" data-pos="${pos}"` : ''}`, lt: /^#[0-9a-f]{3,6}$/i.test(css) && inkOn(css) !== '#fff' };
-}
 const fillThumbs = root => $$('[data-th]', root).forEach(el => thumb(el.dataset.th).then(u => { el.style.background = `url(${u}) ${el.dataset.pos}/cover`; }));
-const pickCard = (list, f = () => true) => { const xs = list.filter(f).filter(c => bgCss(c)); return xs[Math.floor(Math.random() * xs.length)] || null; };
-const FALL = [7, 15, 5, 0, 4, 11, 3].map(i => FREE[i].css);   // 카드가 없을 때는 우리 그라데이션
 // 넘기는 줄 아래 점 · 대시: 쪽이 많아도 점은 5개까지, 지금 쪽 = 대시
 const dotsHtml = (n, k) => { if (n < 2) return ''; const a = Math.max(0, Math.min(n - 5, k - 2)); return Array.from({ length: Math.min(n, 5) }, (_, i) => `<i class="${a + i === k ? 'on' : ''}"></i>`).join(''); };
 
@@ -2130,8 +2121,8 @@ function viewMe() {
   const li = (S.pref('meLine', -1) + 1) % LINES.length, ln = LINES[li]; S.setPref('meLine', li);   // 들어올 때마다 다음 문장 (끝까지 보면 처음부터)
   const NONE = '없어요';
   // 8칸 2열 (10-31: 10 → 8, 아래 그래프가 첫 화면에 들어오게): 전체 | 월별. 칸 바탕은 들어올 때 한 번 고르고, 값만 바뀌어요
-  const tileBg = [pickCard(all), pickCard(all), pickCard(all), pickCard(all, c => kindOf(c) === st.kind), pickCard(all, c => bgName(c) === st.col),
-    pickCard(all, c => placeOf(c) === st.place), pickCard(all, c => slotOf(c) === st.when), pickCard(all)].map((c, i) => bgTile(c, FALL[i % FALL.length]));
+  // 10-31: 칸 바탕 = 쓰기 화면의 그라데이션 · 솔리드에서 겹치지 않게 8개를 랜덤으로 (사진 · 작품은 안 써요, 처음 쓰는 사람도 같아요)
+  const tileBg = [...FREE].sort(() => Math.random() - .5).slice(0, 8).map(b => ({ attr: ` style="background:${b.css}"`, lt: b.ink !== '#fff' }));
   const vals = s => [[`${s.days}일`, '쓴 날'], [`${s.n}장`, '카드'], [s.n ? `${s.avg}자` : NONE, '한 장 평균'],
     [s.kind ? s.kind.replace(/^(디자인|아트) /, '') : NONE, '자주 쓴 템플릿'], [s.col || NONE, '자주 쓴 색'], [s.place || NONE, '자주 쓴 곳'], [s.when || NONE, '자주 쓴 때'], [s.wd || NONE, '자주 쓴 요일']];
   const by = new Map(); all.filter(c => c.date).forEach(c => { const m = c.date.slice(0, 7); by.has(m) ? by.get(m).push(c) : by.set(m, [c]); });
