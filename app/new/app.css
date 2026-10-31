@@ -969,3 +969,33 @@ html.blk, html.blk body { background: #000; }
 
 .tlow p span { display: block; }
 .tlow p i { font-style: normal; display: inline-block; }   /* 넘치면 | 자리에서만 내려가요 */
+/* 10-31 프로필 10칸 2열 + 전체 | 월별 */
+.mmd { display: flex; align-items: center; justify-content: space-between; margin-top: 24px; padding-right: var(--gut); }
+.msg2 { display: inline-flex; padding: 3px; border-radius: 999px; background: rgba(0,0,0,.28); }
+.msg2 button { height: 30px; padding: 0 14px; border-radius: 999px; font-size: var(--fs-s); color: rgba(255,255,255,.75); }
+.msg2 button.on { background: #fff; color: var(--bg); }
+.mmn { display: flex; align-items: center; gap: 2px; font-size: var(--fs-m); transition: opacity .2s; }
+.mmn.off { opacity: 0; pointer-events: none; }
+.mmn b { font-weight: var(--fw); min-width: 92px; text-align: center; }
+.mmn button { width: 32px; height: 32px; display: grid; place-items: center; color: #fff; }
+.mmn button[disabled] { opacity: .3; }
+.mmn .ic { width: 20px; height: 20px; }
+.mev .msr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 14px; padding-right: var(--gut); overflow: visible; scroll-snap-type: none; }
+.mev .msr::after { display: none; }
+.mev .mst { height: 92px; gap: 6px; }
+.mev .mst > b { font-size: var(--fs-l); font-weight: var(--fw); line-height: 30px; letter-spacing: -.02em; -webkit-line-clamp: 1; }
+/* 10-31 설정: 구독 묶음만 단색으로 눈에 띄게 */
+.sgp.plan { background: #2B2650; }
+.sgp.plan .srw { border-color: rgba(255,255,255,.12); }
+.sgp.plan .srw > .ic, .sgp.plan .srw .v, .sgp.plan .srw .v .ic { color: rgba(255,255,255,.8); }
+.sgp.upd { padding: 16px; }
+.upd .uh { display: flex; align-items: baseline; justify-content: space-between; font-size: var(--fs-m); }
+.upd .uh b { font-weight: var(--fw); } .upd .uh span { font-size: var(--fs-s); color: var(--mut); }
+.upd ul { margin: 10px 0 0; padding-left: 18px; color: rgba(255,255,255,.75); font-size: var(--fs-s); line-height: 1.7; }
+/* 10-31 책 열기: 위 판 = 책 색, 위에 붙어 있고 낮게 (뒤로 · 이름 + 기간 · ⋯ 한 줄) */
+.bkv .bh { position: sticky; top: 0; z-index: 20; padding: var(--top) var(--gut) 18px; text-align: left; margin-bottom: 16px; }
+.bkv .bh .bar { align-items: center; gap: 12px; padding: 0; }
+.bkv .bh .bt { flex: 1; min-width: 0; }
+.bkv .bh h2 { margin: 0; font-size: var(--fs-xl); line-height: 40px; -webkit-line-clamp: 1; overflow-wrap: normal; white-space: nowrap; text-overflow: ellipsis; display: block; }
+.bkv .bh p { margin: 2px 0 0; }
+.bkv .bh .cb, .bkv .bh .cb0 { flex: none; align-self: flex-start; width: 40px; height: 40px; }

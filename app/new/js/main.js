@@ -695,7 +695,7 @@ function viewShelf() {
   S.setPref('shelfView', 'shelf');
   const { auto, mine } = shelfBooks(), du = mine.length >= 3 ? 0 : 6 - mine.length * 2;
   app.innerHTML = `${MOOD}<div class="shv mood">
-    <header class="shtop cpn" style="background-image:var(--grain),${panelCss()};background-size:200px,auto,auto,auto;background-blend-mode:overlay,normal,normal,normal"><div class="tl"><h1>책장</h1><button class="cb vio" data-a="save" aria-label="책장 이미지 저장">${ic('save')}</button><button class="cb" data-a="new" aria-label="새 책">${ic('plus')}</button></div>${capsule('shelf')}</header>
+    <header class="shtop cpn" style="background-image:${panelCss()}"><div class="tl"><h1>책장</h1><button class="cb vio" data-a="save" aria-label="책장 이미지 저장">${ic('save')}</button><button class="cb" data-a="new" aria-label="새 책">${ic('plus')}</button></div>${capsule('shelf')}</header>
     ${mine.length >= 15 ? `<div class="bkf"><label class="fld"><span class="li">${ic('search')}</span><input type="search" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="책 이름"></label></div>` : ''}
     <div class="spines">${auto.map(b => spine(b)).join('')}<div class="gap"></div>${mine.map(b => spine(b)).join('')}${DUMMY.slice(0, du).map(([name, color, h, font], i) => spine({ id: 'du' + i, name, color, font }, { du: 1, h })).join('')}</div></div>${nav('shelf')}`;
   bindNav(); bindCap();
@@ -772,11 +772,13 @@ function settle(list, open) {
 function viewBook(id) {
   const b = bookOf(id); if (!b) return location.replace('#/shelf');
   const list = byDate(b.cards), ff = b.font ? fontCssOf(fontOf(b.font)) : '';
-  app.innerHTML = `<div class="shv bkv"><i class="grn"></i><i class="stb"></i>
-    <header class="bh" style="background-color:${b.color};color:${b.ink}"><div class="bar"><button class="cb" data-a="back" aria-label="뒤로">${ic('back')}</button>${b.mine ? `<button class="cb" data-a="more" aria-label="더 보기">${ic('more')}</button>` : ''}</div>
-    <h2${ff ? ` style="font-family:${ff}"` : ''}>${esc(b.name)}</h2><p>${rangeOf(b.cards)} · 카드 ${b.cards.length}</p></header>
+  // 10-31: 바탕 = 템플릿홈과 같은 배경, 위 판 = 책 색 (종이 결) · 달력처럼 위에 붙어 있고 높이는 전보다 반
+  app.innerHTML = `${MOOD}<div class="shv bkv mood">
+    <header class="bh" style="background-color:${b.color};color:${b.ink}"><div class="bar"><button class="cb" data-a="back" aria-label="뒤로">${ic('back')}</button>
+    <div class="bt"><h2${ff ? ` style="font-family:${ff}"` : ''}>${esc(b.name)}</h2><p>${rangeOf(b.cards)} · 카드 ${b.cards.length}</p></div>${b.mine ? `<button class="cb" data-a="more" aria-label="더 보기">${ic('more')}</button>` : '<span class="cb0"></span>'}</div></header>
     <main class="days"></main></div>${nav('shelf')}`;
   bindNav();
+  const stopMood = paintMood($('.amb'));
   $('[data-a=back]').onclick = () => /^#\/(shelf|cal)/.test(lastHash || '') ? history.back() : location.replace('#/shelf');
   // 제목: 아주 큰 글(34) 두 줄까지
   const days = $('.days');
@@ -793,7 +795,7 @@ function viewBook(id) {
   } }]]));
   const onSc = () => $('.bkv')?.classList.toggle('sc', scrollY > 8);
   addEventListener('scroll', onSc, { passive: true });
-  cleanup = () => { stop(); closeRun(true); $('.obar')?.remove(); $('.nav.hid')?.classList.remove('hid'); removeEventListener('scroll', onSc); };
+  cleanup = () => { stop(); stopMood(); closeRun(true); $('.obar')?.remove(); $('.nav.hid')?.classList.remove('hid'); removeEventListener('scroll', onSc); };
 }
 // 카드 빼기: 칸마다 동그라미, 골라서 이 책에서만 빼요 (카드는 그대로)
 function pickOut(b, list) {
@@ -832,7 +834,7 @@ function viewCal(month) {
     return `<div class="mo1" data-m="${m}"><div class="mg2">${h}</div></div>`;
   };
   app.innerHTML = `${MOOD}<div class="shv calv mood">
-    <header class="cpn" style="background-image:var(--grain),${panelCss()};background-size:200px,auto,auto,auto;background-blend-mode:overlay,normal,normal,normal">
+    <header class="cpn" style="background-image:${panelCss()}">
       <div class="crow"><button class="mon" data-a="ym"><b></b><span><em></em>${ic('back')}</span></button>${capsule('cal')}</div>
       <div class="wks">${weeks.map(w => `<div class="wk" data-w="${w}">${Array.from({ length: 7 }, (_, i) => cell(addDays(w, i), 1)).join('')}</div>`).join('')}</div>
       <div class="mow"><div class="mwd">${Array.from({ length: 7 }, (_, i) => `<i>${WD[(ws + i) % 7]}</i>`).join('')}</div><div class="mos">${months.map(monthGrid).join('')}</div></div>
@@ -2113,6 +2115,9 @@ const statsOf = list => ({
   days: new Set(list.map(c => c.date).filter(Boolean)).size, n: list.length,
   chars: list.reduce((s, c) => s + cardText(c).replace(/\s/g, '').length, 0),
   kind: most(list.map(kindOf)), place: most(list.map(placeOf)), when: most(list.map(slotOf)), col: most(list.map(bgName)),
+  long: Math.max(0, ...list.map(c => cardText(c).replace(/\s/g, '').length)),
+  wd: most(list.map(c => c.date ? WD[dayOf(c.date).getDay()] + '요일' : '')),
+  ratio: most(list.map(c => ({ 45: '4:5', 916: '9:16', 11: '1:1' })[c.ratio || '45'])),
 });
 
 // 프로필 (10-29 v11): 위 판 = 홈 무드 + 고운 노이즈 (아래만 둥글게). 사진 · 이름 · @아이디 · 칩 / 한 줄 / 통계 카드 7장 (옆으로 밀어요)
@@ -2121,11 +2126,11 @@ function viewMe() {
   const all = S.cards(), st = statsOf(all), me = meOf();
   const li = (S.pref('meLine', -1) + 1) % LINES.length, ln = LINES[li]; S.setPref('meLine', li);   // 들어올 때마다 다음 문장 (끝까지 보면 처음부터)
   const NONE = '없어요';
-  const tiles = [
-    [`${st.days}일`, '쓴 날', pickCard(all)], [`${st.n}장`, '카드', pickCard(all)], [chars(st.chars), '글자', pickCard(all)],
-    [st.kind || NONE, '자주 쓴 종류', pickCard(all, c => kindOf(c) === st.kind)], [st.place || NONE, '자주 쓴 곳', pickCard(all, c => placeOf(c) === st.place)],
-    [st.when || NONE, '자주 쓴 때', pickCard(all, c => slotOf(c) === st.when)], [st.col || NONE, '자주 쓴 색', pickCard(all, c => bgName(c) === st.col)],
-  ];
+  // 10칸 2열 (10-31): 전체 | 월별. 칸 바탕은 들어올 때 한 번 고르고, 값만 바뀌어요
+  const tileBg = [pickCard(all), pickCard(all), pickCard(all), pickCard(all), pickCard(all, c => kindOf(c) === st.kind), pickCard(all, c => bgName(c) === st.col),
+    pickCard(all, c => placeOf(c) === st.place), pickCard(all, c => slotOf(c) === st.when), pickCard(all), pickCard(all)].map((c, i) => bgTile(c, FALL[i % FALL.length]));
+  const vals = s => [[`${s.days}일`, '쓴 날'], [`${s.n}장`, '카드'], [chars(s.chars), '글자'], [s.n ? chars(s.long) : NONE, '가장 긴 글'],
+    [s.kind ? s.kind.replace(/^(디자인|아트) /, '') : NONE, '자주 쓴 템플릿'], [s.col || NONE, '자주 쓴 색'], [s.place || NONE, '자주 쓴 곳'], [s.when || NONE, '자주 쓴 때'], [s.wd || NONE, '자주 쓴 요일'], [s.n ? s.ratio : NONE, '자주 쓴 비율']];
   const by = new Map(); all.filter(c => c.date).forEach(c => { const m = c.date.slice(0, 7); by.has(m) ? by.get(m).push(c) : by.set(m, [c]); });
   const months = [...by.keys()].sort();   // 오래된 달 → 이번 달
   // 그래프: 7달씩, 처음엔 이번 달이 가운데 (지난 3달 · 이번 달 · 다음 3달). 옆으로 밀면 7달씩 지난 쪽으로, 처음 쓴 달이 든 쪽까지
@@ -2143,36 +2148,30 @@ function viewMe() {
   const axis = v => v >= 1e4 ? `${+(v / 1e4).toFixed(1)}만` : v >= 1000 ? `${+(v / 1000).toFixed(1)}천` : `${v}`;
   let met = S.pref('meGraph', 'n'); if (!MET[met]) met = 'n';
   let sel = T;
-  const cap = (icon, t) => `<span class="mcp">${icon ? ic(icon) : ''}${esc(t)}</span>`;
-  const month = (m, i) => {
-    const l = by.get(m), s = statsOf(l), t = bgTile(pickCard(l, c => bgName(c) === s.col) || pickCard(l), FALL[i % FALL.length]);
-    return `<button class="mmo${t.lt ? ' lt' : ''}" data-m="${m}"><i${t.attr}></i><span class="t24">${+m.slice(0, 4)}년 ${+m.slice(5)}월</span><span class="mcps">${cap('', `쓴 날 ${s.days}일`)}${cap('', `카드 ${s.n}장`)}${cap('', `글자 ${chars(s.chars)}`)}${s.kind ? cap('grid', s.kind) : ''}${s.place ? cap('pin', s.place) : ''}${s.when ? cap('clock', s.when) : ''}${s.col ? cap('bg', s.col) : ''}</span></button>`;
-  };
   app.innerHTML = `${MOOD}<div class="shv mev mood"><i class="stb"></i>
-    <header class="mpn" style="background-image:var(--grain),${panelCss()};background-size:200px,auto,auto,auto;background-blend-mode:overlay,normal,normal,normal">
+    <header class="mpn" style="background-image:${panelCss()}">
       <div class="mpro"><span class="av"${avStyle()}></span><div class="who"><div class="t24">${esc(me.name || '나')}</div>
         <div class="t13 id">${me.id ? `<span>@${esc(me.id)}</span>` : ''}<button class="chip" data-a="plan">체험 중</button></div></div>
         <button class="mset" data-a="set" aria-label="설정">${ic('slide')}</button></div>
       <button class="t24 mq" data-a="q">${ln[0]}</button>
-      <div class="msr">${tiles.map(([v, l, c], i) => { const t = bgTile(c, FALL[i]); return `<div class="mst${t.lt ? ' lt' : ''}"><i${t.attr}></i><b class="t24">${esc(v)}</b><span class="mlb">${l}</span></div>`; }).join('')}</div>
-      <div class="mdots" data-for="msr"></div>
+      <div class="mmd"><div class="msg2"><button data-v="all">전체</button><button data-v="m">월별</button></div><div class="mmn"><button data-a="pm" aria-label="지난달">${ic('back')}</button><b></b><button data-a="nm" aria-label="다음 달">${ic('next')}</button></div></div>
+      <div class="msr">${tileBg.map(t => `<div class="mst${t.lt ? ' lt' : ''}"><i${t.attr}></i><b></b><span class="mlb"></span></div>`).join('')}</div>
     </header>
     <section class="mgc"><div class="mseg">${Object.entries(MET).map(([k, [n]]) => `<button data-g="${k}">${n}</button>`).join('')}</div>
     <div class="mgw"><div class="may"></div><div class="mgr"></div></div>
     ${all.length ? '' : '<p class="t13 mg0">첫 카드를 쓰면 막대가 자라요</p>'}<div class="mdots" data-for="mgr"></div></section>
-    ${months.length ? `<p class="mct">달마다 돌아보기</p><div class="mcr${months.length === 1 ? ' one' : ''}">${months.map(month).join('')}</div><div class="mdots" data-for="mcr"></div>` : ''}</div>${nav('')}`;
+    </div>${nav('')}`;
   bindNav(); fillThumbs(app);
   const stopMood = paintMood($('.amb'));
   $('[data-a=set]').onclick = () => go('#/set');
   $('[data-a=plan]').onclick = () => go('#/set/plan');
   $('[data-a=q]').onclick = () => toast(ln[1]);
-  $$('.mmo').forEach(b => b.onclick = () => go('#/cal/' + b.dataset.m));
   // 막대: 고른 지표로 높이, 고른 달만 선명한 색 + 값 하나. 막대를 누르면 그 달 카드로, 카드를 넘기면 그 달 막대로
   // 막대 색: 쓴 만큼 아래 → 위 그라데이션. 많이 쓴 달일수록 위가 뜨거운 색 (산호 · 주황, 빨강은 지우기에만)
   // 안 쓴 달 = 막대 없이 달 이름만. 처음 쓴 달 전 · 아직 안 온 달 = 이름도 흐리게, 누를 수 없어요
   const mix = (a, b, t) => '#' + [1, 3, 5].map(i => Math.round(parseInt(a.slice(i, i + 2), 16) * (1 - t) + parseInt(b.slice(i, i + 2), 16) * t).toString(16).padStart(2, '0')).join('');
   const heat = t => t < .5 ? mix('#6F7BF7', '#C86AD8', t * 2) : mix('#C86AD8', '#FF7A45', (t - .5) * 2);
-  const gr = $('.mgr'), car = $('.mcr'), H = 96;
+  const gr = $('.mgr'), H = 96;
   const paintGraph = () => {
     const [, f, fmt] = MET[met], top = topOf(met);
     $$('.mseg [data-g]').forEach(b => b.classList.toggle('on', b.dataset.g === met));
@@ -2185,13 +2184,11 @@ function viewMe() {
   // 7달 막대를 새로 그려요 (넘길 때마다). 처음 · 넘길 때는 막대가 아래에서 차올라요
   const drawBars = () => {
     gr.innerHTML = win().map(m => { const off = m > T || m < first; return `<button data-m="${m}"${off ? ' disabled' : ''}${m === T ? ' class="now"' : ''}><em></em><i></i><span>${+m.slice(5)}월</span></button>`; }).join('');
-    $$('[data-m]:not([disabled])', gr).forEach(b => b.onclick = () => { sel = b.dataset.m; paintGraph(); toCard(); });
+    $$('[data-m]:not([disabled])', gr).forEach(b => b.onclick = () => { sel = b.dataset.m; mode = 'm'; paintGraph(); paintTiles(); });   // 막대 = 그달 숫자로
     $$('i', gr).forEach(i => i.style.height = '0px');
     $('[data-for=mgr]').innerHTML = dotsHtml(1 - pMin, pg - pMin);
     requestAnimationFrame(() => requestAnimationFrame(paintGraph));
   };
-  let jump = 0;   // 막대를 눌러 카드로 넘어가는 동안은 지나가는 달을 무시해요
-  const toCard = () => { const c = car?.querySelector(`[data-m="${sel}"]`); if (!c) return; clearTimeout(jump); jump = setTimeout(() => { jump = 0; }, 700); car.scrollTo({ left: c.offsetLeft - (car.clientWidth - c.offsetWidth) / 2, behavior: 'smooth' }); };
   const showSel = () => { const p = pageOf(sel); if (p !== pg) { pg = p; drawBars(); } else paintGraph(); };
   $$('.mseg [data-g]').forEach(b => b.onclick = () => { met = b.dataset.g; S.setPref('meGraph', met); paintGraph(); });
   // 그래프를 옆으로 밀면 7달씩 (오른쪽으로 밀면 그 전 7달)
@@ -2199,26 +2196,23 @@ function viewMe() {
   gr.addEventListener('pointerdown', e => { sx = e.clientX; });
   gr.addEventListener('pointerup', e => { if (sx == null) return; const dx = e.clientX - sx; sx = null;
     if (Math.abs(dx) < 40) return; const n = Math.min(0, Math.max(pMin, pg + (dx > 0 ? -1 : 1))); if (n !== pg) { pg = n; drawBars(); } });
-  // 달 카드: 높이는 캡슐이 가장 많은 달에 맞춰 모두 같게 (아래가 비지 않게)
-  const carDots = () => { if (!car) return; const n = car.children.length, k = Math.round(car.scrollLeft / Math.max(1, car.scrollWidth - car.clientWidth) * (n - 1)) || 0; $('[data-for=mcr]').innerHTML = dotsHtml(n, k); };
-  if (car) { const hs = [...car.children].map(x => x.offsetHeight); car.style.setProperty('--mh', Math.max(...hs) + 'px'); }
-  car?.addEventListener('scroll', () => {
-    carDots(); if (jump) return;
-    const mid = car.scrollLeft + car.clientWidth / 2;
-    const c = [...car.children].reduce((a, x) => Math.abs(x.offsetLeft + x.offsetWidth / 2 - mid) < Math.abs(a.offsetLeft + a.offsetWidth / 2 - mid) ? x : a);
-    if (c.dataset.m && c.dataset.m !== sel) { sel = c.dataset.m; showSel(); }
-  }, { passive: true });
-  if (car) car.scrollLeft = car.scrollWidth;   // 달 카드도 그래프처럼 왼쪽이 지난달, 처음엔 가장 최근 달(오른쪽 끝)
   if (months.length && !by.has(T)) sel = months.at(-1);
-  pg = pageOf(sel); drawBars(); carDots();
+  pg = pageOf(sel); drawBars();
 
-  // 통계 카드 줄 점: 밀어서 볼 수 있는 쪽 수만큼, 지금 쪽은 대시
-  const row = $('.msr'), dots = $('[data-for=msr]');
-  const paintDots = () => {
-    const n = Math.max(1, Math.ceil(row.scrollWidth / row.clientWidth - .05)), k = Math.min(n - 1, Math.round(row.scrollLeft / Math.max(1, row.scrollWidth - row.clientWidth) * (n - 1)) || 0);
-    dots.innerHTML = dotsHtml(n, k);
+  // 10칸: 전체 = 처음부터, 월별 = 고른 달 (‹ › 로 쓴 달만 오가요, 그래프 막대도 같이)
+  let mode = 'all';
+  const paintTiles = () => {
+    $$('.msg2 button').forEach(b => b.classList.toggle('on', b.dataset.v === mode));
+    $('.mmn').classList.toggle('off', mode !== 'm');
+    $('.mmn b').textContent = `${+sel.slice(0, 4)}년 ${+sel.slice(5)}월`;
+    const i = months.indexOf(sel); $('[data-a=pm]').disabled = i <= 0; $('[data-a=nm]').disabled = i < 0 || i >= months.length - 1;
+    const v = vals(mode === 'm' ? ms(sel) : st);
+    $$('.msr .mst').forEach((el, k) => { el.querySelector('b').textContent = v[k][0]; el.querySelector('.mlb').textContent = v[k][1]; });
   };
-  paintDots(); row.addEventListener('scroll', paintDots, { passive: true });
+  const stepM = d => { const i = months.indexOf(sel) + d; if (i < 0 || i >= months.length) return; sel = months[i]; showSel(); paintTiles(); };
+  $$('.msg2 button').forEach(b => b.onclick = () => { mode = b.dataset.v; if (mode === 'm' && !by.has(sel) && months.length) { sel = months.at(-1); showSel(); } paintTiles(); });
+  $('[data-a=pm]').onclick = () => stepM(-1); $('[data-a=nm]').onclick = () => stepM(1);
+  paintTiles();
   const onSc = () => $('.mev')?.classList.toggle('sc', scrollY > 8);
   addEventListener('scroll', onSc, { passive: true });
   cleanup = () => { stopMood(); removeEventListener('scroll', onSc); };
@@ -2261,8 +2255,12 @@ function viewSet(sub) {
   if (sub === 'trash') return setTrash();
   if (sub === 'alarm') return setAlarm();
   if (sub === 'plan') return setPlan();
+  if (sub === 'news') return setNews();
+  if (sub === 'updates') return setUpdates();
   const me = meOf(), n = S.trash().length;
-  setShell('설정', `${sgrp(`<button class="srw acc" data-go="#/set/account"><span class="av"${avStyle()}></span><span class="t"><b>${esc(me.name || '나')}</b><small>${me.id ? '@' + esc(me.id) : '로그인 전'}</small></span><span class="v"><i class="schip">체험 중</i>${ic('next')}</span></button>`)}
+  setShell('설정', `${sgrp(`<button class="srw acc" data-go="#/set/account"><span class="av"${avStyle()}></span><span class="t"><b>${esc(me.name || '나')}</b><small>${me.id ? '@' + esc(me.id) : '로그인 전'}</small></span><span class="v">${ic('next')}</span></button>`)}
+    <div class="sgp plan">${srow('star', '구독', '체험 중', { go: '#/set/plan' })}${srow('ticket', '이용권 코드 넣기', '', { a: 'code' })}</div>
+    ${sgrp(srow('bell', '공지사항 · 이벤트', '', { go: '#/set/news' }), srow('doc', '업데이트 소식', UPDATES[0][0], { go: '#/set/updates' }))}
     ${sgrp(srow('pin', '장소 자동', '', { tg: S.pref('autoPlace', false), a: 'place' }), srow('sign', '서명', esc(S.pref('sign', '')) || '없음', { go: '#/set/sign' }), srow('date', '날짜 표시', dateLine(S.today()), { go: '#/set/date' }), srow('week', '한 주의 시작', weekStart() ? '월요일' : '일요일', { go: '#/set/week' }))}
     ${sgrp(srow('backup', '백업', '', { go: '#/set/backup' }), srow('trash', '휴지통', n || '', { go: '#/set/trash' }))}
     ${sgrp(srow('bell', '알림', S.pref('remind', false) ? '켜짐' : '', { go: '#/set/alarm' }), srow('globe', '언어', LANGS[S.pref('lang', 'ko')], { go: '#/set/lang' }))}
@@ -2273,6 +2271,18 @@ function viewSet(sub) {
   $('[data-a=privacy]').onclick = () => { location.href = '../legal/privacy.ko.html'; };
   $('[data-a=help]').onclick = $('[data-a=lic]').onclick = soon;
   $('[data-a=out]').onclick = soonLogin;
+  $('[data-a=code]').onclick = soonLogin;
+}
+// 업데이트 소식: 새 버전마다 맨 위에 한 줄 (버전 · 날짜 · 바뀐 것)
+const UPDATES = [
+  ['1.0.0', '2026-10-31', ['템플릿 탭과 소개 페이지가 생겼어요', '책장 · 달력 · 프로필도 홈과 같은 배경이에요', '프로필에서 전체와 달마다 숫자를 함께 봐요']],
+];
+function setUpdates() {
+  setShell('업데이트 소식', UPDATES.map(([v, d, xs]) => `<div class="sgp upd"><div class="uh"><b>${v}</b><span>${d.replace(/-/g, '.')}</span></div><ul>${xs.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>`).join(''));
+}
+// 공지사항 · 이벤트: 관리자에서 올리는 글 (로그인 · 동기화 때 붙여요). 지금은 빈 화면
+function setNews() {
+  setShell('공지사항 · 이벤트', `<div class="empty"><span class="i">${ic('bell')}</span><b>아직 소식이 없어요</b><span>새 템플릿이나 이벤트가 생기면 여기에 알려 드릴게요</span></div>`);
 }
 
 // 계정: 사진(카메라) · 이름 · 아이디 / 구독 · 이용권 / 탈퇴 (로그인 · 탈퇴 · 이용권은 로그인 단계에서)
@@ -2281,7 +2291,6 @@ function setAccount() {
   setShell('계정', `<div class="ahd"><button class="avw" data-a="ph" aria-label="사진 바꾸기"><span class="av"${avStyle()}></span><span class="cam">${ic('cam')}</span></button><input type="file" accept="image/*" hidden>
     <b>${esc(me.name || '나')}</b><small>${me.id ? '@' + esc(me.id) : '로그인 전'}</small></div>
     ${sgrp(srow('user', '이름', esc(me.name) || '정하기', { go: '#/set/name' }), srow('sign', '아이디', me.id ? '@' + esc(me.id) : '정하기', { go: '#/set/id' }), srow('key', '로그인', '로그인 전', { a: 'login' }))}
-    ${sgrp(srow('star', '구독', '체험 중', { go: '#/set/plan' }), srow('ticket', '이용권 코드 넣기', '', { a: 'code' }))}
     ${sgrp(srow('trash', '탈퇴', '', { end: '', red: 1, a: 'bye' }))}`);
   const inp = $('.ahd input');
   $('[data-a=ph]').onclick = () => inp.click();
@@ -2289,7 +2298,7 @@ function setAccount() {
     const f = inp.files?.[0]; if (!f) return;
     try { setMe({ photo: await avatarOf(f) }); route(); } catch { toast('사진을 못 읽었어요'); }
   };
-  $('[data-a=login]').onclick = $('[data-a=code]').onclick = $('[data-a=bye]').onclick = soonLogin;
+  $('[data-a=login]').onclick = $('[data-a=bye]').onclick = soonLogin;
 }
 // 프로필 사진: 가운데를 정사각형으로 잘라 256px JPEG (사진 속 위치 정보는 다시 그리며 빠져요)
 async function avatarOf(file) {
