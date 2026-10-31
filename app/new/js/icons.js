@@ -104,6 +104,7 @@ const P = {
   clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   cam: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
   logout: '<path d="M15 4h4v16h-4M10 16l-4-4 4-4M6 12h10"/>',
+  layers: '<path class="top" d="M12 3 21 8l-9 5-9-5 9-5z"/><path class="lo" d="m3 12 9 5 9-5"/><path class="lo" d="m3 16 9 5 9-5"/>',
   undo2: '<path d="M4 12a8 8 0 1 0 2.4-5.7L4 8.5"/><path d="M4 4v4.5h4.5"/>',
 };
 
