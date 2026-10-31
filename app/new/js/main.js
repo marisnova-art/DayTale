@@ -2164,7 +2164,7 @@ function viewMe() {
       <div class="mpro"><span class="av"${avStyle()}></span><div class="who"><div class="t24">${esc(me.name || '나')}</div>
         <div class="t13 id">${me.id ? `<span>@${esc(me.id)}</span>` : ''}<button class="chip" data-a="plan">체험 중</button></div></div>
         <button class="mset" data-a="set" aria-label="설정">${ic('slide')}</button></div>
-      <button class="t24 mq" data-a="q">${ln[0]}</button>
+      ${me.bio ? `<button class="t24 mq bio" data-a="bio">${esc(me.bio)}</button>` : `<button class="t24 mq" data-a="q">${ln[0]}</button>`}
       <div class="mmd"><div class="msg2"><button data-v="all">전체</button><button data-v="m">월별</button></div><div class="mmn"><button data-a="pm" aria-label="지난달">${ic('back')}</button><b></b><button data-a="nm" aria-label="다음 달">${ic('next')}</button></div></div>
       <div class="msr">${tileBg.map((t, i) => `<button class="mst${t.lt ? ' lt' : ''}" data-k="${KEYS[i]}"><i${t.attr}></i><b></b><span class="mlb"></span></button>`).join('')}</div>
     </header>
@@ -2176,7 +2176,8 @@ function viewMe() {
   const stopMood = paintMood($('.amb'));
   $('[data-a=set]').onclick = () => go('#/set');
   $('[data-a=plan]').onclick = () => go('#/set/plan');
-  $('[data-a=q]').onclick = () => toast(ln[1]);
+  const qb = $('[data-a=q]'); if (qb) qb.onclick = () => toast(ln[1]);
+  const bb = $('[data-a=bio]'); if (bb) bb.onclick = () => go('#/set/bio');
   // 막대: 고른 지표로 높이, 고른 달만 선명한 색 + 값 하나. 막대를 누르면 그 달 카드로, 카드를 넘기면 그 달 막대로
   // 막대 색: 쓴 만큼 아래 → 위 그라데이션. 많이 쓴 달일수록 위가 뜨거운 색 (산호 · 주황, 빨강은 지우기에만)
   // 안 쓴 달 = 막대 없이 달 이름만. 처음 쓴 달 전 · 아직 안 온 달 = 이름도 흐리게, 누를 수 없어요
@@ -2284,6 +2285,7 @@ function setPick(title, opts, cur, put) {
 function viewSet(sub) {
   if (sub === 'account') return setAccount();
   if (sub === 'name' || sub === 'id') return setField(sub);
+  if (sub === 'bio') return setBio();
   if (sub === 'sign') return setSign();
   if (sub === 'date') return setPick('날짜 표시', DATE_FMT.map(f => [f, dateLine(S.today(), f)]), S.pref('dateFmt', 'dot'), v => S.setPref('dateFmt', v));
   if (sub === 'week') return setPick('한 주의 시작', [[0, '일요일'], [1, '월요일']], weekStart(), v => S.setPref('weekStart', v));
@@ -2328,7 +2330,7 @@ function setAccount() {
   const me = meOf();
   setShell('계정', `<div class="ahd"><button class="avw" data-a="ph" aria-label="사진 바꾸기"><span class="av"${avStyle()}></span><span class="cam">${ic('cam')}</span></button><input type="file" accept="image/*" hidden>
     <b>${esc(me.name || '나')}</b><small>${me.id ? '@' + esc(me.id) : '로그인 전'}</small></div>
-    ${sgrp(srow('user', '이름', esc(me.name) || '정하기', { go: '#/set/name' }), srow('sign', '아이디', me.id ? '@' + esc(me.id) : '정하기', { go: '#/set/id' }), srow('key', '로그인', '로그인 전', { a: 'login' }))}
+    ${sgrp(srow('user', '이름', esc(me.name) || '정하기', { go: '#/set/name' }), srow('sign', '아이디', me.id ? '@' + esc(me.id) : '정하기', { go: '#/set/id' }), srow('read', '한 줄 소개', me.bio ? '' : '쓰기', { go: '#/set/bio' }), srow('key', '로그인', '로그인 전', { a: 'login' }))}
     ${sgrp(srow('trash', '탈퇴', '', { end: '', red: 1, a: 'bye' }))}`);
   const inp = $('.ahd input');
   $('[data-a=ph]').onclick = () => inp.click();
@@ -2357,6 +2359,15 @@ function setField(k) {
     if (id && S.pref('signMode') === 'id') S.setPref('sign', inp.value.trim() ? '@' + inp.value.trim() : '');
   };
   inp.focus();
+}
+// 한 줄 소개 (좌우명 등, 40자): 프로필 이름 아래 문장 자리에 나와요. 비우면 랜덤 문장
+function setBio() {
+  const me = meOf();
+  setShell('한 줄 소개', `<textarea class="sinp sbio" maxlength="40" rows="2" placeholder="나의 소개 · 좌우명">${esc(me.bio || '')}</textarea><p class="shint"><span class="bcn"></span> · 비워 두면 오늘의 문장이 나와요</p>`, { up: '#/set/account' });
+  const inp = $('.sbio'), bn = $('.bcn');
+  const cnt = () => { bn.textContent = `${[...inp.value].length}/40`; };
+  inp.oninput = () => { if (inp.value.includes('\n')) inp.value = inp.value.replace(/\n/g, ' '); setMe({ bio: inp.value.trim() }); cnt(); };
+  cnt(); inp.focus();
 }
 // 서명: [@아이디 | 직접 쓰기] + 칸 + 작은 카드 미리 보기. 새 카드부터 이 서명으로 시작해요
 function setSign() {
