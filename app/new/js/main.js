@@ -1068,8 +1068,8 @@ function viewTpl() {
   const chips = ['홈', '디자인', '아트', ...T.tagOrder()];
   app.innerHTML = `<div class="amb"><div class="mo"></div></div><div class="tgr"></div><div class="tmv">
     <header class="shtop"><div class="tl"><h1>템플릿</h1></div><button class="hb" data-a="fav" aria-label="즐겨찾기">${HEART}</button></header>
-    <label class="tsf gls">${ic('search')}<input type="search" placeholder="검색" enterkeyhint="search" autocomplete="off"><button class="x" data-a="clr" aria-label="지우기" hidden>${ic('close')}</button></label>
-    <div class="tch">${chips.map(c => `<button class="gls" data-c="${esc(c)}">${esc(c)}</button>`).join('')}</div>
+    <div class="tstk"><label class="tsf gls">${ic('search')}<input type="search" placeholder="검색" enterkeyhint="search" autocomplete="off"><button class="x" data-a="clr" aria-label="지우기" hidden>${ic('close')}</button></label>
+    <div class="tch">${chips.map(c => `<button class="gls" data-c="${esc(c)}">${esc(c)}</button>`).join('')}</div></div>
     <main class="tbody"></main></div>${nav('tpl')}`;
   bindNav();
   const stopMood = paintMood($('.amb'));
@@ -1141,7 +1141,7 @@ function viewTpl() {
   };
   paint();
   const y = tstate.y || 0; if (y) requestAnimationFrame(() => window.scrollTo(0, y));
-  const keep = () => { tstate.y = scrollY; };
+  const stk = $('.tstk'), keep = () => { tstate.y = scrollY; stk.classList.toggle('sc', stk.getBoundingClientRect().top <= 0.5 && scrollY > 8); };   // 붙어 있을 때만 뒤 흐림
   addEventListener('scroll', keep, { passive: true });
   // 위 판의 아트 미리보기는 빛이 천천히 흘러요 (화면에 보일 때만)
   let anim = 0; const t0 = performance.now(), still = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -2118,6 +2118,7 @@ const statsOf = list => ({
   chars: list.reduce((s, c) => s + cardText(c).replace(/\s/g, '').length, 0),
   kind: most(list.map(kindOf)), place: most(list.map(placeOf)), when: most(list.map(slotOf)), col: most(list.map(bgName)),
   long: Math.max(0, ...list.map(c => cardText(c).replace(/\s/g, '').length)),
+  avg: list.length ? Math.round(list.reduce((s, c) => s + cardText(c).replace(/\s/g, '').length, 0) / list.length) : 0,
   wd: most(list.map(c => c.date ? WD[dayOf(c.date).getDay()] + '요일' : '')),
   ratio: most(list.map(c => ({ 45: '4:5', 916: '9:16', 11: '1:1' })[c.ratio || '45'])),
 });
@@ -2131,7 +2132,7 @@ function viewMe() {
   // 8칸 2열 (10-31: 10 → 8, 아래 그래프가 첫 화면에 들어오게): 전체 | 월별. 칸 바탕은 들어올 때 한 번 고르고, 값만 바뀌어요
   const tileBg = [pickCard(all), pickCard(all), pickCard(all), pickCard(all, c => kindOf(c) === st.kind), pickCard(all, c => bgName(c) === st.col),
     pickCard(all, c => placeOf(c) === st.place), pickCard(all, c => slotOf(c) === st.when), pickCard(all)].map((c, i) => bgTile(c, FALL[i % FALL.length]));
-  const vals = s => [[`${s.days}일`, '쓴 날'], [`${s.n}장`, '카드'], [chars(s.chars), '글자'],
+  const vals = s => [[`${s.days}일`, '쓴 날'], [`${s.n}장`, '카드'], [s.n ? `${s.avg}자` : NONE, '한 장 평균'],
     [s.kind ? s.kind.replace(/^(디자인|아트) /, '') : NONE, '자주 쓴 템플릿'], [s.col || NONE, '자주 쓴 색'], [s.place || NONE, '자주 쓴 곳'], [s.when || NONE, '자주 쓴 때'], [s.wd || NONE, '자주 쓴 요일']];
   const by = new Map(); all.filter(c => c.date).forEach(c => { const m = c.date.slice(0, 7); by.has(m) ? by.get(m).push(c) : by.set(m, [c]); });
   const months = [...by.keys()].sort();   // 오래된 달 → 이번 달
@@ -2144,16 +2145,16 @@ function viewMe() {
   const win = () => Array.from({ length: 7 }, (_, i) => addM(T, pg * 7 - 3 + i));
   const ms = m => statsOf(by.get(m) || []);
   // 막대 높이 기준 = 내 기록에서 가장 많이 쓴 달이 들어가는 단계 (쓴 날은 한 달 30일). 왼쪽 수치는 0 · 1/3 · 2/3 · 끝
-  const STEP = { days: [30], n: [30, 60, 120, 300, 600, 1200], chars: [15000, 30000, 60000, 150000, 300000] };
-  const MET = { days: ['쓴 날', s => s.days, v => `${v}일`], n: ['카드', s => s.n, v => `${v}장`], chars: ['글자', s => s.chars, chars] };
+  const STEP = { days: [30], n: [30, 60, 120, 300, 600, 1200], chars: [100, 200, 400, 800, 1600] };
+  const MET = { days: ['쓴 날', s => s.days, v => `${v}일`], n: ['카드', s => s.n, v => `${v}장`], chars: ['한 장 평균', s => s.avg, v => `${v}자`] };
   // 10-31: 위 칸을 누르면 그래프 기준이 바뀌어요. 숫자 3칸 = 그 숫자, 나머지 = 그 값으로 쓴 카드 수 (예: 부산에서 쓴 카드)
   const KEYS = ['days', 'n', 'chars', 'kind', 'col', 'place', 'when', 'wd'];
   const CAT = { kind: kindOf, col: bgName, place: placeOf, when: slotOf, wd: c => c.date ? WD[dayOf(c.date).getDay()] + '요일' : '' };
-  const raw = s => [s.days, s.n, s.chars, s.kind, s.col, s.place, s.when, s.wd];
+  const raw = s => [s.days, s.n, s.avg, s.kind, s.col, s.place, s.when, s.wd];
   const valOf = (g, m) => CAT[g.k] ? (by.get(m) || []).filter(c => CAT[g.k](c) === g.v).length : MET[g.k][1](ms(m));
   const fmtOf = g => CAT[g.k] ? v => `${v}장` : MET[g.k][2];
   const titleOf = g => { const v = g.v, sh = v && v.replace(/^(디자인|아트) /, '');
-    return ({ days: '쓴 날', n: '카드', chars: '글자', kind: `${sh} 템플릿으로 쓴 카드`, col: `${v} 색으로 쓴 카드`, place: `${v}에서 쓴 카드`, when: `${v}에 쓴 카드`, wd: `${v}에 쓴 카드` })[g.k] + ' · 달마다'; };
+    return ({ days: '쓴 날', n: '카드', chars: '한 장 평균 글자', kind: `${sh} 템플릿으로 쓴 카드`, col: `${v} 색으로 쓴 카드`, place: `${v}에서 쓴 카드`, when: `${v}에 쓴 카드`, wd: `${v}에 쓴 카드` })[g.k] + ' · 달마다'; };
   const topOf = g => { const st0 = STEP[CAT[g.k] ? 'n' : g.k], hi = Math.max(0, ...months.map(m => valOf(g, m))); let t = st0.find(x => x >= hi); if (!t) { t = st0.at(-1); while (t < hi) t *= 2; } return t; };
   const axis = v => v >= 1e4 ? `${+(v / 1e4).toFixed(1)}만` : v >= 1000 ? `${+(v / 1000).toFixed(1)}천` : `${v}`;
   let met = { k: MET[S.pref('meGraph', 'n')] ? S.pref('meGraph', 'n') : 'n' };
@@ -2168,7 +2169,7 @@ function viewMe() {
       <div class="msr">${tileBg.map((t, i) => `<button class="mst${t.lt ? ' lt' : ''}" data-k="${KEYS[i]}"><i${t.attr}></i><b></b><span class="mlb"></span></button>`).join('')}</div>
     </header>
     <section class="mgc"><p class="mgt"></p>
-    <div class="mgw"><div class="may"></div><div class="mgr"></div></div>
+    <div class="mgw"><div class="may"></div><div class="mgr"></div></div><div class="hb2"></div>
     ${all.length ? '' : '<p class="t13 mg0">첫 카드를 쓰면 막대가 자라요</p>'}<div class="mdots" data-for="mgr"></div></section>
     </div>${nav('')}`;
   bindNav(); fillThumbs(app);
@@ -2183,9 +2184,11 @@ function viewMe() {
   const heat = t => t < .5 ? mix('#6F7BF7', '#C86AD8', t * 2) : mix('#C86AD8', '#FF7A45', (t - .5) * 2);
   const gr = $('.mgr'), H = 96;
   const paintGraph = () => {
+    $$('.msr .mst').forEach(b => b.classList.toggle('on', b.dataset.k === met.k));
+    $('.mgc').classList.toggle('all', mode === 'all');
+    if (mode === 'all') return paintAll();
     const fmt = fmtOf(met), top = topOf(met);
     $('.mgt').textContent = titleOf(met);
-    $$('.msr .mst').forEach(b => b.classList.toggle('on', b.dataset.k === met.k));
     $('.may').innerHTML = [3, 2, 1, 0].map(k => `<span>${axis(Math.round(top * k / 3))}</span>`).join('');
     $$('[data-m]', gr).forEach(b => { const m = b.dataset.m, v = valOf(met, m), on = m === sel, t = Math.min(1, v / top), bar = b.querySelector('i');
       bar.style.height = v ? Math.max(6, Math.round(t * H)) + 'px' : '0px';
@@ -2199,6 +2202,25 @@ function viewMe() {
     $$('i', gr).forEach(i => i.style.height = '0px');
     $('[data-for=mgr]').innerHTML = dotsHtml(1 - pMin, pg - pMin);
     requestAnimationFrame(() => requestAnimationFrame(paintGraph));
+  };
+  // 전체 (10-31): 달로 나누지 않고 고른 칸의 모든 항목을 많은 순 가로 막대로. 쓴 날 · 카드 = 해마다, 한 장 평균 = 글 길이 3단
+  const LEN = [['짧은 글', 0, 50], ['보통', 50, 150], ['긴 글', 150, 1e9]];
+  const paintAll = () => {
+    const k = met.k, len = c => cardText(c).replace(/\s/g, '').length; let rows, unit = '장', title;
+    if (k === 'days' || k === 'n') {
+      const ys = [...new Set(all.filter(c => c.date).map(c => c.date.slice(0, 4)))].sort().reverse();
+      rows = ys.map(y => { const l = all.filter(c => c.date?.startsWith(y)); return [`${y}년`, k === 'days' ? new Set(l.map(c => c.date)).size : l.length]; });
+      unit = k === 'days' ? '일' : '장'; title = `${k === 'days' ? '쓴 날' : '카드'} · 해마다`;
+    } else if (k === 'chars') {
+      rows = LEN.map(([n, a, b]) => [n, all.filter(c => len(c) >= a && len(c) < b).length]); title = '글 길이 · 전체';
+    } else {
+      const cnt = new Map(); all.forEach(c => { const v = CAT[k](c); if (v) cnt.set(v, (cnt.get(v) || 0) + 1); });
+      rows = [...cnt].sort((a, b) => b[1] - a[1]).slice(0, 7).map(([v, n]) => [k === 'kind' ? v.replace(/^(디자인|아트) /, '') : v, n, v]);
+      title = ({ kind: '자주 쓴 템플릿', col: '자주 쓴 색', place: '자주 쓴 곳', when: '자주 쓴 때', wd: '자주 쓴 요일' })[k] + ' · 전체';
+    }
+    $('.mgt').textContent = title;
+    const mx = Math.max(1, ...rows.map(r => r[1])), hi = Math.max(...rows.map(r => r[1]));
+    $('.hb2').innerHTML = rows.length ? rows.map(([n, v]) => `<div class="hbr${v === hi && v ? ' hk' : ''}"><span>${esc(n)}</span><i style="width:${v ? Math.max(4, v / mx * 100) : 0}%"></i><b>${v}${unit}</b></div>`).join('') : '<p class="t13 mg0">첫 카드를 쓰면 막대가 자라요</p>';
   };
   const showSel = () => { const p = pageOf(sel); if (p !== pg) { pg = p; drawBars(); } else paintGraph(); };
   // 칸 누르기: 값이 없는 칸(없어요)은 그대로
@@ -2226,7 +2248,7 @@ function viewMe() {
     $$('.msr .mst').forEach((el, k) => { el.querySelector('b').textContent = v[k][0]; el.querySelector('.mlb').textContent = v[k][1]; });
   };
   const stepM = d => { const i = months.indexOf(sel) + d; if (i < 0 || i >= months.length) return; sel = months[i]; showSel(); paintTiles(); };
-  $$('.msg2 button').forEach(b => b.onclick = () => { mode = b.dataset.v; if (mode === 'm' && !by.has(sel) && months.length) { sel = months.at(-1); showSel(); } paintTiles(); });
+  $$('.msg2 button').forEach(b => b.onclick = () => { mode = b.dataset.v; if (mode === 'm' && !by.has(sel) && months.length) { sel = months.at(-1); showSel(); } paintTiles(); paintGraph(); });
   $('[data-a=pm]').onclick = () => stepM(-1); $('[data-a=nm]').onclick = () => stepM(1);
   paintTiles();
   const onSc = () => $('.mev')?.classList.toggle('sc', scrollY > 8);
