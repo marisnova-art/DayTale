@@ -954,7 +954,7 @@ html.blk, html.blk body { background: #000; }
 .tnum button.on { background: #fff; color: var(--bg); box-shadow: none; }
 .tiv .tcl { position: absolute; top: var(--top); right: var(--gut); width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; }
 .tiv .tcl .ic { width: 20px; height: 20px; }
-.tlow { position: absolute; left: var(--gut); right: var(--gut); bottom: calc(24px + var(--safe-b)); }
+.tlow { position: absolute; left: var(--gut); right: var(--gut); bottom: calc(8px + var(--safe-b)); }   /* 버튼은 홈 막대 바로 위 (10-31) */
 .tlow em { display: block; font-style: normal; font-size: var(--fs-s); color: rgba(255,255,255,.7); min-height: 1em; }
 .tlow h2 { font-size: var(--fs-xl); font-weight: var(--fw); letter-spacing: -.02em; margin: 16px 0 12px; line-height: 1.15; }
 .tlow p { font-size: var(--fs-m); line-height: 1.5; color: rgba(255,255,255,.7); margin: 0 0 32px; }   /* 소개 3줄 */

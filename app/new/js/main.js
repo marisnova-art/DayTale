@@ -1156,10 +1156,14 @@ function viewIntro(id) {
     <div class="tnum">${cards.map((_, i) => `<button class="gls${i ? '' : ' on'}" data-i="${i}" aria-label="예시 ${i + 1}">${i + 1}</button>`).join('')}</div><button class="tcl gls" data-a="x" aria-label="닫기">${ic('close')}</button>
     <div class="tlow"><em>${sub}</em><h2>${esc(t.name)}</h2><p>${t.desc.map(d => `<span>${d.split('|').map(x => `<i>${esc(x)}</i>`).join(' ')}</span>`).join('')}</p>
     <div class="tcta"><button class="w" data-a="go">${ic('pen')}이 템플릿으로 쓰기</button><button class="hb gls" data-a="heart" aria-label="즐겨찾기">${HEART}</button></div></div></div>`;
-  // 카드 높이 = 위 버튼 아래 ~ 설명 글 위 32px (글 줄 수 · 기기마다 달라서 직접 재요)
-  const room = () => { const tv = $('.tiv'), c = $('.tpg:not(.full) .tcd') || $('.tcd'); tv.style.setProperty('--room', Math.max(120, $('.tlow').getBoundingClientRect().top - 32 - c.getBoundingClientRect().top) + 'px'); };
+  // 카드 높이 = 위 버튼 아래 ~ 설명 글 위 40px (글 줄 수 · 기기마다 달라서 직접 재요)
+  const room = () => { const tv = $('.tiv'), c = $('.tpg:not(.full) .tcd') || $('.tcd'); tv.style.setProperty('--room', Math.max(120, $('.tlow').getBoundingClientRect().top - 40 - c.getBoundingClientRect().top) + 'px'); };
   room();
-  const ro = () => { room(); $$('.tpg .tcd').forEach((el, i) => mount(el, cards[i])); }; addEventListener('resize', ro);
+  let lastH = 0;
+  const ro = () => { const h = Math.round($('.tlow').getBoundingClientRect().top); if (h === lastH) return; lastH = h; room(); $$('.tpg .tcd').forEach((el, i) => { el.innerHTML = ''; mount(el, cards[i]); }); };
+  lastH = Math.round($('.tlow').getBoundingClientRect().top);
+  // 글꼴이 늦게 들어와 설명 줄 수가 바뀌어도 (아이폰) · 화면이 바뀌어도 카드를 다시 맞춰요
+  const obs = new ResizeObserver(ro); obs.observe($('.tlow')); addEventListener('resize', ro); document.fonts?.ready.then(ro);
   cards.forEach((c, i) => mount($$('.tpg .tcd')[i], c));
   const pg = $('.tip');
   const k = () => Math.round(pg.scrollLeft / Math.max(1, pg.clientWidth));
@@ -1174,7 +1178,7 @@ function viewIntro(id) {
   const tick = now => { anim = requestAnimationFrame(tick); if (still) return; const p = $$('.tpg')[k()]; p && $$('canvas.bgc', p).forEach(cv => cv.width && drawCode(cv, +cv.dataset.seed, +cv.dataset.shift || 0, (now - t0) / 1000 + .01)); };
   anim = requestAnimationFrame(tick);
   document.documentElement.classList.add('blk');   // 아이폰 홈 막대 자리까지 검정 (html · body 바탕)
-  cleanup = () => { cancelAnimationFrame(anim); removeEventListener('resize', ro); document.documentElement.classList.remove('blk'); };
+  cleanup = () => { cancelAnimationFrame(anim); removeEventListener('resize', ro); obs.disconnect(); document.documentElement.classList.remove('blk'); };
 }
 
 /* ── 포맷 고르기 ─────────────────────────────────────── */
