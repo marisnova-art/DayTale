@@ -40,6 +40,7 @@ export const PAGE_G = [['노을 하늘', '#5A1424', '#E5484D', '#FFB3A7'], ['귤
   ['장미 빛', '#3B0E2A', '#F0607A', '#FFC9A8'], ['새벽 빛', '#0B1236', '#4D7CF0', '#FFD6E8']];
 export const PAGE_S = [['겨자', mix('#D9A441', .5)], ['벽돌', '#9A4530'], ['장미', mix('#DE939C', .5)], ['청록', '#256662'], ['숲', '#173832'], ['밤하늘', '#131B32'], ['자두', '#3A2240'], ['먹색', '#1C1C1E']];
 const DARK = '#141416';
+const lift = (c, f) => '#' + [1, 3, 5].map(i => { const v = parseInt(c.slice(i, i + 2), 16); return Math.round(v + (255 - v) * f).toString(16).padStart(2, '0'); }).join('');
 let chosen = null;
 export function pick() {
   const m = mode(); if (chosen?.m === m) return chosen;
@@ -69,6 +70,6 @@ export function reset() { chosen = null; }
 export function panelCss() {
   const { m, x } = pick();
   if (m === 'g') { const [, deep, mid, light] = x; return `radial-gradient(120% 90% at 85% 0%, ${mix(mid, .7)} 0%, transparent 60%), radial-gradient(90% 80% at 10% 100%, ${mix(light, .45)} 0%, transparent 60%), linear-gradient(160deg, ${deep}, ${mix(mid, .6)})`; }
-  if (m === 's') return `linear-gradient(160deg, rgba(255,255,255,.08), rgba(0,0,0,.12)), linear-gradient(${x[1]}, ${x[1]})`;
-  return 'linear-gradient(#1E1E21, #1E1E21)';
+  if (m === 's') { const l = lift(x[1], .2); return `linear-gradient(160deg, rgba(255,255,255,.06), rgba(0,0,0,.08)), linear-gradient(${l}, ${l})`; }   // 솔리드 = 같은 색 한 단계 밝게 (흰색 20%)
+  return 'linear-gradient(#2B2B2F, #2B2B2F)';   // 다크 = 바탕보다 밝은 회색
 }
