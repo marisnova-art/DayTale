@@ -481,10 +481,11 @@ const inDate = (c, r) => c.date && (r.from ? c.date >= r.from && c.date <= r.to 
 
 function viewSearch(fromPick) {
   const mine = S.cards();
-  app.innerHTML = `<div class="srch"><header class="sbar">${fromPick ? `<button class="cb bk" data-a="back" aria-label="뒤로">${ic('back')}</button>` : ''}
+  app.innerHTML = `${MOOD}<div class="srch"><header class="sbar">${fromPick ? `<button class="cb bk" data-a="back" aria-label="뒤로">${ic('back')}</button>` : ''}
     <label class="fld"><span class="li">${ic('search')}</span><input type="search" enterkeyhint="search" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="글, 장소, 날짜, 포맷"><button class="x" data-a="clr" aria-label="지우기" hidden>${ic('close')}</button></label></header>
     <main class="sbody"></main></div>${fromPick ? '' : nav('search')}`;
   bindNav();
+  const stopMood = paintMood($('.amb'));   // 10-31: 템플릿홈과 같은 바탕
   const inp = $('.srch input'), body = $('.sbody'), li = $('.srch .li'), clr = $('[data-a=clr]');
   $('[data-a=back]')?.addEventListener('click', () => go('#/pick'));
   let mode = null, words = [], found = [], shown = 0, timer = 0, sv = null;   // mode = { k: 'place' | 'fmt' | 'mark', v }
@@ -601,6 +602,7 @@ function viewSearch(fromPick) {
   let y0 = scrollY;
   const onScroll = () => {
     if (document.activeElement === inp && Math.abs(scrollY - y0) > 12) inp.blur();
+    $('.srch')?.classList.toggle('sc', scrollY > 8);   // 내리면 위 칸 뒤를 흐리게
     if (shown < found.length && innerHeight + scrollY > document.body.scrollHeight - 900) more();
   };
   const onFocus = () => { y0 = scrollY; };
@@ -618,7 +620,7 @@ function viewSearch(fromPick) {
     V.sync(b?.vd ? [{ cv, b, fid: fidOf(cc) }] : []);
   };
   anim = requestAnimationFrame(tick);
-  cleanup = () => { cancelAnimationFrame(anim); V.stop(); removeEventListener('scroll', onScroll); clearTimeout(timer); closeFocus(true); if (sv) { sv.remove(); sv = null; } };
+  cleanup = () => { stopMood(); cancelAnimationFrame(anim); V.stop(); removeEventListener('scroll', onScroll); clearTimeout(timer); closeFocus(true); if (sv) { sv.remove(); sv = null; } };
 
   home();
   // 키보드: 누른 순간 올려 둔 빈 칸에서 이어받아요
