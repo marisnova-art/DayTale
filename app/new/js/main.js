@@ -690,7 +690,8 @@ const DUMMY = [['출근길에 쓴 것들', '#F05A2C', 72], ['여름 여행', '#1
 const capsule = on => `<div class="cap"><button class="${on === 'shelf' ? 'on' : ''}" data-v="shelf" aria-label="책장">${ic('spines')}</button><button class="${on === 'cal' ? 'on' : ''}" data-v="cal" aria-label="달력">${ic('cal')}</button></div>`;
 const bindCap = () => $$('.cap [data-v]').forEach(b => b.onclick = () => { if (!b.classList.contains('on')) location.replace('#/' + b.dataset.v); });   // 탭이라 뒤로 기록은 안 쌓아요
 
-const MOOD = '<div class="amb"><div class="mo"></div></div><div class="tgr"></div>';   // 템플릿홈 · 책장 · 달력 · 프로필이 같은 바탕
+const MOOD = '<div class="amb"><div class="mo"></div><s></s></div><div class="tgr lo"></div>';   // 템플릿홈 · 책장 · 프로필이 같은 바탕 (노이즈 약하게)
+const MOOD0 = '<div class="amb"><div class="mo"></div><s></s></div>';   // 달력 · 책: 바탕이 넓게 드러나서 노이즈 없이 (메인홈처럼)
 function viewShelf() {
   S.setPref('shelfView', 'shelf');
   const { auto, mine } = shelfBooks(), du = mine.length >= 3 ? 0 : 6 - mine.length * 2;
@@ -773,7 +774,7 @@ function viewBook(id) {
   const b = bookOf(id); if (!b) return location.replace('#/shelf');
   const list = byDate(b.cards), ff = b.font ? fontCssOf(fontOf(b.font)) : '';
   // 10-31: 바탕 = 템플릿홈과 같은 배경, 위 판 = 책 색 (종이 결) · 달력처럼 위에 붙어 있고 높이는 전보다 반
-  app.innerHTML = `${MOOD}<div class="shv bkv mood">
+  app.innerHTML = `${MOOD0}<div class="shv bkv mood">
     <header class="bh" style="background-color:${b.color};color:${b.ink}"><div class="bar"><button class="cb" data-a="back" aria-label="뒤로">${ic('back')}</button>
     <div class="bt"><h2${ff ? ` style="font-family:${ff}"` : ''}>${esc(b.name)}</h2><p>${rangeOf(b.cards)} · 카드 ${b.cards.length}</p></div>${b.mine ? `<button class="cb" data-a="more" aria-label="더 보기">${ic('more')}</button>` : '<span class="cb0"></span>'}</div></header>
     <main class="days"></main></div>${nav('shelf')}`;
@@ -833,7 +834,7 @@ function viewCal(month) {
     for (let d = start; d < end; d = addDays(d, 1)) h += d.startsWith(m) ? cell(d) : '<span></span>';
     return `<div class="mo1" data-m="${m}"><div class="mg2">${h}</div></div>`;
   };
-  app.innerHTML = `${MOOD}<div class="shv calv mood">
+  app.innerHTML = `${MOOD0}<div class="shv calv mood">
     <header class="cpn" style="background-image:${panelCss()}">
       <div class="crow"><button class="mon" data-a="ym"><b></b><span><em></em>${ic('back')}</span></button>${capsule('cal')}</div>
       <div class="wks">${weeks.map(w => `<div class="wk" data-w="${w}">${Array.from({ length: 7 }, (_, i) => cell(addDays(w, i), 1)).join('')}</div>`).join('')}</div>

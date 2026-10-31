@@ -1015,6 +1015,6 @@ html:has(.setv.plan), html:has(.setv.plan) body { background: #2B2650; }
 /* 10-31 책 위 판: 이름 · 기간은 예전처럼 가운데 (뒤로 · ⋯ 는 양 끝) */
 .bkv .bh .bt { text-align: center; }
 /* 10-31 바탕 노이즈: 달력 · 책 · 프로필처럼 바탕이 드러나는 화면은 약하게 */
-body:has(.shv.mood) .tgr { opacity: .2; }
 /* 10-31 달력 · 책: 바탕이 넓게 드러나 노이즈가 거칠게 보여요 → 바탕 노이즈 없이 (책장처럼 보이게) */
-body:has(.calv) .tgr, body:has(.bkv) .tgr { display: none; }
+.tgr.lo { opacity: .2; }
+.days .dh span { color: rgba(255,255,255,.72); }   /* 날짜 옆 글자: 밝은 바탕에서도 보이게 */
