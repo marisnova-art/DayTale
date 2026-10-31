@@ -1085,29 +1085,45 @@ html:has(.setv.plan), html:has(.setv.plan) body { background: #2B2650; }
 .abt .lgo { display: block; height: 64px; width: auto; margin: 0 auto; color: #fff; }
 .abt p { margin: 14px 0 0; font-size: var(--fs-m); }
 .abt small { display: block; margin-top: 6px; font-size: var(--fs-s); color: var(--mut); }
-/* 10-31 쓰기 메인 = 카드 덱 (시안 write-main-1031) */
-.wdk { position: relative; z-index: 1; min-height: 100dvh; display: flex; flex-direction: column; align-items: center; padding: calc(var(--top) + 60px) var(--gut) calc(92px + var(--safe-b)); --dw: min(calc(100vw - 2 * var(--gut) - 72px), calc((100dvh - var(--top) - 60px - 92px - var(--safe-b) - 196px) * .8)); }
-.dst { position: relative; width: var(--dw); touch-action: none; user-select: none; -webkit-user-select: none; }
-.dpk { position: absolute; left: 50%; top: calc(var(--k) * -20px); width: calc(var(--dw) - var(--k) * 24px); height: 64px; transform: translateX(-50%); border-radius: 14px 14px 0 0; background: rgba(255,255,255,calc(.30 - var(--k) * .06)); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: inset 0 1px 0 rgba(255,255,255,.22); display: flex; justify-content: center; padding-top: 1px; color: #fff; }
-.dpk .ic { width: 18px; height: 18px; margin-top: 0; opacity: .9; }
-.dfr { position: relative; z-index: 5; display: block; width: 100%; border-radius: 14px; overflow: hidden; box-shadow: 0 18px 40px rgba(0,0,0,.45); cursor: pointer; }
-.dfr .cd { width: 100%; }
-.dfr.in { animation: dIn .32s cubic-bezier(.2,.8,.2,1); }
-.dfr.inb { animation: dInB .32s cubic-bezier(.2,.8,.2,1); }
-@keyframes dIn { from { transform: translateY(-28px) scale(.94); opacity: 0; } }
-@keyframes dInB { from { transform: translateY(40px); opacity: 0; } }
-.dmo { aspect-ratio: 4 / 5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: #fff; background: rgba(255,255,255,.08); box-shadow: inset 0 0 0 1px rgba(255,255,255,.18); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
-.dmo .ic { width: 34px; height: 34px; }
-.dmo b { font-weight: var(--fw); font-size: var(--fs-m); }
-.dfr .cx { position: absolute; top: 10px; right: 10px; z-index: 3; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: #fff; background: rgba(20,20,22,.38); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
-.dfr .cx .ic { width: 20px; height: 20px; }
-.dbg { position: absolute; left: 12px; top: 16px; z-index: 3; height: 28px; padding: 0 12px; border-radius: 999px; background: #fff; color: var(--bg); font-size: var(--fs-s); display: flex; align-items: center; }
-.dmt { width: var(--dw); margin-top: 18px; color: #fff; }
-.dmt .n { display: flex; align-items: baseline; gap: 8px; font-size: var(--fs-m); }
-.dmt .n i { font-style: normal; font-size: var(--fs-s); color: rgba(255,255,255,.6); }
-.dmt p { margin: 8px 0 0; font-size: var(--fs-s); line-height: 1.55; color: rgba(255,255,255,.72); min-height: calc(3 * 1.55em); }
-.dmt p span { display: block; }
-.wdk .tcta { width: var(--dw); margin-top: 16px; }
-.ddots { position: fixed; right: 12px; top: 50%; transform: translateY(-50%); z-index: 2; display: flex; flex-direction: column; gap: 6px; }
-.ddots i { width: 6px; height: 6px; border-radius: 999px; background: rgba(255,255,255,.35); transition: height .2s; }
-.ddots i.on { height: 14px; background: #fff; }
+/* 10-31 쓰기 메인 (시안 write-main-1031 board-v2): 기본 띠 · 옆으로 미는 줄 · 오늘의 추천 판 · 크게 보기 */
+.wmn { position: relative; z-index: 1; padding: var(--top) 0 calc(110px + var(--safe-b)); }
+.wbn { position: relative; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; width: calc(100% - 2 * var(--gut)); height: 132px; margin: 0 var(--gut); padding: 0 22px; border-radius: 24px; text-align: left; color: #fff; background: linear-gradient(120deg, #F27A2E 0%, #E5484D 40%, #8A5BE8 100%); box-shadow: 0 14px 30px rgba(0,0,0,.35); }
+.wbn b { font-weight: var(--fw); font-size: var(--fs-xl); letter-spacing: -.02em; line-height: 1.1; }
+.wbn span { margin-top: 8px; font-size: var(--fs-s); color: rgba(255,255,255,.85); }
+.wbn i { position: absolute; right: 18px; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,.28); display: grid; place-items: center; }
+.wbn i .ic { width: 22px; height: 22px; }
+.wsh .tsec { margin-top: 30px; }
+.wmn .trow { gap: 10px; }
+.wt { position: relative; display: block; flex: 0 0 60%; scroll-snap-align: start; border-radius: 14px; overflow: hidden; text-align: left; box-shadow: 0 10px 24px rgba(0,0,0,.35); }
+.wt .wc { aspect-ratio: 4 / 5; overflow: hidden; pointer-events: none; }
+.wt .wc .cd { width: 100%; }
+.wt .wl { position: absolute; left: 0; right: 0; bottom: 0; z-index: 3; padding: 36px 14px 12px; background: linear-gradient(transparent, rgba(0,0,0,.6)); color: #fff; font-size: var(--fs-m); pointer-events: none; }
+.wt .wl small { display: block; margin-top: 2px; font-size: var(--fs-s); color: rgba(255,255,255,.72); }
+.wt.wd { flex-basis: 40%; }
+.wt .pd { position: absolute; left: 10px; top: 10px; z-index: 3; height: 26px; padding: 0 10px; border-radius: 999px; background: rgba(20,20,22,.45); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); color: #fff; font-size: var(--fs-s); display: flex; align-items: center; }
+.wt .x { position: absolute; right: 6px; top: 6px; z-index: 3; width: 36px; height: 36px; border-radius: 50%; background: rgba(20,20,22,.45); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); color: #fff; display: grid; place-items: center; }
+.wt .x .ic { width: 16px; height: 16px; }
+.wmn .trow + .mdots, .whs + .mdots { margin-top: 12px; }
+.whs { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+.whs::-webkit-scrollbar { display: none; }
+.whr { flex: 0 0 calc(100% - 2 * var(--gut)); margin: 0 var(--gut); scroll-snap-align: center; border-radius: 24px; padding: 26px 0 22px; text-align: center; color: #fff; background: linear-gradient(180deg, rgba(42,58,106,.92) 0%, rgba(106,90,154,.9) 55%, rgba(176,122,138,.9) 100%); box-shadow: 0 14px 30px rgba(0,0,0,.35); }
+.whr + .whr { margin-left: 0; }
+.whr b { display: block; font-weight: var(--fw); font-size: var(--fs-xl); line-height: 1.15; letter-spacing: -.02em; padding: 0 20px; }
+.whr p { margin: 10px 24px 0; font-size: var(--fs-s); line-height: 1.5; color: rgba(255,255,255,.82); }
+.win { display: flex; gap: 8px; justify-content: center; margin-top: 22px; padding: 0 14px; }
+.win .wt { flex: 1 1 0; max-width: 76px; border-radius: 8px; box-shadow: none; }
+.wmore { margin: 34px var(--gut) 0; }
+.wbig { position: fixed; inset: 0; z-index: 80; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.55); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); animation: fade .2s; }
+.wbig.out { opacity: 0; transition: opacity .2s; }
+.wbx { position: relative; width: min(calc(100% - 2 * var(--gut) - 32px), calc((100dvh - 290px) * .8)); display: flex; flex-direction: column; align-items: stretch; animation: wbIn .28s cubic-bezier(.2,.8,.2,1); }
+@keyframes wbIn { from { transform: translateY(24px) scale(.96); opacity: 0; } }
+.wbc { border-radius: 14px; overflow: hidden; box-shadow: 0 20px 44px rgba(0,0,0,.5); }
+.wbc .cd { width: 100%; }
+.wbx .cx { position: absolute; right: -6px; top: -54px; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: #fff; background: rgba(255,255,255,.14); }
+.wbx .cx .ic { width: 20px; height: 20px; }
+.wbn2 { margin-top: 16px; display: flex; align-items: baseline; gap: 8px; color: #fff; font-size: var(--fs-m); }
+.wbn2 small { font-size: var(--fs-s); color: rgba(255,255,255,.6); }
+.wbx .tcta { margin-top: 14px; }
+.wln { margin: 14px auto 0; display: flex; align-items: center; gap: 2px; color: rgba(255,255,255,.75); font-size: var(--fs-s); }
+.wln .ic { width: 14px; height: 14px; }
+.win .wt .wc .cd { width: 300%; transform: scale(calc(1 / 3)); transform-origin: 0 0; }   /* 작은 칸은 3배로 그려 줄여요 (그림 문장 글씨가 칸에 맞게) */

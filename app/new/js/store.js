@@ -35,9 +35,16 @@ export function restoreCard(id) {
   delete c.deleted; write(K_TRASH, trash().filter(x => x.id !== id)); saveCard(c); return c;
 }
 
-export const draft = () => { const d = read(K_DRAFT, null); norm(d?.card); return d; };
-export const saveDraft = d => write(K_DRAFT, d);
-export const clearDraft = () => { try { localStorage.removeItem(K_DRAFT); } catch {} };
+// 쓰다 만 글 (10-31): 여러 개를 모아 둬요 (최대 10개, 최근 것부터). 예전 한 개짜리(K_DRAFT)는 처음 읽을 때 옮겨요
+const K_DRAFTS = 'dz.drafts.v1', DRAFT_MAX = 10;
+export function drafts() {
+  let l = read(K_DRAFTS, null);
+  if (!l) { const old = read(K_DRAFT, null); l = old?.card ? [{ id: uid(), card: old.card, at: new Date().toISOString() }] : []; write(K_DRAFTS, l); try { localStorage.removeItem(K_DRAFT); } catch {} }
+  l.forEach(d => norm(d.card)); return l;
+}
+export const draft = id => drafts().find(d => d.id === id) || null;
+export const saveDraft = (id, card) => write(K_DRAFTS, [{ id, card, at: new Date().toISOString() }, ...drafts().filter(d => d.id !== id)].slice(0, DRAFT_MAX));
+export const clearDraft = id => write(K_DRAFTS, drafts().filter(d => d.id !== id));
 
 export const pref = (k, d) => (read(K_PREF, {})[k] ?? d);
 export const setPref = (k, v) => { const p = read(K_PREF, {}); p[k] = v; write(K_PREF, p); };

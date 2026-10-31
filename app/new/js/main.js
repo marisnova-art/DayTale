@@ -1189,59 +1189,64 @@ function viewIntro(id) {
 /* ── 포맷 고르기 ─────────────────────────────────────── */
 // 예시 글을 하나 골라 글 · 아트 · 포토 카드에 보여 주고, 쓰기로 들어가면 같은 글이 흐리게 이어져요 (그림 문장은 정해 둔 예시)
 let pickEx = null;
-// 쓰기 메인 (10-31 시안 write-main-1031): 카드 덱. 이어 쓰기(있으면) → 기본 → 최근 쓴 템플릿 → 즐겨찾기 → 더 보기.
-// 위아래로 밀면 다음 카드가 앞으로, 뒤 카드 띠(종류 아이콘)를 눌러도 그 카드로. 앞 카드 · 흰 버튼 = 쓰기, ↗ = 소개, 이어 쓰기는 휴지통
-const KIND_IC = { 기본: 'fmt', 디자인: 'spark', 아트: 'grad' };
-const BASE_T = { name: '기본', kind: '기본', desc: ['쓰기 화면의 색과 사진으로|내 마음대로 꾸며요.', '글꼴 · 배경 · 크기를 한 번씩 눌러 바꿔요.', '어떤 날에도 잘 어울려요.'] };
+// 쓰기 메인 (10-31 시안 write-main-1031 board-v2): 맨 위 '기본으로 쓰기' 띠 → 이어 쓰기 → 최근 쓴 템플릿 → 즐겨찾기 → 오늘의 추천(큰 판) → NEW → 템플릿 더 보기.
+// 줄은 옆으로 밀고 점 · 대시. 템플릿 카드를 누르면 크게 보기(이 템플릿으로 쓰기 · 자세히 보기), 이어 쓰기 카드는 바로 이어 써요. 빈 줄은 숨겨요
+const REC_T = { 밤: '밤에 쓰기 좋은', 비: '비 오는 날엔', 눈: '눈 오는 날엔', 아침: '아침에 쓰기 좋은', 겨울: '겨울에 어울리는', 봄: '봄에 어울리는', 여름: '여름에 어울리는', 가을: '가을에 어울리는', 짧은글: '짧게 남기는 날', 감성: '감성 가득한 날' };
+const whenOf = iso => { const d = iso.slice(0, 10), t = S.today(); if (d === t) return '오늘'; const y = new Date(t + 'T00:00:00'); y.setDate(y.getDate() - 1); return d === `${y.getFullYear()}-${p2(y.getMonth() + 1)}-${p2(y.getDate())}` ? '어제' : `${+d.slice(5, 7)}.${d.slice(8, 10)}`; };
 function viewPick() {
-  const d = S.draft();
   pickEx = exampleText();
-  const base = () => { const c = sampleCard('text', S.today()); c.pages = [esc(pickEx.t)]; return c; };
-  const seen = new Set(), tps = [];
-  const add = t => { if (t && !t.dummy && !seen.has(t.id)) { seen.add(t.id); tps.push(t); } };
-  [...S.cards()].sort((x, y) => (y.created || '').localeCompare(x.created || '')).forEach(c => tps.length < 4 && add(T.tplOfCard(c)));
-  const nr = tps.length; T.favs().forEach(id => add(T.tpl(id)));
-  if (!tps.length) T.sorted('pop').slice(0, 2).forEach(add);   // 처음엔 인기 템플릿 둘
-  const items = [
-    ...(d ? [{ k: 'draft', card: d.card, t: { name: '이어 쓰기', kind: LABEL[d.card.fmt]?.split(' · ')[0] || '기본', desc: ['쓰다 만 글이에요.', '눌러서 이어 쓰거나|휴지통으로 지워요.'] }, ic: 'fmt', btn: '이어 쓰기' }] : []),
-    { k: 'text', card: base(), t: BASE_T, ic: 'fmt', btn: '쓰기' },
-    ...tps.map((t, i) => ({ k: t.id, card: T.exCard(t, 0), t, ic: KIND_IC[t.kind] || 'fmt', btn: '이 템플릿으로 쓰기', fav: i >= nr })),
-    { k: 'more', t: { name: '더 많은 템플릿', kind: '', desc: ['디자인 · 아트 템플릿을|모두 볼 수 있어요.'] }, ic: 'layers', btn: '템플릿 홈으로' },
-  ];
-  let at = 0;
-  app.innerHTML = `${MOOD}<main class="wdk"><div class="dst"></div><div class="dmt"><div class="n"></div><p></p></div><div class="tcta"><button class="w" data-a="go"></button></div></main><div class="ddots"></div>${nav('write')}`;
+  const seen = new Set(), recent = [];
+  [...S.cards()].sort((x, y) => (y.created || '').localeCompare(x.created || '')).forEach(c => { const t = c.fmt !== 'text' && T.tplOfCard(c); if (t && !seen.has(t.id) && recent.length < 8) { seen.add(t.id); recent.push(t); } });
+  const favs = T.favs().map(T.tpl).filter(Boolean).slice(0, 8), news = T.newest().slice(0, 8);
+  const recs = T.tagOrder().slice(0, 3).map(g => ({ g, l: T.TEMPLATES.filter(t => t.tags.includes(g)).slice(0, 4) })).filter(r => r.l.length >= 2);
+  const tile = t => `<button class="wt" data-t="${t.id}"><div class="wc"></div><div class="wl">${esc(t.name)}<small>${esc(t.kind)}</small></div></button>`;
+  const sec = (title, inner, more) => `<section class="wsh"><div class="tsec"><b>${title}</b>${more ? '<button data-a="all">모두 보기</button>' : ''}</div><div class="trow">${inner}</div><div class="mdots"></div></section>`;
+  const drafts = () => S.drafts().map(d => `<button class="wt wd" data-d="${d.id}"><div class="wc"></div><span class="pd">${whenOf(d.at)}</span><span class="x" data-x="${d.id}" role="button" aria-label="지우기">${ic('close')}</span></button>`).join('');
+  app.innerHTML = `${MOOD}<main class="wmn">
+    <button class="wbn" data-a="base"><b>기본으로 쓰기</b><span>색과 사진으로 바로 써요</span><i>${ic('next')}</i></button>
+    <div class="wdr">${S.drafts().length ? sec('이어 쓰기', drafts()) : ''}</div>
+    ${recent.length ? sec('최근 쓴 템플릿', recent.map(tile).join(''), 1) : ''}
+    ${favs.length ? sec('즐겨찾기', favs.map(tile).join(''), 1) : ''}
+    ${recs.length ? `<section class="wsh"><div class="tsec"><b>오늘의 추천</b><button data-a="all">모두 보기</button></div><div class="whs">${recs.map(r => `<div class="whr"><b>${REC_T[r.g] || r.g}</b><p>지금 날씨와 시간에 어울리는<br>템플릿이에요</p><div class="win">${r.l.map(t => `<button class="wt wm" data-t="${t.id}"><div class="wc"></div></button>`).join('')}</div></div>`).join('')}</div><div class="mdots" data-for="whs"></div></section>` : ''}
+    ${sec('NEW', news.map(tile).join(''), 1)}
+    <div class="tcta wmore"><button class="w" data-a="all">${ic('layers')}템플릿 더 보기</button></div>
+  </main>${nav('write')}`;
   bindNav();
   const stopMood = paintMood($('.amb'));
-  const st = $('.dst');
-  const open = () => { const i = items[at]; if (i.k === 'more') return go('#/tpl'); if (i.k === 'draft') return go('#/write/draft'); go('#/write/' + (i.k === 'text' ? 'text' : i.t.fmt)); };
-  const paint = dir => {
-    const i = items[at], back = items.slice(at + 1, at + 4);
-    st.innerHTML = back.map((b, n) => { const k = back.length - n; return `<button class="dpk" data-to="${at + 1 + n}" style="--k:${n + 1};z-index:${k}" aria-label="${esc(b.t.name)}">${b.fav ? HEART : ic(b.ic)}</button>`; }).reverse().join('')
-      + (i.k === 'more' ? `<button class="dfr dmo" data-a="open">${ic('layers')}<b>더 보기</b></button>`
-        : `<div class="dfr" data-a="open"><div class="dh"></div>${i.k === 'draft' ? '<span class="dbg">쓰다 만 글</span>' : ''}${i.k === 'text' ? '' : `<button class="cx" data-a="${i.k === 'draft' ? 'del' : 'info'}" aria-label="${i.k === 'draft' ? '지우기' : '소개'}">${i.k === 'draft' ? ic('trash') : '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7"/><path d="M8 7h9v9"/></svg>'}</button>`}</div>`);   // 기본은 소개 페이지가 없어 ↗ 없음
-    if (dir) st.querySelector('.dfr').classList.add(dir > 0 ? 'in' : 'inb');
-    if (i.card) mount($('.dh', st), i.card);
-    $('.dmt .n').innerHTML = `${esc(i.t.name)}${i.t.kind ? `<i>${esc(i.t.kind)}</i>` : ''}`;
-    $('.dmt p').innerHTML = i.t.desc.map(x => `<span>${esc(T.line(x))}</span>`).join('');
-    $('[data-a=go]').innerHTML = `${ic(i.k === 'more' ? 'layers' : 'pen')}${i.btn}`;
-    $('.ddots').innerHTML = items.map((_, n) => `<i class="${n === at ? 'on' : ''}"></i>`).join('');
-    $$('.dpk', st).forEach(b => b.onclick = e => { e.stopPropagation(); to(+b.dataset.to); });
-    $('[data-a=open]', st).onclick = open;
-    const cx = $('.cx', st);
-    if (cx) cx.onclick = e => { e.stopPropagation();
-      if (i.k === 'draft') ask('쓰다 만 글을 지울까요?', '지우기').then(ok => { if (!ok) return; S.clearDraft(); items.shift(); at = 0; paint(1); pill('지웠어요', 'check'); });
-      else go('#/ti/' + i.k); };
+  const cardFor = t => { const c = T.exCard(t, 0); if (c.ratio) c.ratio = '45'; return c; };
+  const fill = root => {
+    $$('.wt[data-t]', root).forEach(b => mount($('.wc', b), cardFor(T.tpl(b.dataset.t))));
+    $$('.wt[data-d]', root).forEach(b => { const d = S.draft(b.dataset.d); if (d) mount($('.wc', b), { ...d.card, ratio: '45' }); });
+    $$('.trow', root).forEach(r => { const dt = r.nextElementSibling; const p = () => { const m = Math.max(1, Math.ceil(r.scrollWidth / r.clientWidth - .05)); dt.innerHTML = dotsHtml(m, Math.round(r.scrollLeft / Math.max(1, r.scrollWidth - r.clientWidth) * (m - 1)) || 0); }; p(); r.addEventListener('scroll', p, { passive: true }); });
   };
-  const to = n => { n = Math.max(0, Math.min(items.length - 1, n)); if (n === at) return; const dir = n > at ? 1 : -1; at = n; paint(dir); };
-  $('[data-a=go]').onclick = open;
-  // 위로 밀면 다음, 아래로 밀면 이전
-  let sy = null;
-  st.addEventListener('pointerdown', e => { sy = e.clientY; });
-  st.addEventListener('pointerup', e => { if (sy == null) return; const dy = e.clientY - sy; sy = null; if (Math.abs(dy) > 40) { to(at + (dy < 0 ? 1 : -1)); st.dataset.sw = 1; setTimeout(() => delete st.dataset.sw, 0); } });
-  st.addEventListener('click', e => { if (st.dataset.sw) e.stopPropagation(); }, true);
-  let wl = 0; st.addEventListener('wheel', e => { e.preventDefault(); const t = Date.now(); if (t - wl < 400 || Math.abs(e.deltaY) < 20) return; wl = t; to(at + Math.sign(e.deltaY)); }, { passive: false });
-  paint(0);
-  cleanup = () => stopMood();
+  fill(app);
+  const whs = $('.whs');
+  if (whs) { const n = recs.length, dt = $('[data-for=whs]'), k = () => Math.round(whs.scrollLeft / Math.max(1, whs.clientWidth)); const pd = () => { dt.innerHTML = dotsHtml(n, k()); }; pd(); whs.addEventListener('scroll', pd, { passive: true }); }
+  $('[data-a=base]').onclick = () => go('#/write/text');
+  $$('[data-a=all]').forEach(b => b.onclick = () => go('#/tpl'));
+  // 이어 쓰기: 누르면 바로, ×는 확인하고 지워요 (쓰다 만 글은 휴지통 없이)
+  $('.wdr').onclick = e => {
+    const x = e.target.closest('[data-x]');
+    if (x) { e.stopPropagation(); return ask('쓰다 만 글을 지울까요?', '지우기').then(ok => { if (!ok) return; S.clearDraft(x.dataset.x); $('.wdr').innerHTML = S.drafts().length ? sec('이어 쓰기', drafts()) : ''; fill($('.wdr')); pill('지웠어요', 'check'); }); }
+    const d = e.target.closest('[data-d]'); if (d) go('#/write/draft-' + d.dataset.d);
+  };
+  $('.wmn').addEventListener('click', e => { const b = e.target.closest('.wt[data-t]'); if (b) bigTpl(T.tpl(b.dataset.t)); });   // app 자체에 달면 화면마다 쌓여요
+  cleanup = () => { stopMood(); $('.wbig')?.remove(); };
+}
+// 크게 보기: 카드가 가운데 크게 (움직이는 그대로) · 이름 · 이 템플릿으로 쓰기 · 자세히 보기(소개 페이지, 닫으면 여기로)
+function bigTpl(t) {
+  if (!t) return;
+  const v = document.createElement('div'); v.className = 'wbig';
+  v.innerHTML = `<div class="wbx"><button class="cx" data-a="x" aria-label="닫기">${ic('close')}</button><div class="wbc"></div>
+    <div class="wbn2">${esc(t.name)}<small>${esc(t.kind)}</small></div>
+    <div class="tcta"><button class="w" data-a="go">${ic('pen')}이 템플릿으로 쓰기</button></div><button class="wln" data-a="info">자세히 보기 ${ic('next')}</button></div>`;
+  document.body.appendChild(v);
+  const c = T.exCard(t, 0); mount($('.wbc', v), c);
+  const close = () => { v.classList.add('out'); setTimeout(() => v.remove(), 200); };
+  v.onclick = e => { if (e.target === v || e.target.closest('[data-a=x]')) close(); };
+  $('[data-a=go]', v).onclick = () => { v.remove(); go('#/write/' + t.fmt); };
+  $('[data-a=info]', v).onclick = () => { v.remove(); go('#/ti/' + t.id); };
+  let sy = null; v.addEventListener('pointerdown', e => { sy = e.clientY; }); v.addEventListener('pointerup', e => { if (sy != null && e.clientY - sy > 80) close(); sy = null; });
 }
 
 // 이 포맷으로 쓰기: 그 카드의 모습(배경 · 글꼴 · 크기 · 비율 · 날짜 줄 · 서명 자리)을 그대로, 글은 비우고 날짜는 오늘로.
@@ -1263,9 +1268,9 @@ function likeCard(src) {
 // 키보드가 있을 때만 보이는 화면(--vvt · --vvh)에 맞춰 고정. 카드는 키보드 위 공간에 통째로 들어가는 크기로 한 번 정하고 바꾸지 않아요
 function viewWrite({ fmt, id, like }) {
   const isNew = !id;
-  let card;
+  let card, did = S.uid();   // 새 카드마다 쓰다 만 글 자리 하나
   if (id) card = S.card(id);
-  else if (fmt === 'draft') card = S.draft()?.card;
+  else if (fmt?.startsWith('draft-')) { did = fmt.slice(6); card = S.draft(did)?.card; }
   else if (like) card = likeCard(S.card(like));
   else {   // 새 카드는 마지막에 쓴 글꼴 · 날짜 줄 · 비율 · 서명 자리로
     card = blank(fmt, S.today());
@@ -1376,7 +1381,7 @@ function viewWrite({ fmt, id, like }) {
   }
 
   // 기록: 셔플·배경·정렬은 바로, 글은 잠깐 멈췄을 때 한 칸씩
-  const persist = () => { if (isNew) S.saveDraft({ card }); };
+  const persist = () => { if (isNew) S.saveDraft(did, card); };
   const push = () => { clearTimeout(st.timer); st.timer = 0; st.hist = st.hist.slice(0, st.hi + 1); st.hist.push(clone(card)); if (st.hist.length > 80) st.hist.shift(); st.hi = st.hist.length - 1; tools(); persist(); };
   const flush = () => { if (st.timer) push(); };   // 쓰던 글을 먼저 기록해 두고 바꿔요 (되돌리면 바로 앞 모습으로)
   const pushLater = () => { clearTimeout(st.timer); st.timer = setTimeout(push, 700); persist(); tools(); };
@@ -2055,7 +2060,7 @@ function viewWrite({ fmt, id, like }) {
   const backTo = () => { reopen = card.id; editFrom = null; if (lastHash === from) history.back(); else location.replace(from); };
   $('[data-a=back]').onclick = () => {
     clearTimeout(st.timer);
-    if (isNew) { if (hasText()) S.saveDraft({ card }); else S.clearDraft(); }
+    if (isNew) { if (hasText()) S.saveDraft(did, card); else S.clearDraft(did); }
     else if (hasText()) S.saveCard(card);
     if (from) return backTo();
     if (isNew && /^#\/ti\//.test(came || '')) return history.back();
@@ -2063,7 +2068,7 @@ function viewWrite({ fmt, id, like }) {
   };
   $('[data-a=ok]').onclick = () => {
     if (!hasText()) return;
-    if (isNew) { card.id = S.uid(); card.created = new Date().toISOString(); S.clearDraft(); }
+    if (isNew) { card.id = S.uid(); card.created = new Date().toISOString(); S.clearDraft(did); }
     delete card.sample; delete card.ex; S.saveCard(card);
     const pl = (card.place || '').trim();   // 최근 장소 (장소 칸에서 다시 고를 수 있게)
     if (pl) S.setPref('places', [pl, ...S.pref('places', []).filter(x => x !== pl)].slice(0, 20));
@@ -2352,7 +2357,7 @@ function viewSet(sub) {
 const UPDATES = [
   ['1.0.0', '2026-10-31', ['템플릿 탭과 소개 페이지가 생겼어요', '책장 · 달력 · 프로필도 홈과 같은 배경이에요', '프로필에서 전체와 달마다 숫자를 함께 봐요',
     '설정 › 바탕에서 그라데이션 · 솔리드 · 다크를 고를 수 있어요', '프로필에 한 줄 소개를 쓸 수 있어요 (20자)', '쓴 날을 올해 점 달력으로 봐요',
-    '새 손글씨 로고', '설정에 서비스 소개가 생겼어요', '쓰기 첫 화면이 카드 덱으로 바뀌었어요']],
+    '새 손글씨 로고', '설정에 서비스 소개가 생겼어요', '쓰기 첫 화면이 새로 바뀌었어요 (기본으로 쓰기 · 이어 쓰기 · 템플릿 줄)', '쓰다 만 글을 10개까지 모아 둬요']],
 ];
 // 서비스 소개 (10-31): 로고 · 한 줄 · 버전 / 운영자 정보 (유료 판매라 앱 안에 표시해야 해요). 실제 정보는 출시 전에 채워요
 const COMPANY = [['상호', ''], ['대표자', ''], ['사업자등록번호', ''], ['통신판매업 신고번호', ''], ['주소', ''], ['문의', '']];
@@ -2498,5 +2503,5 @@ function setPlan() {
   $('[data-a=buy]').onclick = () => toast('결제는 출시 전에 열려요');
 }
 
-const usedPhotos = () => [...S.cards(), ...S.trash(), S.draft()?.card].filter(Boolean).flatMap(c => [c.bg, ...(c.pst || []).map(p => p.bg)]).flatMap(b => [b?.ph, b?.vd]).filter(Boolean);   // 영상 파일도
+const usedPhotos = () => [...S.cards(), ...S.trash(), ...S.drafts().map(d => d.card)].filter(Boolean).flatMap(c => [c.bg, ...(c.pst || []).map(p => p.bg)]).flatMap(b => [b?.ph, b?.vd]).filter(Boolean);   // 영상 파일도
 P.boot(usedPhotos()).then(route);
