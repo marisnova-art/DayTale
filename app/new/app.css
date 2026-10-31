@@ -1018,3 +1018,9 @@ html:has(.setv.plan), html:has(.setv.plan) body { background: #2B2650; }
 /* 10-31 달력 · 책: 바탕이 넓게 드러나 노이즈가 거칠게 보여요 → 바탕 노이즈 없이 (책장처럼 보이게) */
 .tgr.lo { opacity: .2; }
 .days .dh span { color: rgba(255,255,255,.72); }   /* 날짜 옆 글자: 밝은 바탕에서도 보이게 */
+/* 10-31 프로필 8칸 + 위아래 간격 줄여 그래프가 첫 화면에 */
+.mev .mq { margin-top: 16px; }
+.mev .mmd { margin-top: 16px; }
+.mev .msr { margin-top: 10px; }
+.mev .mpn { padding-bottom: 20px; }
+.mev .mgc { margin-top: 16px; }

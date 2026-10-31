@@ -2126,11 +2126,11 @@ function viewMe() {
   const all = S.cards(), st = statsOf(all), me = meOf();
   const li = (S.pref('meLine', -1) + 1) % LINES.length, ln = LINES[li]; S.setPref('meLine', li);   // 들어올 때마다 다음 문장 (끝까지 보면 처음부터)
   const NONE = '없어요';
-  // 10칸 2열 (10-31): 전체 | 월별. 칸 바탕은 들어올 때 한 번 고르고, 값만 바뀌어요
-  const tileBg = [pickCard(all), pickCard(all), pickCard(all), pickCard(all), pickCard(all, c => kindOf(c) === st.kind), pickCard(all, c => bgName(c) === st.col),
-    pickCard(all, c => placeOf(c) === st.place), pickCard(all, c => slotOf(c) === st.when), pickCard(all), pickCard(all)].map((c, i) => bgTile(c, FALL[i % FALL.length]));
-  const vals = s => [[`${s.days}일`, '쓴 날'], [`${s.n}장`, '카드'], [chars(s.chars), '글자'], [s.n ? chars(s.long) : NONE, '가장 긴 글'],
-    [s.kind ? s.kind.replace(/^(디자인|아트) /, '') : NONE, '자주 쓴 템플릿'], [s.col || NONE, '자주 쓴 색'], [s.place || NONE, '자주 쓴 곳'], [s.when || NONE, '자주 쓴 때'], [s.wd || NONE, '자주 쓴 요일'], [s.n ? s.ratio : NONE, '자주 쓴 비율']];
+  // 8칸 2열 (10-31: 10 → 8, 아래 그래프가 첫 화면에 들어오게): 전체 | 월별. 칸 바탕은 들어올 때 한 번 고르고, 값만 바뀌어요
+  const tileBg = [pickCard(all), pickCard(all), pickCard(all), pickCard(all, c => kindOf(c) === st.kind), pickCard(all, c => bgName(c) === st.col),
+    pickCard(all, c => placeOf(c) === st.place), pickCard(all, c => slotOf(c) === st.when), pickCard(all)].map((c, i) => bgTile(c, FALL[i % FALL.length]));
+  const vals = s => [[`${s.days}일`, '쓴 날'], [`${s.n}장`, '카드'], [chars(s.chars), '글자'],
+    [s.kind ? s.kind.replace(/^(디자인|아트) /, '') : NONE, '자주 쓴 템플릿'], [s.col || NONE, '자주 쓴 색'], [s.place || NONE, '자주 쓴 곳'], [s.when || NONE, '자주 쓴 때'], [s.wd || NONE, '자주 쓴 요일']];
   const by = new Map(); all.filter(c => c.date).forEach(c => { const m = c.date.slice(0, 7); by.has(m) ? by.get(m).push(c) : by.set(m, [c]); });
   const months = [...by.keys()].sort();   // 오래된 달 → 이번 달
   // 그래프: 7달씩, 처음엔 이번 달이 가운데 (지난 3달 · 이번 달 · 다음 3달). 옆으로 밀면 7달씩 지난 쪽으로, 처음 쓴 달이 든 쪽까지
