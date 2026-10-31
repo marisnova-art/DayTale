@@ -932,6 +932,8 @@ mark { background: rgba(255,255,255,.32); color: #fff; border-radius: 0; padding
 
 /* 템플릿 소개: 글은 세 가지만 (작은 줄 · 이름 · 설명 한 줄), X 왼쪽에 '예시 1/3' */
 .tiv { position: fixed; inset: 0; z-index: 40; background: #000; overflow: hidden; }
+html.blk, html.blk body { background: #000; }
+.tiv::after { content: ''; position: fixed; left: 0; right: 0; bottom: calc(-1 * var(--safe-b) - 60px); height: calc(var(--safe-b) + 60px); background: #000; }   /* 아이폰 앱(홈 화면)에서 아래 막대 자리까지 덮어요 */
 .tip { position: absolute; inset: 0; display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior: contain; }
 .tip::-webkit-scrollbar { display: none; }
 .tpg { flex: 0 0 100%; scroll-snap-align: start; position: relative; }

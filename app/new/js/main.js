@@ -1153,8 +1153,8 @@ function viewIntro(id) {
   let anim = 0; const t0 = performance.now(), still = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const tick = now => { anim = requestAnimationFrame(tick); if (still) return; const p = $$('.tpg')[k()]; p && $$('canvas.bgc', p).forEach(cv => cv.width && drawCode(cv, +cv.dataset.seed, +cv.dataset.shift || 0, (now - t0) / 1000 + .01)); };
   anim = requestAnimationFrame(tick);
-  document.documentElement.style.backgroundColor = '#000';   // 아이폰 홈 막대 자리까지 검정
-  cleanup = () => { cancelAnimationFrame(anim); document.documentElement.style.backgroundColor = ''; };
+  document.documentElement.classList.add('blk');   // 아이폰 홈 막대 자리까지 검정 (html · body 바탕)
+  cleanup = () => { cancelAnimationFrame(anim); document.documentElement.classList.remove('blk'); };
 }
 
 /* ── 포맷 고르기 ─────────────────────────────────────── */
