@@ -602,7 +602,7 @@ mark { background: rgba(255,255,255,.32); color: #fff; border-radius: 0; padding
 .nav.hid { display: none; }
 .sheet-bg .sheet { background-image: var(--grain); background-size: 200px; background-blend-mode: overlay; }   /* 시트도 고운 노이즈 (카드는 없음) */
 .shv { min-height: 100vh; padding-bottom: calc(120px + var(--safe-b)); }
-.shv .grn { position: fixed; inset: 0; z-index: -1; background-image: var(--grain); background-size: 200px; mix-blend-mode: overlay; opacity: .42; pointer-events: none; }
+.shv > .grn { position: fixed; inset: 0; z-index: -1; background-image: var(--grain); background-size: 200px; mix-blend-mode: overlay; opacity: .42; pointer-events: none; }   /* > : 카드 안 노이즈(.bgi.grn)가 화면 전체로 번지지 않게 (10-31) */
 .shv .stb { position: fixed; top: 0; left: 0; right: 0; height: var(--safe-t); z-index: 25; background: rgba(16,16,18,.62); -webkit-backdrop-filter: blur(22px); backdrop-filter: blur(22px); pointer-events: none; }   /* 시계 줄 흐림 */
 .bkv .stb { opacity: 0; transition: opacity .2s; }   /* 책 색 블록이 시계 줄까지, 내리면 흐림 */
 .bkv.sc .stb { opacity: 1; }
