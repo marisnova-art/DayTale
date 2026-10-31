@@ -1,29 +1,10 @@
-// 홈 바탕 무드: 예전 앱 배경 24가지(아침 · 낮 · 저녁 · 밤 × 6)를 화면 전체에 깔고, 빛 덩어리가 천천히 떠다녀요.
-// 시간대마다 6가지 중 하나 (최근 7번은 피해요). 비 · 눈 오는 날은 차분한 쪽에서 고르고, 흐림 · 비는 채도를 낮춰요.
+// 홈 · 템플릿 · 책장 · 프로필 · 검색 바탕 무드 (설정 › 바탕에서 그라데이션 · 솔리드 · 다크). 그라데이션은 빛 덩어리가 천천히 떠다녀요. 흐림 · 비는 채도를 낮춰요.
 // MOOD = false 로 두면 예전 방식(가운데 카드 색만 은은하게 번짐, abc7e96)으로 돌아가요. 출시 전에 톤 다시 보기
 import * as S from './store.js';
 import { guessCity, cityLookup } from '../../js/data/cities.js';
 
 export const MOOD = true;
 
-// 이름, 어두운 모서리, 뜨거운 빛, 따뜻한 빛, 중간, 깊은 색 (app/js/ui/backdrop.js 와 같은 값)
-const PAL = {
-  morning: [['dawn-peach', '#3A1A2A', '#F06A5A', '#FFB27A', '#3E6A7A', '#1D3442'], ['morning-mist', '#1E2A3A', '#7FA6E0', '#F3D3A8', '#4E7A8A', '#1F3540'],
-    ['lemon', '#2A2414', '#EAA83A', '#FFE08A', '#4F8268', '#1C3A30'], ['pink-dawn', '#2E1630', '#E86AA0', '#FFB59A', '#55559A', '#1F2445'],
-    ['sea-morning', '#10283A', '#3FA0D8', '#A8E6D8', '#2E6A70', '#133236'], ['apricot', '#33180F', '#EE7A4A', '#FFC48A', '#5E6A60', '#232A2A']],
-  day: [['teal-afternoon', '#2A1418', '#E0402A', '#F08A3E', '#2F5E5A', '#173638'], ['clear-sky', '#142438', '#4A8EF0', '#A6D6FF', '#2F5C88', '#18283E'],
-    ['green-leaf', '#142818', '#5DBE6A', '#D8E87A', '#2E6A50', '#15302A'], ['mint', '#0F2A2A', '#3ED0B0', '#C2F2D8', '#2A6670', '#142E36'],
-    ['sand', '#2E2214', '#D9A050', '#F5D8A0', '#5E5A50', '#2A2620'], ['coral-blue', '#2A1620', '#F05A6A', '#FFA080', '#3A5A9A', '#1A2445']],
-  evening: [['sunset', '#2E1210', '#E8452A', '#FF9A3A', '#6A2E5A', '#24163A'], ['plum', '#2A1028', '#C83A7A', '#F08AA0', '#4A2E7A', '#1C1838'],
-    ['pumpkin', '#2E1A0A', '#E86A1A', '#FFB040', '#7A3A2A', '#2A1A1E'], ['lavender', '#1E1630', '#9A6AF0', '#F0A0C8', '#3E3A8A', '#1A1A3A'],
-    ['rose-gold', '#2E1418', '#D8506A', '#F0C090', '#5A3A50', '#221A24'], ['red-sea', '#2A1010', '#F0503A', '#F09060', '#1E5A6A', '#12303A']],
-  night: [['deep-sea', '#0A1428', '#2A5AD0', '#5AA0F0', '#1A3A6A', '#0E1A30'], ['aurora', '#0A1E20', '#2AD08A', '#7AE0F0', '#3A2A7A', '#141432'],
-    ['violet-night', '#160E2A', '#6A3AE0', '#B07AF0', '#2A2A6A', '#12122A'], ['midnight-teal', '#0A1A1E', '#1A8A8A', '#5AC0B0', '#1A3A50', '#0E1A24'],
-    ['moonlight', '#12141E', '#6A7AB0', '#C8D0E8', '#3A4460', '#161A26'], ['ember', '#1A0E0A', '#C0401A', '#E8803A', '#3A2A3A', '#14121A']]
-};
-const CALM = new Set(['morning-mist', 'sea-morning', 'clear-sky', 'mint', 'lavender', 'deep-sea', 'moonlight', 'midnight-teal']);
-const slotOf = h => h >= 5 && h < 11 ? 'morning' : h < 17 ? 'day' : h < 21 ? 'evening' : 'night';
-const dk = (c, f) => '#' + [1, 3, 5].map(i => Math.min(255, Math.round(parseInt(c.slice(i, i + 2), 16) * f)).toString(16).padStart(2, '0')).join('');
 
 // 날씨: 예전 앱이 같은 곳에 남긴 값(3시간 안)을 먼저 쓰고, 없으면 서버 날씨 함수(MET Norway)에 물어봐요. 위치 권한은 안 써요
 const WX = 'daytale.wx';
@@ -47,47 +28,47 @@ export function weather() {
 }
 const wet = k => k === 'rain' || k === 'snow' || k === 'thunder';
 
-// 테스트 동안만: 앱을 열 때마다 24가지 전부에서 하나 (시간대 무시, 최근 7번은 피해요). 출시 전에 false
-const TEST_RANDOM = true;
-let session = null;
-// 오늘 이 시간대의 무드: 한 번 고르면 시간대가 바뀔 때까지 그대로
-export function pick(now = new Date(), wx = cachedWx()) {
-  if (TEST_RANDOM) {
-    if (session) return session;
-    const all = Object.values(PAL).flat(), recent = S.pref('moods', []);
-    const pool = all.filter(p => !recent.includes(p[0]));
-    session = pool[Math.floor(Math.random() * pool.length)];
-    S.setPref('moods', [session[0], ...recent].slice(0, 7));
-    return session;
-  }
-  const slot = slotOf(now.getHours()), key = S.today() + ':' + slot, keep = S.pref('mood');
-  if (keep?.key === key) { const p = PAL[slot].find(x => x[0] === keep.name); if (p) return p; }
-  const recent = S.pref('moods', []);
-  let pool = PAL[slot].filter(p => !recent.includes(p[0])); if (!pool.length) pool = PAL[slot];
-  if (wet(wx)) { const calm = pool.filter(p => CALM.has(p[0])); if (calm.length) pool = calm; }
-  const p = pool[Math.floor(Math.random() * pool.length)];
-  S.setPref('mood', { key, name: p[0] }); S.setPref('moods', [p[0], ...recent].slice(0, 7));
-  return p;
+// 10-31 바탕 고르기 (설정 › 바탕): 그라데이션(기본) · 솔리드 · 다크. 앱을 열 때마다 8개 중 하나 (최근 3번은 피해요)
+// 그라데이션 = 쓰기 화면 컬러칩에서 흰 글씨가 잘 읽히는 8개를 뒤집어 (위 진하게 → 아래 밝게, 밝은 끝은 눌러서)
+// 솔리드 = 쓰기 화면 단색 칩 중 밝은 3색(크림 · 연두 · 하늘)을 뺀 8색 (겨자 · 장미는 바탕에선 눌러서)
+export const MODES = [['g', '그라데이션'], ['s', '솔리드'], ['d', '다크']];
+export const mode = () => S.pref('bgMode', 'g');
+const mix = (c, f) => '#' + [1, 3, 5].map(i => Math.round(parseInt(c.slice(i, i + 2), 16) * f).toString(16).padStart(2, '0')).join('');
+// [이름, 진한 색, 가운데 색, 밝은 색]
+export const PAGE_G = [['노을 하늘', '#5A1424', '#E5484D', '#FFB3A7'], ['귤빛 저녁', '#5C2410', '#F27A2E', '#FFD39B'], ['풀빛 아침', '#1F4A1C', '#7DBB42', '#E9F5A8'],
+  ['호수', '#0B3B3C', '#1FA39A', '#B5F0E4'], ['깊은 바다', '#0E1F55', '#2F6BE0', '#A9D2FF'], ['보랏빛 밤', '#26124F', '#7B4BD6', '#D9C2FF'],
+  ['장미 빛', '#3B0E2A', '#F0607A', '#FFC9A8'], ['새벽 빛', '#0B1236', '#4D7CF0', '#FFD6E8']];
+export const PAGE_S = [['겨자', mix('#D9A441', .5)], ['벽돌', '#9A4530'], ['장미', mix('#DE939C', .5)], ['청록', '#256662'], ['숲', '#173832'], ['밤하늘', '#131B32'], ['자두', '#3A2240'], ['먹색', '#1C1C1E']];
+const DARK = '#141416';
+let chosen = null;
+export function pick() {
+  const m = mode(); if (chosen?.m === m) return chosen;
+  const list = m === 'g' ? PAGE_G : m === 's' ? PAGE_S : [['다크', DARK]];
+  const recent = S.pref('moods', []), pool = list.filter(x => !recent.includes(x[0])), x = (pool.length ? pool : list)[Math.floor(Math.random() * (pool.length || list.length))];
+  if (list.length > 1) S.setPref('moods', [x[0], ...recent].slice(0, 3));
+  return chosen = { m, x };
 }
-
-// 바탕 + 빛 덩어리 셋 + 날씨 톤. 가운데 카드 번짐(.amb i)은 main.js 가 그대로 맡아요
 export function paint(amb) {
   if (!MOOD) { amb.classList.add('old'); return () => {}; }
-  const draw = () => {
-    const [, d, hot, warm, mid, deep] = pick();
-    amb.style.setProperty('--mo', `linear-gradient(165deg, ${d} 0%, ${dk(hot, .78)} 18%, ${dk(warm, .68)} 40%, ${dk(mid, .9)} 66%, ${deep} 88%, #16181C 100%)`);
-    document.documentElement.style.backgroundColor = d;   // 아이폰 시계 줄도 바탕 위쪽 색으로
-    amb.style.setProperty('--b1', dk(warm, .8)); amb.style.setProperty('--b2', dk(hot, .7)); amb.style.setProperty('--b3', mid);
-  };
-  const tone = k => { amb.dataset.wx = !k ? '' : wet(k) && k !== 'snow' || k === 'cloud' || k === 'fog' ? 'grey' : k === 'snow' ? 'snow' : ''; };
-  draw(); tone(cachedWx());
-  weather().then(tone);   // 날씨가 늦게 와도 톤만 천천히 바뀌어요 (색은 그대로)
-  const t = setInterval(draw, 60e3);   // 시간대가 바뀌면 새 무드로
-  return () => { clearInterval(t); document.documentElement.style.backgroundColor = ''; };
+  const { m, x } = pick(), top = m === 'g' ? x[1] : x[1];
+  amb.classList.toggle('flat', m !== 'g');
+  if (m === 'g') {
+    const [, deep, mid, light] = x;
+    amb.style.setProperty('--mo', `linear-gradient(180deg, ${deep} 0%, ${deep} 16%, ${mix(mid, .72)} 58%, ${mix(light, .62)} 100%)`);
+    amb.style.setProperty('--b1', mix(mid, .55)); amb.style.setProperty('--b2', deep); amb.style.setProperty('--b3', mix(light, .5));
+  } else amb.style.setProperty('--mo', x[1]);
+  document.documentElement.style.backgroundColor = top;   // 아이폰 시계 줄도 바탕 위쪽 색으로
+  const tone = k => { amb.dataset.wx = m !== 'g' || !k ? '' : wet(k) && k !== 'snow' || k === 'cloud' || k === 'fog' ? 'grey' : k === 'snow' ? 'snow' : ''; };
+  tone(cachedWx()); weather().then(tone);
+  return () => { document.documentElement.style.backgroundColor = ''; };
 }
+// 설정에서 바꾸면 다음 화면부터 새로 골라요
+export function reset() { chosen = null; }
 
-// 달력 패널: 홈과 같은 무드를 한 장의 그라데이션으로 (빛 덩어리 두 개를 겹쳐요)
+// 달력 · 책장 위 판: 지금 바탕과 같은 색으로 한 장
 export function panelCss() {
-  const [, d, hot, warm, mid, deep] = pick();
-  return `radial-gradient(120% 90% at 85% 0%, ${dk(warm, .85)} 0%, transparent 60%), radial-gradient(90% 80% at 10% 100%, ${dk(hot, .8)} 0%, transparent 60%), linear-gradient(160deg, ${d}, ${dk(mid, .9)} 55%, ${deep})`;
+  const { m, x } = pick();
+  if (m === 'g') { const [, deep, mid, light] = x; return `radial-gradient(120% 90% at 85% 0%, ${mix(mid, .7)} 0%, transparent 60%), radial-gradient(90% 80% at 10% 100%, ${mix(light, .45)} 0%, transparent 60%), linear-gradient(160deg, ${deep}, ${mix(mid, .6)})`; }
+  if (m === 's') return `linear-gradient(160deg, rgba(255,255,255,.08), rgba(0,0,0,.12)), linear-gradient(${x[1]}, ${x[1]})`;
+  return 'linear-gradient(#1E1E21, #1E1E21)';
 }

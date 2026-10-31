@@ -12,7 +12,7 @@ import { NAMES as STK, hydrate, preloadAll } from './stickers.js';
 import * as P from './photos.js';
 import { FILTERS, filterOf, fidOf, grainLv, srcOf, thumb as fthumb } from './filters.js';
 import * as V from './video.js';
-import { paint as paintMood, panelCss } from './mood.js';
+import { paint as paintMood, panelCss, MODES as BG_MODES, mode as bgMode, reset as resetMood } from './mood.js';
 import * as T from './templates.js';
 
 const app = document.getElementById('app');
@@ -2122,7 +2122,7 @@ function viewMe() {
   const NONE = '없어요';
   // 8칸 2열 (10-31: 10 → 8, 아래 그래프가 첫 화면에 들어오게): 전체 | 월별. 칸 바탕은 들어올 때 한 번 고르고, 값만 바뀌어요
   // 10-31: 칸 바탕 = 쓰기 화면의 그라데이션 · 솔리드에서 겹치지 않게 8개를 랜덤으로 (사진 · 작품은 안 써요, 처음 쓰는 사람도 같아요)
-  const tileBg = [...FREE].sort(() => Math.random() - .5).slice(0, 8).map(b => ({ attr: ` style="background:${b.css}"`, lt: b.ink !== '#fff' }));
+  const tileBg = FREE.filter(b => b.name !== '먹색').sort(() => Math.random() - .5).slice(0, 8).map(b => ({ attr: ` style="background:${b.css}"`, lt: b.ink !== '#fff' }));
   const vals = s => [[`${s.days}일`, '쓴 날'], [`${s.n}장`, '카드'], [s.n ? `${s.avg}자` : NONE, '한 장 평균'],
     [s.kind ? s.kind.replace(/^(디자인|아트) /, '') : NONE, '자주 쓴 템플릿'], [s.col || NONE, '자주 쓴 색'], [s.place || NONE, '자주 쓴 곳'], [s.when || NONE, '자주 쓴 때'], [s.wd || NONE, '자주 쓴 요일']];
   const by = new Map(); all.filter(c => c.date).forEach(c => { const m = c.date.slice(0, 7); by.has(m) ? by.get(m).push(c) : by.set(m, [c]); });
@@ -2289,6 +2289,7 @@ function viewSet(sub) {
   if (sub === 'bio') return setBio();
   if (sub === 'sign') return setSign();
   if (sub === 'date') return setPick('날짜 표시', DATE_FMT.map(f => [f, dateLine(S.today(), f)]), S.pref('dateFmt', 'dot'), v => S.setPref('dateFmt', v));
+  if (sub === 'bg') return setPick('바탕', BG_MODES, bgMode(), v => { S.setPref('bgMode', v); resetMood(); });
   if (sub === 'week') return setPick('한 주의 시작', [[0, '일요일'], [1, '월요일']], weekStart(), v => S.setPref('weekStart', v));
   if (sub === 'lang') return setPick('언어', Object.entries(LANGS), S.pref('lang', 'ko'), v => S.setPref('lang', v));
   if (sub === 'alarmtime') return setPick('알림 시간', TIMES, S.pref('remindAt', '21:00'), v => S.setPref('remindAt', v));
@@ -2302,6 +2303,7 @@ function viewSet(sub) {
   setShell('설정', `${sgrp(`<button class="srw acc" data-go="#/set/account"><span class="av"${avStyle()}></span><span class="t"><b>${esc(me.name || '나')}</b><small>${me.id ? '@' + esc(me.id) : '로그인 전'}</small></span><span class="v">${ic('next')}</span></button>`)}
     <div class="sgp plan">${srow('star', '구독', '체험 중', { go: '#/set/plan' })}${srow('ticket', '이용권 코드 넣기', '', { a: 'code' })}</div>
     ${sgrp(srow('bell', '공지사항 · 이벤트', '', { go: '#/set/news' }), srow('doc', '업데이트 소식', UPDATES[0][0], { go: '#/set/updates' }))}
+    ${sgrp(srow('img', '바탕', BG_MODES.find(x => x[0] === bgMode())[1], { go: '#/set/bg' }))}
     ${sgrp(srow('pin', '장소 자동', '', { tg: S.pref('autoPlace', false), a: 'place' }), srow('sign', '서명', esc(S.pref('sign', '')) || '없음', { go: '#/set/sign' }), srow('date', '날짜 표시', dateLine(S.today()), { go: '#/set/date' }), srow('week', '한 주의 시작', weekStart() ? '월요일' : '일요일', { go: '#/set/week' }))}
     ${sgrp(srow('backup', '백업', '', { go: '#/set/backup' }), srow('trash', '휴지통', n || '', { go: '#/set/trash' }))}
     ${sgrp(srow('bell', '알림', S.pref('remind', false) ? '켜짐' : '', { go: '#/set/alarm' }), srow('globe', '언어', LANGS[S.pref('lang', 'ko')], { go: '#/set/lang' }))}

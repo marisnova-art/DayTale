@@ -1074,3 +1074,6 @@ html:has(.setv.plan), html:has(.setv.plan) body { background: #2B2650; }
 /* 10-31 점 달력 줄 사이 여유: 판 높이를 점 달력에 맞추고 (전체 · 월별 같게), 점 · 대시는 판 아래 */
 .mev .mgc { min-height: 261px; display: flex; flex-direction: column; }
 .mev .mgc .mdots { margin-top: auto; padding-top: 10px; }
+/* 10-31 바탕 솔리드 · 다크: 빛 덩어리 · 카드 번짐 없이 단색 + 고운 노이즈 */
+.amb.flat b, .amb.flat i { display: none !important; }
+.amb.flat s { background: none; }
