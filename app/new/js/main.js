@@ -1037,8 +1037,19 @@ function viewBook(id) {
 // 표지 → 카드의 장마다 한 쪽 (종이 = 표지 색 그대로, 아래 날짜 · 2/3장) → 끝. 넘김은 반듯하게 옆으로만
 // 이동은 아래 한 줄에만: 왼쪽 [‹ 슬라이더 ›] (끄는 동안 손 위 'n쪽 · 날짜' + 종이 미리보기만 바뀌고, 놓으면 그 쪽) · 오른쪽 [목차 n / N쪽] = 그 줄 위로 목차 판 (쪽 번호 · 달별)
 // 쪽의 카드를 누르면 크게 보기 (좌우로 밀면 앞 · 뒤 카드, ‹ 뒤로 = 마지막에 본 카드의 쪽). 다시 열면 마지막에 읽던 쪽부터
+// 책 쪽 마지막 방법: 카드 전체를 W 넓이로 그려서, 장 높이(W × 비율)보다 길면 그 높이씩 잘라 여러 장으로 (길지 않으면 null)
+async function sliceCard(c, W, ar) {
+  const H = Math.round(W * ar), h = document.createElement('div');
+  h.style.cssText = `position:fixed;left:-20000px;top:0;width:${W}px;pointer-events:none;`; document.body.appendChild(h);
+  try {
+    const el = renderCard(c); h.appendChild(el); fitCard(el, c); await document.fonts?.ready; fitCard(el, c);
+    const tot = Math.max(el.scrollHeight, el.offsetHeight); if (!(tot > H * 1.15)) return null;
+    const n = Math.min(30, Math.ceil(tot / H - .05));
+    return Array.from({ length: n }, (_, k) => { const w = document.createElement('div'); w.className = 'slc'; w.style.cssText = `height:${H}px;overflow:hidden;`; const cl = el.cloneNode(true); cl.style.marginTop = -k * H + 'px'; w.appendChild(cl); return w; });
+  } catch (e) { console.warn('book slice', e); return null; } finally { h.remove(); }
+}
 function openReader(b, list, onGrid, hx = {}) {
-  const ff = b.font ? fontCssOf(fontOf(b.font)) : '', cards = list.slice().reverse();   // 읽을 때는 처음 쓴 카드부터
+  const ff = b.font ? fontCssOf(fontOf(b.font)) : '', cards = list.slice();   // 읽는 차례 = 리스트와 같이 최근 → 처음 (11-04 앤드류)
   const ink = b.ink || inkOn(b.color), N = cards.length;
   const rd = document.createElement('div'); rd.className = 'brd'; rd.style.setProperty('--pp', b.color); rd.style.setProperty('--bc', b.color); rd.style.setProperty('--pk', ink);
   rd.innerHTML = `<div class="amb"><div class="mo"></div><s></s></div><i class="rdim"></i>
@@ -1079,16 +1090,19 @@ function openReader(b, list, onGrid, hx = {}) {
     for (let i = 0; i < N && !dead; i++) {
       await calm(); if (dead) return;
       const c = cards[i], ar = arOf(c), W = Math.floor(Math.min(sz.w, sz.h / ar));
-      let nodes = [];
-      try { const r = await buildPages(c, W, Math.min(2, devicePixelRatio || 1)); nodes = r.nodes; r.h.remove(); } catch (e) { console.warn('book page', e); }
+      const tryB = async x => { try { const r = await buildPages(x, W, Math.min(2, devicePixelRatio || 1)); r.h.remove(); return r.nodes || []; } catch (e) { console.warn('book page', e); return []; } };
+      let nodes = await tryB(c);
+      if (!nodes.length && !dead) nodes = await tryB({ ...blank(c.fmt, c.date), ...c });   // 예전 카드: 빠진 값을 채워 한 번 더
       if (dead) return;
-      if (!nodes.length) { const el = renderCard({ ...c, pages: c.pages?.slice(0, 1), pst: c.pst?.slice(0, 1) }); nodes = [el]; }
+      // 그래도 1장뿐이면 (예전 카드 · 아이폰): 카드를 길게 그려 보고 장 높이보다 길면 잘라서 여러 쪽으로
+      if (nodes.length <= 1) { const sl = await sliceCard(c, W, ar); if (sl) nodes = sl; }
+      if (nodes.length < (c.pages?.length || 1)) nodes = (c.pages?.length ? c.pages : ['']).map((_, k) => renderCard({ ...c, pages: c.pages?.slice(k, k + 1), pst: c.pst?.slice(k, k + 1) }));
       await calm(); if (dead) return;
       nodes.forEach((n, j) => {
         const s = document.createElement('section'); s.className = 'rp'; s.dataset.c = i; s.dataset.p = j;
         s.innerHTML = `<div class="bpc"><div class="rv0 view" style="width:${W}px"></div></div><p class="rf"><span>${c.date ? ymd(c.date) : ''}</span><span>${nodes.length > 1 ? `${j + 1}/${nodes.length}장` : ''}</span></p>`;
         $('.rv0', s).appendChild(n); tr.appendChild(s);
-        if (n.classList?.contains('cd')) requestAnimationFrame(() => fitCard(n, c));
+        const fc = n.classList?.contains('cd') ? n : n.classList?.contains('slc') ? null : n.querySelector?.('.cd'); if (fc) requestAnimationFrame(() => fitCard(fc, c));
         // 아이폰에서 장 나누기가 잘못 재면 (너무 길거나 비면) 2열과 같은 방식으로 그 장을 다시 그려요
         requestAnimationFrame(() => requestAnimationFrame(() => {
           const h = n.getBoundingClientRect?.().height || 0, want = W * ar;
