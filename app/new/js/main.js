@@ -1675,7 +1675,7 @@ function viewWrite({ fmt, id, like }) {
         if (st.panel) closePanel(false); caretEnd(st.pg); return;
       }
       if (k === 'fmt' || k === 'font' || k === 'bg') { st.tab = k; paintRow2(); return tools(); }
-      if (k === 'img') { st.tab = 'img'; paintRow2(); if (!photoPg()) pickPhoto(); return; }   // 사진이 없는 장이면 바로 사진첩
+      if (k === 'img') { st.tab = 'img'; paintRow2(); return; }   // 11-04: 위 칸은 아래 줄만 열어요. 사진첩은 아래 줄 사진 칸에서만 (두 곳에서 열려 헷갈려서)
       if (k === 'photo') return pickPhoto();   // 쓰는 중에도 이 장의 사진을 고를 수 있어요 (포토 포맷)
       if (k === 'emo') return st.panel === k ? closePanel(true) : openPanel(k);
       if (k === 'quote') {   // 문장 넣기 (11-04): 빈 장이거나 방금 넣은 문장이면 다른 문장으로 바꾸고, 쓴 글이 있으면 그 뒤에 붙여요
