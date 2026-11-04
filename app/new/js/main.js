@@ -950,7 +950,7 @@ function viewBook(id) {
   // 10-31: 바탕 = 템플릿홈과 같은 배경, 위 판 = 책 색 (종이 결) · 달력처럼 위에 붙어 있고 높이는 전보다 반
   app.innerHTML = `${MOOD}<div class="shv bkv mood">
     <header class="bh" style="background-color:${b.color};color:${b.ink}"><div class="bar"><button class="cb" data-a="back" aria-label="뒤로">${ic('back')}</button>
-    <div class="bt"><h2${ff ? ` style="font-family:${ff}"` : ''}>${esc(b.name)}</h2><p>${rangeOf(b.cards)} · 카드 ${b.cards.length}</p></div>${b.mine ? `<button class="cb" data-a="more" aria-label="더 보기">${ic('more')}</button>` : '<span class="cb0"></span>'}</div></header>
+    <div class="bt"><h2${ff ? ` style="font-family:${ff}"` : ''}>${esc(b.name)}</h2><p>${rangeOf(b.cards)} · 카드 ${b.cards.length}</p></div>${b.mine ? `<button class="cb" data-a="more" aria-label="더 보기">${ic('more')}</button>` : '<span class="cb0"></span>'}</div>${b.cards.length ? `<button class="rdb" data-a="read">${ic('read')}책으로 읽기</button>` : ''}</header>
     <main class="days"></main></div>${nav('shelf')}`;
   bindNav();
   const stopMood = paintMood($('.amb'));
@@ -968,10 +968,49 @@ function viewBook(id) {
     if (!(await ask('이 책을 지울까요?<small>카드는 그대로 남아요</small>', '삭제'))) return;
     S.removeBook(b.id); toast('책을 지웠어요'); location.replace('#/shelf');
   } }]]));
+  let closeRd = null;   // 책으로 읽기가 처음 (2열로 바꾸면 다음에도 2열)
+  const read = () => { closeRd = openReader(b, list, () => { closeRd = null; }); };
+  $('[data-a=read]')?.addEventListener('click', () => { S.setPref('bookView', 'read'); read(); });
+  if (list.length && S.pref('bookView', 'read') !== 'grid') read();
   const onSc = () => $('.bkv')?.classList.toggle('sc', scrollY > 8);
   addEventListener('scroll', onSc, { passive: true });
-  cleanup = () => { stop(); stopMood(); closeRun(true); $('.obar')?.remove(); $('.nav.hid')?.classList.remove('hid'); removeEventListener('scroll', onSc); };
+  cleanup = () => { $('.brd')?.remove(); stop(); stopMood(); closeRun(true); $('.obar')?.remove(); $('.nav.hid')?.classList.remove('hid'); removeEventListener('scroll', onSc); };
 }
+// 책으로 읽기 (11-04 시험판): 표지 → 한 장에 카드 하나 (책 색을 옅게 한 종이 위) → 끝. 옆으로 밀어 넘겨요 (가볍게 밀리며 살짝 기울어요)
+// 아래에 날짜 · n/N, 종이 옆에 남은 쪽 두께. 오른쪽 위 칸 아이콘 = 지금의 2열 보기
+function openReader(b, list, onGrid) {
+  const ff = b.font ? fontCssOf(fontOf(b.font)) : '', cards = list.slice().reverse();   // 읽을 때는 처음 쓴 카드부터
+  const paper = mixHex(b.color, '#ffffff', .78), N = cards.length;
+  const rd = document.createElement('div'); rd.className = 'brd'; rd.style.setProperty('--pp', paper); rd.style.setProperty('--bc', b.color);
+  rd.innerHTML = `<header class="rbar"><button class="cb" data-a="x" aria-label="뒤로">${ic('back')}</button><span class="rn"></span><button class="cb" data-a="grid" aria-label="2열로 보기">${ic('grid')}</button></header>
+    <div class="rtr">
+      <section class="rp cov"><div class="ci" style="background-color:${b.color};color:${b.ink || inkOn(b.color)}"><h2${ff ? ` style="font-family:${ff}"` : ''}>${esc(b.name)}</h2><p>${rangeOf(b.cards)}<br>카드 ${N}</p></div></section>
+      ${cards.map((c, i) => `<section class="rp" data-i="${i}"><div class="rc"><div class="rv0"></div></div><p class="rf"><span>${c.date ? ymd(c.date) : ''}</span><span>${i + 1} / ${N}</span></p></section>`).join('')}
+      <section class="rp end"><div class="ci"><b${ff ? ` style="font-family:${ff}"` : ''}>끝</b><p>${esc(b.name)}</p></div></section>
+    </div>`;
+  document.body.appendChild(rd);
+  const tr = $('.rtr', rd), ps = $$('.rp', rd), rn = $('.rn', rd), done = new Set();
+  // 카드는 보고 있는 쪽 앞뒤 두 장만 그려요 (영상 · 아트가 많아도 가볍게)
+  const fill = k => { for (let j = k - 2; j <= k + 2; j++) { const c = cards[j - 1]; if (!c || done.has(j)) continue; done.add(j); const host = $('.rv0', ps[j]), ar = arOf(c); host.style.setProperty('--ar', ar); mount(host, { ...c, pages: c.pages?.slice(0, 1), pst: c.pst?.slice(0, 1) }); } };
+  let raf = 0;
+  const paint = () => {
+    raf = 0; const w = tr.clientWidth, x = tr.scrollLeft / w, k = Math.round(x);
+    ps.forEach((p, j) => { const d = Math.max(-1, Math.min(1, j - x)); p.style.transform = `translateX(${d * -8}%) rotate(${d * 2.2}deg) scale(${1 - Math.abs(d) * .06})`; p.style.opacity = 1 - Math.abs(d) * .45; });
+    const left = Math.min(N + 1, Math.max(0, x)), tot = N + 1;   // 왼쪽 = 읽은 쪽, 오른쪽 = 남은 쪽 두께
+    rd.style.setProperty('--tl', (left / tot * 6).toFixed(2) + 'px'); rd.style.setProperty('--tr', ((tot - left) / tot * 6).toFixed(2) + 'px');
+    rn.textContent = k === 0 ? '' : k > N ? '끝' : `${k} / ${N}`;
+    fill(k);
+  };
+  tr.addEventListener('scroll', () => { if (!raf) raf = requestAnimationFrame(paint); }, { passive: true });
+  requestAnimationFrame(() => { paint(); rd.classList.add('in'); });
+  const close = () => { rd.classList.remove('in'); setTimeout(() => rd.remove(), 300); };
+  $('[data-a=x]', rd).onclick = () => { close(); /^#\/(shelf|cal)/.test(lastHash || '') ? history.back() : location.replace('#/shelf'); };
+  $('[data-a=grid]', rd).onclick = () => { S.setPref('bookView', 'grid'); close(); onGrid?.(); };
+  // 표지를 누르면 첫 쪽으로, 끝을 누르면 표지로
+  tr.addEventListener('click', e => { const p = e.target.closest('.rp'); if (!p || p.dataset.i != null) return; tr.scrollTo({ left: p.classList.contains('end') ? 0 : tr.clientWidth, behavior: 'smooth' }); });
+  return close;
+}
+const mixHex = (a, b, t) => { if (!/^#[0-9a-f]{6}$/i.test(a || '')) return '#f3efe6'; const p = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)), x = p(a), y = p(b); return '#' + x.map((v, i) => Math.round(v + (y[i] - v) * t).toString(16).padStart(2, '0')).join(''); };
 // 카드 빼기: 칸마다 동그라미, 골라서 이 책에서만 빼요 (카드는 그대로)
 function pickOut(b, list) {
   const days = $('.days'), sel = new Set(); days.classList.add('pick');
