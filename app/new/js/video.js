@@ -213,3 +213,34 @@ function paint(me) {
   const out = apply(work, f, grainLv(b), me.lv.lo, me.lv.hi);
   cv.getContext('2d').drawImage(out || work, 0, 0);
 }
+
+// 영상 줄이기 (11-04): 완료할 때 고른 구간(최대 10초)만 짧은 쪽 720 · 소리 없이 다시 만들어요 (10초에 3MB 안팎).
+// 화면 밖에서 한 번 재생하며 그대로 녹화해요 (고른 길이만큼 걸려요). 안 되는 기기거나 더 커지면 원본 그대로
+export async function shrink(b) {
+  if (!b?.vd || b.small || !window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) return null;
+  const type = ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'].find(t => MediaRecorder.isTypeSupported?.(t)); if (!type) return null;
+  await P.stored(); const src = await P.blob(b.vd); if (!src) return null;   // 기기에 다 들어간 뒤에
+  const t0 = b.t0 || 0, len = lenOf(b);
+  const v = document.createElement('video'); v.muted = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.preload = 'auto';
+  v.style.cssText = 'position:fixed;left:0;top:0;width:2px;height:2px;opacity:.01;pointer-events:none;z-index:-1';
+  v.src = P.url(b.vd); document.body.appendChild(v);
+  try {
+    await ready(v, 8000); if (!v.videoWidth) return null;
+    const k = Math.min(1, 720 / Math.min(v.videoWidth, v.videoHeight)), w = Math.round(v.videoWidth * k / 2) * 2, h = Math.round(v.videoHeight * k / 2) * 2;
+    const cv = document.createElement('canvas'); cv.width = w; cv.height = h; const cx = cv.getContext('2d');
+    await seekTo(v, t0); cx.drawImage(v, 0, 0, w, h);
+    const rec = new MediaRecorder(cv.captureStream(30), { mimeType: type, videoBitsPerSecond: 2500000 }), parts = [];
+    rec.ondataavailable = e => e.data.size && parts.push(e.data);
+    const done = new Promise(ok => { rec.onstop = ok; });
+    rec.start(500); await v.play();
+    await new Promise(ok => {
+      const end = t0 + len - .03, step = () => { cx.drawImage(v, 0, 0, w, h); if (v.currentTime >= end || v.ended) return ok(); v.requestVideoFrameCallback ? v.requestVideoFrameCallback(step) : requestAnimationFrame(step); };
+      step(); setTimeout(ok, (len + 6) * 1000);
+    });
+    v.pause(); rec.stop(); await done;
+    const out = new Blob(parts, { type: type.split(';')[0] });
+    if (!out.size || out.size >= src.size) return null;
+    return { vd: await P.addBlob(out), dur: len, size: out.size, from: src.size };
+  } catch (e) { console.warn('shrink', e); return null; }
+  finally { v.remove(); }
+}

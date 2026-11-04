@@ -73,3 +73,11 @@ export async function put(id, b) {
   await tx('readwrite', s => s.put(b, id));
   urls.set(id, URL.createObjectURL(b));
 }
+
+// 줄인 영상 (11-04): 새 번호로 넣고 바로 쓸 수 있게 주소도 만들어요
+export async function addBlob(b) {
+  const id = newId();
+  await tx('readwrite', s => s.put(b, id));
+  urls.set(id, URL.createObjectURL(b));
+  return id;
+}

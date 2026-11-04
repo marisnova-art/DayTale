@@ -103,12 +103,12 @@ function bindNav() {
   $$('.nb').forEach(b => b.onclick = () => ({ home, search: find, write: () => go('#/pick'), tpl, shelf }[b.dataset.n] || soon)());
   $$('[data-a=me]').forEach(b => b.onclick = me);   // 프로필은 홈 위 줄 (알림 옆)
 }
-// 하단 메뉴 (11-04): 아래로 내리면 작아지고, 위로 올리거나 0.9초 멈추면 다시 커져요
-{ let y0 = 0, idle = 0;
+// 하단 메뉴 (11-04): 아래로 내리면 0.8배로 작아지고, 멈춰도 작은 채로. 위로 올리거나 맨 위에 오면 다시 커져요 (작아도 바로 눌러져요)
+{ let y0 = 0;
   addEventListener('scroll', () => {
     const n = $('.nav'), y = scrollY; if (!n) return;
     if (y > 60 && y - y0 > 6) n.classList.add('sm'); else if (y0 - y > 6 || y <= 60) n.classList.remove('sm');
-    y0 = y; clearTimeout(idle); idle = setTimeout(() => $('.nav')?.classList.remove('sm'), 900);
+    y0 = y;
   }, { passive: true }); }
 // 아이폰은 누른 그 순간에만 키보드를 올려 줘요: 화면이 바뀌기 전에 빈 칸에 먼저 커서를 두고, 새 화면의 검색 칸이 이어받아요
 function kbNow() {
@@ -158,16 +158,18 @@ function viewFeed(fresh, quiet) {
   const stopMood = paintMood(amb);
   const glow = t => { if (!t || t === gc) return; gc = t; gi ^= 1; gl[gi].style.background = `radial-gradient(closest-side, ${t}, transparent)`; gl[gi].classList.add('on'); gl[gi ^ 1].classList.remove('on'); };
   let raf = 0, cur = null;
+  // 11-04 폰 발열: 움직이는 건 화면 가운데에 가장 가까운 카드 하나만 (1열 · 2열 같음). 2열에서 좌우가 똑같이 가까우면 10초마다 번갈아
   const pickMid = () => {
     raf = 0;
-    const mid = innerHeight * .45; let best = null, bd = 1e9;
+    const mid = innerHeight * .45, ds = [];
     $$('.feed .fi').forEach(it => {
-      const r = it.querySelector('.fx').getBoundingClientRect(), d = Math.abs((r.top + r.bottom) / 2 - mid), on = r.bottom > 0 && r.top < innerHeight;
-      if (d < bd) { bd = d; best = it; }
-      if (on === it.classList.contains('play')) return;
-      it.classList.toggle('play', on);
+      const r = it.querySelector('.fx').getBoundingClientRect(), on = r.bottom > 0 && r.top < innerHeight;
+      ds.push({ it, d: Math.abs((r.top + r.bottom) / 2 - mid), on });
       if (on && !it.dataset.seen) { it.dataset.seen = 1; it.classList.add('intro'); setTimeout(() => it.classList.remove('intro'), 1800); if (it.dataset.promo) promoSeen(it._card.fmt); }
     });
+    const vis = ds.filter(x => x.on).sort((a, b) => a.d - b.d), tie = vis.filter(x => vis[0] && x.d - vis[0].d < 4);
+    const best = tie.length > 1 ? tie[Math.floor(Date.now() / 1e4) % tie.length].it : vis[0]?.it || null;
+    ds.forEach(({ it }) => { const on = it === best; if (on !== it.classList.contains('play')) it.classList.toggle('play', on); });
     if (best === cur) return;
     cur = best; if (cur) glow(cur.dataset.tone);
   };
@@ -179,7 +181,9 @@ function viewFeed(fresh, quiet) {
     head.classList.toggle('stuck', y > 8);
     if (y <= 8) head.classList.remove('up'); else if (dy > 6) head.classList.add('up'); else if (dy < -2) head.classList.remove('up');
   };
-  const onScroll = () => { onHead(); if (!raf) raf = requestAnimationFrame(pickMid); };
+  let idle = 0; const wake = () => { amb.classList.remove('idle'); clearTimeout(idle); idle = setTimeout(() => amb.classList.add('idle'), 4000); };   // 손을 멈추고 4초 뒤 바탕 빛도 멈춰요
+  const onScroll = () => { onHead(); wake(); if (!raf) raf = requestAnimationFrame(pickMid); };
+  wake();
   addEventListener('scroll', onScroll, { passive: true });
   const onVis = () => document.body.classList.toggle('paused', document.hidden);
   document.addEventListener('visibilitychange', onVis);
@@ -190,7 +194,7 @@ function viewFeed(fresh, quiet) {
     anim = requestAnimationFrame(tick);
     if (document.hidden) return;
     if (++nt % 20 === 0) pickMid();   // 스크롤 없이 카드가 화면에 들어와도 (장 나누기 · 사진이 늦게 오면)
-    $$('.fi.play .view canvas.bgc').forEach(cv => cv.width && drawCode(cv, +cv.dataset.seed, +cv.dataset.shift || 0, (now - t0) / 1000 + .01));
+    if (nt % 2 === 0) $$('.fi.play .view canvas.bgc').forEach(cv => cv.width && drawCode(cv, +cv.dataset.seed, +cv.dataset.shift || 0, (now - t0) / 1000 + .01));   // 초당 30번이면 충분해요
     feedVideo();
   };
   // 영상도 화면에 보이는 카드들 (여러 장이면 보이는 장, 가운데에 가까운 순서로 최대 4개). 크게 보기 중에는 그 카드만. 나머지는 커버 장면
@@ -203,10 +207,10 @@ function viewFeed(fresh, quiet) {
       const cv = $$('.view canvas.bgv', it).find(x => { const r = x.getBoundingClientRect(), w = x.closest('.view').getBoundingClientRect(); return r.width && r.bottom > 0 && r.top < innerHeight && r.left > w.left - r.width / 2 && r.left < w.left + r.width / 2; });
       const o = cv && one(cv, it._card); if (o) { const r = cv.getBoundingClientRect(); o.d = Math.abs((r.top + r.bottom) / 2 - mid); out.push(o); }
     });
-    V.sync(out.sort((a, b) => a.d - b.d));
+    V.sync(out.sort((a, b) => a.d - b.d).slice(0, 1));   // 영상은 한 번에 하나
   };
   if (!still) anim = requestAnimationFrame(tick); else feedTimer = setInterval(() => { pickMid(); feedVideo(); }, 300);
-  cleanup = () => { stopMood(); cancelAnimationFrame(anim); clearInterval(feedTimer); V.stop(); removeEventListener('scroll', onScroll); document.removeEventListener('visibilitychange', onVis); closeFocus(true); };
+  cleanup = () => { clearTimeout(idle); stopMood(); cancelAnimationFrame(anim); clearInterval(feedTimer); V.stop(); removeEventListener('scroll', onScroll); document.removeEventListener('visibilitychange', onVis); closeFocus(true); };
   setTimeout(pickMid, 80);
 
   // 방금 쓰거나 고친 카드: 그 자리로 가서 살짝 커지며 나와요. 고치다 뒤로 오면 그 자리로만 (주소는 홈으로 되돌려 둬요)
@@ -256,19 +260,16 @@ function pageInto(view, c, onCount) {
 // 1열 아래: 책갈피 · 저장 · 고치기 · 이 포맷으로 쓰기 · 글만보기 · 지우기 · 장 수(여러 장일 때) / 글 첫머리 한 줄 / 언제 썼는지
 // tile = 2열 칸: 카드 + [쓴 때 · ⋯] (여러 장이면 카드 위 오른쪽에 1/N). 우리 카드는 [NEW 이름 · ✎]
 // x.recall = N년 전 오늘로 위에 한 번 더 나온 카드, x.promo = 피드 중간의 NEW 포맷 카드
+const hasVideo = c => [c.bg, ...(c.pst || []).map(p => p?.bg)].some(b => b?.vd);   // 영상이 든 카드 (그림 안에 작은 영상 표시)
 function feedItem(c, tile, x = {}) {
   const it = document.createElement('article'); it.className = 'fi' + (tile ? ' tile' : ''); it.dataset.tone = toneOf(c); if (c.id && !x.recall) it.dataset.id = c.id; it.dataset.k = x.recall ? 'r:' + c.id : x.promo ? 'p:' + c.fmt : c.id || 's:' + c.fmt; it._card = c;
   if (x.promo) it.dataset.promo = 1;
   const f = FORMATS[c.fmt], when = x.recall ? `<i class="rc">${x.recall}년 전 오늘</i>` : ago(c);
-  it.innerHTML = tile
-    ? `<div class="fx"><div class="view"></div><span class="pc bd" hidden></span></div>
+  // 11-04: 1열도 2열과 같은 줄 = 쓴 때 · ⋯ (아이콘 줄 없음). 1/N과 영상 표시는 카드 그림 안 오른쪽 위. 1열 아래 한 줄은 그 카드의 최근 메모 (없으면 비워요)
+  const memo = !tile && !c.sample && (c.memos || []).at(-1)?.t;
+  it.innerHTML = `<div class="fx"><div class="view"></div><span class="pc bd"${hasVideo(c) ? '' : ' hidden'}>${hasVideo(c) ? ic('video') : ''}<b></b></span></div>
       <p class="mt">${c.sample ? `<span><i class="nw">NEW</i>${f.name}</span><button class="cb" data-a="use" aria-label="이 포맷으로 쓰기">${ic('pen')}</button>`
-        : `<span>${when}</span><button class="cb" data-a="more" aria-label="더 보기">${ic('more')}</button>`}</p>`
-    : `${c.sample ? '' : `<p class="when"><span>${when}</span><i>${LABEL[c.fmt] || ''}</i></p>`}<div class="fx"><div class="view"></div></div>
-    <div class="row">${c.sample
-      ? `<div class="ours">${f.name}<i>NEW</i></div><button class="cb" data-a="use" aria-label="이 포맷으로 쓰기">${ic('pen')}</button>`
-      : `<div class="l"><button class="cb ${c.mark ? 'on' : ''}" data-a="mark" aria-label="책갈피">${ic('bookmark')}</button><button class="cb" data-a="save" aria-label="사진에 저장">${ic('save')}</button><button class="cb" data-a="edit" aria-label="고치기">${ic('pen')}</button><button class="cb" data-a="like" aria-label="이 포맷으로 쓰기">${ic('grid')}</button><button class="cb" data-a="read" aria-label="글만보기">${ic('read')}</button><button class="cb" data-a="del" aria-label="지우기">${ic('trash')}</button><span class="pc" hidden></span></div>`}</div>
-    <p class="ex"></p>`;
+        : `<span>${when}</span><button class="cb" data-a="more" aria-label="더 보기">${ic('more')}</button>`}</p>${tile ? '' : `<p class="ex"${memo || x.ex ? '' : ' hidden'}></p>`}`;
   const fx = $('.fx', it), view = $('.view', it), pc = $('.pc', it);
   view.style.aspectRatio = (1 / arOf(c)).toFixed(4);   // 처음부터 카드 비율 칸: 긴 카드가 장으로 나뉘기 전에 길게 보였다 줄어들지 않게 (나뉘지 않는 카드는 나중에 풀어요)
   // 9:16은 자르지 않고 4:5 높이에 맞춰 가운데로. 양옆은 같은 카드 배경을 흐리고 조금 어둡게 깔아요 (글 · 날짜 · 서명은 빼고, 1열 피드에서만)
@@ -277,11 +278,11 @@ function feedItem(c, tile, x = {}) {
     const blr = document.createElement('div'); blr.className = 'blr'; blr.setAttribute('aria-hidden', 'true'); fx.prepend(blr);
     mount(blr, { ...c, pages: c.pages ? [''] : c.pages, pst: c.pst ? [c.pst[0]].filter(Boolean) : c.pst, html: c.html != null ? '&nbsp;' : c.html, place: '', showDate: false, datePos: 'none', sg: '', signTxt: '' });
   }
-  const ex = $('.ex', it), line = () => cardText(c).replace(/\s+/g, ' ').trim();
-  const exLine = () => x.ex ? (ex.innerHTML = x.ex()) : (ex.textContent = line());
-  if (!tile) exLine();   // 글 첫머리 한 줄 (길면 …). 검색에서는 찾은 낱말이 든 곳부터
+  const ex = $('.ex', it);
+  const exLine = () => { if (!ex) return; if (x.ex) ex.innerHTML = x.ex(); else { ex.textContent = memo || ''; ex.hidden = !memo; } };
+  exLine();   // 1열: 최근 메모 한 줄 (길면 …). 검색에서는 찾은 낱말이 든 곳부터
   mount(view, c);
-  pageInto(view, c, (i, n) => { if (pc) { pc.hidden = false; pc.textContent = `${i}/${n}`; } });
+  pageInto(view, c, (i, n) => { if (pc) { pc.hidden = false; $('b', pc).textContent = `${i}/${n}`; } });
   fx.addEventListener('click', () => x.open ? x.open(it, c) : openFocus(it, c));
   const on = (k, fn) => { const b = $(`[data-a=${k}]`, it); if (b) b.onclick = fn; };
   on('use', () => go(`#/write/${c.fmt}`));
@@ -294,6 +295,7 @@ function feedItem(c, tile, x = {}) {
   };
   // 글만보기 (1열): 요약 한 줄 ↔ 글 전체. 다시 누르면 접혀요
   on('read', () => {
+    if (!ex) return;
     const open = !ex.classList.contains('open');
     ex.classList.toggle('open', open); if (open) ex.textContent = cardText(c).replace(/\n{3,}/g, '\n\n').trim(); else exLine();
     $('[data-a=read]', it).classList.toggle('on', open);
@@ -367,6 +369,23 @@ function openRead(c) {
   document.body.appendChild(rv);
   requestAnimationFrame(() => requestAnimationFrame(() => rv.classList.add('in')));
   rv.addEventListener('click', () => { rv.classList.remove('in'); setTimeout(() => rv.remove(), 300); });
+}
+
+// 완료한 카드의 영상을 하나씩 줄여요. 줄이면 카드는 새 영상 번호 · 처음부터 · 고른 길이로 (원본은 아무 카드도 안 쓰면 하루 뒤 지워져요)
+let shrinkQ = Promise.resolve();
+function shrinkLater(id) {
+  shrinkQ = shrinkQ.then(async () => {
+    const c0 = S.card(id); if (!c0) return;
+    const bgs = [c0.bg, ...(c0.pst || []).map(p => p?.bg)].filter(b => b?.vd && !b.small), seen = new Map();
+    for (const b of bgs) {
+      if (!seen.has(b.vd)) seen.set(b.vd, await V.shrink(b));
+      const r = seen.get(b.vd); if (!r) continue;
+      const c = S.card(id); if (!c) return;
+      [c.bg, ...(c.pst || []).map(p => p?.bg)].filter(x => x?.vd === b.vd && (x.t0 || 0) === (b.t0 || 0)).forEach(x => { x.cvt = Math.max(0, (x.cvt ?? x.t0 ?? 0) - (x.t0 || 0)); x.vd = r.vd; x.t0 = 0; x.dur = r.dur; x.small = 1; });
+      S.saveCard(c, false);
+      console.info('video shrink', Math.round(r.from / 1e4) / 100, '→', Math.round(r.size / 1e4) / 100, 'MB');
+    }
+  }).catch(e => console.warn('shrinkLater', e));
 }
 
 /* ── 카드 ⋯ 메모 · 알림 · 정보 (11-04) ─────────────────── */
@@ -516,7 +535,7 @@ function viewNotes(fromSet) {
       gp.insertAdjacentHTML('beforeend', rowOf(n));
       const b = gp.lastElementChild, v = $('.view', b);
       if (n.k === 'card') { const c = S.card(n.cid); if (c) { v.style.aspectRatio = (1 / arOf(c)).toFixed(4); mount(v, { ...c, pages: c.pages?.slice(0, 1), pst: c.pst?.slice(0, 1) }); } }
-      if (n.k === 'tpl') { const t = T.tpl(n.tid); if (t) mount(v, T.exCard(t, 0, true)); }
+      if (n.k === 'tpl') { const t = T.tpl(n.tid); if (t) { const ec = T.exCard(t, 0); if (ec.ratio) ec.ratio = '45'; mount(v, ec); } }
     });
     shown = Math.min(list.length, shown + 30);
   };
@@ -580,7 +599,7 @@ function openFocus(it, c, opt = {}) {
   const el = renderCard(c); box.appendChild(el); fitCard(el, c);
   const T = box.clientWidth, H = box.offsetHeight;
   // 짧으면 가운데, 길면 시계 줄 아래부터
-  const top = Math.max((innerHeight - H) / 2, topGap());
+  const top = Math.max((innerHeight - H) / 2, topGap() + 52);
   box.style.marginTop = top + 'px';
   // 피드 칸 크기로 줄이면서 칸 밖(긴 카드의 아래쪽)은 같은 움직임으로 잘라요: 위 · 아래가 함께 들어가요
   const clip = () => `inset(0 0 ${Math.max(0, H - r.height * T / r.width)}px 0 round ${6 * T / r.width}px)`;
@@ -589,28 +608,44 @@ function openFocus(it, c, opt = {}) {
   // 뒤 피드는 그대로(보던 자리 유지)
   ov.addEventListener('wheel', e => { if (sc.scrollHeight <= sc.clientHeight) e.preventDefault(); }, { passive: false });
   requestAnimationFrame(() => requestAnimationFrame(() => { box.style.transition = ''; ov.classList.add('in'); box.style.transform = ''; box.style.clipPath = 'inset(0 0 0 0 round 0px)'; }));
-  ov.addEventListener('click', () => closeFocus());
-  focus = { ov, box, view, from, clip, y: scrollY, c };
+  // 11-04: 크게 보기는 모두 왼쪽 위 ‹ 뒤로로만 닫혀요 (내려 읽다 눌러도 안 닫히게)
+  const bk = document.createElement('button'); bk.className = 'cb fvx'; bk.setAttribute('aria-label', '뒤로'); bk.innerHTML = ic('back'); ov.appendChild(bk);
+  bk.addEventListener('click', e => { e.stopPropagation(); closeFocus(); });
+  focus = { ov, box, view, from, clip, y: scrollY, c, onClose: opt.onClose };
   if (!c.sample && c.id) { const fm = document.createElement('div'); fm.className = 'rel fmemo'; fm.innerHTML = memoHtml(c); sc.appendChild(fm); }   // 메모: 카드 바로 아래
   if (!c.sample && c.id) {   // 끝에 비슷한 카드: 누르면 그 카드가 이 화면에서 바뀌고, 닫으면 처음 연 카드 자리로
     const rel = document.createElement('div'); rel.className = 'rel'; sc.appendChild(rel);
     const fill = cc => {
       const f = opt.found;
+      if (opt.seq) { rel.innerHTML = ''; return; }   // 책에서 열면 비슷한 카드 대신 좌우로 넘기기
       rel.innerHTML = f ? relHtml(f.list, `${esc(f.q)} 검색 결과 <b>${f.list.findIndex(m => m.id === cc.id) + 1}/${f.list.length}</b>`, cc.id, f.hl) : relHtml(related(cc));
       $$('.rr', rel).forEach(b => { const m = S.card(b.dataset.id); if (!m) return; const th = $('.th', b); th.style.background = toneOf(m); th.classList.toggle('short', arOf(m) < 1.25); mount(th, m); b.onclick = e => { e.stopPropagation(); swap(m); }; });
     };
     const swap = m => {
       box.innerHTML = ''; const el2 = renderCard(m); box.appendChild(el2); fitCard(el2, m);
-      box.style.marginTop = Math.max((innerHeight - box.offsetHeight - 120) / 2, topGap()) + 'px';
+      box.style.marginTop = Math.max((innerHeight - box.offsetHeight - 120) / 2, topGap() + 52) + 'px';
       focus.c = m; focus.swapped = true; fill(m); $('.fmemo', ov).innerHTML = memoHtml(m); sc.scrollTo(0, 0);
     };
     fill(c);
+    // 책에서 연 크게 보기: 좌우로 밀면 책 순서대로 앞 · 뒤 카드 (위아래는 그 카드 읽기)
+    if (opt.seq) {
+      let p0 = null;
+      ov.addEventListener('pointerdown', e => { p0 = { x: e.clientX, y: e.clientY }; });
+      ov.addEventListener('pointerup', e => {
+        if (!p0) return; const dx = e.clientX - p0.x, dy = e.clientY - p0.y; p0 = null;
+        if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+        const i = opt.seq.findIndex(m => m.id === focus.c.id), m = opt.seq[i + (dx < 0 ? 1 : -1)];
+        if (!m) return pill(dx < 0 ? '마지막 카드예요' : '첫 카드예요');
+        box.style.transition = 'transform .18s ease, opacity .18s ease'; box.style.transform = `translateX(${dx < 0 ? -40 : 40}px)`; box.style.opacity = '0';
+        setTimeout(() => { swap(m); box.style.transition = 'none'; box.style.transform = `translateX(${dx < 0 ? 40 : -40}px)`; requestAnimationFrame(() => { box.style.transition = 'transform .22s ease, opacity .22s ease'; box.style.transform = ''; box.style.opacity = ''; }); }, 180);
+      });
+    }
   }
 }
 function closeFocus(now) {
   if (!focus || focus.closing) return;
   const f = focus; f.closing = true;
-  const done = () => { f.view.style.visibility = ''; f.ov.remove(); if (scrollY !== f.y) scrollTo(0, f.y); focus = null; };
+  const done = () => { f.view.style.visibility = ''; f.ov.remove(); if (scrollY !== f.y) scrollTo(0, f.y); focus = null; f.onClose?.(f.c); };
   if (now) return done();
   if (f.swapped) { f.view.style.visibility = ''; f.ov.classList.add('fade'); return setTimeout(done, 300); }   // 다른 카드로 바꿨으면 그냥 사라지고 처음 자리 그대로
   f.ov.classList.remove('in'); f.box.style.transform = f.from(); f.box.style.clipPath = f.clip();
@@ -757,7 +792,7 @@ function viewSearch(fromPick) {
     closeCard();
     const list = found.slice(), q = inp.value.trim(), w = words.slice();
     sv = document.createElement('div'); sv.className = 'scv';
-    sv.innerHTML = `<header class="svt"><button class="cb" data-a="x" aria-label="닫기">${ic('close')}</button></header><div class="svb"></div>`;
+    sv.innerHTML = `<header class="svt"><button class="cb" data-a="x" aria-label="뒤로">${ic('back')}</button></header><div class="svb"></div>`;
     const it = feedItem(c, false, { open: (el, cc) => openFocus(el, cc, { found: { q, list, hl: t => hl(t, w) } }), ex: () => snip(c), onDel: () => { closeCard(); run(); } });
     it.classList.add('play'); $('.svb', sv).appendChild(it);
     $('[data-a=x]', sv).onclick = closeCard;
@@ -976,38 +1011,59 @@ function viewBook(id) {
   addEventListener('scroll', onSc, { passive: true });
   cleanup = () => { $('.brd')?.remove(); stop(); stopMood(); closeRun(true); $('.obar')?.remove(); $('.nav.hid')?.classList.remove('hid'); removeEventListener('scroll', onSc); };
 }
-// 책으로 읽기 (11-04 시험판): 표지 → 한 장에 카드 하나 (책 색을 옅게 한 종이 위) → 끝. 옆으로 밀어 넘겨요 (가볍게 밀리며 살짝 기울어요)
-// 아래에 날짜 · n/N, 종이 옆에 남은 쪽 두께. 오른쪽 위 칸 아이콘 = 지금의 2열 보기
+// 책으로 읽기 (11-04): 표지 → 카드의 장마다 한 쪽 (3장 카드 = 3쪽, 아래에 날짜 · 2/3장) → 끝. 옆으로 밀어 넘겨요 (가볍게 밀리며 살짝 기울어요)
+// 종이 옆에 남은 쪽 두께. 쪽의 카드를 누르면 크게 보기 (좌우로 밀면 앞 · 뒤 카드, ‹ 뒤로 = 마지막에 본 카드의 쪽). 오른쪽 위 칸 아이콘 = 2열 보기
 function openReader(b, list, onGrid) {
   const ff = b.font ? fontCssOf(fontOf(b.font)) : '', cards = list.slice().reverse();   // 읽을 때는 처음 쓴 카드부터
   const paper = mixHex(b.color, '#ffffff', .78), N = cards.length;
   const rd = document.createElement('div'); rd.className = 'brd'; rd.style.setProperty('--pp', paper); rd.style.setProperty('--bc', b.color);
   rd.innerHTML = `<header class="rbar"><button class="cb" data-a="x" aria-label="뒤로">${ic('back')}</button><span class="rn"></span><button class="cb" data-a="grid" aria-label="2열로 보기">${ic('grid')}</button></header>
-    <div class="rtr">
-      <section class="rp cov"><div class="ci" style="background-color:${b.color};color:${b.ink || inkOn(b.color)}"><h2${ff ? ` style="font-family:${ff}"` : ''}>${esc(b.name)}</h2><p>${rangeOf(b.cards)}<br>카드 ${N}</p></div></section>
-      ${cards.map((c, i) => `<section class="rp" data-i="${i}"><div class="rc"><div class="rv0"></div></div><p class="rf"><span>${c.date ? ymd(c.date) : ''}</span><span>${i + 1} / ${N}</span></p></section>`).join('')}
-      <section class="rp end"><div class="ci"><b${ff ? ` style="font-family:${ff}"` : ''}>끝</b><p>${esc(b.name)}</p></div></section>
-    </div>`;
+    <div class="rtr"><section class="rp cov"><div class="ci" style="background-color:${b.color};color:${b.ink || inkOn(b.color)}"><h2${ff ? ` style="font-family:${ff}"` : ''}>${esc(b.name)}</h2><p>${rangeOf(b.cards)}<br>카드 ${N}</p></div></section></div>`;
   document.body.appendChild(rd);
-  const tr = $('.rtr', rd), ps = $$('.rp', rd), rn = $('.rn', rd), done = new Set();
-  // 카드는 보고 있는 쪽 앞뒤 두 장만 그려요 (영상 · 아트가 많아도 가볍게)
-  const fill = k => { for (let j = k - 2; j <= k + 2; j++) { const c = cards[j - 1]; if (!c || done.has(j)) continue; done.add(j); const host = $('.rv0', ps[j]), ar = arOf(c); host.style.setProperty('--ar', ar); mount(host, { ...c, pages: c.pages?.slice(0, 1), pst: c.pst?.slice(0, 1) }); } };
-  let raf = 0;
+  const tr = $('.rtr', rd), rn = $('.rn', rd);
+  let ps = $$('.rp', rd), raf = 0, dead = false;
   const paint = () => {
-    raf = 0; const w = tr.clientWidth, x = tr.scrollLeft / w, k = Math.round(x);
-    ps.forEach((p, j) => { const d = Math.max(-1, Math.min(1, j - x)); p.style.transform = `translateX(${d * -8}%) rotate(${d * 2.2}deg) scale(${1 - Math.abs(d) * .06})`; p.style.opacity = 1 - Math.abs(d) * .45; });
-    const left = Math.min(N + 1, Math.max(0, x)), tot = N + 1;   // 왼쪽 = 읽은 쪽, 오른쪽 = 남은 쪽 두께
-    rd.style.setProperty('--tl', (left / tot * 6).toFixed(2) + 'px'); rd.style.setProperty('--tr', ((tot - left) / tot * 6).toFixed(2) + 'px');
-    rn.textContent = k === 0 ? '' : k > N ? '끝' : `${k} / ${N}`;
-    fill(k);
+    raf = 0; const w = tr.clientWidth, x = tr.scrollLeft / w, k = Math.round(x), tot = ps.length;
+    ps.forEach((p, j) => { const d = Math.max(-1, Math.min(1, j - x)); if (Math.abs(j - x) > 2) return; p.style.transform = `translateX(${d * -8}%) rotate(${d * 2.2}deg) scale(${1 - Math.abs(d) * .06})`; p.style.opacity = 1 - Math.abs(d) * .45; });
+    rd.style.setProperty('--tl', (Math.min(1, x / Math.max(1, tot - 1)) * 6).toFixed(2) + 'px'); rd.style.setProperty('--tr', ((1 - Math.min(1, x / Math.max(1, tot - 1))) * 6).toFixed(2) + 'px');
+    const p = ps[k]; rn.textContent = !p || p.classList.contains('cov') ? '' : p.classList.contains('end') ? '끝' : `${+p.dataset.c + 1} / ${N}`;
   };
   tr.addEventListener('scroll', () => { if (!raf) raf = requestAnimationFrame(paint); }, { passive: true });
   requestAnimationFrame(() => { paint(); rd.classList.add('in'); });
-  const close = () => { rd.classList.remove('in'); setTimeout(() => rd.remove(), 300); };
+  // 쪽 만들기: 카드마다 장을 나눠서 차례로 뒤에 붙여요 (앞에서부터라 보던 자리가 밀리지 않아요)
+  (async () => {
+    const box = () => { const p = ps[0], w = p.clientWidth - 56, h = tr.clientHeight - 60; return { w: Math.min(w, h * .75) * .78, h: Math.min(w / .75, h) * .78 }; };
+    const sz = box();
+    for (let i = 0; i < N && !dead; i++) {
+      const c = cards[i], ar = arOf(c), W = Math.floor(Math.min(sz.w, sz.h / ar));
+      let nodes = [];
+      try { const r = await buildPages(c, W, Math.min(2, devicePixelRatio || 1)); nodes = r.nodes; r.h.remove(); } catch (e) { console.warn('book page', e); }
+      if (dead) return;
+      if (!nodes.length) { const el = renderCard({ ...c, pages: c.pages?.slice(0, 1), pst: c.pst?.slice(0, 1) }); nodes = [el]; }
+      nodes.forEach((n, j) => {
+        const s = document.createElement('section'); s.className = 'rp'; s.dataset.c = i; s.dataset.p = j;
+        s.innerHTML = `<div class="bpc"><div class="rv0 view" style="width:${W}px"></div></div><p class="rf"><span>${c.date ? ymd(c.date) : ''}</span><span>${nodes.length > 1 ? `${j + 1}/${nodes.length}장` : ''}</span></p>`;
+        $('.rv0', s).appendChild(n); tr.appendChild(s);
+      });
+      ps = $$('.rp', rd); if (!raf) raf = requestAnimationFrame(paint);
+    }
+    if (dead) return;
+    tr.insertAdjacentHTML('beforeend', `<section class="rp end"><div class="ci"><b${ff ? ` style="font-family:${ff}"` : ''}>끝</b><p>${esc(b.name)}</p></div></section>`);
+    ps = $$('.rp', rd); paint();
+  })();
+  const close = () => { dead = true; closeFocus(true); rd.classList.remove('in'); setTimeout(() => rd.remove(), 300); };
   $('[data-a=x]', rd).onclick = () => { close(); /^#\/(shelf|cal)/.test(lastHash || '') ? history.back() : location.replace('#/shelf'); };
   $('[data-a=grid]', rd).onclick = () => { S.setPref('bookView', 'grid'); close(); onGrid?.(); };
-  // 표지를 누르면 첫 쪽으로, 끝을 누르면 표지로
-  tr.addEventListener('click', e => { const p = e.target.closest('.rp'); if (!p || p.dataset.i != null) return; tr.scrollTo({ left: p.classList.contains('end') ? 0 : tr.clientWidth, behavior: 'smooth' }); });
+  // 표지를 누르면 첫 쪽으로, 끝을 누르면 표지로. 카드 쪽을 누르면 크게 보기
+  tr.addEventListener('click', e => {
+    const p = e.target.closest('.rp'); if (!p) return;
+    if (p.dataset.c == null) return tr.scrollTo({ left: p.classList.contains('end') ? 0 : tr.clientWidth, behavior: 'smooth' });
+    const c = cards[+p.dataset.c];
+    openFocus(p, c, { seq: cards, onClose: last => {   // 마지막에 본 카드의 첫 쪽으로
+      const i = cards.findIndex(x => x.id === last.id), at = ps.findIndex(x => +x.dataset.c === i);
+      if (at >= 0 && i !== +p.dataset.c) tr.scrollTo({ left: at * tr.clientWidth, behavior: 'instant' });
+    } });
+  });
   return close;
 }
 const mixHex = (a, b, t) => { if (!/^#[0-9a-f]{6}$/i.test(a || '')) return '#f3efe6'; const p = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)), x = p(a), y = p(b); return '#' + x.map((v, i) => Math.round(v + (y[i] - v) * t).toString(16).padStart(2, '0')).join(''); };
@@ -1223,7 +1279,7 @@ let runv = null;
 function openRun(list, c0, o = {}) {
   closeRun(true);
   const ov = document.createElement('div'); ov.className = 'runv';
-  ov.innerHTML = `<div class="fvs"><div class="runl"></div></div><i class="rtop"></i><button class="cb rx" aria-label="닫기">${ic('close')}</button>`;
+  ov.innerHTML = `<div class="fvs"><div class="runl"></div></div><i class="rtop"></i><button class="cb rx" aria-label="뒤로">${ic('back')}</button>`;
   const sc = $('.fvs', ov), box = $('.runl', ov);
   document.body.appendChild(ov);
   const W = box.clientWidth;
@@ -1461,8 +1517,8 @@ function viewPick(sub) {
   const row = box => L[pickTab[box]].slice(0, 8).map(tile).join('');
   app.innerHTML = `${MOOD}<main class="wmn"><header class="shtop"><div class="tl"><h1>쓰기</h1></div></header>
     <section class="wbx gls" data-b="b1"><div class="bxh"><span class="tbs"><button class="on">기본</button></span></div><div class="trow b1">
-      <button class="wt wk" data-k="color"><div class="wc"></div><div class="wl">${ic('bg')}컬러로 쓰기</div></button>
-      <button class="wt wk" data-k="photo"><div class="wc"><div class="phs"></div></div><div class="wl">${ic('photo')}사진으로 쓰기</div></button>
+      <button class="wt wk" data-k="color"><div class="wc"></div><div class="wl">${ic('pen')}글쓰기</div></button>
+      <button class="wt wk" data-k="photo"><div class="wc"><div class="phs"></div></div><div class="wl">${ic('img')}포토쓰기</div></button>
       ${drafts()}</div></section>
     ${t2 ? `<section class="wbx gls" data-b="b2">${head('b2', t2)}<div class="trow">${row('b2')}</div></section>` : ''}
     ${t3 ? `<section class="wbx gls" data-b="b3">${head('b3', t3)}<div class="trow">${row('b3')}</div></section>` : ''}
@@ -1919,7 +1975,8 @@ function viewWrite({ fmt, id, like }) {
         const plain = cur.replace(/<br\s*\/?>/g, '').replace(/<[^>]+>/g, '').trim();
         card.pages[st.pg] = !plain || cur === st.lastQ ? html : `${cur}<br><br>${html}`;
         st.lastQ = card.pages[st.pg];
-        push(); draw(); count(); tools(); return pop(q.by || '문장');
+        const kbUp = typingNow() || !!st.waitKb;   // 키보드 화면에서 눌렀으면 키보드 그대로 (계속 눌러 바꿔 볼 수 있게)
+        push(); draw(); count(); tools(); if (kbUp) { caretEnd(st.pg); requestAnimationFrame(() => { if (!typingNow()) caretEnd(st.pg); }); } return pop(q.by || '문장');
       }
       pop('다음 단계에서 열려요');
     };
@@ -2385,6 +2442,7 @@ function viewWrite({ fmt, id, like }) {
     if (pl) S.setPref('places', [pl, ...S.pref('places', []).filter(x => x !== pl)].slice(0, 20));
     if (card.fmt === 'text') { S.setPref('font', card.font); S.setPref('datePos', infoPos(card)); S.setPref('dh', card.dh || 'l'); }   // 다음 새 카드는 이 글꼴 · 날짜 줄 자리로 시작
     { const b0 = card.pst?.[0]?.bg || card.bg; if (card.fmt === 'text' && b0?.id && b0.id !== 'photo') S.setPref('lastBg', { id: b0.id, dim: b0.dim, ...(b0.hex ? { hex: b0.hex, pos: b0.pos } : {}) }); }   // 컬러로 쓰기는 이 색으로 시작
+    shrinkLater(card.id);   // 영상은 뒤에서 10초 · 720으로 줄여 둬요
     S.setPref('ratio', card.ratio || '45'); S.setPref('sg', card.sg || ''); if (card.sg) S.setPref('sgLast', card.sg); S.setPref('showDate:' + card.fmt, dateOn(card));
     // 다 됐다는 표시: 가운데 큰 체크가 잠깐 떴다가 피드로
     const ok = $('[data-a=ok]'); ok.disabled = true; document.activeElement?.blur?.();
@@ -2820,6 +2878,6 @@ const usedPhotos = () => [...S.cards(), ...S.trash(), ...S.drafts().map(d => d.c
 // 처음 열 때 (11-04): 바탕 위 로고만 보이다가, 글꼴 · 첫 화면이 다 그려지면 0.3초에 걸쳐 나타나요. 늦어도 2초면 그냥 보여요
 const boot = document.getElementById('boot');
 if (boot) boot.innerHTML = LOGO;
-const bootEnd = () => { if (!boot || boot.classList.contains('out')) return; boot.classList.add('out'); setTimeout(() => boot.remove(), 400); };
+const bootEnd = () => { document.documentElement.classList.remove('booting'); if (!boot || boot.classList.contains('out')) return; boot.classList.add('out'); setTimeout(() => boot.remove(), 400); };
 setTimeout(bootEnd, 2000);
 P.boot(usedPhotos()).then(route).then(() => document.fonts.ready).then(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))).then(bootEnd, bootEnd);

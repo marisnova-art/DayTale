@@ -1,7 +1,7 @@
 /* 갖고 싶은 하루 · 모바일 1차. 앱 UI는 검정에 가까운 바탕 + 흰 주요 버튼, 색은 카드에만 */
 :root {
   --bg: #141416; --srf: #1E1E21; --srf2: #2B2B2F; --line: #2a2a2e; --fg: #fff; --mut: #8b8b92; --off: #4a4a50;
-  --gut: 16px; --fgut: 12px; --btn: 48px; --ui: 'Pretendard Variable', -apple-system, 'Apple SD Gothic Neo', sans-serif;
+  --gut: 16px; --fgut: 8px; --btn: 48px; --ui: 'Pretendard Variable', -apple-system, 'Apple SD Gothic Neo', sans-serif;
   --safe-b: env(safe-area-inset-bottom, 0px); --safe-t: env(safe-area-inset-top, 0px);
   --top: calc(var(--safe-t) + 30px);   /* 모든 화면 첫 줄: 시계 줄 흐림 아래 (홈 로고 줄과 같은 자리) */
   --fs-s: 13px; --fs-m: 17px; --fs-l: 24px; --fs-xl: 34px; --fw: 500;   /* 글자: 작은 13 · 중간 17 · 아주 큰 34 (+ 프로필만 24), 굵기는 500 하나 (앤드류 10-30) */
@@ -175,9 +175,9 @@ body.paused .fi * { animation-play-state: paused !important; }
 
 /* 하단 메뉴 */
 .nav { position: fixed; left: var(--fgut); right: var(--fgut); bottom: calc(6px + var(--safe-b)); z-index: 30; display: flex; justify-content: space-between; padding: 4px; border-radius: 999px; align-items: center;
-  max-width: 456px; margin: 0 auto; background: rgba(18,18,20,.5); -webkit-backdrop-filter: blur(22px) saturate(1.5); backdrop-filter: blur(22px) saturate(1.5); box-shadow: inset 0 0 0 1px rgba(255,255,255,.07);
+  max-width: 456px; margin: 0 auto; background: var(--navbg, rgba(18,18,20,.5)); -webkit-backdrop-filter: blur(22px) saturate(1.5); backdrop-filter: blur(22px) saturate(1.5); box-shadow: inset 0 0 0 1px rgba(255,255,255,.07);
   transform-origin: 50% 100%; transition: transform .3s ease; }   /* 11-04: 화면 여백까지 넓게, 색은 뒤 바탕을 비춰요 */
-.nav.sm { transform: scale(.667); }   /* 아래로 내리면 2/3 크기 (위로 올리거나 멈추면 다시) */
+.nav.sm { transform: scale(.8); }   /* 아래로 내리면 0.8배 (위로 올리거나 맨 위에서 다시) */
 .nb { width: 64px; height: 52px; border-radius: 999px; display: grid; place-items: center; color: #b8b8be; }
 .nb.on { color: #fff; }
 .nb.nw { background: #fff; color: var(--bg); width: 52px; height: 52px; border-radius: 50%; margin: 0 6px; }   /* 메뉴 바 60px */
@@ -466,14 +466,14 @@ html.pan .wr .panel { display: grid; }
 .feed.two { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; align-items: start; }   /* 11-04: 1열 · 2열 양옆 여백을 --fgut 하나로 */
 .feed.two .mc { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; min-width: 0; }
 .fi.tile { gap: 0; }
-.fi.tile .bd { position: absolute; top: 8px; right: 8px; z-index: 3; margin: 0; font-size: var(--fs-s); font-weight: var(--fw); color: #fff; background: rgba(0,0,0,.5); border-radius: 999px; padding: 3px 7px; pointer-events: none; }
-.fi.tile .mt { display: flex; align-items: center; justify-content: space-between; height: 32px; padding-left: 4px; font-size: var(--fs-s); font-weight: var(--fw); color: rgba(255,255,255,.75); }
-.fi.tile .mt > span { display: flex; align-items: center; gap: 5px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.fi.tile .mt .cb { width: 36px; height: 32px; margin-right: -6px; background: none; color: rgba(255,255,255,.75); }
-.fi.tile .mt .cb .ic { width: 18px; height: 18px; }
-.fi.tile .mt [data-a=use] { color: #fff; }
-.fi.tile .mt .nw { font-style: normal; font-size: var(--fs-s); font-weight: var(--fw); color: var(--bg); background: #fff; border-radius: 8px; padding: 2px 5px; }
-.fi.tile .mt > span:has(.nw) { color: #d8d8dc; font-weight: var(--fw); }
+.fi .bd { position: absolute; top: 8px; right: 8px; z-index: 3; margin: 0; font-size: var(--fs-s); font-weight: var(--fw); color: #fff; background: rgba(0,0,0,.5); border-radius: 999px; padding: 3px 7px; pointer-events: none; }
+.fi .mt { display: flex; align-items: center; justify-content: space-between; height: 32px; padding-left: 4px; font-size: var(--fs-s); font-weight: var(--fw); color: rgba(255,255,255,.75); }
+.fi .mt > span { display: flex; align-items: center; gap: 5px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fi .mt .cb { width: 36px; height: 32px; margin-right: -6px; background: none; color: rgba(255,255,255,.75); }
+.fi .mt .cb .ic { width: 18px; height: 18px; }
+.fi .mt [data-a=use] { color: #fff; }
+.fi .mt .nw { font-style: normal; font-size: var(--fs-s); font-weight: var(--fw); color: var(--bg); background: #fff; border-radius: 8px; padding: 2px 5px; }
+.fi .mt > span:has(.nw) { color: #d8d8dc; font-weight: var(--fw); }
 /* 목록 시트 (10-23 UI 키트) */
 .sheet-bg { animation: fade var(--m-in); }
 .sheet-bg.out { opacity: 0; transition: opacity var(--m-out); }
@@ -1130,7 +1130,7 @@ html:has(.setv.plan), html:has(.setv.plan) body { background: #2B2650; }
 .win .wt .wc .cd { width: 300%; transform: scale(calc(1 / 3)); transform-origin: 0 0; }   /* 작은 칸은 3배로 그려 줄여요 (그림 문장 글씨가 칸에 맞게) */
 
 /* 처음 열 때 가리개 (11-04) */
-#boot { position: fixed; inset: 0; z-index: 200; background: var(--bg); display: grid; place-items: center; color: #fff; transition: opacity .3s ease; }
+#boot { position: fixed; top: 0; left: 0; right: 0; bottom: auto; height: max(100lvh, 100vh, 100%); box-shadow: 0 50vh 0 50vh var(--bg); z-index: 200; background: var(--bg); display: grid; place-items: center; color: #fff; transition: opacity .3s ease; }
 #boot .lgo { width: 150px; height: auto; }
 #boot.out { opacity: 0; pointer-events: none; }
 /* 검색 제목 (11-04): 책장 · 템플릿과 같은 자리. 검색 칸은 그 아래, 내리면 시계 줄 아래에 붙어요 */
@@ -1139,7 +1139,7 @@ html:has(.setv.plan), html:has(.setv.plan) body { background: #2B2650; }
 /* 달력 3열 · 날짜에 멈추기 (11-04) */
 .days .f3 { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
 .days .f3 .mc { gap: 10px; }
-.days .f3 .fi.tile .mt .cb { width: 28px; margin-right: -4px; }
+.days .f3 .fi .mt .cb { width: 28px; margin-right: -4px; }
 html.csnap { scroll-snap-type: y proximity; }
 html.csnap .days .dh { scroll-snap-align: start; scroll-margin-top: calc(var(--cph, 160px) + 16px); }   /* 날짜 누를 때(jump)와 같은 자리 */
 /* 쓰기 홈 (11-04): 높이가 같은 상자 3개 */
@@ -1238,13 +1238,12 @@ html.csnap .days .dh { scroll-snap-align: start; scroll-margin-top: calc(var(--c
 .brd .rn { font-size: var(--fs-s); color: var(--mut); font-variant-numeric: tabular-nums; }
 .brd .rtr { flex: 1; min-height: 0; display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior: contain; padding-bottom: calc(var(--safe-b) + 28px); }
 .brd .rtr::-webkit-scrollbar { display: none; }
-.brd .rp { flex: 0 0 100%; scroll-snap-align: center; scroll-snap-stop: always; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 8px 28px 0; transform-origin: 50% 90%; will-change: transform; }
+.brd .rp { cursor: pointer; flex: 0 0 100%; scroll-snap-align: center; scroll-snap-stop: always; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 8px 28px 0; transform-origin: 50% 90%; will-change: transform; }
 .brd .rp > * { width: min(100%, calc((100dvh - var(--top) - 150px) * .75)); }
-.brd .rc, .brd .rp.cov .ci, .brd .rp.end .ci { aspect-ratio: 3 / 4; border-radius: 4px 10px 10px 4px; background: var(--pp); background-image: var(--fibre), var(--grain); background-size: 300px, 200px; background-blend-mode: multiply, overlay;
+.brd .bpc, .brd .rp.cov .ci, .brd .rp.end .ci { aspect-ratio: 3 / 4; border-radius: 4px 10px 10px 4px; background: var(--pp); background-image: var(--fibre), var(--grain); background-size: 300px, 200px; background-blend-mode: multiply, overlay;
   box-shadow: inset 6px 0 10px -6px rgba(0,0,0,.25), var(--tr) 0 0 -1px #e6e1d8, calc(var(--tr) + 1px) 1px 0 -1px #c9c3b8, calc(-1 * var(--tl)) 0 0 -1px #e6e1d8, 0 18px 40px rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; padding: 11%; }
-.brd .rv0 { width: 100%; max-height: 100%; aspect-ratio: calc(1 / var(--ar, 1.25)); overflow: hidden; border-radius: 3px; box-shadow: 0 2px 8px rgba(0,0,0,.18); }
-.brd .rv0:has(.cd.r916) { width: auto; height: 100%; }
-.brd .rv0 .pg ~ .pg { display: none; }
+.brd .rv0 { flex: none; max-width: 100%; overflow: hidden; border-radius: 3px; box-shadow: 0 2px 8px rgba(0,0,0,.18); line-height: 0; }
+.brd .rv0 > * { display: block; width: 100%; height: auto; }
 .brd .rv0 .cd { border-radius: 0; }
 .brd .rf { display: flex; justify-content: space-between; margin-top: 14px; font-size: var(--fs-s); color: rgba(255,255,255,.62); font-variant-numeric: tabular-nums; }
 .brd .rp.cov .ci { background-color: var(--bc); background-blend-mode: overlay, overlay; flex-direction: column; text-align: center; color: inherit; border-radius: 4px 14px 14px 4px; }
@@ -1255,3 +1254,30 @@ html.csnap .days .dh { scroll-snap-align: start; scroll-margin-top: calc(var(--c
 .brd .rp.end p { margin-top: 10px; font-size: var(--fs-s); opacity: .7; }
 .bh .rdb { display: inline-flex; align-items: center; gap: 6px; height: 36px; margin-top: 14px; padding: 0 14px; border-radius: 999px; background: rgba(0,0,0,.18); color: inherit; font-size: var(--fs-s); font-weight: var(--fw); }
 .bh .rdb .ic { width: 18px; height: 18px; }
+
+/* 11-04 폰 발열: 손을 멈추면 바탕 빛도 멈춰요 */
+.amb.idle b, .amb.idle s, .amb.idle i { animation-play-state: paused !important; }
+
+/* 11-04 1열 = 2열과 같은 아래 줄 · 그림 안 표시 */
+.fi .bd { display: inline-flex; align-items: center; gap: 4px; }
+.fi .bd[hidden] { display: none; }
+.fi .bd .ic { width: 14px; height: 14px; stroke-width: 2.2; }
+.fi .bd b { font-weight: var(--fw); }
+.fi .bd b:empty { display: none; }
+.fi .fx { position: relative; }
+.fi:not(.tile) .mt { margin-top: -6px; }
+.fi:not(.tile) .ex { margin-top: -10px; color: rgba(255,255,255,.7); font-size: var(--fs-s); }
+
+/* 11-04 날씨 톤: 처음 그릴 때는 바로 (열 때마다 어두워지지 않게) */
+.amb.now .mo { transition: none !important; }
+
+/* 11-04 크게 보기 닫기 = 왼쪽 위 ‹ 하나 (다른 화면 뒤로와 같은 자리) */
+.fv .fvx { position: fixed; top: var(--top); left: var(--gut); z-index: 4; opacity: 0; transition: opacity .3s ease .1s; background: rgba(30,30,33,.72); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+.fv.in .fvx { opacity: 1; }
+.fv { cursor: default; }
+.fv.fade .fvx, .fv:not(.in) .fvx { pointer-events: none; }
+.rel .rr p { font-size: var(--fs-m); line-height: 1.4; color: #e2e2e6; }
+
+/* 11-04 첫 로딩: 로고가 화면 아래 끝(홈 막대 자리)까지 덮고, 뒤 홈은 로고가 사라질 때까지 숨겨요 */
+html.booting { background: var(--bg) !important; }
+html.booting #app, html.booting .nav { visibility: hidden; }
