@@ -989,11 +989,12 @@ function settle(list, open) {
   return false;
 }
 
-// 책 머리 (11-04 6차): 책 보기 · 책으로 읽기 똑같이. 줄1 = ‹ 뒤로 · (내 책) ⋯ · 보기 바꾸기, 줄2 = 달력처럼 ‹ 책 이름 + 기간 › (앞 책 · 다음 책)
+// 책 머리 (11-04 6차): 책 보기 · 책으로 읽기 똑같이. 줄1 = ‹ 뒤로 · (내 책) ⋯ · 책장/달력 같은 캡슐 [책으로 읽기 | 리스트], 줄2 = ‹ 책 이름 + 기간 › (앞 책 · 다음 책, 아래 슬라이더 ‹ › 와 같은 동그라미 없는 화살표)
 let bookSwap = false;   // ‹ › 로 책을 바꿀 때는 책으로 읽기가 서서히 뜨지 않고 바로 (깜빡임 없게)
-function bookHead(b, view, cls = '') {
+function bookHead(b, on, cls = '') {
   const ff = b.font ? fontCssOf(fontOf(b.font)) : '', ink = b.ink || inkOn(b.color);
   const { auto, mine } = shelfBooks(), all = [...auto, ...mine], i = all.findIndex(x => x.id === b.id);
+  const view = b.cards.length ? `<div class="cap bcap"><button class="${on === 'read' ? 'on' : ''}" data-v="read" aria-label="책으로 읽기">${ic('read')}</button><button class="${on === 'list' ? 'on' : ''}" data-v="list" aria-label="리스트로 보기">${ic('grid')}</button></div>` : '';
   return `<header class="bh bhd ${cls}" style="background-color:${b.color};color:${ink}"><div class="bar"><button class="cb" data-a="back" aria-label="뒤로">${ic('back')}</button><span class="sp"></span>${b.mine ? `<button class="cb" data-a="more" aria-label="더 보기">${ic('more')}</button>` : ''}${view}</div>
     <div class="bnv"><button class="cb mv" data-bk="${all[i - 1]?.id || ''}" ${i > 0 ? '' : 'disabled'} aria-label="앞 책">${ic('back')}</button><div class="bt"><h2${ff ? ` style="font-family:${ff}"` : ''}>${esc(b.name)}</h2><p>${rangeOf(b.cards)} · 카드 ${b.cards.length}</p></div><button class="cb mv" data-bk="${all[i + 1]?.id || ''}" ${i >= 0 && i < all.length - 1 ? '' : 'disabled'} aria-label="다음 책">${ic('next')}</button></div></header>`;
 }
@@ -1004,7 +1005,7 @@ function viewBook(id) {
   const list = byDate(b.cards), ff = b.font ? fontCssOf(fontOf(b.font)) : '';
   // 10-31: 바탕 = 템플릿홈과 같은 배경, 위 판 = 책 색 (종이 결) · 달력처럼 위에 붙어 있고 높이는 전보다 반
   app.innerHTML = `${MOOD}<div class="shv bkv mood">
-    ${bookHead(b, b.cards.length ? `<button class="cb" data-a="read" aria-label="책으로 읽기">${ic('read')}</button>` : '')}
+    ${bookHead(b, 'list')}
     <main class="days"></main></div>${nav('shelf')}`;
   bindNav(); bindBookNav(app);
   const stopMood = paintMood($('.amb'));
@@ -1025,7 +1026,7 @@ function viewBook(id) {
   $('[data-a=more]')?.addEventListener('click', more);
   let closeRd = null;   // 책으로 읽기가 처음 (2열로 바꾸면 다음에도 2열)
   const read = () => { closeRd = openReader(b, list, () => { closeRd = null; }, { back, more }); };
-  $('[data-a=read]')?.addEventListener('click', () => { S.setPref('bookView', 'read'); read(); });
+  $('[data-v=read]', app)?.addEventListener('click', () => { if (closeRd || $('.brd')) return; S.setPref('bookView', 'read'); bookSwap = true; read(); bookSwap = false; });
   if (list.length && S.pref('bookView', 'read') !== 'grid') read();
   bookSwap = false;
   const onSc = () => $('.bkv')?.classList.toggle('sc', scrollY > 8);
@@ -1041,7 +1042,7 @@ function openReader(b, list, onGrid, hx = {}) {
   const ink = b.ink || inkOn(b.color), N = cards.length;
   const rd = document.createElement('div'); rd.className = 'brd'; rd.style.setProperty('--pp', b.color); rd.style.setProperty('--bc', b.color); rd.style.setProperty('--pk', ink);
   rd.innerHTML = `<div class="amb"><div class="mo"></div><s></s></div><i class="rdim"></i>
-    ${bookHead(b, `<button class="cb" data-a="grid" aria-label="2열로 보기">${ic('grid')}</button>`, 'rbh')}
+    ${bookHead(b, 'read', 'rbh')}
     <div class="rtr"><section class="rp cov"><div class="ci" style="background-color:${b.color};color:${ink}"><h2${ff ? ` style="font-family:${ff}"` : ''}>${esc(b.name)}</h2><p>${rangeOf(b.cards)}<br>카드 ${N}</p></div></section></div>
     <div class="rpv" hidden></div>
     <div class="rtoc rfs" hidden></div>
@@ -1088,6 +1089,14 @@ function openReader(b, list, onGrid, hx = {}) {
         s.innerHTML = `<div class="bpc"><div class="rv0 view" style="width:${W}px"></div></div><p class="rf"><span>${c.date ? ymd(c.date) : ''}</span><span>${nodes.length > 1 ? `${j + 1}/${nodes.length}장` : ''}</span></p>`;
         $('.rv0', s).appendChild(n); tr.appendChild(s);
         if (n.classList?.contains('cd')) requestAnimationFrame(() => fitCard(n, c));
+        // 아이폰에서 장 나누기가 잘못 재면 (너무 길거나 비면) 2열과 같은 방식으로 그 장을 다시 그려요
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          const h = n.getBoundingClientRect?.().height || 0, want = W * ar;
+          const empty = !!(cardText(c) || '').trim() && !(n.textContent || '').trim() && !n.querySelector('img, canvas, video, svg');
+          if (h > 20 && h < want * 1.12 && !empty) return;
+          const k = Math.min(j, Math.max(0, (c.pages?.length || 1) - 1)), v = $('.rv0', s); v.replaceChildren();
+          mount(v, { ...c, pages: c.pages?.slice(k, k + 1), pst: c.pst?.slice(k, k + 1) });
+        }));
       });
       ps = $$('.rp', rd);
       if (want && c.id === want.c) { const j = ps.findIndex(p => p.dataset.c == i && +p.dataset.p === Math.min(want.p, nodes.length - 1)); if (j > 0) requestAnimationFrame(() => goTo(j)); }   // 마지막에 읽던 쪽으로
@@ -1151,7 +1160,7 @@ function openReader(b, list, onGrid, hx = {}) {
   const close = () => { dead = true; removeEventListener('resize', onRs); clearTimeout(slT); closeToc(); closeFocus(true); rd.classList.remove('in'); setTimeout(() => rd.remove(), 300); };
   $('[data-a=back]', rd).onclick = () => { close(); hx.back ? hx.back() : location.replace('#/shelf'); };
   $('[data-a=more]', rd)?.addEventListener('click', () => hx.more?.());
-  $('[data-a=grid]', rd).onclick = () => { S.setPref('bookView', 'grid'); close(); onGrid?.(); };
+  $('[data-v=list]', rd).onclick = () => { S.setPref('bookView', 'grid'); close(); rd.remove(); onGrid?.(); };   // 캡슐로 바꿀 때는 바로 (서서히 사라지며 겹치지 않게)
   // 표지를 누르면 첫 쪽으로, 끝을 누르면 표지로. 카드 쪽을 누르면 크게 보기. 목차가 열려 있으면 먼저 닫아요
   tr.addEventListener('click', e => {
     if (!toc.hidden) return closeToc();

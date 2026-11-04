@@ -1438,3 +1438,15 @@ html.booting #app, html.booting .nav { visibility: hidden; }
 .nav { left: var(--gut); right: var(--gut); }
 .brd .rbh.bhd, .bkv .bh.bhd { padding: var(--top) var(--gut) 16px; }
 .brd .rtoc .tls { grid-auto-rows: max-content; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }   /* 목차 줄이 눌려 찌그러지지 않고 위아래로 넘겨져요 */
+
+/* 11-04 6차 고침: 위 ‹ › (앞 책 · 다음 책) = 달력처럼 동그라미 없는 화살표 · 종이는 늘 3:4 (안이 길어도 늘어나지 않게) */
+.bhd .bnv .mv { background: none; width: 36px; height: 36px; }
+.bhd .bnv .mv .ic { width: 22px; height: 22px; }
+.brd .bpc { height: calc(var(--pw, 70vw) / .75); min-height: 0; overflow: hidden; }
+.brd .rv0 { max-height: 100%; }
+
+/* 책 머리 캡슐 [책으로 읽기 | 리스트] (책장 · 달력 캡슐과 같은 모양, 책 색 위) */
+.bhd .bcap { background: rgba(0,0,0,.18); }
+.bhd .bcap button { color: inherit; opacity: .7; }
+.bhd .bcap button.on { background: #fff; color: #141416; opacity: 1; }
+.bhd .bnv { margin-top: 10px; }
