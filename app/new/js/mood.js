@@ -46,6 +46,8 @@ let chosen = null;
 export function pick() {
   const m = mode(); if (chosen?.m === m) return chosen;
   const list = m === 'g' ? PAGE_G : m === 's' ? PAGE_S : [['다크', DARK]];
+  const fix = (S.pref('bgPick', {}) || {})[m], hit = fix && list.find(x => x[0] === fix);   // 설정에서 하나를 골랐으면 늘 그것 (11-04)
+  if (hit) return chosen = { m, x: hit };
   const recent = S.pref('moods', []), pool = list.filter(x => !recent.includes(x[0])), x = (pool.length ? pool : list)[Math.floor(Math.random() * (pool.length || list.length))];
   if (list.length > 1) S.setPref('moods', [x[0], ...recent].slice(0, 3));
   return chosen = { m, x };
