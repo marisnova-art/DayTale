@@ -237,7 +237,7 @@ function text(c, { edit = false } = {}) {
     const date = info ? `<div class="dt ${dp === 'top' ? 'dup' : 'ddn'}" style="text-align:${dhOf(c)};font-size:${dl}cqw;font-family:${ff}${ls}">${info}</div>` : '';   // 날짜 줄도 카드 글꼴 · 글자 크기를 따라가요 (글꼴마다 크기 보정)
     const sig = sg ? `<div class="sgn" data-h="${sg}" style="font-size:${dl}cqw;font-family:${ff}${ls}">${esc(c.signTxt)}</div>` : '';   // 서명: 모든 장 맨 아래
     return `<section class="pg${sg ? ' hsg' : ''}" data-i="${i}" style="color:${c.ink || ink};--dl:${dl}cqw">${html}
-      <div class="tx" data-k="${fo.k}" data-sz="${SIZES[c.size] || SIZES.m}" data-v="${pageAlign(c, i).v || 'm'}" style="font-family:${ff};line-height:${(fo.lh * (LH[c.lh] || 1)).toFixed(3)};letter-spacing:${fo.ls || 'normal'};text-align:${{ l: 'left', c: 'center', r: 'right' }[pageAlign(c, i).h || 'l']}${c.bold ? ';font-weight:700' : ''}">
+      <div class="tx" data-k="${fo.k}" data-sz="${SIZES[c.size] || SIZES.m}" data-v="${pageAlign(c, i).v || 'm'}" style="${pageAlign(c, i).x != null ? `--dx:${+pageAlign(c, i).x || 0};--dy:${+pageAlign(c, i).y || 0};` : ''}font-family:${ff};line-height:${(fo.lh * (LH[c.lh] || 1)).toFixed(3)};letter-spacing:${fo.ls || 'normal'};text-align:${{ l: 'left', c: 'center', r: 'right' }[pageAlign(c, i).h || 'l']}${c.bold ? ';font-weight:700' : ''}">
         ${dp === 'top' && i === 0 ? date : ''}
         <div class="body" ${edit ? 'contenteditable="true" spellcheck="false" autocapitalize="off"' : ''} data-ph="${i === 0 ? esc(ex) : '이어서 써 보세요'}">${h}</div>
         ${dp === 'bottom' && i === pages.length - 1 ? date : ''}

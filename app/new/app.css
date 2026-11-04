@@ -1218,3 +1218,15 @@ html.csnap .days .dh { scroll-snap-align: start; scroll-margin-top: calc(var(--c
 .nt small { font-size: var(--fs-s); color: var(--mut); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nls + .empty { min-height: 34vh; }
 .nmore { height: 40px; }
+
+/* 글 자유 배치 (11-04): 끌어 놓은 만큼 옮겨요 (카드 폭 % 단위라 저장 이미지도 같아요). 붙을 때만 안내 선 */
+.cd .pg:not(.long) .tx { transform: translate(calc(var(--dx, 0) * 1cqw), calc(var(--dy, 0) * 1cqw)); }
+.wr:not(.typ) .cd .pg:not(.long) .tx .body { touch-action: none; cursor: grab; }
+.wr.drag .cd .pg:not(.long) .tx .body { cursor: grabbing; }
+.gds { position: absolute; inset: 0; z-index: 6; pointer-events: none; }
+.gds i { position: absolute; left: 0; right: 0; height: 0; border-top: 1px solid rgba(255,255,255,.8); opacity: 0; transition: opacity .12s; }
+.gds i.on { opacity: 1; }
+.gds [data-k=gx] { left: 50%; right: auto; top: 0; bottom: 0; height: auto; width: 0; border-top: 0; border-left: 1px solid rgba(255,255,255,.8); }
+.gds [data-k=gy] { top: 50%; }
+.gds [data-k=t] { top: 13%; border-top-style: dashed; }
+.gds [data-k=b] { top: 78%; border-top-style: dashed; }

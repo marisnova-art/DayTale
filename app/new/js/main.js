@@ -1916,8 +1916,10 @@ function viewWrite({ fmt, id, like }) {
         const k = x.dataset.s;
         if (k === 'size') { card.size = next(SIZE5, card.size || 'm'); push(); draw(); pop(SZN[card.size], null, '글자 크기'); }
         if (k === 'lh') { card.lh = next(['s', 'm', 'l'], card.lh || 'm'); push(); draw(); pop(LHN[card.lh], null, '줄 간격'); }
-        if (k === 'h') { const [n, t] = AH[a.h || 'l']; ps().align = { ...a, h: n }; syncFirst(); push(); draw(); pop(t, null, pgLab()); }
-        if (k === 'v') { const n = next(V5, a.v || (rich ? 'm' : 't')); ps().align = { ...a, v: n }; syncFirst(); push(); draw(); pop(VN[n], null, pgLab()); }
+        // 끌어 놓은 글이면 첫 번 누름은 지금 좌우 · 위아래 자리로 돌아가기만, 그다음부터 바뀌어요
+        const free = a.x != null, fixed = () => { const { x: _x, y: _y, ...r } = a; return r; }, HN = { l: '왼쪽', c: '가운데', r: '오른쪽' };
+        if (k === 'h') { const n = free ? a.h || 'l' : AH[a.h || 'l'][0]; ps().align = { ...fixed(), h: n }; syncFirst(); push(); draw(); pop(HN[n], null, pgLab()); }
+        if (k === 'v') { const n = free ? a.v || (rich ? 'm' : 't') : next(V5, a.v || (rich ? 'm' : 't')); ps().align = { ...fixed(), v: n }; syncFirst(); push(); draw(); pop(VN[n], null, pgLab()); }
         if (k === 'bold') { card.bold = !card.bold; push(); draw(); pop(card.bold ? '굵게' : '보통 굵기'); }
         if (k === 'ink') { st.tab = 'ink'; return paintRow2(); }
         paintRow2();
@@ -2158,7 +2160,60 @@ function viewWrite({ fmt, id, like }) {
     // 끄는 동안 카드가 옆으로 넘어가거나 글이 눌리지 않게
     stage.addEventListener('click', e => { if (st.panJust) { e.preventDefault(); e.stopPropagation(); } }, true);
   }
-  if (rich) { photoPan(); photoPinch(); }
+  // 글 자유 배치 (11-04): 스타일 보기에서 글을 끌면 어디든 놓여요 (가장자리 6%는 비워요). 가운데 선 근처에선 자석처럼 붙고,
+  // 9:16은 안전 영역 선(위 13% · 아래 78%)에도 살짝 붙어요. 붙을 때만 안내 선이 보여요. 서식의 좌우 · 위아래를 누르면 정해진 자리로 돌아가요
+  function textDrag() {
+    let d = null;
+    const textRect = b => { const r = document.createRange(); r.selectNodeContents(b); const q = r.getBoundingClientRect(); return q.width ? q : b.getBoundingClientRect(); };
+    stage.addEventListener('pointerdown', e => {
+      if (typingNow() || st.panel || !el) return;
+      const b = e.target.closest?.('.body'), pg = b?.closest('.pg'); if (!b || !pg || !el.contains(pg) || pg.classList.contains('long')) return;
+      if (!b.textContent.trim() && !b.querySelector('.stk')) return;
+      e.stopPropagation();   // 사진 끌기보다 글이 먼저
+      const tx = b.closest('.tx'), W = pg.offsetWidth, a = ps(+pg.dataset.i).align || {};
+      d = { pg, tx, b, i: +pg.dataset.i, W, x0: e.clientX, y0: e.clientY, dx: +a.x || 0, dy: +a.y || 0, on: false, id: e.pointerId, mouse: e.pointerType === 'mouse' };
+      if (d.mouse) e.preventDefault();
+    }, true);
+    stage.addEventListener('pointermove', e => {
+      if (!d || e.pointerId !== d.id) return;
+      const mx = e.clientX - d.x0, my = e.clientY - d.y0;
+      if (!d.on) {
+        if (Math.hypot(mx, my) < 8) return;
+        d.on = true; stage.setPointerCapture?.(e.pointerId);
+        const pr = d.pg.getBoundingClientRect(), tr = textRect(d.b);
+        d.pr = pr; d.base = { l: tr.left - pr.left - d.dx * d.W / 100, t: tr.top - pr.top - d.dy * d.W / 100, w: tr.width, h: tr.height };   // 옮기기 전 자리 (px)
+        d.g = document.createElement('div'); d.g.className = 'gds'; d.g.innerHTML = '<i data-k="gx"></i><i data-k="gy"></i><i data-k="t"></i><i data-k="b"></i>'; d.pg.appendChild(d.g);
+        wr.classList.add('drag');
+      }
+      e.preventDefault();
+      const W = d.W, H = d.pr.height, m = W * .06, bs = d.base, k = 100 / W;
+      let l = bs.l + d.dx * W / 100 + mx, t = bs.t + d.dy * W / 100 + my;
+      l = Math.max(m, Math.min(W - m - bs.w, l)); t = Math.max(m, Math.min(H - m - bs.h, t));
+      const snap = W * .03, on = { gx: false, gy: false, t: false, b: false };
+      if (Math.abs(l + bs.w / 2 - W / 2) < snap) { l = W / 2 - bs.w / 2; on.gx = true; }
+      if (Math.abs(t + bs.h / 2 - H / 2) < snap) { t = H / 2 - bs.h / 2; on.gy = true; }
+      if (card.ratio === '916') {
+        if (Math.abs(t - H * .13) < snap) { t = H * .13; on.t = true; }
+        if (Math.abs(t + bs.h - H * .78) < snap) { t = H * .78 - bs.h; on.b = true; }
+      }
+      $$('i', d.g).forEach(g => g.classList.toggle('on', on[g.dataset.k]));
+      d.nx = +((l - bs.l) * k).toFixed(2); d.ny = +((t - bs.t) * k).toFixed(2);
+      d.tx.style.setProperty('--dx', d.nx); d.tx.style.setProperty('--dy', d.ny);
+    }, { passive: false });
+    const end = e => {
+      if (!d) return; const x = d; d = null;
+      if (!x.on) {
+        if (x.mouse && e.type === 'pointerup') { const r = document.caretRangeFromPoint?.(e.clientX, e.clientY); x.b.focus(); if (r && x.b.contains(r.startContainer)) { const s = getSelection(); s.removeAllRanges(); s.addRange(r); } }
+        return;
+      }
+      x.g.remove(); wr.classList.remove('drag');
+      st.panJust = true; setTimeout(() => { st.panJust = false; }, 0);
+      const a = ps(x.i).align || { h: 'l', v: 'm' };
+      ps(x.i).align = { ...a, x: x.nx ?? x.dx, y: x.ny ?? x.dy }; syncFirst(); push(); pop('글 위치', null, pgLab());
+    };
+    stage.addEventListener('pointerup', end); stage.addEventListener('pointercancel', end);
+  }
+  if (rich) { textDrag(); photoPan(); photoPinch(); }
   // 사진 칸 높이 (긴 장도 사진은 한 장 크기)
   function tileH(pg) { return $('.bgi.ph', pg)?.offsetHeight || pg.offsetHeight; }
   // 두 손가락으로 벌리면 사진 · 영상이 커져요 (꽉 채운 크기 ~ 2배). 줄이면 꽉 채운 크기까지. PC는 트랙패드 핀치(ctrl + 휠)
