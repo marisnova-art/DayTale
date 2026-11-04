@@ -1305,8 +1305,6 @@ html.booting #app, html.booting .nav { visibility: hidden; }
 
 /* 11-04 3차 책: 쪽 번호 알약 · 진행 선 · 가벼운 그림자 · 어두운 종이 · 쪽 찾기 시트 */
 .brd .rn { height: 32px; padding: 0 14px; border-radius: 999px; background: rgba(255,255,255,.1); color: #fff; font-size: var(--fs-s); font-weight: var(--fw); font-variant-numeric: tabular-nums; }
-.brd .rpr { height: 2px; margin: 0 16px; border-radius: 2px; background: rgba(255,255,255,.14); position: relative; z-index: 2; }
-.brd .rpr i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; border-radius: 2px; background: #fff; }
 .brd .rv0 { box-shadow: 0 0 0 1px rgba(0,0,0,.08); }
 .brd.dk .bpc, .brd.dk .rp.end .ci { box-shadow: inset 6px 0 10px -6px rgba(0,0,0,.4), var(--tr) 0 0 -1px #3a3a40, calc(var(--tr) + 1px) 1px 0 -1px #2a2a2e, calc(-1 * var(--tl)) 0 0 -1px #3a3a40, 0 18px 40px rgba(0,0,0,.45); }
 .brd.dk .rp.end .ci { color: rgba(255,255,255,.85); }
@@ -1335,3 +1333,28 @@ html.booting #app, html.booting .nav { visibility: hidden; }
 .rfs .rto .t b { display: block; font-size: var(--fs-m); font-weight: var(--fw); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rfs .rto .t small { font-size: var(--fs-s); color: var(--mut); }
 .rfs .rto .n { font-size: var(--fs-s); color: var(--mut); font-variant-numeric: tabular-nums; }
+
+/* 11-04 4차 */
+.fi .mt { height: 36px; font-size: var(--fs-m); color: rgba(255,255,255,.85); }
+.fi .mt .cb { color: rgba(255,255,255,.85); }
+.fi .mt .cb .ic { width: 22px; height: 22px; }
+.fi .mt .fls { gap: 5px; }
+.fi .fl .ic { width: 16px; height: 16px; }
+.days .f3 .fi .mt { height: 32px; font-size: var(--fs-s); }
+.days .f3 .fi .mt .cb .ic { width: 18px; height: 18px; }
+.mev .mst { background: rgba(0,0,0,.28); box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
+.mev .mst.on { background: #fff; box-shadow: none; }
+.mev .mgc { background-color: rgba(0,0,0,.4); }
+.brd .rtr { padding-bottom: 6px; }
+.brd .rsb { position: relative; padding: 30px 24px calc(var(--safe-b) + 18px); }
+.brd .rsb input { width: 100%; height: 28px; margin: 0; -webkit-appearance: none; appearance: none; background: none; touch-action: none; }
+.brd .rsb input::-webkit-slider-runnable-track { height: 4px; border-radius: 4px; background: linear-gradient(90deg, #fff var(--sf, 0%), rgba(255,255,255,.18) var(--sf, 0%)); }
+.brd .rsb input::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; margin-top: -9px; border-radius: 50%; background: #fff; box-shadow: 0 1px 6px rgba(0,0,0,.4); }
+.brd .rsb input::-moz-range-track { height: 4px; border-radius: 4px; background: rgba(255,255,255,.18); }
+.brd .rsb input::-moz-range-progress { height: 4px; border-radius: 4px; background: #fff; }
+.brd .rsb input::-moz-range-thumb { width: 22px; height: 22px; border: 0; border-radius: 50%; background: #fff; }
+.brd .rsb .rpl { position: absolute; top: 0; transform: translateX(-50%); max-width: calc(100% - 48px); }
+.brd .rsb .rpl { height: 26px; padding: 0 10px; border-radius: 999px; background: #fff; color: var(--bg); font-style: normal; font-size: var(--fs-s); display: flex; align-items: center; white-space: nowrap; pointer-events: none; }
+.brd .rsb .rpl[hidden] { display: none; }
+.rfs.kb > :not(.rfd) { display: none; }
+.rfs.kb { padding-top: 14px; }

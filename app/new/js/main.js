@@ -1027,10 +1027,11 @@ function openReader(b, list, onGrid) {
   const paper = dark ? mixHex(b.color, '#000000', .25) : mixHex(b.color, '#ffffff', .5), N = cards.length;
   const rd = document.createElement('div'); rd.className = 'brd' + (dark ? ' dk' : ''); rd.style.setProperty('--pp', paper); rd.style.setProperty('--bc', b.color);
   rd.innerHTML = `<header class="rbar"><button class="cb" data-a="x" aria-label="뒤로">${ic('back')}</button><button class="rn" data-a="find" aria-label="쪽 찾기"></button><button class="cb" data-a="grid" aria-label="2열로 보기">${ic('grid')}</button></header>
-    <div class="rpr"><i></i></div>
-    <div class="rtr"><section class="rp cov"><div class="ci" style="background-color:${b.color};color:${ink}"><h2${ff ? ` style="font-family:${ff}"` : ''}>${esc(b.name)}</h2><p>${rangeOf(b.cards)}<br>카드 ${N}</p></div></section></div>`;
+    <div class="rtr"><section class="rp cov"><div class="ci" style="background-color:${b.color};color:${ink}"><h2${ff ? ` style="font-family:${ff}"` : ''}>${esc(b.name)}</h2><p>${rangeOf(b.cards)}<br>카드 ${N}</p></div></section></div>
+    <div class="rsb"><em class="rpl" hidden></em><input type="range" min="0" max="0" value="0" aria-label="쪽 옮기기"></div>`;
   document.body.appendChild(rd);
-  const tr = $('.rtr', rd), rn = $('.rn', rd), bar = $('.rpr i', rd);
+  const tr = $('.rtr', rd), rn = $('.rn', rd), sl = $('.rsb input', rd), spl = $('.rsb .rpl', rd);
+  let sliding = false;
   const marks = S.pref('bookAt', {}), want = marks[b.id];   // { c: 카드 id, p: 장 } 마지막에 읽던 쪽
   let ps = $$('.rp', rd), raf = 0, dead = false, built = false, moving = 0, lastAt = -1, near = new Set();
   const pages = () => ps.filter(p => p.dataset.c != null);
@@ -1045,7 +1046,7 @@ function openReader(b, list, onGrid) {
     const f = Math.min(1, x / Math.max(1, tot - 1)); rd.style.setProperty('--tl', (f * 6).toFixed(2) + 'px'); rd.style.setProperty('--tr', ((1 - f) * 6).toFixed(2) + 'px');
     const pg = pages(), p = ps[k], at = pg.indexOf(p), T = pg.length;
     rn.textContent = !p || p.classList.contains('cov') ? `${T}쪽${built ? '' : ' …'}` : p.classList.contains('end') ? '끝' : `${at + 1} / ${T}쪽`;
-    bar.style.width = (f * 100).toFixed(1) + '%';
+    sl.max = Math.max(0, tot - 1); if (!sliding) sl.value = k; sl.style.setProperty('--sf', (f * 100).toFixed(1) + '%');
     if (p?.dataset.c != null && k !== lastAt) { lastAt = k; marks[b.id] = { c: cards[+p.dataset.c].id, p: +p.dataset.p }; S.setPref('bookAt', marks); }
   };
   let idleT = 0;
@@ -1082,7 +1083,14 @@ function openReader(b, list, onGrid) {
   const close = () => { dead = true; closeFocus(true); rd.classList.remove('in'); setTimeout(() => rd.remove(), 300); };
   $('[data-a=x]', rd).onclick = () => { close(); /^#\/(shelf|cal)/.test(lastHash || '') ? history.back() : location.replace('#/shelf'); };
   $('[data-a=grid]', rd).onclick = () => { S.setPref('bookView', 'grid'); close(); onGrid?.(); };
-  // 쪽 찾기: 쪽 번호 넣고 이동 · 슬라이더 (끌면 위에 'n쪽 · 날짜') · 달별 목차 (읽는 카드 표시)
+  // 아래 슬라이더 (11-04 4차): 끄는 동안 책이 그 쪽으로 바로 바뀌고, 손 위에 'n쪽 · 날짜'. 손 떼면 그 자리
+  const slLab = () => { const j = +sl.value, p = ps[j]; if (!p) return; const pg = pages(), at = pg.indexOf(p), c = p.dataset.c != null ? cards[+p.dataset.c] : null;
+    spl.textContent = p.classList.contains('cov') ? '표지' : p.classList.contains('end') ? '끝' : `${at + 1}쪽${c?.date ? ' · ' + md(c.date) : ''}`;
+    const f = +sl.max ? j / +sl.max : 0; spl.style.left = `calc(24px + ${f.toFixed(4)} * (100% - 48px) + ${((.5 - f) * 22).toFixed(1)}px)`; };
+  sl.addEventListener('input', () => { sliding = true; spl.hidden = false; slLab(); goTo(+sl.value); });
+  const slEnd = () => { if (!sliding) return; sliding = false; setTimeout(() => { spl.hidden = true; }, 500); };
+  sl.addEventListener('change', slEnd); sl.addEventListener('pointerup', slEnd); sl.addEventListener('touchend', slEnd);
+  // 쪽 찾기: 쪽 번호 넣고 이동 · 달별 목차 (읽는 카드 표시). 번호 칸을 누르면 목차는 숨고 키보드 바로 위 한 줄로
   rn.onclick = () => {
     const pg = pages(), T = pg.length; if (!T) return;
     const cur = Math.max(0, pg.indexOf(ps[Math.round(tr.scrollLeft / tr.clientWidth)]));
@@ -1094,14 +1102,12 @@ function openReader(b, list, onGrid) {
     const line = c => (cardText(c) || '').replace(/\s+/g, ' ').trim().slice(0, 60) || LABEL[c.fmt] || '카드';
     const sh = panelSheet(`<div class="grab"></div><p class="sh">쪽 찾기</p>
       <div class="rfd"><label class="rfi"><input type="number" inputmode="numeric" min="1" max="${T}" value="${cur + 1}" enterkeyhint="go"><span>/ ${T}쪽${built ? '' : ' …'}</span></label><button class="rgo" data-a="go">이동</button></div>
-      <div class="rsl"><em class="rpl"></em><input type="range" min="1" max="${T}" value="${cur + 1}"><p><span>처음</span><span>끝</span></p></div>
       <div class="grp"><button class="it" data-j="-1">${ic('page')}표지</button></div>
       ${[...byM].map(([m, cs]) => `<p class="rmh">${mLab(m)}</p><div class="grp">${cs.map(([c, i]) => `<button class="rto${String(i) === curC ? ' on' : ''}" data-j="${first.get(String(i))}"><span class="th"></span><span class="t"><b>${esc(line(c))}</b><small>${dLab(c)}${String(i) === curC ? ' · 읽는 중' : ''}</small></span><span class="n">${first.get(String(i)) + 1}쪽</span></button>`).join('')}</div>`).join('')}`, 'rfs');
     sh.bg.style.zIndex = 95;
     const jump = j => { sh.close(); goTo(j < 0 ? 0 : ps.indexOf(pg[Math.max(0, Math.min(T - 1, j))])); };
-    const num = $('.rfi input', sh.el), rg = $('.rsl input', sh.el), pl = $('.rpl', sh.el);
-    const show = () => { const j = +rg.value - 1, c = cards[+pg[j].dataset.c]; pl.textContent = `${j + 1}쪽 · ${c.date ? md(c.date) : ''}`; pl.style.left = `calc(${(T > 1 ? j / (T - 1) : 0) * 100}% + ${(T > 1 ? .5 - j / (T - 1) : 0) * 24}px)`; };
-    rg.oninput = () => { num.value = rg.value; show(); }; rg.onchange = () => jump(+rg.value - 1); show();
+    const num = $('.rfi input', sh.el);
+    num.addEventListener('focus', () => sh.el.classList.add('kb')); num.addEventListener('blur', () => setTimeout(() => sh.el.classList.remove('kb'), 120));
     $('[data-a=go]', sh.el).onclick = () => jump((+num.value || 1) - 1);
     num.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); jump((+num.value || 1) - 1); } };
     $$('[data-j]', sh.el).forEach(x => x.onclick = () => jump(+x.dataset.j));
