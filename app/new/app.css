@@ -1163,3 +1163,58 @@ html.csnap .days .dh { scroll-snap-align: start; scroll-margin-top: calc(var(--c
 .wmn.wall .tg2 .tt .nm { font-size: var(--fs-s); }
 .wmn { padding-top: 0; }
 .wmn .wmore { margin: 4px var(--fgut) 0; }
+
+/* 카드 ⋯ 메모 · 알림 · 정보 (11-04) */
+.sheet .it .sv { margin-left: auto; color: var(--mut); font-size: var(--fs-s); }
+.msh .mml { max-height: 46vh; overflow-y: auto; display: grid; gap: 0; background: #232327; border-radius: 14px; }
+.msh .mm { position: relative; padding: 14px 52px 12px 16px; border-top: 1px solid #2e2e33; }
+.msh .mm:first-child { border-top: 0; }
+.msh .mm p, .fmemo .fm p { font-size: var(--fs-m); line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
+.msh .mm small, .fmemo .fm small { display: block; margin-top: 4px; font-size: var(--fs-s); color: var(--mut); }
+.msh .mm .cb { position: absolute; top: 6px; right: 4px; background: none; }
+.sheet .mno { padding: 18px 12px; text-align: center; font-size: var(--fs-s); line-height: 1.5; color: var(--mut); }
+.msh .mml > .mno { background: none; }
+.msh .mib { display: flex; gap: 8px; align-items: flex-end; }
+.msh .mib textarea { flex: 1; min-width: 0; min-height: 48px; max-height: 120px; resize: none; border: 0; outline: none; border-radius: 14px; background: #232327; color: #fff; font: var(--fw) var(--fs-m)/1.4 var(--ui); padding: 13px 14px; }
+.msh .mib button { width: 48px; height: 48px; flex: none; border-radius: 50%; background: #fff; color: var(--bg); display: grid; place-items: center; }
+.msh .mib button[disabled] { background: rgba(255,255,255,.18); color: rgba(20,20,22,.6); }
+.fmemo { margin-top: 18px; }
+.fmemo:empty { display: none; }
+.fmemo .fm { padding: 12px 14px; border-top: 1px solid #2a2a2e; }
+.fmemo .fm:first-child { border-top: 0; }
+.sheet .ir { display: flex; align-items: center; gap: 12px; height: 52px; padding: 0 16px; border-top: 1px solid #2e2e33; font-size: var(--fs-m); }
+.sheet .ir:first-child { border-top: 0; }
+.sheet .ir > span { color: var(--mut); flex: none; }
+.sheet .ir > b { margin-left: auto; font-weight: var(--fw); text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.sheet .ir input { margin-left: auto; background: none; border: 0; outline: none; color: #fff; font: var(--fw) var(--fs-m) var(--ui); text-align: right; color-scheme: dark; min-width: 0; }
+.ash .seg4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.ash .seg4 button { height: 44px; border-radius: 999px; background: #232327; font-size: var(--fs-s); font-weight: var(--fw); }
+.ash .seg4 button.on { background: #fff; color: var(--bg); }
+.ash .mno { padding: 2px 0; }
+.okp.g.red { color: #ff5a52; }
+.ish .grp .it { display: flex; gap: 12px; align-items: center; width: 100%; height: 52px; padding: 0 16px; font-size: var(--fs-m); font-weight: var(--fw); }
+.ish .grp .it .ic { color: #c9c9cf; }
+
+/* 알림 목록 */
+.ftop [data-a=bell] { position: relative; }
+.ftop [data-a=bell].dot::after { content: ''; position: absolute; top: 9px; right: 9px; width: 8px; height: 8px; border-radius: 50%; background: #3B82F6; box-shadow: 0 0 0 2px var(--bg); }
+.nsw > summary { list-style: none; cursor: pointer; }
+.nsw > summary::-webkit-details-marker { display: none; }
+.nsw > summary .srw { border-top: 0; }
+.nsw > summary .v .ic { transition: transform .2s; }
+.nsw[open] > summary .v .ic { transform: rotate(90deg); }
+.nh { margin: 22px calc(var(--gut) + 4px) 0; font-size: var(--fs-s); font-weight: var(--fw); color: var(--mut); }
+.ngp { margin-top: 8px; }
+.nrw { position: relative; display: flex; gap: 14px; align-items: center; width: 100%; padding: 12px 34px 12px 14px; text-align: left; border-top: 1px solid var(--line); }
+.nrw:first-child { border-top: 0; }
+.nrw.new::after { content: ''; position: absolute; right: 16px; top: 50%; width: 8px; height: 8px; margin-top: -4px; border-radius: 50%; background: #3B82F6; }
+.nth { width: 52px; aspect-ratio: 4 / 5; flex: none; border-radius: 8px; overflow: hidden; pointer-events: none; display: flex; align-items: flex-start; background: rgba(255,255,255,.08); }
+.nth .view { display: block; width: 100%; flex: none; }
+.nth .cd { border-radius: 0; }
+.nth .pg ~ .pg { display: none; }
+.nth.ic0 { aspect-ratio: 1; border-radius: 50%; width: 44px; margin: 0 4px; align-items: center; justify-content: center; color: #c9c9cf; }
+.nt { min-width: 0; flex: 1; display: grid; gap: 3px; }
+.nt b { font-size: var(--fs-m); font-weight: var(--fw); }
+.nt small { font-size: var(--fs-s); color: var(--mut); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nls + .empty { min-height: 34vh; }
+.nmore { height: 40px; }

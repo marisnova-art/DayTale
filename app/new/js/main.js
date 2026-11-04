@@ -77,6 +77,7 @@ function route() {
   if (r === 'me') return viewMe();
   if (r === 'tpl') return viewTpl();
   if (r === 'ti') return viewIntro(a);
+  if (r === 'alarm') return viewNotes(false);
   if (r === 'set') return viewSet(a);
   if (r === 'book') return viewBook(decodeURIComponent(a || ''));
   return viewFeed();
@@ -129,7 +130,7 @@ function viewFeed(fresh, quiet) {
   const mine = S.cards(), two = S.pref('cols', 2) === 2;
   app.innerHTML = `<div class="amb"><div class="mo"></div><b></b><b></b><b></b><i></i><i></i><s></s></div><header class="ftop"><button class="logo" data-a="top" aria-label="맨 위로">${LOGO}</button><div class="rt"><button class="cb" data-a="cols" aria-label="${two ? '1열로 보기' : '2열로 보기'}">${ic(two ? 'col1' : 'col2')}</button><button class="cb" data-a="bell" aria-label="알림">${ic('bell')}</button><button class="cb me" data-a="me" aria-label="프로필"><span class="av"${avStyle()}></span></button></div></header><div class="bn${two ? ' two' : ''}" hidden></div>
     <main class="feed${two ? ' two' : ''}">${two ? '<div class="mc"></div><div class="mc"></div>' : ''}</main>${nav('home')}`;
-  bindNav(); $('[data-a=bell]').onclick = soon;
+  bindNav(); { const bl = $('[data-a=bell]'); bl.onclick = () => go('#/alarm'); bl.classList.toggle('dot', unread()); }
   $('[data-a=top]').onclick = () => window.scrollTo({ top: 0, behavior: 'smooth' });
   const feed = $('.feed');
   // 내 카드가 적으면 우리 카드(포맷 예시)를 아래에. N년 전 오늘 카드는 위에서 두 번째, NEW 포맷 카드는 8장마다 하나
@@ -286,7 +287,7 @@ function feedItem(c, tile, x = {}) {
   on('use', () => go(`#/write/${c.fmt}`));
   on('edit', () => go(`#/edit/${c.id}`));
   on('save', () => saveCard(c));
-  const mark = () => { c.mark = !c.mark; S.saveCard(c); $('[data-a=mark]', it)?.classList.toggle('on', c.mark); toast(c.mark ? '책갈피에 넣었어요' : '책갈피에서 뺐어요'); };
+  const mark = () => { c.mark = !c.mark; S.saveCard(c, false); $('[data-a=mark]', it)?.classList.toggle('on', c.mark); toast(c.mark ? '책갈피에 넣었어요' : '책갈피에서 뺐어요'); };
   const del = async () => {   // 한 번 물어보고 지워요. 지운 카드는 휴지통에 30일
     if (!(await ask('이 카드를 지울까요?', '삭제'))) return;
     S.removeCard(c.id); $$(`.feed .fi[data-k="${c.id}"], .feed .fi[data-k="r:${c.id}"]`).forEach(x => x.remove()); x.onDel?.();
@@ -305,8 +306,7 @@ function feedItem(c, tile, x = {}) {
     { icon: 'save', label: '이미지 저장', run: () => saveCard(c) },
     { icon: 'pen', label: '고치기', run: () => go(`#/edit/${c.id}`) },
     { icon: 'grid', label: '이 포맷으로 쓰기', run: () => go(`#/like/${c.id}`) },
-    { icon: 'read', label: '글만보기', run: () => openRead(c) },
-  ], [{ icon: 'trash', label: '지우기', red: true, run: del }]]));
+  ], cardExtra(c), [{ icon: 'trash', label: '지우기', red: true, run: del }]]));
   return it;
 }
 // N년 전 오늘: 오늘과 같은 월 · 일에 예전 해에 쓴 카드 (가장 최근 해 하나)
@@ -369,6 +369,170 @@ function openRead(c) {
   rv.addEventListener('click', () => { rv.classList.remove('in'); setTimeout(() => rv.remove(), 300); });
 }
 
+/* ── 카드 ⋯ 메모 · 알림 · 정보 (11-04) ─────────────────── */
+// 메모 = 카드에 남기는 가벼운 내 메모 (그날 기분 등). 카드 이미지에는 안 들어가고, 큰 화면 카드 아래 · 검색에 나와요. 카드와 함께 휴지통으로 가요
+// 알림 = 이 카드를 다시 보게 날짜 · 시간 (+ 반복). 때가 되면 알림 목록에 1번 장과 함께 쌓여요 (지우지 않아요)
+const REP = [['none', '안 함'], ['day', '매일'], ['week', '매주'], ['year', '매년']];
+const two = n => String(n).padStart(2, '0');
+const ymdOf = d => `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())}`;
+const hmOf = d => `${two(d.getHours())}:${two(d.getMinutes())}`;
+const stamp = iso => { const d = new Date(iso); return `${md(ymdOf(d))} ${hmOf(d)}`; };
+const alarmShort = a => `${+a.d.slice(5, 7)}.${+a.d.slice(8, 10)}${a.rep && a.rep !== 'none' ? ' · ' + REP.find(r => r[0] === a.rep)[1] : ''}`;
+// 시트 위 묶음: 메모 (몇 개) · 알림 (날짜) · 정보
+function cardExtra(c) {
+  const n = c.memos?.length || 0;
+  return [
+    { icon: 'note', label: `메모${n ? `<span class="sv">${n}</span>` : ''}`, run: () => memoSheet(c) },
+    { icon: 'bell', label: `알림${c.alarm ? `<span class="sv">${alarmShort(c.alarm)}</span>` : ''}`, run: () => alarmSheet(c) },
+    { icon: 'info', label: '정보', run: () => infoSheet(c) },
+  ];
+}
+// 메모 시트: 최근 것이 위. 아래 입력 줄 (키보드가 오르면 시트도 그 위로). 메모마다 ⋯ = 고치기 · 지우기
+function memoSheet(c) {
+  const sh = panelSheet(`<div class="grab"></div><p class="sh">메모</p><div class="mml"></div>
+    <div class="mib"><textarea rows="1" maxlength="500" placeholder="메모 남기기" enterkeyhint="send"></textarea><button data-a="send" aria-label="남기기" disabled>${ic('send')}</button></div>`, 'msh');
+  const el = sh.el, list = $('.mml', el), ta = $('textarea', el), send = $('[data-a=send]', el);
+  let editing = null;
+  const save = () => { const m = S.card(c.id); if (m) { m.memos = c.memos; S.saveCard(m, false); } refreshFocusMemo(c); };
+  const paint = () => {
+    const ms = [...(c.memos || [])].reverse();
+    list.innerHTML = ms.length ? ms.map(m => `<div class="mm" data-m="${m.id}"><p>${esc(m.t)}</p><small>${stamp(m.at)}${m.ed ? ' · 고침' : ''}</small><button class="cb" data-a="mm" aria-label="더 보기">${ic('more')}</button></div>`).join('')
+      : `<p class="mno">카드에 남기는 나만의 메모예요<br>이미지에는 들어가지 않아요</p>`;
+  };
+  const grow = () => { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 120) + 'px'; send.disabled = !ta.value.trim(); };
+  ta.addEventListener('input', grow);
+  ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); send.click(); } });
+  send.onclick = () => {
+    const t = ta.value.trim(); if (!t) return;
+    c.memos = c.memos || [];
+    if (editing) { const m = c.memos.find(x => x.id === editing); if (m) { m.t = t; m.ed = new Date().toISOString(); } editing = null; ta.placeholder = '메모 남기기'; }
+    else c.memos.push({ id: S.uid(), t, at: new Date().toISOString() });
+    ta.value = ''; grow(); save(); paint(); list.scrollTop = 0;
+  };
+  list.addEventListener('click', e => {
+    const b = e.target.closest('[data-a=mm]'); if (!b) return;
+    const id = b.closest('.mm').dataset.m, m = c.memos.find(x => x.id === id); if (!m) return;
+    sheet(null, [[{ icon: 'pen', label: '고치기', run: () => { editing = id; ta.value = m.t; ta.placeholder = '메모 고치기'; grow(); ta.focus(); } }],
+      [{ icon: 'trash', label: '지우기', red: true, run: async () => { if (!(await ask('이 메모를 지울까요?', '지우기'))) return; c.memos = c.memos.filter(x => x.id !== id); if (editing === id) { editing = null; ta.value = ''; grow(); } save(); paint(); } }]]);
+  });
+  paint();
+}
+// 큰 화면: 카드 바로 아래 메모 (최근 것이 위, 쓴 때)
+function memoHtml(c) {
+  const ms = [...(c.memos || [])].reverse();
+  return ms.length ? `<h4>메모</h4><div class="rl">${ms.map(m => `<div class="fm"><p>${esc(m.t)}</p><small>${stamp(m.at)}</small></div>`).join('')}</div>` : '';
+}
+function refreshFocusMemo(c) {
+  const box = focus && focus.c.id === c.id && $('.fmemo', focus.ov); if (box) box.innerHTML = memoHtml(c);
+  $$(`.fi[data-id="${c.id}"]`).forEach(it => { if (it._card) { it._card.memos = c.memos; it._card.alarm = c.alarm; } });
+}
+// 알림 시트: 날짜 · 시간 · 반복. 처음엔 일주일 뒤 밤 9시. 흰 완료 / 있으면 알림 지우기 (빨강)
+function alarmSheet(c) {
+  const a0 = c.alarm, def = new Date(Date.now() + 7 * 864e5);
+  let rep = a0?.rep || 'none';
+  const sh = panelSheet(`<div class="grab"></div><p class="sh">알림</p>
+    <div class="grp"><label class="ir"><span>날짜</span><input type="date" data-k="d" value="${a0?.d || ymdOf(def)}" min="${S.today()}"></label>
+    <label class="ir"><span>시간</span><input type="time" data-k="t" value="${a0?.t || S.pref('remindAt', '21:00')}"></label></div>
+    <div class="seg4">${REP.map(([k, l]) => `<button data-r="${k}">${l}</button>`).join('')}</div>
+    <p class="mno">이 카드를 그때 다시 보여 드려요</p>
+    <button class="okp" data-a="ok">완료</button>${a0 ? '<button class="okp g red" data-a="off">알림 지우기</button>' : ''}`, 'ash');
+  const el = sh.el, dIn = $('[data-k=d]', el), tIn = $('[data-k=t]', el);
+  const paint = () => $$('[data-r]', el).forEach(b => b.classList.toggle('on', b.dataset.r === rep));
+  $$('[data-r]', el).forEach(b => b.onclick = () => { rep = b.dataset.r; paint(); }); paint();
+  const put = a => { c.alarm = a; const m = S.card(c.id); if (m) { if (a) m.alarm = a; else delete m.alarm; S.saveCard(m, false); } if (!a) delete c.alarm; refreshFocusMemo(c); };
+  $('[data-a=ok]', el).onclick = () => {
+    const d = dIn.value || ymdOf(def), t = tIn.value || '21:00';
+    if (rep === 'none' && new Date(`${d}T${t}`) <= new Date()) return toast('지난 때예요');
+    put({ d, t, rep, set: new Date().toISOString() }); sh.close(); pill(`${alarmShort(c.alarm)} ${t}`, 'check');
+  };
+  $('[data-a=off]', el)?.addEventListener('click', () => { put(null); sh.close(); pill('알림을 지웠어요', 'check'); });
+}
+// 정보 시트: 이 카드가 어떻게 만들어졌는지 + 글만보기 + 흰 '이 포맷으로 쓰기'
+function infoSheet(c) {
+  const t = c.fmt !== 'text' ? T.tplOfCard(c) : null, b = pageBg(c, 0);
+  const bgName = b?.id === 'photo' ? (b.vd ? '내 영상' : '내 사진') : b?.id === 'hex' ? '직접 색' : b?.id ? `${KIND[findBg(b.id).kind] || ''} ${findBg(b.id).name || ''}`.trim() : '—';
+  const txt = cardText(c), n = c.fmt === 'rebus' ? 1 : (c.pages || []).length || 1;
+  const dt = iso => iso ? stamp(iso) : '—';
+  const edited = c.updated && c.created && Date.parse(c.updated) - Date.parse(c.created) > 6e4;
+  const rows = [['종류', FORMATS[c.fmt]?.name === '기본' ? '기본' : (LABEL[c.fmt] || '').split(' · ')[0]], ['템플릿', t?.name || '기본'], ['비율', (RATIOS.find(r => r[0] === (c.ratio || '45')) || RATIOS[0])[1]],
+    ['글꼴', c.font ? fontOf(c.font).name : '—'], ['배경', bgName], ['장 · 글자', `${n}장 · ${[...txt.replace(/\s/g, '')].length}자`],
+    ['쓴 날', dt(c.created)], ...(edited ? [['고친 날', dt(c.updated)]] : []), ...((c.place || '').trim() ? [['장소', esc(c.place.trim())]] : [])];
+  const sh = panelSheet(`<div class="grab"></div><p class="sh">정보</p>
+    <div class="grp">${rows.map(([k, v]) => `<div class="ir"><span>${k}</span><b>${v}</b></div>`).join('')}</div>
+    <div class="grp"><button class="it" data-a="read">${ic('read')}글만보기</button></div>
+    <button class="okp" data-a="like">이 포맷으로 쓰기</button>`, 'ish');
+  $('[data-a=read]', sh.el).onclick = () => { sh.close(); openRead(c); };
+  $('[data-a=like]', sh.el).onclick = () => { sh.close(); closeFocus(true); go(`#/like/${c.id}`); };
+}
+
+/* ── 알림 목록 ───────────────────────────────────────── */
+// 한 화면: 위에 스위치 (쓰기 알림 + 시간 · 새 포맷 소식), 아래에 알림 전부 (오늘 · 이번 주 · 달마다). 지우지 않아요
+// 종류 3가지: 다시 보기 (카드 1번 장) · 새 포맷 소식 · 공지 · 이벤트. 안 읽은 것은 파란 점, 종에도 점
+const notes = () => S.pref('notes', []);
+function syncNotes() {
+  const now = new Date(), list = notes(), have = new Set(list.map(n => n.key));
+  let changed = false;
+  const add = n => { if (have.has(n.key)) return; have.add(n.key); list.push(n); changed = true; };
+  S.cards().forEach(c => {
+    const a = c.alarm; if (!a?.d) return;
+    let at = new Date(`${a.d}T${a.t || '21:00'}`); if (at > now) return;
+    if (a.rep && a.rep !== 'none') {   // 반복: 지나간 것 중 마지막 한 번만 쌓고, 다음 때로 넘겨요
+      const step = d => { const x = new Date(d); if (a.rep === 'day') x.setDate(x.getDate() + 1); else if (a.rep === 'week') x.setDate(x.getDate() + 7); else x.setFullYear(x.getFullYear() + 1); return x; };
+      let last = at; while (step(last) <= now) last = step(last);
+      add({ key: `c:${c.id}:${last.toISOString()}`, k: 'card', cid: c.id, at: last.toISOString() });
+      const nx = step(last); c.alarm = { ...a, d: ymdOf(nx) };
+    } else { add({ key: `c:${c.id}:${at.toISOString()}`, k: 'card', cid: c.id, at: at.toISOString() }); delete c.alarm; }
+    S.saveCard(c, false);
+  });
+  // 새 템플릿: 처음 쓴 날로부터 2주 전 것부터 (연습용 템플릿은 빼요)
+  let from = S.pref('notesFrom', null); if (!from) { from = now.toISOString(); S.setPref('notesFrom', from); }
+  const since = Date.parse(from) - 14 * 864e5;
+  T.TEMPLATES.filter(t => !t.dummy && Date.parse(t.added + 'T09:00:00') >= since && Date.parse(t.added + 'T09:00:00') <= now).forEach(t => add({ key: 't:' + t.id, k: 'tpl', tid: t.id, at: new Date(t.added + 'T09:00:00').toISOString() }));
+  if (changed) S.setPref('notes', list);
+  return list;
+}
+const unread = () => syncNotes().some(n => !n.read);
+function viewNotes(fromSet) {
+  const list = [...syncNotes()].sort((a, b) => b.at.localeCompare(a.at));
+  const on = S.pref('remind', false), tm = TIMES.find(x => x[0] === S.pref('remindAt', '21:00'))?.[1] || '밤 9:00';
+  const sw = sgrp(srow('pen', '쓰기 알림', '', { tg: on, a: 'remind' }), srow('clock', '시간', tm, { go: '#/set/alarmtime' }), srow('spark', '새 포맷 소식', '', { tg: S.pref('news', false), a: 'news' }));
+  const today = S.today(), wk = Date.now() - 7 * 864e5;
+  const grpOf = n => { const d = ymdOf(new Date(n.at)); if (d === today) return '오늘'; if (Date.parse(n.at) >= wk) return '이번 주'; return d.slice(0, 4) === today.slice(0, 4) ? `${+d.slice(5, 7)}월` : `${d.slice(0, 4)}년 ${+d.slice(5, 7)}월`; };
+  const when = n => { const d = new Date(n.at), s = ymdOf(d); return s === today ? hmOf(d) : `${md(s)} ${hmOf(d)}`; };
+  const rowOf = n => {
+    const i = list.indexOf(n);
+    if (n.k === 'card') { const c = S.card(n.cid); return `<button class="nrw${n.read ? '' : ' new'}" data-i="${i}"><span class="nth"><span class="view"></span></span><span class="nt"><b>다시 볼 카드예요</b><small>${c ? esc(cardText(c).replace(/\s+/g, ' ').trim().slice(0, 60)) || esc(LABEL[c.fmt] || '') : '지운 카드예요'}</small><small>${when(n)}</small></span></button>`; }
+    if (n.k === 'tpl') { const t = T.tpl(n.tid); return `<button class="nrw${n.read ? '' : ' new'}" data-i="${i}"><span class="nth sq"><span class="view"></span></span><span class="nt"><b>새 템플릿이 나왔어요</b><small>${esc(t?.name || '')} · ${esc(t?.kind || '')}</small><small>${when(n)}</small></span></button>`; }
+    return `<button class="nrw${n.read ? '' : ' new'}" data-i="${i}"><span class="nth ic0">${ic('bell')}</span><span class="nt"><b>${esc(n.title || '공지')}</b><small>${esc(n.body || '')}</small><small>${when(n)}</small></span></button>`;
+  };
+  const head = fromSet ? sw : `<details class="nsw"><summary class="sgp"><span class="srw">${ic('bell')}<span class="l">알림 설정</span><span class="v"><span>${on ? '쓰기 알림 켜짐' : ''}</span>${ic('next')}</span></span></summary>${sw}</details>`;
+  setShell('알림', `${head}<div class="nls"></div>${list.length ? '' : `<div class="empty"><span class="i">${ic('bell')}</span><b>아직 알림이 없어요</b><span>카드 ⋯ › 알림에서 다시 볼 때를 정해 보세요</span></div>`}<div class="nmore"></div>`, { up: fromSet ? '#/set' : '#/' });
+  [['remind', 'remind'], ['news', 'news']].forEach(([a, k]) => $(`[data-a=${a}]`).onclick = e => { e.preventDefault(); const v = !S.pref(k, false); S.setPref(k, v); e.currentTarget.querySelector('.tg').classList.toggle('on', v); });
+  const host = $('.nls'); let shown = 0, lastG = null, gp = null;
+  const more = () => {   // 30개씩, 내리면 이어서
+    list.slice(shown, shown + 30).forEach(n => {
+      const g = grpOf(n);
+      if (g !== lastG) { host.insertAdjacentHTML('beforeend', `<h4 class="nh">${g}</h4><div class="sgp ngp"></div>`); gp = host.lastElementChild; lastG = g; }
+      gp.insertAdjacentHTML('beforeend', rowOf(n));
+      const b = gp.lastElementChild, v = $('.view', b);
+      if (n.k === 'card') { const c = S.card(n.cid); if (c) { v.style.aspectRatio = (1 / arOf(c)).toFixed(4); mount(v, { ...c, pages: c.pages?.slice(0, 1), pst: c.pst?.slice(0, 1) }); } }
+      if (n.k === 'tpl') { const t = T.tpl(n.tid); if (t) mount(v, T.exCard(t, 0, true)); }
+    });
+    shown = Math.min(list.length, shown + 30);
+  };
+  more();
+  const io = new IntersectionObserver(es => { if (es[0].isIntersecting && shown < list.length) more(); }); io.observe($('.nmore'));
+  host.addEventListener('click', e => {
+    const b = e.target.closest('.nrw'); if (!b) return;
+    const n = list[+b.dataset.i]; if (!n) return;
+    if (!n.read) { const all = notes(), x = all.find(y => y.key === n.key); if (x) { x.read = true; S.setPref('notes', all); } n.read = true; b.classList.remove('new'); }
+    if (n.k === 'card') { const c = S.card(n.cid); if (!c) return toast('지운 카드예요'); return openFocus(b, c); }
+    if (n.k === 'tpl') return go('#/ti/' + n.tid);
+    go('#/set/news');
+  });
+  cleanup = () => { io.disconnect(); closeFocus(true); };
+}
+
 // 비슷한 카드 (크게 보기 끝): 내 카드 중 다른 해 같은 날 → 같은 장소 → 같은 종류 · 배경 → 가까운 날짜 순으로 5장
 function related(c) {
   const day = x => Date.parse((x.date || '') + 'T12:00:00') / 864e5;
@@ -427,6 +591,7 @@ function openFocus(it, c, opt = {}) {
   requestAnimationFrame(() => requestAnimationFrame(() => { box.style.transition = ''; ov.classList.add('in'); box.style.transform = ''; box.style.clipPath = 'inset(0 0 0 0 round 0px)'; }));
   ov.addEventListener('click', () => closeFocus());
   focus = { ov, box, view, from, clip, y: scrollY, c };
+  if (!c.sample && c.id) { const fm = document.createElement('div'); fm.className = 'rel fmemo'; fm.innerHTML = memoHtml(c); sc.appendChild(fm); }   // 메모: 카드 바로 아래
   if (!c.sample && c.id) {   // 끝에 비슷한 카드: 누르면 그 카드가 이 화면에서 바뀌고, 닫으면 처음 연 카드 자리로
     const rel = document.createElement('div'); rel.className = 'rel'; sc.appendChild(rel);
     const fill = cc => {
@@ -437,7 +602,7 @@ function openFocus(it, c, opt = {}) {
     const swap = m => {
       box.innerHTML = ''; const el2 = renderCard(m); box.appendChild(el2); fitCard(el2, m);
       box.style.marginTop = Math.max((innerHeight - box.offsetHeight - 120) / 2, topGap()) + 'px';
-      focus.c = m; focus.swapped = true; fill(m); sc.scrollTo(0, 0);
+      focus.c = m; focus.swapped = true; fill(m); $('.fmemo', ov).innerHTML = memoHtml(m); sc.scrollTo(0, 0);
     };
     fill(c);
   }
@@ -536,7 +701,7 @@ function viewSearch(fromPick) {
     else if (mode?.k === 'fmt') { found = mine.filter(c => c.fmt === mode.v); fmts = [mode.v]; }
     else if (mode?.k === 'mark') found = mine.filter(c => c.mark);
     else {
-      const hay = c => [flat(c), c.place || '', LABEL[c.fmt] || '', c.date ? ymd(c.date) : ''].join(' ').toLowerCase();
+      const hay = c => [flat(c), (c.memos || []).map(m => m.t).join(' '), c.place || '', LABEL[c.fmt] || '', c.date ? ymd(c.date) : ''].join(' ').toLowerCase();
       const has = c => { const h = hay(c); return words.every(w => h.includes(w)); };
       dq = dateQ(q);
       if (dq) {   // 그 기간 카드 (최근 날짜가 위) → 글에 같은 말이 있는 카드는 그 뒤에
@@ -567,6 +732,7 @@ function viewSearch(fromPick) {
   const snip = c => {
     const t = flat(c); if (!words.length) return esc(t.slice(0, 80));
     const lt = t.toLowerCase(), at = Math.min(...words.map(w => { const i = lt.indexOf(w); return i < 0 ? 1e9 : i; }));
+    if (at === 1e9) { const m = (c.memos || []).find(x => words.some(w => x.t.toLowerCase().includes(w))); if (m) return '메모 · ' + hl(m.t.slice(0, 80), words); }   // 메모에서 찾은 카드
     const st = at === 1e9 || at < 12 ? 0 : at - 8;
     return (st ? '…' : '') + hl(t.slice(st, st + 90), words);
   };
@@ -744,7 +910,7 @@ function dayList(host, list, onOpen, onMore, n = 2) {   // n = 열 수 (달력 3
 // 카드 ⋯ (책장 · 달력 · 큰 화면 공통): 홈과 같은 목록. 내 책 안에서 열면 '이 책에서 빼기'도
 let editFrom = null, reopen = null, keepY = null;   // 책장 · 달력에서 고치러 가면, 끝나고 그 화면의 그 카드로 (큰 화면도 다시)
 function cardMenu(c, o = {}) {
-  const mark = () => { c.mark = !c.mark; S.saveCard(c); toast(c.mark ? '책갈피에 넣었어요' : '책갈피에서 뺐어요'); };
+  const mark = () => { c.mark = !c.mark; S.saveCard(c, false); toast(c.mark ? '책갈피에 넣었어요' : '책갈피에서 뺐어요'); };
   const out = () => { const bk = S.book(o.book.id); if (!bk) return; bk.ids = bk.ids.filter(id => id !== c.id); S.saveBook(bk); toast('이 책에서 뺐어요'); dropCard(c.id); };
   const del = async () => { if (!(await ask('이 카드를 지울까요?', '삭제'))) return; S.removeCard(c.id); dropCard(c.id); };
   sheet(`${+c.date.slice(5, 7)}월 ${+c.date.slice(8, 10)}일 · ${LABEL[c.fmt] || ''}`, [[
@@ -753,8 +919,7 @@ function cardMenu(c, o = {}) {
     { icon: 'save', label: '이미지 저장', run: () => saveCard(c) },
     { icon: 'pen', label: '고치기', run: () => { editFrom = { hash: location.hash, id: c.id }; go(`#/edit/${c.id}`); } },
     { icon: 'grid', label: '이 포맷으로 쓰기', run: () => go(`#/like/${c.id}`) },
-    { icon: 'read', label: '글만보기', run: () => openRead(c) },
-  ], ...(o.book?.mine ? [[{ icon: 'out', label: '이 책에서 빼기', run: out }]] : []), [{ icon: 'trash', label: '지우기', red: true, run: del }]]);
+  ], cardExtra(c), ...(o.book?.mine ? [[{ icon: 'out', label: '이 책에서 빼기', run: out }]] : []), [{ icon: 'trash', label: '지우기', red: true, run: del }]]);
 }
 // 지우거나 책에서 뺀 카드: 큰 화면이 열려 있으면 그 카드만 접히며 빠지고(다음 카드가 올라와요), 닫을 때 아래 화면을 보던 자리 그대로 다시 그려요
 function dropCard(id) {
@@ -2384,7 +2549,7 @@ function viewSet(sub) {
   if (sub === 'alarmtime') return setPick('알림 시간', TIMES, S.pref('remindAt', '21:00'), v => S.setPref('remindAt', v));
   if (sub === 'backup') return setBackup();
   if (sub === 'trash') return setTrash();
-  if (sub === 'alarm') return setAlarm();
+  if (sub === 'alarm') return viewNotes(true);
   if (sub === 'plan') return setPlan();
   if (sub === 'news') return setNews();
   if (sub === 'updates') return setUpdates();

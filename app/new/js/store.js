@@ -12,9 +12,9 @@ export const today = () => { const d = new Date(); return `${d.getFullYear()}-${
 
 export function cards() { return readCards(K_CARDS).sort((a, b) => (b.created || b.date).localeCompare(a.created || a.date)); }   // 쓴 순서(최근이 위)
 export function card(id) { return readCards(K_CARDS).find(c => c.id === id) || null; }
-export function saveCard(c) {
+export function saveCard(c, touch = true) {   // touch = false: 메모 · 알림 · 책갈피처럼 카드 자체는 안 바뀐 저장 (고친 날 그대로)
   const all = read(K_CARDS, []), i = all.findIndex(x => x.id === c.id);
-  c.updated = new Date().toISOString();
+  if (touch) c.updated = new Date().toISOString();
   if (i < 0) all.push(c); else all[i] = c;
   return write(K_CARDS, all);
 }
