@@ -1437,3 +1437,4 @@ html.booting #app, html.booting .nav { visibility: hidden; }
 .ftop { padding-left: var(--gut); padding-right: var(--gut); }
 .nav { left: var(--gut); right: var(--gut); }
 .brd .rbh.bhd, .bkv .bh.bhd { padding: var(--top) var(--gut) 16px; }
+.brd .rtoc .tls { grid-auto-rows: max-content; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }   /* 목차 줄이 눌려 찌그러지지 않고 위아래로 넘겨져요 */
