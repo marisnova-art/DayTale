@@ -14,7 +14,7 @@ export const filterOf = id => { const m = /^leak([0-3])$/.exec(id || ''); if (m)
 export const fidOf = c => c?.filter === 'leak' ? 'leak' + ((c.leak | 0) % 4) : c?.filter;
 // 노이즈: 끔 · 약 · 중 · 강 (b.grain 0~3, 예전 true = 약)
 export const grainLv = b => b?.grain === true ? 1 : Math.max(0, Math.min(3, b?.grain | 0));
-const GRS = [0, .14, .21, .28];
+const GRS = [0, .08, .13, .19];   // 11-04: 한 칸씩 낮춤
 export const GRAPHIC = new Set(['dot', 'pixel', 'halftone', 'duo', 'sketch']);   // 점이 굵어 글 뒤를 조금 더 받쳐 줘요
 
 const FS = `precision highp float;

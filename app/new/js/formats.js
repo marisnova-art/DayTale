@@ -23,10 +23,10 @@ export const weekday = d => WDL[parse(d).getDay()];
 export const dateChip = d => { const x = parse(d); return `${x.getMonth() + 1}.${String(x.getDate()).padStart(2, '0')} ${WD[x.getDay()]}`; };
 
 // 비율: 4:5(기본) · 9:16 · 1:1. 쓰기에서 고르고, 피드 · 저장 이미지가 그 비율 그대로예요
-export const AR = { 45: 1.25, 916: 16 / 9, 11: 1 };
-export const RATIOS = [['45', '4:5'], ['916', '9:16'], ['11', '1:1']];
+export const AR = { 45: 1.25, 916: 16 / 9, 11: 1, 32: 2 / 3, 169: 9 / 16 };   // 세로 ÷ 가로. 가로형 3:2 · 16:9 (11-04)
+export const RATIOS = [['45', '4:5'], ['916', '9:16'], ['11', '1:1'], ['32', '3:2'], ['169', '16:9']];
 export const arOf = c => AR[c?.ratio] || 1.25;
-export const shape = (el, ar) => { el.dataset.ar = ar; el.classList.toggle('r916', ar > 1.5); el.classList.toggle('r11', ar < 1.1); return el; };
+export const shape = (el, ar) => { el.dataset.ar = ar; el.classList.toggle('r916', ar > 1.5); el.classList.toggle('r11', ar < 1.1 && ar > .95); el.classList.toggle('r32', ar <= .95 && ar > .6); el.classList.toggle('r169', ar <= .6); el.classList.toggle('rw', ar <= .95); return el; };
 // 정보 줄 = 날짜 · 장소 (각각 켜고 끄기), 자리는 위 · 아래. 서명은 늘 맨 아래 왼쪽 · 가운데 · 오른쪽 (모든 장)
 export const dateOn = c => c.showDate ?? (!!c.datePos && c.datePos !== 'none');
 export const placeOn = c => dateOn(c) && !!(c.place || '').trim() && !c.placeOff;   // 장소는 날짜 줄에 같이 (줄을 끄면 같이 숨어요)
@@ -193,7 +193,7 @@ const grainUrl = () => {
   for (let i = 0; i < n * n; i++) { const v = r() < .5 ? 0 : 255; im.data.set([v, v, v, Math.round(r() * 46)], i * 4); }
   x.putImageData(im, 0, 0); return (grainPng = cv.toDataURL('image/png'));
 };
-const GR_OP = [0, .55, .8, 1];
+const GR_OP = [0, .35, .5, .7];   // 11-04: 2단계가 강해서 전체를 낮췄어요 (새 중간 ≈ 예전 약)
 const grainLayer = cb => { const lv = grainLv(cb); return lv ? `<div class="bgi grn" style="background-image:url(${grainUrl()});background-size:24cqw;opacity:${GR_OP[lv]}"></div>` : ''; };
 function bgLayer(c, page, pages) {
   const cb = pageBg(c, page), b = cb?.id === 'hex' && cb.hex ? hexBg(cb.hex) : findBg(cb?.id);

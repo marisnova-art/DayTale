@@ -7,6 +7,7 @@ const P = {
   check: '<path d="M20 6 9 17l-5-5"/>',
   fmt: '<path d="M4 7V5h16v2"/><path d="M12 5v14"/><path d="M9 19h6"/>',
   photo: '<rect x="3" y="5" width="15" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.5"/><path d="m18 15-4-4-8 8"/><path d="M21 3v6M18 6h6"/>',
+  quote: '<path d="M10 7H6a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h2v1a3 3 0 0 1-3 3"/><path d="M20 7h-4a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h2v1a3 3 0 0 1-3 3"/>',
   emo: '<circle cx="12" cy="12" r="9"/><path d="M8.5 14.5a4.5 4.5 0 0 0 7 0"/><path d="M9 9.5h.01M15 9.5h.01"/>',
   bg: '<path d="M12 3a9 9 0 1 0 0 18c1.4 0 2-1 1.6-2.1-.4-1.1.3-2.4 1.6-2.4H17a4 4 0 0 0 4-4c0-5.3-4-9.5-9-9.5z"/><path d="M7.5 11h.01M10 7h.01M15 7.5h.01"/>',   // 팔레트: 배경 · 꾸미기 옵션
   filter: '<circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/>',   // 반쪽 렌즈
@@ -71,6 +72,8 @@ const P = {
   d2: '<rect x="4" y="9.33" width="16" height="10.67" rx="0" fill="currentColor" stroke="none" opacity=".85"/><rect x="4" y="4" width="16" height="16" rx="3"/>',
   d3: '<rect x="4" y="4.00" width="16" height="16.00" rx="3" fill="currentColor" stroke="none" opacity=".85"/><rect x="4" y="4" width="16" height="16" rx="3"/>',
   trash: '<path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13"/>',
+  col1: '<rect x="6" y="3.5" width="12" height="17" rx="2.5"/>',
+  col2: '<rect x="3" y="4.5" width="8" height="15" rx="2"/><rect x="13" y="4.5" width="8" height="15" rx="2"/>',
   one: '<rect x="5" y="4" width="14" height="12" rx="1.5"/><path d="M5 20h14"/>',
   grid: '<rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/>',
   fold: '<path d="m7 15 5-5 5 5"/>',

@@ -53,3 +53,11 @@ export function exampleText(now = new Date()) {
   try { localStorage.setItem(LOG, JSON.stringify([...hist, { k: out.k, d: day }].slice(-80))); } catch {}
   return out.by ? { t: out.t, by: out.by } : { t: out.t };
 }
+
+// 문장 넣기 (11-04): 글 없이 올리고 싶을 때. 모아 둔 문장(힘이 되는 한 마디 + 문학 구절)에서 하나씩, 14일 안에는 겹치지 않게
+export function quoteText(now = new Date()) {
+  const day = now.toISOString().slice(0, 10), hist = read().filter(h => h.d >= new Date(now - 14 * 864e5).toISOString().slice(0, 10));
+  const x = pick([...WORDS, ...LINES], new Set(hist.map(h => h.k)));
+  try { localStorage.setItem(LOG, JSON.stringify([...hist, { k: x.k, d: day }].slice(-80))); } catch {}
+  return { t: x.q, by: x.by };
+}

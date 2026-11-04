@@ -1,7 +1,7 @@
 // 갖고 싶은 하루 · 모바일 1차: 피드 → 포맷 고르기 → 쓰기 → 완료·저장
 import { ic } from './icons.js';
 import * as S from './store.js';
-import { exampleText } from './prompts.js';
+import { exampleText, quoteText } from './prompts.js';
 import { FORMATS, ORDER, LABEL, blank, sampleCard, renderCard, fitCard, cardText, newSeed, placeObjects, dateChip, weekday, toneOf, pageBg, AR, RATIOS, arOf, dateOn, placeOn, infoPos, signOf, SIZE5, V5, dimLv, inkOn, dateLine, DATE_FMT, zoomOf, zoomCss } from './formats.js';
 import { FREE, KIND, find as findBg, drawCode } from './bg.js';
 import { buildPages, saveImages } from './export.js';
@@ -102,6 +102,13 @@ function bindNav() {
   $$('.nb').forEach(b => b.onclick = () => ({ home, search: find, write: () => go('#/pick'), tpl, shelf }[b.dataset.n] || soon)());
   $$('[data-a=me]').forEach(b => b.onclick = me);   // 프로필은 홈 위 줄 (알림 옆)
 }
+// 하단 메뉴 (11-04): 아래로 내리면 작아지고, 위로 올리거나 0.9초 멈추면 다시 커져요
+{ let y0 = 0, idle = 0;
+  addEventListener('scroll', () => {
+    const n = $('.nav'), y = scrollY; if (!n) return;
+    if (y > 60 && y - y0 > 6) n.classList.add('sm'); else if (y0 - y > 6 || y <= 60) n.classList.remove('sm');
+    y0 = y; clearTimeout(idle); idle = setTimeout(() => $('.nav')?.classList.remove('sm'), 900);
+  }, { passive: true }); }
 // 아이폰은 누른 그 순간에만 키보드를 올려 줘요: 화면이 바뀌기 전에 빈 칸에 먼저 커서를 두고, 새 화면의 검색 칸이 이어받아요
 function kbNow() {
   const t = document.createElement('input'); t.className = 'kbtmp'; t.setAttribute('aria-hidden', 'true');
@@ -120,7 +127,7 @@ function fixCover(c, i, b, cov) {
 // 1열(카드 크게 · 아이콘 줄 · 글 한 줄)과 2열(핀터레스트처럼 카드마다 제 비율, 아래는 쓴 때 · ⋯만). 로고 줄 알림 왼쪽 버튼으로 바꾸고, 고른 걸 기억해요 (처음은 2열)
 function viewFeed(fresh, quiet) {
   const mine = S.cards(), two = S.pref('cols', 2) === 2;
-  app.innerHTML = `<div class="amb"><div class="mo"></div><b></b><b></b><b></b><i></i><i></i><s></s></div><header class="ftop"><button class="logo" data-a="top" aria-label="맨 위로">${LOGO}</button><div class="rt"><button class="cb" data-a="cols" aria-label="${two ? '1열로 보기' : '2열로 보기'}">${ic(two ? 'one' : 'grid')}</button><button class="cb" data-a="bell" aria-label="알림">${ic('bell')}</button><button class="cb me" data-a="me" aria-label="프로필"><span class="av"${avStyle()}></span></button></div></header><div class="bn${two ? ' two' : ''}" hidden></div>
+  app.innerHTML = `<div class="amb"><div class="mo"></div><b></b><b></b><b></b><i></i><i></i><s></s></div><header class="ftop"><button class="logo" data-a="top" aria-label="맨 위로">${LOGO}</button><div class="rt"><button class="cb" data-a="cols" aria-label="${two ? '1열로 보기' : '2열로 보기'}">${ic(two ? 'col1' : 'col2')}</button><button class="cb" data-a="bell" aria-label="알림">${ic('bell')}</button><button class="cb me" data-a="me" aria-label="프로필"><span class="av"${avStyle()}></span></button></div></header><div class="bn${two ? ' two' : ''}" hidden></div>
     <main class="feed${two ? ' two' : ''}">${two ? '<div class="mc"></div><div class="mc"></div>' : ''}</main>${nav('home')}`;
   bindNav(); $('[data-a=bell]').onclick = soon;
   $('[data-a=top]').onclick = () => window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -135,7 +142,7 @@ function viewFeed(fresh, quiet) {
     const cols = $$('.mc', feed), h = [0, 0];
     list.forEach(({ c, x }) => { const i = h[1] < h[0] ? 1 : 0; cols[i].appendChild(feedItem(c, true, x)); h[i] += arOf(c) + .16; });
   } else list.forEach(({ c, x }) => feed.appendChild(feedItem(c, false, x)));
-  banner(rec);
+  // 11-04: 위 배너는 이벤트 · 공지 · 알림 전용 (관리자에서 올린 것만). N년 전 오늘은 피드 두 번째 카드로만
   // 1열 ↔ 2열: 보던 카드가 바뀐 화면에서도 가운데에 오게
   $('[data-a=cols]').onclick = () => {
     const k = scrollY > 40 ? cur?.dataset.k : null; S.setPref('cols', two ? 1 : 2);   // 맨 위에서 바꾸면 맨 위 그대로
@@ -482,7 +489,7 @@ const inDate = (c, r) => c.date && (r.from ? c.date >= r.from && c.date <= r.to 
 
 function viewSearch(fromPick) {
   const mine = S.cards();
-  app.innerHTML = `${MOOD}<div class="srch"><header class="sbar">${fromPick ? `<button class="cb bk" data-a="back" aria-label="뒤로">${ic('back')}</button>` : ''}
+  app.innerHTML = `${MOOD}<div class="srch${fromPick ? '' : ' ttl'}">${fromPick ? '' : '<header class="shtop"><div class="tl"><h1>검색</h1></div></header>'}<header class="sbar">${fromPick ? `<button class="cb bk" data-a="back" aria-label="뒤로">${ic('back')}</button>` : ''}
     <label class="fld"><span class="li">${ic('search')}</span><input type="search" enterkeyhint="search" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="글, 장소, 날짜, 포맷"><button class="x" data-a="clr" aria-label="지우기" hidden>${ic('close')}</button></label></header>
     <main class="sbody"></main></div>${fromPick ? '' : nav('search')}`;
   bindNav();
@@ -716,18 +723,18 @@ function viewShelf() {
 }
 
 // 날짜별 2열 (책 · 달력 같이): 날짜 머리 + 2열 칸(더 짧은 열에 차례로) + 칸 아래 [시간 · ⋯] (홈 2열과 같은 줄). 칸은 화면 가까이 올 때 그려요
-function dayList(host, list, onOpen, onMore) {
+function dayList(host, list, onOpen, onMore, n = 2) {   // n = 열 수 (달력 3열, 11-04)
   const groups = new Map(); list.forEach(c => { const d = c.date || S.today(); if (!groups.has(d)) groups.set(d, []); groups.get(d).push(c); });
-  host.innerHTML = [...groups].map(([d, cs]) => { const [b, s] = dayHead(d, cs.length); return `<div class="dh" data-d="${d}"><b>${b}</b><span>${s}</span></div><div class="f2" data-d="${d}"><div class="mc"></div><div class="mc"></div></div>`; }).join('');
+  host.innerHTML = [...groups].map(([d, cs]) => { const [b, s] = dayHead(d, cs.length); return `<div class="dh" data-d="${d}"><b>${b}</b><span>${s}</span></div><div class="f2${n === 3 ? ' f3' : ''}" data-d="${d}">${'<div class="mc"></div>'.repeat(n)}</div>`; }).join('');
   const io = new IntersectionObserver(es => es.forEach(e => { if (!e.isIntersecting) return; io.unobserve(e.target); const it = e.target, c = it._card, view = $('.view', it), pc = $('.pc', it); mount(view, c); pageInto(view, c, (i, n) => { pc.hidden = false; pc.textContent = `${i}/${n}`; }); }), { rootMargin: '900px 0px' });
   groups.forEach((cs, d) => {
-    const cols = $$(`.f2[data-d="${d}"] .mc`, host), h = [0, 0];
+    const cols = $$(`.f2[data-d="${d}"] .mc`, host), h = cols.map(() => 0);
     cs.forEach(c => {
       const it = document.createElement('article'); it.className = 'fi tile dt'; it.dataset.id = c.id; it._card = c;
       it.innerHTML = `<div class="fx"><div class="view" style="aspect-ratio:${(1 / arOf(c)).toFixed(4)};background:${toneOf(c)}"></div><span class="pc bd" hidden></span></div><p class="mt"><span>${timeOf(c)}</span><button class="cb" data-a="more" aria-label="더 보기">${ic('more')}</button></p>`;
       $('.fx', it).onclick = () => onOpen(c, it);
       $('[data-a=more]', it).onclick = () => onMore(c);
-      const i = h[1] < h[0] ? 1 : 0; cols[i].appendChild(it); h[i] += arOf(c) + .1;
+      const i = h.indexOf(Math.min(...h)); cols[i].appendChild(it); h[i] += arOf(c) + .1;   // 가장 짧은 열에
       io.observe(it);
     });
   });
@@ -923,7 +930,11 @@ function viewCal(month) {
   let stop = () => {};
   const open = c => openRun(all, c);
   if (all.length) {
-    stop = dayList(list, all, open, c => cardMenu(c));
+    stop = dayList(list, all, open, c => cardMenu(c), 3);
+    // 내리다 멈추면 가장 가까운 날짜 머리가 위 판 바로 아래에 와요 (11-04). 판 높이가 바뀌면(달 펼치기) 그 높이로
+    const cpn = $('.cpn'), setH = () => document.documentElement.style.setProperty('--cph', cpn.offsetHeight + 'px');
+    setH(); const ro = new ResizeObserver(setH); ro.observe(cpn); document.documentElement.classList.add('csnap');
+    const stopList = stop; stop = () => { stopList(); ro.disconnect(); document.documentElement.classList.toggle('csnap', false); };
     list.insertAdjacentHTML('beforeend', `<p class="firstd">처음 쓴 날 · ${ymd(first)}</p>`);
     requestAnimationFrame(() => { toWeek(act, false); if (!settle(all, open)) jump(act, false); });
   } else { list.innerHTML = `<div class="empty"><span class="i">${ic('cal')}</span><b>아직 쓴 카드가 없어요</b></div>`; requestAnimationFrame(() => toWeek(T, false)); }
@@ -1066,11 +1077,11 @@ const HEART = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M
 function viewTpl() {
   const free = T.heroes()[0].t, paid = isPaidUser();
   const lock = t => t.paid && !paid && t !== free;   // 테스트 동안은 표시만 (모두 열려 있어요)
-  const chips = ['홈', '디자인', '아트', ...T.tagOrder()];
+  const chips = [['홈', '홈'], ...(T.favs().length ? [['fav', '즐겨찾기']] : []), ['디자인', '디자인'], ['아트', '아트'], ...T.tagOrder().map(t => [t, t])];   // 11-04: 즐겨찾기는 홈 옆 칩으로 (비어 있으면 숨겨요)
   app.innerHTML = `<div class="amb"><div class="mo"></div></div><div class="tgr"></div><div class="tmv">
-    <header class="shtop"><div class="tl"><h1>템플릿</h1></div><button class="hb" data-a="fav" aria-label="즐겨찾기">${HEART}</button></header>
+    <header class="shtop"><div class="tl"><h1>템플릿</h1></div></header>
     <div class="tstk"><label class="tsf gls">${ic('search')}<input type="search" placeholder="검색" enterkeyhint="search" autocomplete="off"><button class="x" data-a="clr" aria-label="지우기" hidden>${ic('close')}</button></label>
-    <div class="tch">${chips.map(c => `<button class="gls" data-c="${esc(c)}">${esc(c)}</button>`).join('')}</div></div>
+    <div class="tch">${chips.map(([c, n]) => `<button class="gls" data-c="${esc(c)}">${esc(n)}</button>`).join('')}</div></div>
     <main class="tbody"></main></div>${nav('tpl')}`;
   bindNav();
   const stopMood = paintMood($('.amb'));
@@ -1080,7 +1091,6 @@ function viewTpl() {
   const paint = () => {
     clearInterval(timer);
     const f = tstate.f, q = tstate.q.trim();
-    $('[data-a=fav]').classList.toggle('on', f === 'fav');
     $$('.tch button').forEach(b => b.classList.toggle('on', b.dataset.c === f));
     $('[data-a=clr]').hidden = !q;
     const body = $('.tbody'); body.innerHTML = '';
@@ -1096,7 +1106,7 @@ function viewTpl() {
       const SORTS = [['new', '새로 나온'], ['pop', '인기'], ...(Object.keys(T.mineCount()).length ? [['mine', '자주 쓴']] : [])];
       if (!SORTS.some(x => x[0] === tstate.sort)) tstate.sort = 'new';
       const first = `<div class="tsec tabs"><span class="tbs">${SORTS.map(([k, n]) => `<button data-s="${k}" class="${k === tstate.sort ? 'on' : ''}">${n}</button>`).join('')}</span><button data-c="s:${tstate.sort}">모두 보기</button></div><div class="trow" data-row="sort">${T.sorted(tstate.sort).slice(0, 8).map(t => tile(t)).join('')}</div><div class="mdots"></div>`;
-      body.innerHTML = `<div class="thero"><div class="ths">${hs.map(h => `<button class="tday gls" data-t="${h.t.id}"><div class="th"></div><div class="tdx"><em class="gls">${h.label}</em><b>${esc(h.t.name)}</b><p>${esc(T.line(h.t.desc[0]))}</p></div></button>`).join('')}</div><div class="mdots" data-for="ths"></div></div>
+      body.innerHTML = `<div class="thero"><div class="ths gls">${hs.map(h => `<button class="tday" data-t="${h.t.id}"><div class="th"></div><div class="tdx"><em class="gls">${h.label}</em><b>${esc(h.t.name)}</b><p>${esc(T.line(h.t.desc[0]))}</p></div></button>`).join('')}</div><div class="mdots" data-for="ths"></div></div>
         ${first}${rows.map(r => `<div class="tsec"><b>${esc(r.title)}</b><button data-c="${esc(r.c)}">모두 보기</button></div><div class="trow">${r.l.map(t => tile(t)).join('')}</div><div class="mdots"></div>`).join('')}
         <div class="tsec"><b>모든 템플릿</b></div><div class="tg2">${T.newest().map(t => tile(t)).join('')}</div>`;
       hs.forEach((h, i) => mount($$('.tday .th', body)[i], cardOf(h.t)));
@@ -1125,7 +1135,6 @@ function viewTpl() {
   };
   const setF = f => { tstate.f = f; paint(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   $('.tch').onclick = e => { const b = e.target.closest('[data-c]'); if (b) setF(b.dataset.c); };
-  $('[data-a=fav]').onclick = () => setF(tstate.f === 'fav' ? '홈' : 'fav');
   $('[data-a=clr]').onclick = e => { e.preventDefault(); inp.value = tstate.q = ''; paint(); inp.focus(); };
   inp.oninput = () => { tstate.q = inp.value; paint(); };
   inp.onkeydown = e => { if (e.key === 'Enter') inp.blur(); };
@@ -1307,7 +1316,7 @@ function viewWrite({ fmt, id, like }) {
   // 포토 포맷은 쓰는 중 줄에 사진 칸이 없어요 (팔레트 1칸 · 빈 장 가운데 버튼에서 골라요)
   // 8칸: 스타일 보기 = 키보드 · 비율 · 서식 · 글꼴 · 배경 · 셔플/필터 · ↶ · ↷ / 쓰기 보기 = 키보드 · 이모티콘 · 새 장 · 사진 · 빈칸 · 빈칸 · ↶ · ↷.
   // 지금 못 쓰는 칸은 숨겨요(빈칸). 되돌리기 · 다시하기만 흐리게 남아요
-  const T1 = [['kb', ''], ['ratio', 's'], ['fmt', 's'], ['font', 's'], ['bg', 's'], [f.tools.filter ? 'img' : 'shuf', 's'], ['emo', 'w'], ['page', 'w'], [f.tools.bg === 'photo' ? '' : 'photo', 'w'], ['', 'w'], ['', 'w'], ['undo', ''], ['redo', '']];
+  const T1 = [['kb', ''], ['ratio', 's'], ['fmt', 's'], ['font', 's'], ['bg', 's'], [f.tools.filter ? 'img' : 'shuf', 's'], ['emo', 'w'], ['page', 'w'], ['quote', 'w'], [f.tools.bg === 'photo' ? '' : 'photo', 'w'], ['', 'w'], ['undo', ''], ['redo', '']];
   app.innerHTML = `<div class="wr ${rich ? 'rich' : 'plain'}">
     <header class="top"><button class="cb" data-a="back" aria-label="뒤로">${ic('back')}</button><div class="nm stt"></div><button class="cb w" data-a="ok" aria-label="완료">${ic('check')}</button></header>
     <div class="area"><section class="stage"></section></div>
@@ -1480,7 +1489,7 @@ function viewWrite({ fmt, id, like }) {
   // 사진 저장: 카드에 정한 그대로 모든 장을 바로 (쓰기 화면에 그대로 있어요. 완료 전이면 아직 쓰는 중)
   const svb = $('.st3 .svb');
   svb.addEventListener('pointerdown', e => e.preventDefault());
-  svb.onclick = () => { if (!hasText()) return shake(svb); flush(); saveCard(clone(card)); };
+  svb.onclick = () => { flush(); saveCard(clone(card)); };
 
   // 알림은 모두 위 가운데 상태 자리에 1초쯤 (글꼴 이름은 그 글꼴로). 어두운 위 줄이라 어떤 배경에서도 보여요
   function pop(text, font, kind) {   // kind가 있으면 두 줄: 작은 회색 종류 + 이름
@@ -1616,6 +1625,7 @@ function viewWrite({ fmt, id, like }) {
   const enabled = k => {
     if (k === 'kb' || k === 'undo' || k === 'redo' || k === 'ratio') return true;
     if (k === 'photo' || k === 'emo' || k === 'page') return !!f.tools[k];
+    if (k === 'quote') return !!(rich && f.tools.page);   // 문장 넣기: 글포맷 · 아트
     if (k === 'fmt') return !!f.tools.style;
     if (k === 'font') return !!(f.tools.style && f.tools.font);
     if (k === 'img') return !!f.tools.filter;
@@ -1632,7 +1642,6 @@ function viewWrite({ fmt, id, like }) {
       const tab = { ink: 'fmt', hue: 'bg', filter: 'img' }[st.tab] || st.tab;
       b.classList.toggle('on', k === 'kb' ? typ && !st.panel : ['fmt', 'font', 'bg', 'img'].includes(k) ? tab === k && enabled(k) : st.panel === k);
     });
-    $('[data-a=ok]').disabled = !hasText();
   }
   const shake = b => { b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake'); };
 
@@ -1669,6 +1678,14 @@ function viewWrite({ fmt, id, like }) {
       if (k === 'img') { st.tab = 'img'; paintRow2(); if (!photoPg()) pickPhoto(); return; }   // 사진이 없는 장이면 바로 사진첩
       if (k === 'photo') return pickPhoto();   // 쓰는 중에도 이 장의 사진을 고를 수 있어요 (포토 포맷)
       if (k === 'emo') return st.panel === k ? closePanel(true) : openPanel(k);
+      if (k === 'quote') {   // 문장 넣기 (11-04): 빈 장이거나 방금 넣은 문장이면 다른 문장으로 바꾸고, 쓴 글이 있으면 그 뒤에 붙여요
+        flush(); ps();
+        const q = quoteText(), html = `${esc(q.t)}${q.by ? `<br><br>— ${esc(q.by)}` : ''}`, cur = card.pages[st.pg] || '';
+        const plain = cur.replace(/<br\s*\/?>/g, '').replace(/<[^>]+>/g, '').trim();
+        card.pages[st.pg] = !plain || cur === st.lastQ ? html : `${cur}<br><br>${html}`;
+        st.lastQ = card.pages[st.pg];
+        push(); draw(); count(); tools(); return pop(q.by || '문장');
+      }
       pop('다음 단계에서 열려요');
     };
   });
@@ -2070,8 +2087,7 @@ function viewWrite({ fmt, id, like }) {
     if (isNew && /^#\/ti\//.test(came || '')) return history.back();
     go(isNew ? '#/pick' : `#/at/${card.id}`);   // 바로 앞 화면으로: 새로 쓰기는 포맷 고르기, 고치기는 피드의 그 카드
   };
-  $('[data-a=ok]').onclick = () => {
-    if (!hasText()) return;
+  $('[data-a=ok]').onclick = () => {   // 11-04: 글 없이 배경 · 날짜만 있는 카드도 올릴 수 있어요
     if (isNew) { card.id = S.uid(); card.created = new Date().toISOString(); S.clearDraft(did); }
     delete card.sample; delete card.ex; S.saveCard(card);
     const pl = (card.place || '').trim();   // 최근 장소 (장소 칸에서 다시 고를 수 있게)
@@ -2150,7 +2166,7 @@ const statsOf = list => ({
   long: Math.max(0, ...list.map(c => cardText(c).replace(/\s/g, '').length)),
   avg: list.length ? Math.round(list.reduce((s, c) => s + cardText(c).replace(/\s/g, '').length, 0) / list.length) : 0,
   wd: most(list.map(c => c.date ? WD[dayOf(c.date).getDay()] + '요일' : '')),
-  ratio: most(list.map(c => ({ 45: '4:5', 916: '9:16', 11: '1:1' })[c.ratio || '45'])),
+  ratio: most(list.map(c => ({ 45: '4:5', 916: '9:16', 11: '1:1', 32: '3:2', 169: '16:9' })[c.ratio || '45'])),
 });
 
 // 프로필 (10-29 v11): 위 판 = 홈 무드 + 고운 노이즈 (아래만 둥글게). 사진 · 이름 · @아이디 · 칩 / 한 줄 / 통계 카드 7장 (옆으로 밀어요)
@@ -2508,4 +2524,9 @@ function setPlan() {
 }
 
 const usedPhotos = () => [...S.cards(), ...S.trash(), ...S.drafts().map(d => d.card)].filter(Boolean).flatMap(c => [c.bg, ...(c.pst || []).map(p => p.bg)]).flatMap(b => [b?.ph, b?.vd]).filter(Boolean);   // 영상 파일도
-P.boot(usedPhotos()).then(route);
+// 처음 열 때 (11-04): 바탕 위 로고만 보이다가, 글꼴 · 첫 화면이 다 그려지면 0.3초에 걸쳐 나타나요. 늦어도 2초면 그냥 보여요
+const boot = document.getElementById('boot');
+if (boot) boot.innerHTML = LOGO;
+const bootEnd = () => { if (!boot || boot.classList.contains('out')) return; boot.classList.add('out'); setTimeout(() => boot.remove(), 400); };
+setTimeout(bootEnd, 2000);
+P.boot(usedPhotos()).then(route).then(() => document.fonts.ready).then(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))).then(bootEnd, bootEnd);

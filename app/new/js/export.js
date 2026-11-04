@@ -126,14 +126,15 @@ const one = f => { const r = line.then(f, f); line = r.catch(() => {}); return r
 
 // o = { pages: [보낼 장 번호] (없으면 모두), onStep(지금, 모두) } → { files, failed: [장 번호] }
 export const cardImages = (c, o = {}) => one(async () => {
-  const W = 1080, ar = arOf(c), H = Math.round(W * ar), tag = { 1.25: '', 1: '-11' }[ar] ?? '-916';
+  const W = 1080, ar = arOf(c), H = Math.round(W * ar), tag = { 1.25: '', 1: '-11', [2 / 3]: '-32', [9 / 16]: '-169' }[ar] ?? '-916';
   const { h, nodes: all } = await buildPages(c, W, 1, ar);
   all.forEach(n => n.querySelectorAll('canvas.bgv').forEach(x => x.remove()));   // 영상인 장은 커버 사진으로 (영상 MP4 저장은 다음 단계)
   await document.fonts.ready;
   const pick = o.pages ? o.pages.filter(i => all[i]) : all.map((_, i) => i);
   try {
     const fontEmbedCSS = await fontCss(cardText(c) + (c.place || '') + (signOf(c) ? c.signTxt : '') + '0123456789.·/ 일월화수목금토요', c.fmt !== 'rebus' ? c.font || 'serif' : 'sans');
-    const opt = { width: W, height: H, pixelRatio: 1, fontEmbedCSS, cacheBust: false };
+    const opt = { width: W, height: H, pixelRatio: ar < .6 ? 16 / 9 : 1,   // 16:9는 1920×1080으로 (PC · 유튜브 크기)
+      fontEmbedCSS, cacheBust: false };
     const files = [], failed = [];
     for (const [k, i] of pick.entries()) {
       o.onStep?.(k + 1, pick.length);
