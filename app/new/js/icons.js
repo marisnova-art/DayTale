@@ -10,7 +10,7 @@ const P = {
   check: '<path d="M20 6 9 17l-5-5"/>',
   fmt: '<path d="M4 7V5h16v2"/><path d="M12 5v14"/><path d="M9 19h6"/>',
   photo: '<rect x="3" y="5" width="15" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.5"/><path d="m18 15-4-4-8 8"/><path d="M21 3v6M18 6h6"/>',
-  quote: '<path d="M10 7H6a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h2v1a3 3 0 0 1-3 3"/><path d="M20 7h-4a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h2v1a3 3 0 0 1-3 3"/>',
+  quote: '<path d="M4 5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-9l-4.5 3.5V17H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/><path d="M8 14v-2.2c0-1.6.8-2.7 2.4-3.1l.4.9c-.8.3-1.3.9-1.4 1.6H10.6V14zM13 14v-2.2c0-1.6.8-2.7 2.4-3.1l.4.9c-.8.3-1.3.9-1.4 1.6h1.2V14z" fill="currentColor" stroke-width=".8"/>',   // 문장 넣기: 말풍선 안 큰따옴표 (11-04 바꿈)
   emo: '<circle cx="12" cy="12" r="9"/><path d="M8.5 14.5a4.5 4.5 0 0 0 7 0"/><path d="M9 9.5h.01M15 9.5h.01"/>',
   bg: '<path d="M12 3a9 9 0 1 0 0 18c1.4 0 2-1 1.6-2.1-.4-1.1.3-2.4 1.6-2.4H17a4 4 0 0 0 4-4c0-5.3-4-9.5-9-9.5z"/><path d="M7.5 11h.01M10 7h.01M15 7.5h.01"/>',   // 팔레트: 배경 · 꾸미기 옵션
   filter: '<circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/>',   // 반쪽 렌즈
@@ -50,6 +50,7 @@ const P = {
   shelf: '<path d="M4 4h4v16H4zM10 4h4v16h-4z"/><path d="m16 5 3.8-1 3 15.5-3.8 1z"/>',
   bell: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/>',
   bookmark: '<path d="M6 3h12v18l-6-4-6 4z"/>',
+  page: '<rect x="5" y="3" width="14" height="18" rx="2"/>',   // 책 표지 한 쪽
   read: '<path d="M6 3h9l4 4v14H6z"/><path d="M9 10h7M9 14h7M9 18h4"/>',   // 글만보기: 글 줄이 있는 종이 (켜지면 종이만 채워요)
   more: '<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
   save: '<rect x="3" y="7" width="18" height="14" rx="2.5"/><path d="M12 2v10M8.5 8.5 12 12l3.5-3.5"/><path d="m5.5 18 4-3.5 3 2.5 2.5-2 3.5 3"/>',   // 사진 저장: 액자 + 화살표

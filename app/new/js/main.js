@@ -33,7 +33,7 @@ const soon = () => toast('다음 단계에서 열려요');
 function sheet(head, groups) {
   const bg = document.createElement('div'); bg.className = 'sheet-bg';
   const all = groups.flat();
-  bg.innerHTML = `<div class="sheet"><div class="grab"></div>${head ? `<p class="sh">${esc(head)}</p>` : ''}${groups.map(g => `<div class="grp">${g.map(it => `<button class="it ${it.red ? 'red' : ''}" data-i="${all.indexOf(it)}">${ic(it.icon)}${it.label}</button>`).join('')}</div>`).join('')}</div>`;
+  bg.innerHTML = `<div class="sheet"><div class="grab"></div>${head ? `<p class="sh">${esc(head)}</p>` : ''}${groups.map(g => `<div class="grp">${g.map(it => `<button class="it${it.red ? ' red' : ''}${it.on ? ' on' : ''}" data-i="${all.indexOf(it)}">${ic(it.icon, 'i-' + it.icon)}${it.label}</button>`).join('')}</div>`).join('')}</div>`;
   const close = () => { bg.classList.add('out'); setTimeout(() => bg.remove(), 300); };
   bg.addEventListener('click', e => { const b = e.target.closest('.it'); if (!b && e.target.closest('.sheet')) return; close(); if (b) all[+b.dataset.i].run(); });
   document.body.appendChild(bg);
@@ -260,16 +260,20 @@ function pageInto(view, c, onCount) {
 // 1열 아래: 책갈피 · 저장 · 고치기 · 이 포맷으로 쓰기 · 글만보기 · 지우기 · 장 수(여러 장일 때) / 글 첫머리 한 줄 / 언제 썼는지
 // tile = 2열 칸: 카드 + [쓴 때 · ⋯] (여러 장이면 카드 위 오른쪽에 1/N). 우리 카드는 [NEW 이름 · ✎]
 // x.recall = N년 전 오늘로 위에 한 번 더 나온 카드, x.promo = 피드 중간의 NEW 포맷 카드
+// 11-04 3차: 켜진 알림 = 반복이거나 아직 안 지난 것. 카드 아래 줄 표시 (책갈피 · 알림 · 메모)
+const alarmOn = c => !!c.alarm && ((c.alarm.rep && c.alarm.rep !== 'none') || new Date(`${c.alarm.d}T${c.alarm.t || '00:00'}`) > new Date());
+const flagsOf = (c, memo) => c.sample ? '' : [c.mark && 'bookmark', alarmOn(c) && 'bell', memo && c.memos?.length && 'note'].filter(Boolean).map(k => `<i class="fl">${ic(k, 'i-' + k)}</i>`).join('');
+function syncCard(c) { $$(`.fi[data-id="${c.id}"]`).forEach(it => { if (it._card && it._card !== c) Object.assign(it._card, { memos: c.memos, alarm: c.alarm, mark: c.mark }); it._sync?.(); }); }
 const hasVideo = c => [c.bg, ...(c.pst || []).map(p => p?.bg)].some(b => b?.vd);   // 영상이 든 카드 (그림 안에 작은 영상 표시)
 function feedItem(c, tile, x = {}) {
   const it = document.createElement('article'); it.className = 'fi' + (tile ? ' tile' : ''); it.dataset.tone = toneOf(c); if (c.id && !x.recall) it.dataset.id = c.id; it.dataset.k = x.recall ? 'r:' + c.id : x.promo ? 'p:' + c.fmt : c.id || 's:' + c.fmt; it._card = c;
   if (x.promo) it.dataset.promo = 1;
   const f = FORMATS[c.fmt], when = x.recall ? `<i class="rc">${x.recall}년 전 오늘</i>` : ago(c);
   // 11-04: 1열도 2열과 같은 줄 = 쓴 때 · ⋯ (아이콘 줄 없음). 1/N과 영상 표시는 카드 그림 안 오른쪽 위. 1열 아래 한 줄은 그 카드의 최근 메모 (없으면 비워요)
-  const memo = !tile && !c.sample && (c.memos || []).at(-1)?.t;
+  const memoOf = () => !tile && !c.sample && (c.memos || []).at(-1)?.t, memo = memoOf();
   it.innerHTML = `<div class="fx"><div class="view"></div><span class="pc bd"${hasVideo(c) ? '' : ' hidden'}>${hasVideo(c) ? ic('video') : ''}<b></b></span></div>
       <p class="mt">${c.sample ? `<span><i class="nw">NEW</i>${f.name}</span><button class="cb" data-a="use" aria-label="이 포맷으로 쓰기">${ic('pen')}</button>`
-        : `<span>${when}</span><button class="cb" data-a="more" aria-label="더 보기">${ic('more')}</button>`}</p>${tile ? '' : `<p class="ex"${memo || x.ex ? '' : ' hidden'}></p>`}`;
+        : `<span>${when}<span class="fls">${flagsOf(c, tile)}</span></span><button class="cb" data-a="more" aria-label="더 보기">${ic('more')}</button>`}</p>${tile ? '' : `<p class="ex"${memo || x.ex ? '' : ' hidden'}></p>`}`;
   const fx = $('.fx', it), view = $('.view', it), pc = $('.pc', it);
   view.style.aspectRatio = (1 / arOf(c)).toFixed(4);   // 처음부터 카드 비율 칸: 긴 카드가 장으로 나뉘기 전에 길게 보였다 줄어들지 않게 (나뉘지 않는 카드는 나중에 풀어요)
   // 9:16은 자르지 않고 4:5 높이에 맞춰 가운데로. 양옆은 같은 카드 배경을 흐리고 조금 어둡게 깔아요 (글 · 날짜 · 서명은 빼고, 1열 피드에서만)
@@ -279,7 +283,8 @@ function feedItem(c, tile, x = {}) {
     mount(blr, { ...c, pages: c.pages ? [''] : c.pages, pst: c.pst ? [c.pst[0]].filter(Boolean) : c.pst, html: c.html != null ? '&nbsp;' : c.html, place: '', showDate: false, datePos: 'none', sg: '', signTxt: '' });
   }
   const ex = $('.ex', it);
-  const exLine = () => { if (!ex) return; if (x.ex) ex.innerHTML = x.ex(); else { ex.textContent = memo || ''; ex.hidden = !memo; } };
+  const exLine = () => { if (!ex) return; if (x.ex) ex.innerHTML = x.ex(); else { const m = memoOf(); ex.textContent = m || ''; ex.hidden = !m; } };
+  it._sync = () => { const f = $('.fls', it); if (f) f.innerHTML = flagsOf(c, tile); if (ex && !ex.classList.contains('open')) exLine(); };   // 메모 · 알림 · 책갈피가 바뀌면 바로
   exLine();   // 1열: 최근 메모 한 줄 (길면 …). 검색에서는 찾은 낱말이 든 곳부터
   mount(view, c);
   pageInto(view, c, (i, n) => { if (pc) { pc.hidden = false; $('b', pc).textContent = `${i}/${n}`; } });
@@ -288,7 +293,7 @@ function feedItem(c, tile, x = {}) {
   on('use', () => go(`#/write/${c.fmt}`));
   on('edit', () => go(`#/edit/${c.id}`));
   on('save', () => saveCard(c));
-  const mark = () => { c.mark = !c.mark; S.saveCard(c, false); $('[data-a=mark]', it)?.classList.toggle('on', c.mark); toast(c.mark ? '책갈피에 넣었어요' : '책갈피에서 뺐어요'); };
+  const mark = () => { c.mark = !c.mark; S.saveCard(c, false); $('[data-a=mark]', it)?.classList.toggle('on', c.mark); syncCard(c); toast(c.mark ? '책갈피에 넣었어요' : '책갈피에서 뺐어요'); };
   const del = async () => {   // 한 번 물어보고 지워요. 지운 카드는 휴지통에 30일
     if (!(await ask('이 카드를 지울까요?', '삭제'))) return;
     S.removeCard(c.id); $$(`.feed .fi[data-k="${c.id}"], .feed .fi[data-k="r:${c.id}"]`).forEach(x => x.remove()); x.onDel?.();
@@ -303,7 +308,7 @@ function feedItem(c, tile, x = {}) {
   on('mark', mark); on('del', del); on('like', () => go(`#/like/${c.id}`));
   // ⋯: 책갈피 · 이미지 저장 · 고치기 · 이 포맷으로 쓰기 | 지우기. 위에 날짜 · 종류
   on('more', () => sheet(`${+c.date.slice(5, 7)}월 ${+c.date.slice(8, 10)}일 · ${LABEL[c.fmt] || ''}`, [[
-    { icon: 'bookmark', label: c.mark ? '책갈피 빼기' : '책갈피', run: mark },
+    { icon: 'bookmark', label: c.mark ? '책갈피 빼기' : '책갈피', on: c.mark, run: mark },
     { icon: 'spines', label: '책에 담기', run: () => putSheet(c) },
     { icon: 'save', label: '이미지 저장', run: () => saveCard(c) },
     { icon: 'pen', label: '고치기', run: () => go(`#/edit/${c.id}`) },
@@ -401,8 +406,8 @@ const alarmShort = a => `${+a.d.slice(5, 7)}.${+a.d.slice(8, 10)}${a.rep && a.re
 function cardExtra(c) {
   const n = c.memos?.length || 0;
   return [
-    { icon: 'note', label: `메모${n ? `<span class="sv">${n}</span>` : ''}`, run: () => memoSheet(c) },
-    { icon: 'bell', label: `알림${c.alarm ? `<span class="sv">${alarmShort(c.alarm)}</span>` : ''}`, run: () => alarmSheet(c) },
+    { icon: 'note', label: `메모${n ? `<span class="sval">${n}</span>` : ''}`, on: n > 0, run: () => memoSheet(c) },
+    { icon: 'bell', label: `알림${c.alarm ? `<span class="sval">${alarmShort(c.alarm)}</span>` : ''}`, on: alarmOn(c), run: () => alarmSheet(c) },
     { icon: 'info', label: '정보', run: () => infoSheet(c) },
   ];
 }
@@ -443,7 +448,7 @@ function memoHtml(c) {
 }
 function refreshFocusMemo(c) {
   const box = focus && focus.c.id === c.id && $('.fmemo', focus.ov); if (box) box.innerHTML = memoHtml(c);
-  $$(`.fi[data-id="${c.id}"]`).forEach(it => { if (it._card) { it._card.memos = c.memos; it._card.alarm = c.alarm; } });
+  syncCard(c);
 }
 // 알림 시트: 날짜 · 시간 · 반복. 처음엔 일주일 뒤 밤 9시. 흰 완료 / 있으면 알림 지우기 (빨강)
 function alarmSheet(c) {
@@ -932,9 +937,10 @@ function dayList(host, list, onOpen, onMore, n = 2) {   // n = 열 수 (달력 3
     const cols = $$(`.f2[data-d="${d}"] .mc`, host), h = cols.map(() => 0);
     cs.forEach(c => {
       const it = document.createElement('article'); it.className = 'fi tile dt'; it.dataset.id = c.id; it._card = c;
-      it.innerHTML = `<div class="fx"><div class="view" style="aspect-ratio:${(1 / arOf(c)).toFixed(4)};background:${toneOf(c)}"></div><span class="pc bd" hidden></span></div><p class="mt"><span>${timeOf(c)}</span><button class="cb" data-a="more" aria-label="더 보기">${ic('more')}</button></p>`;
+      it.innerHTML = `<div class="fx"><div class="view" style="aspect-ratio:${(1 / arOf(c)).toFixed(4)};background:${toneOf(c)}"></div><span class="pc bd" hidden></span>${n === 3 ? `<span class="bl bd fls"${flagsOf(c, true) ? '' : ' hidden'}>${flagsOf(c, true)}</span>` : ''}</div><p class="mt"><span>${timeOf(c)}${n === 3 ? '' : `<span class="fls">${flagsOf(c, true)}</span>`}</span><button class="cb" data-a="more" aria-label="더 보기">${ic('more')}</button></p>`;
       $('.fx', it).onclick = () => onOpen(c, it);
       $('[data-a=more]', it).onclick = () => onMore(c);
+      it._sync = () => { const f = $('.fls', it); if (!f) return; f.innerHTML = flagsOf(c, true); if (f.classList.contains('bl')) f.hidden = !f.innerHTML; };
       const i = h.indexOf(Math.min(...h)); cols[i].appendChild(it); h[i] += arOf(c) + .1;   // 가장 짧은 열에
       io.observe(it);
     });
@@ -945,11 +951,11 @@ function dayList(host, list, onOpen, onMore, n = 2) {   // n = 열 수 (달력 3
 // 카드 ⋯ (책장 · 달력 · 큰 화면 공통): 홈과 같은 목록. 내 책 안에서 열면 '이 책에서 빼기'도
 let editFrom = null, reopen = null, keepY = null;   // 책장 · 달력에서 고치러 가면, 끝나고 그 화면의 그 카드로 (큰 화면도 다시)
 function cardMenu(c, o = {}) {
-  const mark = () => { c.mark = !c.mark; S.saveCard(c, false); toast(c.mark ? '책갈피에 넣었어요' : '책갈피에서 뺐어요'); };
+  const mark = () => { c.mark = !c.mark; S.saveCard(c, false); syncCard(c); toast(c.mark ? '책갈피에 넣었어요' : '책갈피에서 뺐어요'); };
   const out = () => { const bk = S.book(o.book.id); if (!bk) return; bk.ids = bk.ids.filter(id => id !== c.id); S.saveBook(bk); toast('이 책에서 뺐어요'); dropCard(c.id); };
   const del = async () => { if (!(await ask('이 카드를 지울까요?', '삭제'))) return; S.removeCard(c.id); dropCard(c.id); };
   sheet(`${+c.date.slice(5, 7)}월 ${+c.date.slice(8, 10)}일 · ${LABEL[c.fmt] || ''}`, [[
-    { icon: 'bookmark', label: c.mark ? '책갈피 빼기' : '책갈피', run: mark },
+    { icon: 'bookmark', label: c.mark ? '책갈피 빼기' : '책갈피', on: c.mark, run: mark },
     { icon: 'spines', label: '책에 담기', run: () => putSheet(c) },
     { icon: 'save', label: '이미지 저장', run: () => saveCard(c) },
     { icon: 'pen', label: '고치기', run: () => { editFrom = { hash: location.hash, id: c.id }; go(`#/edit/${c.id}`); } },
@@ -1012,48 +1018,98 @@ function viewBook(id) {
   cleanup = () => { $('.brd')?.remove(); stop(); stopMood(); closeRun(true); $('.obar')?.remove(); $('.nav.hid')?.classList.remove('hid'); removeEventListener('scroll', onSc); };
 }
 // 책으로 읽기 (11-04): 표지 → 카드의 장마다 한 쪽 (3장 카드 = 3쪽, 아래에 날짜 · 2/3장) → 끝. 옆으로 밀어 넘겨요 (가볍게 밀리며 살짝 기울어요)
-// 종이 옆에 남은 쪽 두께. 쪽의 카드를 누르면 크게 보기 (좌우로 밀면 앞 · 뒤 카드, ‹ 뒤로 = 마지막에 본 카드의 쪽). 오른쪽 위 칸 아이콘 = 2열 보기
+// 쪽의 카드를 누르면 크게 보기 (좌우로 밀면 앞 · 뒤 카드, ‹ 뒤로 = 마지막에 본 카드의 쪽). 오른쪽 위 칸 아이콘 = 2열 보기
+// 11-04 3차: 종이 = 표지 색 50% (어두운 표지는 어두운 종이) · 위 가운데 'n / N쪽' 알약 + 얇은 진행 선 · 알약 = 쪽 찾기 (번호 · 슬라이더 · 달별 목차)
+// 다시 열면 마지막에 읽던 쪽부터. 넘기는 중엔 쪽 만들기를 쉬고, 움직임은 보이는 쪽에만 줘요 (끊김 줄이기)
 function openReader(b, list, onGrid) {
   const ff = b.font ? fontCssOf(fontOf(b.font)) : '', cards = list.slice().reverse();   // 읽을 때는 처음 쓴 카드부터
-  const paper = mixHex(b.color, '#ffffff', .78), N = cards.length;
-  const rd = document.createElement('div'); rd.className = 'brd'; rd.style.setProperty('--pp', paper); rd.style.setProperty('--bc', b.color);
-  rd.innerHTML = `<header class="rbar"><button class="cb" data-a="x" aria-label="뒤로">${ic('back')}</button><span class="rn"></span><button class="cb" data-a="grid" aria-label="2열로 보기">${ic('grid')}</button></header>
-    <div class="rtr"><section class="rp cov"><div class="ci" style="background-color:${b.color};color:${b.ink || inkOn(b.color)}"><h2${ff ? ` style="font-family:${ff}"` : ''}>${esc(b.name)}</h2><p>${rangeOf(b.cards)}<br>카드 ${N}</p></div></section></div>`;
+  const ink = b.ink || inkOn(b.color), lum = /^#[0-9a-f]{6}$/i.test(b.color || '') ? [1, 3, 5].map(i => parseInt(b.color.slice(i, i + 2), 16)).reduce((a, v, i) => a + v * [.299, .587, .114][i], 0) / 255 : 1, dark = lum < .25;   // 아주 어두운 표지만 어두운 종이
+  const paper = dark ? mixHex(b.color, '#000000', .25) : mixHex(b.color, '#ffffff', .5), N = cards.length;
+  const rd = document.createElement('div'); rd.className = 'brd' + (dark ? ' dk' : ''); rd.style.setProperty('--pp', paper); rd.style.setProperty('--bc', b.color);
+  rd.innerHTML = `<header class="rbar"><button class="cb" data-a="x" aria-label="뒤로">${ic('back')}</button><button class="rn" data-a="find" aria-label="쪽 찾기"></button><button class="cb" data-a="grid" aria-label="2열로 보기">${ic('grid')}</button></header>
+    <div class="rpr"><i></i></div>
+    <div class="rtr"><section class="rp cov"><div class="ci" style="background-color:${b.color};color:${ink}"><h2${ff ? ` style="font-family:${ff}"` : ''}>${esc(b.name)}</h2><p>${rangeOf(b.cards)}<br>카드 ${N}</p></div></section></div>`;
   document.body.appendChild(rd);
-  const tr = $('.rtr', rd), rn = $('.rn', rd);
-  let ps = $$('.rp', rd), raf = 0, dead = false;
+  const tr = $('.rtr', rd), rn = $('.rn', rd), bar = $('.rpr i', rd);
+  const marks = S.pref('bookAt', {}), want = marks[b.id];   // { c: 카드 id, p: 장 } 마지막에 읽던 쪽
+  let ps = $$('.rp', rd), raf = 0, dead = false, built = false, moving = 0, lastAt = -1, near = new Set();
+  const pages = () => ps.filter(p => p.dataset.c != null);
   const paint = () => {
     raf = 0; const w = tr.clientWidth, x = tr.scrollLeft / w, k = Math.round(x), tot = ps.length;
-    ps.forEach((p, j) => { const d = Math.max(-1, Math.min(1, j - x)); if (Math.abs(j - x) > 2) return; p.style.transform = `translateX(${d * -8}%) rotate(${d * 2.2}deg) scale(${1 - Math.abs(d) * .06})`; p.style.opacity = 1 - Math.abs(d) * .45; });
-    rd.style.setProperty('--tl', (Math.min(1, x / Math.max(1, tot - 1)) * 6).toFixed(2) + 'px'); rd.style.setProperty('--tr', ((1 - Math.min(1, x / Math.max(1, tot - 1))) * 6).toFixed(2) + 'px');
-    const p = ps[k]; rn.textContent = !p || p.classList.contains('cov') ? '' : p.classList.contains('end') ? '끝' : `${+p.dataset.c + 1} / ${N}`;
+    const now = new Set();
+    for (let j = Math.max(0, Math.floor(x) - 1); j <= Math.min(tot - 1, Math.ceil(x) + 1); j++) {
+      const p = ps[j], d = Math.max(-1, Math.min(1, j - x)); now.add(p);
+      p.style.transform = `translateX(${d * -8}%) rotate(${d * 2.2}deg) scale(${1 - Math.abs(d) * .06})`; p.style.opacity = 1 - Math.abs(d) * .45;
+    }
+    near.forEach(p => { if (!now.has(p)) { p.style.transform = ''; p.style.opacity = ''; } }); near = now;
+    const f = Math.min(1, x / Math.max(1, tot - 1)); rd.style.setProperty('--tl', (f * 6).toFixed(2) + 'px'); rd.style.setProperty('--tr', ((1 - f) * 6).toFixed(2) + 'px');
+    const pg = pages(), p = ps[k], at = pg.indexOf(p), T = pg.length;
+    rn.textContent = !p || p.classList.contains('cov') ? `${T}쪽${built ? '' : ' …'}` : p.classList.contains('end') ? '끝' : `${at + 1} / ${T}쪽`;
+    bar.style.width = (f * 100).toFixed(1) + '%';
+    if (p?.dataset.c != null && k !== lastAt) { lastAt = k; marks[b.id] = { c: cards[+p.dataset.c].id, p: +p.dataset.p }; S.setPref('bookAt', marks); }
   };
-  tr.addEventListener('scroll', () => { if (!raf) raf = requestAnimationFrame(paint); }, { passive: true });
+  let idleT = 0;
+  tr.addEventListener('scroll', () => { moving = 1; clearTimeout(idleT); idleT = setTimeout(() => { moving = 0; }, 260); if (!raf) raf = requestAnimationFrame(paint); }, { passive: true });
   requestAnimationFrame(() => { paint(); rd.classList.add('in'); });
+  const calm = () => new Promise(ok => { const t = () => (dead || !moving) ? ok() : setTimeout(t, 120); t(); });   // 넘기는 중이면 멈췄을 때까지 기다려요
+  const goTo = (j, smooth) => tr.scrollTo({ left: j * tr.clientWidth, behavior: smooth ? 'smooth' : 'instant' });
   // 쪽 만들기: 카드마다 장을 나눠서 차례로 뒤에 붙여요 (앞에서부터라 보던 자리가 밀리지 않아요)
   (async () => {
     const box = () => { const p = ps[0], w = p.clientWidth - 56, h = tr.clientHeight - 60; return { w: Math.min(w, h * .75) * .78, h: Math.min(w / .75, h) * .78 }; };
     const sz = box();
     for (let i = 0; i < N && !dead; i++) {
+      await calm(); if (dead) return;
       const c = cards[i], ar = arOf(c), W = Math.floor(Math.min(sz.w, sz.h / ar));
       let nodes = [];
       try { const r = await buildPages(c, W, Math.min(2, devicePixelRatio || 1)); nodes = r.nodes; r.h.remove(); } catch (e) { console.warn('book page', e); }
       if (dead) return;
       if (!nodes.length) { const el = renderCard({ ...c, pages: c.pages?.slice(0, 1), pst: c.pst?.slice(0, 1) }); nodes = [el]; }
+      await calm(); if (dead) return;
       nodes.forEach((n, j) => {
         const s = document.createElement('section'); s.className = 'rp'; s.dataset.c = i; s.dataset.p = j;
         s.innerHTML = `<div class="bpc"><div class="rv0 view" style="width:${W}px"></div></div><p class="rf"><span>${c.date ? ymd(c.date) : ''}</span><span>${nodes.length > 1 ? `${j + 1}/${nodes.length}장` : ''}</span></p>`;
         $('.rv0', s).appendChild(n); tr.appendChild(s);
+        if (n.classList?.contains('cd')) requestAnimationFrame(() => fitCard(n, c));
       });
-      ps = $$('.rp', rd); if (!raf) raf = requestAnimationFrame(paint);
+      ps = $$('.rp', rd);
+      if (want && c.id === want.c) { const j = ps.findIndex(p => p.dataset.c == i && +p.dataset.p === Math.min(want.p, nodes.length - 1)); if (j > 0) requestAnimationFrame(() => goTo(j)); }   // 마지막에 읽던 쪽으로
+      if (!raf) raf = requestAnimationFrame(paint);
     }
     if (dead) return;
     tr.insertAdjacentHTML('beforeend', `<section class="rp end"><div class="ci"><b${ff ? ` style="font-family:${ff}"` : ''}>끝</b><p>${esc(b.name)}</p></div></section>`);
-    ps = $$('.rp', rd); paint();
+    ps = $$('.rp', rd); built = true; paint();
   })();
   const close = () => { dead = true; closeFocus(true); rd.classList.remove('in'); setTimeout(() => rd.remove(), 300); };
   $('[data-a=x]', rd).onclick = () => { close(); /^#\/(shelf|cal)/.test(lastHash || '') ? history.back() : location.replace('#/shelf'); };
   $('[data-a=grid]', rd).onclick = () => { S.setPref('bookView', 'grid'); close(); onGrid?.(); };
+  // 쪽 찾기: 쪽 번호 넣고 이동 · 슬라이더 (끌면 위에 'n쪽 · 날짜') · 달별 목차 (읽는 카드 표시)
+  rn.onclick = () => {
+    const pg = pages(), T = pg.length; if (!T) return;
+    const cur = Math.max(0, pg.indexOf(ps[Math.round(tr.scrollLeft / tr.clientWidth)]));
+    const first = new Map(); pg.forEach((p, j) => { if (!first.has(p.dataset.c)) first.set(p.dataset.c, j); });
+    const curC = pg[cur]?.dataset.c, byM = new Map();
+    cards.forEach((c, i) => { if (!first.has(String(i))) return; const m = (c.date || S.today()).slice(0, 7); if (!byM.has(m)) byM.set(m, []); byM.get(m).push([c, i]); });
+    const mLab = m => (m.slice(0, 4) !== S.today().slice(0, 4) ? `${+m.slice(0, 4)}년 ` : '') + `${+m.slice(5, 7)}월`;
+    const dLab = c => c.date ? `${+c.date.slice(5, 7)}.${+c.date.slice(8, 10)}` : '';
+    const line = c => (cardText(c) || '').replace(/\s+/g, ' ').trim().slice(0, 60) || LABEL[c.fmt] || '카드';
+    const sh = panelSheet(`<div class="grab"></div><p class="sh">쪽 찾기</p>
+      <div class="rfd"><label class="rfi"><input type="number" inputmode="numeric" min="1" max="${T}" value="${cur + 1}" enterkeyhint="go"><span>/ ${T}쪽${built ? '' : ' …'}</span></label><button class="rgo" data-a="go">이동</button></div>
+      <div class="rsl"><em class="rpl"></em><input type="range" min="1" max="${T}" value="${cur + 1}"><p><span>처음</span><span>끝</span></p></div>
+      <div class="grp"><button class="it" data-j="-1">${ic('page')}표지</button></div>
+      ${[...byM].map(([m, cs]) => `<p class="rmh">${mLab(m)}</p><div class="grp">${cs.map(([c, i]) => `<button class="rto${String(i) === curC ? ' on' : ''}" data-j="${first.get(String(i))}"><span class="th"></span><span class="t"><b>${esc(line(c))}</b><small>${dLab(c)}${String(i) === curC ? ' · 읽는 중' : ''}</small></span><span class="n">${first.get(String(i)) + 1}쪽</span></button>`).join('')}</div>`).join('')}`, 'rfs');
+    sh.bg.style.zIndex = 95;
+    const jump = j => { sh.close(); goTo(j < 0 ? 0 : ps.indexOf(pg[Math.max(0, Math.min(T - 1, j))])); };
+    const num = $('.rfi input', sh.el), rg = $('.rsl input', sh.el), pl = $('.rpl', sh.el);
+    const show = () => { const j = +rg.value - 1, c = cards[+pg[j].dataset.c]; pl.textContent = `${j + 1}쪽 · ${c.date ? md(c.date) : ''}`; pl.style.left = `calc(${(T > 1 ? j / (T - 1) : 0) * 100}% + ${(T > 1 ? .5 - j / (T - 1) : 0) * 24}px)`; };
+    rg.oninput = () => { num.value = rg.value; show(); }; rg.onchange = () => jump(+rg.value - 1); show();
+    $('[data-a=go]', sh.el).onclick = () => jump((+num.value || 1) - 1);
+    num.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); jump((+num.value || 1) - 1); } };
+    $$('[data-j]', sh.el).forEach(x => x.onclick = () => jump(+x.dataset.j));
+    // 목차 그림: 카드 첫 장 작게 (보일 때만)
+    const io = new IntersectionObserver(es => es.forEach(e => { if (!e.isIntersecting) return; io.unobserve(e.target); const c = cards[+pg[+e.target.closest('[data-j]').dataset.j].dataset.c]; const v = document.createElement('div'); v.className = 'view'; e.target.appendChild(v); mount(v, { ...c, ratio: '45' }); }), { root: sh.el });
+    $$('.rto .th', sh.el).forEach(t => io.observe(t));
+    $('.rto.on', sh.el)?.scrollIntoView({ block: 'center' });
+  };
   // 표지를 누르면 첫 쪽으로, 끝을 누르면 표지로. 카드 쪽을 누르면 크게 보기
   tr.addEventListener('click', e => {
     const p = e.target.closest('.rp'); if (!p) return;
@@ -1066,6 +1122,7 @@ function openReader(b, list, onGrid) {
   });
   return close;
 }
+
 const mixHex = (a, b, t) => { if (!/^#[0-9a-f]{6}$/i.test(a || '')) return '#f3efe6'; const p = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)), x = p(a), y = p(b); return '#' + x.map((v, i) => Math.round(v + (y[i] - v) * t).toString(16).padStart(2, '0')).join(''); };
 // 카드 빼기: 칸마다 동그라미, 골라서 이 책에서만 빼요 (카드는 그대로)
 function pickOut(b, list) {

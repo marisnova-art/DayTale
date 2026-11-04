@@ -1165,7 +1165,7 @@ html.csnap .days .dh { scroll-snap-align: start; scroll-margin-top: calc(var(--c
 .wmn .wmore { margin: 4px var(--fgut) 0; }
 
 /* 카드 ⋯ 메모 · 알림 · 정보 (11-04) */
-.sheet .it .sv { margin-left: auto; color: var(--mut); font-size: var(--fs-s); }
+.sheet .it .sval { margin-left: auto; color: var(--mut); font-size: var(--fs-s); }
 .msh .mml { max-height: 46vh; overflow-y: auto; display: grid; gap: 0; background: #232327; border-radius: 14px; }
 .msh .mm { position: relative; padding: 14px 52px 12px 16px; border-top: 1px solid #2e2e33; }
 .msh .mm:first-child { border-top: 0; }
@@ -1238,7 +1238,7 @@ html.csnap .days .dh { scroll-snap-align: start; scroll-margin-top: calc(var(--c
 .brd .rn { font-size: var(--fs-s); color: var(--mut); font-variant-numeric: tabular-nums; }
 .brd .rtr { flex: 1; min-height: 0; display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior: contain; padding-bottom: calc(var(--safe-b) + 28px); }
 .brd .rtr::-webkit-scrollbar { display: none; }
-.brd .rp { cursor: pointer; flex: 0 0 100%; scroll-snap-align: center; scroll-snap-stop: always; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 8px 28px 0; transform-origin: 50% 90%; will-change: transform; }
+.brd .rp { cursor: pointer; flex: 0 0 100%; scroll-snap-align: center; scroll-snap-stop: always; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 8px 28px 0; transform-origin: 50% 90%; content-visibility: auto; contain-intrinsic-size: auto 100vw auto 70vh; }
 .brd .rp > * { width: min(100%, calc((100dvh - var(--top) - 150px) * .75)); }
 .brd .bpc, .brd .rp.cov .ci, .brd .rp.end .ci { aspect-ratio: 3 / 4; border-radius: 4px 10px 10px 4px; background: var(--pp); background-image: var(--fibre), var(--grain); background-size: 300px, 200px; background-blend-mode: multiply, overlay;
   box-shadow: inset 6px 0 10px -6px rgba(0,0,0,.25), var(--tr) 0 0 -1px #e6e1d8, calc(var(--tr) + 1px) 1px 0 -1px #c9c3b8, calc(-1 * var(--tl)) 0 0 -1px #e6e1d8, 0 18px 40px rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; padding: 11%; }
@@ -1281,3 +1281,57 @@ html.csnap .days .dh { scroll-snap-align: start; scroll-margin-top: calc(var(--c
 /* 11-04 첫 로딩: 로고가 화면 아래 끝(홈 막대 자리)까지 덮고, 뒤 홈은 로고가 사라질 때까지 숨겨요 */
 html.booting { background: var(--bg) !important; }
 html.booting #app, html.booting .nav { visibility: hidden; }
+
+/* 11-04 3차: 카드 아래 줄 표시 (책갈피 · 알림 · 메모) = 시간 뒤 작은 회색 채운 아이콘. 3열은 그림 안 왼쪽 위 */
+.fi .mt .fls { display: inline-flex; align-items: center; gap: 4px; }
+.fi .mt .fls:empty { display: none; }
+.fi .fl { display: inline-flex; font-style: normal; }
+.fi .fl .ic, .fi .bl .ic { width: 13px; height: 13px; fill: currentColor; stroke-width: 1.8; }
+.fi .fl .i-note path + path, .fi .bl .i-note path + path { stroke: var(--bg); }
+.fi .bd.bl { right: auto; left: 8px; padding: 4px 6px; gap: 3px; }
+/* ⋯ 메뉴: 켜진 책갈피 · 알림 · 메모는 채운 아이콘 (뒤 배경 없이) */
+.sheet .it.on .ic { fill: currentColor; }
+.sheet .it.on .i-note path + path { stroke: #232327; }
+/* 1열 메모 줄 17 (다른 곳 메모와 같게) */
+.fi:not(.tile) .ex { font-size: var(--fs-m); margin-top: -8px; }
+
+/* 11-04 3차: 프로필 숫자 칸 = 바탕 색을 어둡게 한 솔리드 하나 (8칸 같게), 고른 칸 = 흰 칸 + 검은 글자. 그래프 박스 = 같은 집안 한 단계 더 어두운 반투명, 결 없이 */
+.mev .mst { background: var(--mtile, #2a2a30); }
+.mev .mst > i, .mev .mst::after { display: none; }
+.mev .mst.on { background: #fff; color: var(--bg); }
+.mev .mst.on .mlb { color: rgba(20,20,22,.7); }
+.mev .mst.on::before { opacity: 0; }
+.mev .mgc { background-color: var(--mbox, var(--srf)); background-image: none; }
+
+/* 11-04 3차 책: 쪽 번호 알약 · 진행 선 · 가벼운 그림자 · 어두운 종이 · 쪽 찾기 시트 */
+.brd .rn { height: 32px; padding: 0 14px; border-radius: 999px; background: rgba(255,255,255,.1); color: #fff; font-size: var(--fs-s); font-weight: var(--fw); font-variant-numeric: tabular-nums; }
+.brd .rpr { height: 2px; margin: 0 16px; border-radius: 2px; background: rgba(255,255,255,.14); position: relative; z-index: 2; }
+.brd .rpr i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; border-radius: 2px; background: #fff; }
+.brd .rv0 { box-shadow: 0 0 0 1px rgba(0,0,0,.08); }
+.brd.dk .bpc, .brd.dk .rp.end .ci { box-shadow: inset 6px 0 10px -6px rgba(0,0,0,.4), var(--tr) 0 0 -1px #3a3a40, calc(var(--tr) + 1px) 1px 0 -1px #2a2a2e, calc(-1 * var(--tl)) 0 0 -1px #3a3a40, 0 18px 40px rgba(0,0,0,.45); }
+.brd.dk .rp.end .ci { color: rgba(255,255,255,.85); }
+.rfs { max-height: 82vh; overflow-y: auto; }
+.rfs .rfd { display: flex; gap: 8px; align-items: center; }
+.rfs .rfi { flex: 1; display: flex; align-items: center; gap: 8px; height: 48px; padding: 0 16px; border-radius: 14px; background: #232327; font-size: var(--fs-m); }
+.rfs .rfi input { width: 3.6ch; background: none; border: 0; color: #fff; font: inherit; font-variant-numeric: tabular-nums; -moz-appearance: textfield; }
+.rfs .rfi input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.rfs .rfi span { color: var(--mut); }
+.rfs .rgo { height: 48px; padding: 0 22px; border-radius: 999px; background: #fff; color: var(--bg); font-size: var(--fs-m); font-weight: var(--fw); }
+.rfs .rsl { position: relative; padding: 34px 2px 4px; }
+.rfs .rpl { position: absolute; top: 0; transform: translateX(-50%); height: 26px; padding: 0 10px; border-radius: 999px; background: #fff; color: var(--bg); font-style: normal; font-size: var(--fs-s); display: flex; align-items: center; white-space: nowrap; pointer-events: none; }
+.rfs .rsl input { width: 100%; height: 28px; margin: 0; -webkit-appearance: none; appearance: none; background: none; }
+.rfs .rsl input::-webkit-slider-runnable-track { height: 4px; border-radius: 4px; background: #3a3a3e; }
+.rfs .rsl input::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; margin-top: -10px; border-radius: 50%; background: #fff; box-shadow: 0 1px 6px rgba(0,0,0,.4); }
+.rfs .rsl input::-moz-range-track { height: 4px; border-radius: 4px; background: #3a3a3e; }
+.rfs .rsl input::-moz-range-thumb { width: 24px; height: 24px; border: 0; border-radius: 50%; background: #fff; }
+.rfs .rsl p { display: flex; justify-content: space-between; margin-top: 6px; font-size: var(--fs-s); color: var(--mut); }
+.rfs .rmh { margin: 8px 6px 0; font-size: var(--fs-s); color: var(--mut); }
+.rfs .rto { display: flex; width: 100%; align-items: center; gap: 12px; padding: 10px 14px; text-align: left; border-top: 1px solid #2e2e33; }
+.rfs .rto:first-child { border-top: 0; }
+.rfs .rto.on { background: #34343a; }
+.rfs .rto .th { flex: none; width: 32px; height: 40px; border-radius: 8px; overflow: hidden; background: #2b2b2f; line-height: 0; }
+.rfs .rto .th .view > * { width: 100%; height: auto; border-radius: 0; }
+.rfs .rto .t { flex: 1; min-width: 0; }
+.rfs .rto .t b { display: block; font-size: var(--fs-m); font-weight: var(--fw); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rfs .rto .t small { font-size: var(--fs-s); color: var(--mut); }
+.rfs .rto .n { font-size: var(--fs-s); color: var(--mut); font-variant-numeric: tabular-nums; }
