@@ -65,7 +65,7 @@ function route() {
   window.scrollTo(0, 0);
   if (r !== 'write') pickEx = null;   // 포맷 고르기에서 보여 준 예시 글은 바로 이어지는 쓰기에서만
   if (r !== 'edit') editFrom = null;   // 책장 · 달력에서 고치러 간 기록은 고치기 화면 동안만
-  if (r === 'pick') return viewPick();
+  if (r === 'pick') return viewPick(a);
   if (r === 'write') return viewWrite({ fmt: a });
   if (r === 'edit') return viewWrite({ id: a });
   if (r === 'like') return viewWrite({ like: a });
@@ -1197,7 +1197,7 @@ function viewIntro(id) {
 
 /* ── 포맷 고르기 ─────────────────────────────────────── */
 // 예시 글을 하나 골라 글 · 아트 · 포토 카드에 보여 주고, 쓰기로 들어가면 같은 글이 흐리게 이어져요 (그림 문장은 정해 둔 예시)
-let pickEx = null;
+let pickEx = null, writeIntent = null;   // writeIntent: 쓰기 홈에서 고른 시작 (컬러 = 배경 탭 열고 마지막 색, 사진 = 고른 사진으로)
 // 쓰기 메인 (10-31 시안 write-main-1031 board-v2, QA 10-31): 맨 위 '기본으로 쓰기' 띠 → 오늘의 추천(큰 판) → 이어 쓰기(있을 때만) → 최근 쓴 템플릿 → 즐겨찾기 → NEW → 템플릿 더 보기. 카드를 누르면 자세히 보기로 바로.
 // 줄은 옆으로 밀고 점 · 대시. 템플릿 카드를 누르면 크게 보기(이 템플릿으로 쓰기 · 자세히 보기), 이어 쓰기 카드는 바로 이어 써요. 빈 줄은 숨겨요
 const REC_T = { 밤: '밤에 쓰기 좋은', 비: '비 오는 날엔', 눈: '눈 오는 날엔', 아침: '아침에 쓰기 좋은', 겨울: '겨울에 어울리는', 봄: '봄에 어울리는', 여름: '여름에 어울리는', 가을: '가을에 어울리는', 짧은글: '짧게 남기는 날', 감성: '감성 가득한 날' };
@@ -1220,46 +1220,75 @@ function snapOne(r) {
     r.addEventListener('scroll', wait, { passive: true }); wait();
   }, { passive: true });
 }
-function viewPick() {
-  pickEx = exampleText();
+// 쓰기 홈 (11-04): 높이가 같은 상자 3개. ① 기본 = 컬러로 쓰기 · 사진으로 쓰기 + 쓰다 만 글 ② 오늘의 추천 | NEW ③ 최근 | 즐겨찾기
+// 모두 보기는 이 화면 안에서 (#/pick/all:<탭>) 열리고, 뒤로 · 옆으로 밀기로 돌아와요. 아래에 템플릿 더 보기 하나
+let pickTab = { b2: 'rec', b3: 'recent' }, pickY = 0;
+function pickLists() {
   const seen = new Set(), recent = [];
-  [...S.cards()].sort((x, y) => (y.created || '').localeCompare(x.created || '')).forEach(c => { const t = c.fmt !== 'text' && T.tplOfCard(c); if (t && !seen.has(t.id) && recent.length < 8) { seen.add(t.id); recent.push(t); } });
-  const favs = T.favs().map(T.tpl).filter(Boolean).slice(0, 8), news = T.newest().slice(0, 8);
-  const recs = T.tagOrder().slice(0, 3).map(g => ({ g, l: T.TEMPLATES.filter(t => t.tags.includes(g)).slice(0, 4) })).filter(r => r.l.length >= 2);
+  [...S.cards()].sort((x, y) => (y.created || '').localeCompare(x.created || '')).forEach(c => { const t = c.fmt !== 'text' && T.tplOfCard(c); if (t && !seen.has(t.id)) { seen.add(t.id); recent.push(t); } });
+  const rec = [], rs = new Set();
+  T.heroes().forEach(h => { if (!rs.has(h.t.id)) { rs.add(h.t.id); rec.push(h.t); } });
+  T.tagOrder().slice(0, 3).forEach(g => T.TEMPLATES.filter(t => t.tags.includes(g)).forEach(t => { if (!rs.has(t.id)) { rs.add(t.id); rec.push(t); } }));
+  return { rec, new: T.newest(), recent, fav: T.favs().map(T.tpl).filter(Boolean) };
+}
+const PICK_N = { rec: '오늘의 추천', new: 'NEW', recent: '최근', fav: '즐겨찾기' };
+const lastColor = () => { const b = S.pref('lastBg', null); return b && b.id && b.id !== 'photo' ? b : { id: 'g1', dim: 'dark' }; };
+function viewPick(sub) {
+  pickEx = exampleText();
+  const L = pickLists();
+  const cardFor = t => { const c = T.exCard(t, 0); if (c.ratio) c.ratio = '45'; return c; };
   const tile = t => `<button class="wt" data-t="${t.id}"><div class="wc"></div><div class="wl">${esc(t.name)}<small>${esc(t.kind)}</small></div></button>`;
-  const sec = (title, inner, more) => `<section class="wsh"><div class="tsec"><b>${title}</b>${more ? '<button data-a="all">모두 보기</button>' : ''}</div><div class="trow">${inner}</div><div class="mdots"></div></section>`;
+  if (sub?.startsWith('all:') && L[sub.slice(4)]) {   // 모두 보기: 같은 화면 안 2열
+    const k = sub.slice(4);
+    app.innerHTML = `${MOOD}<main class="wmn wall"><header class="shtop"><div class="tl"><button class="cb" data-a="back" aria-label="뒤로">${ic('back')}</button><h1>${PICK_N[k]}</h1></div></header>
+      <div class="tg2 solo">${L[k].map(t => `<button class="tt" data-t="${t.id}"><div class="tc"></div><div class="nm"><span>${esc(t.name)}</span></div></button>`).join('')}</div></main>${nav('write')}`;
+    bindNav();
+    const stopMood = paintMood($('.amb'));
+    $$('.tt').forEach(b => mount($('.tc', b), T.exCard(T.tpl(b.dataset.t), 0, true)));
+    $('[data-a=back]').onclick = () => { if (/^#\/pick\/?$/.test(lastHash || '')) history.back(); else location.replace('#/pick'); };
+    $('.wall').addEventListener('click', e => { const b = e.target.closest('.tt[data-t]'); if (b) go('#/ti/' + b.dataset.t); });
+    cleanup = () => { stopMood(); };
+    return;
+  }
   const drafts = () => S.drafts().map(d => `<button class="wt wd" data-d="${d.id}"><div class="wc"></div><span class="pd">${whenOf(d.at)}</span><span class="x" data-x="${d.id}" role="button" aria-label="지우기">${ic('close')}</span></button>`).join('');
-  app.innerHTML = `${MOOD}<main class="wmn">
-    <button class="wbn" data-a="base"><b>기본으로 쓰기</b><span>색과 사진으로 바로 써요</span><i>${ic('next')}</i></button>
-    ${recs.length ? `<section class="wsh"><div class="tsec"><b>오늘의 추천</b><button data-a="all">모두 보기</button></div><div class="whs">${recs.map(r => `<div class="whr"><b>${REC_T[r.g] || r.g}</b><p>지금 날씨와 시간에 어울리는<br>템플릿이에요</p><div class="win">${r.l.map(t => `<button class="wt wm" data-t="${t.id}"><div class="wc"></div></button>`).join('')}</div></div>`).join('')}</div><div class="mdots" data-for="whs"></div></section>` : ''}
-    <div class="wdr">${S.drafts().length ? sec('이어 쓰기', drafts()) : ''}</div>
-    ${recent.length ? sec('최근 쓴 템플릿', recent.map(tile).join(''), 1) : ''}
-    ${favs.length ? sec('즐겨찾기', favs.map(tile).join(''), 1) : ''}
-    ${sec('NEW', news.map(tile).join(''), 1)}
-    <div class="tcta wmore"><button class="w" data-a="all">${ic('layers')}템플릿 더 보기</button></div>
+  const tabs = (box, keys) => { const ks = keys.filter(k => L[k].length); if (!ks.length) return null; if (!ks.includes(pickTab[box])) pickTab[box] = ks[0]; return ks; };
+  const t2 = tabs('b2', ['rec', 'new']), t3 = tabs('b3', ['recent', 'fav']);
+  const head = (box, ks) => `<div class="bxh"><span class="tbs">${ks.map(k => `<button data-s="${k}" class="${k === pickTab[box] ? 'on' : ''}">${PICK_N[k]}</button>`).join('')}</span><button class="all" data-all="${box}">모두 보기</button></div>`;
+  const row = box => L[pickTab[box]].slice(0, 8).map(tile).join('');
+  app.innerHTML = `${MOOD}<main class="wmn"><header class="shtop"><div class="tl"><h1>쓰기</h1></div></header>
+    <section class="wbx gls" data-b="b1"><div class="bxh"><span class="tbs"><button class="on">기본</button></span></div><div class="trow b1">
+      <button class="wt wk" data-k="color"><div class="wc"></div><div class="wl">${ic('bg')}컬러로 쓰기</div></button>
+      <button class="wt wk" data-k="photo"><div class="wc"><div class="phs"></div></div><div class="wl">${ic('photo')}사진으로 쓰기</div></button>
+      ${drafts()}</div></section>
+    ${t2 ? `<section class="wbx gls" data-b="b2">${head('b2', t2)}<div class="trow">${row('b2')}</div></section>` : ''}
+    ${t3 ? `<section class="wbx gls" data-b="b3">${head('b3', t3)}<div class="trow">${row('b3')}</div></section>` : ''}
+    <div class="tcta wmore"><button class="w" data-a="more">${ic('layers')}템플릿 더 보기</button></div>
   </main>${nav('write')}`;
   bindNav();
   const stopMood = paintMood($('.amb'));
-  const cardFor = t => { const c = T.exCard(t, 0); if (c.ratio) c.ratio = '45'; return c; };
   const fill = root => {
     $$('.wt[data-t]', root).forEach(b => mount($('.wc', b), cardFor(T.tpl(b.dataset.t))));
     $$('.wt[data-d]', root).forEach(b => { const d = S.draft(b.dataset.d); if (d) mount($('.wc', b), { ...d.card, ratio: '45' }); });
-    $$('.trow', root).forEach(snapOne);
-    $$('.trow', root).forEach(r => { const dt = r.nextElementSibling; const p = () => { const m = Math.max(1, Math.ceil(r.scrollWidth / r.clientWidth - .05)); dt.innerHTML = dotsHtml(m, Math.round(r.scrollLeft / Math.max(1, r.scrollWidth - r.clientWidth) * (m - 1)) || 0); }; p(); r.addEventListener('scroll', p, { passive: true }); });
   };
-  fill(app);
-  const whs = $('.whs');
-  if (whs) snapOne(whs);
-  if (whs) { const n = recs.length, dt = $('[data-for=whs]'), k = () => Math.round(whs.scrollLeft / Math.max(1, whs.clientWidth)); const pd = () => { dt.innerHTML = dotsHtml(n, k()); }; pd(); whs.addEventListener('scroll', pd, { passive: true }); }
-  $('[data-a=base]').onclick = () => go('#/write/text');
-  $$('[data-a=all]').forEach(b => b.onclick = () => go('#/tpl'));
-  // 이어 쓰기: 누르면 바로, ×는 확인하고 지워요 (쓰다 만 글은 휴지통 없이)
-  $('.wdr').onclick = e => {
+  mount($('[data-k=color] .wc'), { ...blank('text', S.today()), bg: lastColor(), pages: [''], showDate: false });
+  fill(app); $$('.trow').forEach(snapOne);
+  if (pickY) { const y = pickY; pickY = 0; requestAnimationFrame(() => scrollTo(0, y)); }
+  // 사진으로 쓰기: 아이폰은 누른 그 순간에만 사진첩을 열어 줘서 여기서 바로 열고, 고르면 그 사진으로 쓰기 화면
+  const picker = document.createElement('input'); picker.type = 'file'; picker.accept = 'image/*,video/*'; picker.hidden = true; app.appendChild(picker);
+  picker.onchange = () => { const fl = picker.files?.[0]; if (!fl) return; writeIntent = { photo: fl }; go('#/write/text'); };
+  $('.wmn').addEventListener('click', e => {
+    const k = e.target.closest('[data-k]')?.dataset.k;
+    if (k === 'color') { writeIntent = { color: true }; return go('#/write/text'); }
+    if (k === 'photo') { picker.value = ''; return picker.click(); }
     const x = e.target.closest('[data-x]');
-    if (x) { e.stopPropagation(); return ask('쓰다 만 글을 지울까요?', '지우기').then(ok => { if (!ok) return; S.clearDraft(x.dataset.x); $('.wdr').innerHTML = S.drafts().length ? sec('이어 쓰기', drafts()) : ''; fill($('.wdr')); pill('지웠어요', 'check'); }); }
-    const d = e.target.closest('[data-d]'); if (d) go('#/write/draft-' + d.dataset.d);
-  };
-  $('.wmn').addEventListener('click', e => { const b = e.target.closest('.wt[data-t]'); if (b) go('#/ti/' + b.dataset.t); });   // 카드 = 자세히 보기로 바로 (닫으면 여기로). app 자체에 달면 화면마다 쌓여요
+    if (x) { e.stopPropagation(); return ask('쓰다 만 글을 지울까요?', '지우기').then(ok => { if (!ok) return; S.clearDraft(x.dataset.x); x.closest('.wt').remove(); pill('지웠어요', 'check'); }); }
+    const d = e.target.closest('.wt[data-d]'); if (d) return go('#/write/draft-' + d.dataset.d);
+    const s = e.target.closest('.tbs [data-s]');
+    if (s) { const box = s.closest('[data-b]').dataset.b; pickTab[box] = s.dataset.s; $$('.tbs button', s.parentNode).forEach(b => b.classList.toggle('on', b === s)); const r = $(`[data-b=${box}] .trow`); r.innerHTML = row(box); r.scrollLeft = 0; fill(r); return; }
+    const a = e.target.closest('[data-all]'); if (a) { pickY = scrollY; return go('#/pick/all:' + pickTab[a.dataset.all]); }
+    if (e.target.closest('[data-a=more]')) return go('#/tpl');
+    const b = e.target.closest('.wt[data-t]'); if (b) { pickY = scrollY; go('#/ti/' + b.dataset.t); }   // 카드 = 자세히 보기 (닫으면 여기로)
+  });
   cleanup = () => { stopMood(); };
 }
 // 이 포맷으로 쓰기: 그 카드의 모습(배경 · 글꼴 · 크기 · 비율 · 날짜 줄 · 서명 자리)을 그대로, 글은 비우고 날짜는 오늘로.
@@ -1292,11 +1321,13 @@ function viewWrite({ fmt, id, like }) {
     card.ratio = S.pref('ratio', '45'); card.sg = S.pref('sg', ''); card.signTxt = S.pref('sign', '');
     if (FORMATS[card.fmt]?.rich) card.ex = pickEx || exampleText();   // 흐린 예시 글: 질문 7 · 문장 3 (디자인 포맷은 정해 둔 예시). 포맷 고르기에서 본 그 글
     pickEx = null;
+    if (writeIntent?.color && card.fmt === 'text') card.bg = { ...lastColor(), seed: newSeed() };
   }
+  const intent = writeIntent; writeIntent = null;
   if (!card || !FORMATS[card.fmt]) return go('#/');
   const f = FORMATS[card.fmt], rich = !!f.rich;   // 장으로 쓰는 포맷(글 · 아트)
   if (!rich && card.html == null) { card.html = renderCard(card).querySelector('.rb').innerHTML; card.html = clean(card.html); delete card.text; }
-  const st = { panel: null, tab: 'fmt', hist: [clone(card)], hi: 0, timer: 0, pg: 0, sel: null, composing: false };
+  const st = { panel: null, tab: intent?.color ? 'bg' : 'fmt', hist: [clone(card)], hi: 0, timer: 0, pg: 0, sel: null, composing: false };
   const root = document.documentElement;
   // 장마다 배경 · 글 위치 (글카드). ps() = 보고 있는 장의 값(없으면 카드 값으로 채워요). 첫 장 값은 card.bg · align에도 (피드 색 · 예전 카드)
   const ps = (i = st.pg) => {
@@ -1902,8 +1933,9 @@ function viewWrite({ fmt, id, like }) {
   const clearPhoto = b => { ['ph', 'x', 'y', 'z', 'w', 'h', 'tone', 'vd', 'dur', 't0', 'cvt', 'hex', 'pos'].forEach(k => delete b[k]); };
   const picker = document.createElement('input'); picker.type = 'file'; picker.accept = f.tools.filter ? 'image/*,video/*' : 'image/*'; picker.hidden = true; wr.appendChild(picker);   // 포토 포맷은 영상도
   function pickPhoto() { picker.value = ''; picker.click(); }
-  picker.onchange = async () => {
-    const file = picker.files?.[0]; if (!file) return;
+  picker.onchange = () => usePhoto(picker.files?.[0]);
+  async function usePhoto(file) {
+    if (!file) return;
     let vid = (/^video\//.test(file.type) || /\.(mov|mp4|m4v|webm|3gp|hevc)$/i.test(file.name)) && !!f.tools.filter;   // 아이폰은 종류(type)가 빈 채로 올 때가 있어요
     let busy = 0; const wait = () => { pop('영상 읽는 중…'); busy = setInterval(() => pop('영상 읽는 중…'), 1000); };   // 다 읽을 때까지 위에 계속
     try {
@@ -1918,7 +1950,7 @@ function viewWrite({ fmt, id, like }) {
       if (vid) st.vpause = false;
       syncFirst(); push(); draw(); paintRow2(); pop(vid ? '내 영상' : '내 사진', null, pgLab());
     } catch (e) { clearInterval(busy); console.error(e); pop(vid ? '영상을 열지 못했어요' : '사진을 열지 못했어요', null, vid ? String(e?.message || e).slice(0, 40) : null); }   // 원인을 작게 (고칠 때 보려고)
-  };
+  }
   // 스타일 보기에서 카드를 끌면 사진이 따라 움직여요 (보일 부분 고르기). 남는 쪽(가로 · 세로)으로만 움직이고,
   // 가로로 남는 사진은 끝까지 간 뒤 더 밀면 옆 장으로 넘어가요
   function photoPan() {
@@ -2093,6 +2125,7 @@ function viewWrite({ fmt, id, like }) {
     const pl = (card.place || '').trim();   // 최근 장소 (장소 칸에서 다시 고를 수 있게)
     if (pl) S.setPref('places', [pl, ...S.pref('places', []).filter(x => x !== pl)].slice(0, 20));
     if (card.fmt === 'text') { S.setPref('font', card.font); S.setPref('datePos', infoPos(card)); S.setPref('dh', card.dh || 'l'); }   // 다음 새 카드는 이 글꼴 · 날짜 줄 자리로 시작
+    { const b0 = card.pst?.[0]?.bg || card.bg; if (card.fmt === 'text' && b0?.id && b0.id !== 'photo') S.setPref('lastBg', { id: b0.id, dim: b0.dim, ...(b0.hex ? { hex: b0.hex, pos: b0.pos } : {}) }); }   // 컬러로 쓰기는 이 색으로 시작
     S.setPref('ratio', card.ratio || '45'); S.setPref('sg', card.sg || ''); if (card.sg) S.setPref('sgLast', card.sg); S.setPref('showDate:' + card.fmt, dateOn(card));
     // 다 됐다는 표시: 가운데 큰 체크가 잠깐 떴다가 피드로
     const ok = $('[data-a=ok]'); ok.disabled = true; document.activeElement?.blur?.();
@@ -2101,6 +2134,7 @@ function viewWrite({ fmt, id, like }) {
   };
 
   paintMeta(); paintRow2(); mode(); sizeCard(); draw(); kb();
+  if (intent?.photo) usePhoto(intent.photo);   // 쓰기 홈 '사진으로 쓰기'에서 고른 사진
   document.fonts?.ready.then(() => el && fitCard(el, card));
 }
 

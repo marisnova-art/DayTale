@@ -1142,3 +1142,24 @@ html:has(.setv.plan), html:has(.setv.plan) body { background: #2B2650; }
 .days .f3 .fi.tile .mt .cb { width: 28px; margin-right: -4px; }
 html.csnap { scroll-snap-type: y proximity; }
 html.csnap .days .dh { scroll-snap-align: start; scroll-margin-top: calc(var(--cph, 160px) + 16px); }   /* 날짜 누를 때(jump)와 같은 자리 */
+/* 쓰기 홈 (11-04): 높이가 같은 상자 3개 */
+.wmn .shtop { padding-bottom: 16px; }
+.wbx { margin: 0 var(--fgut) 12px; border-radius: 20px; padding: 12px 0 14px; overflow: hidden; }
+.wbx .bxh { display: flex; align-items: center; justify-content: space-between; height: 32px; padding: 0 14px; margin-bottom: 10px; }
+.wbx .bxh .all { font-size: var(--fs-s); color: rgba(255,255,255,.7); }
+.wbx .tbs button:only-child { color: #fff; }
+.wbx .trow { padding: 0 14px; scroll-padding: 0 14px; gap: 8px; }
+.wbx .trow::after { flex-basis: 6px; }
+.wbx .wt, .wbx .wt.wd { flex: 0 0 38%; scroll-snap-align: start; scroll-snap-stop: normal; border-radius: 12px; }
+.wbx .trow > .wt:last-child { scroll-snap-align: end; }
+.wbx .wt .wl { padding: 28px 10px 10px; font-size: var(--fs-s); }
+.wbx .wt .wl small { display: none; }
+.wbx .wk .wl { display: flex; align-items: center; gap: 6px; font-size: var(--fs-s); }
+.wbx .wk .wl .ic { width: 16px; height: 16px; flex: none; }
+.wbx .wk .phs { position: absolute; inset: 0; background: url(./bg/photo-sample.webp) center / cover; }
+.wbx .wk[data-k=photo] .wc { position: relative; }
+.wmn.wall .shtop .tl { gap: 10px; }
+.wmn.wall .tg2 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 8px; padding: 8px var(--fgut) 0; }
+.wmn.wall .tg2 .tt .nm { font-size: var(--fs-s); }
+.wmn { padding-top: 0; }
+.wmn .wmore { margin: 4px var(--fgut) 0; }
