@@ -1418,3 +1418,22 @@ html.booting #app, html.booting .nav { visibility: hidden; }
 .fi .ex.mm1[hidden] { display: none; }
 .fi .ex .mtx { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fi .ex .mn { flex: none; font-size: var(--fs-s); color: var(--mut); }
+
+/* 11-04 6차 (43 · 44 · 45 · 47 · 48) */
+.bhd { padding: var(--top) var(--gut) 16px; text-align: center; }
+.bhd .bar { display: flex; align-items: center; gap: 8px; padding: 0; }
+.bhd .bar .sp { flex: 1; }
+.bhd .cb { flex: none; width: 40px; height: 40px; align-self: center; }
+.bhd .bnv { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.bhd .bnv .bt { flex: 1; min-width: 0; text-align: center; }
+.bhd .bnv .mv:disabled { opacity: .3; }
+.bhd h2, .bkv .bhd h2, .brd .rbh h2 { margin: 0; font-size: var(--fs-l); line-height: 32px; -webkit-line-clamp: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.bhd p, .bkv .bhd p, .brd .rbh p { margin: 2px 0 0; }
+.bkv .bhd { padding: var(--top) var(--gut) 16px; text-align: center; }
+.brd.now { transition: none; }
+.brd .rp { content-visibility: visible; contain-intrinsic-size: none; padding: 8px 0 0; }
+.brd .rp > * { width: var(--pw, 70vw); }
+.brd .rtoc { top: calc(var(--top) + 120px); }
+.ftop { padding-left: var(--gut); padding-right: var(--gut); }
+.nav { left: var(--gut); right: var(--gut); }
+.brd .rbh.bhd, .bkv .bh.bhd { padding: var(--top) var(--gut) 16px; }
