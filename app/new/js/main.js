@@ -622,6 +622,14 @@ function openFocus(it, c, opt = {}) {
   const bk = document.createElement('button'); bk.className = 'cb fvx'; bk.setAttribute('aria-label', '뒤로'); bk.innerHTML = ic('back'); ov.appendChild(bk);
   bk.addEventListener('click', e => { e.stopPropagation(); closeFocus(); });
   focus = { ov, box, view, from, clip, y: scrollY, c, onClose: opt.onClose };
+  // 60 고침 (11-05): 크게 보기는 어디서 열어도 스스로 움직여요 (책 · 달력 · 검색에서 열어도 아트 흐름 · 영상)
+  { const me = focus, t0 = performance.now(), still = matchMedia('(prefers-reduced-motion: reduce)').matches; let n = 0;
+    const run = now => {
+      if (focus !== me) return; me.raf = requestAnimationFrame(run); if (document.hidden) return; n++;
+      if (!still && n % 2 === 0) $$('canvas.bgc', box).forEach(cv => cv.width && drawCode(cv, +cv.dataset.seed, +cv.dataset.shift || 0, (now - t0) / 1000 + .01));
+      if (n % 15 === 1) { const cc = me.c, cv = $$('canvas.bgv', box).find(x => { const r = x.getBoundingClientRect(); return r.width && r.bottom > 0 && r.top < innerHeight; }); const i = cv ? +(cv.closest('.pg')?.dataset.i || 0) : 0, bg = cv && pageBg(cc, i); V.sync(bg?.vd ? [{ cv, b: bg, fid: fidOf(cc), onCover: cov => fixCover(cc, i, bg, cov) }] : []); }
+    };
+    me.raf = requestAnimationFrame(run); }
   if (!c.sample && c.id) { const fm = document.createElement('div'); fm.className = 'rel fmemo'; fm.innerHTML = memoHtml(c); sc.appendChild(fm); }   // 메모: 카드 바로 아래
   if (!c.sample && c.id) {   // 끝에 비슷한 카드: 누르면 그 카드가 이 화면에서 바뀌고, 닫으면 처음 연 카드 자리로
     const rel = document.createElement('div'); rel.className = 'rel'; sc.appendChild(rel);
@@ -1130,6 +1138,7 @@ function openReader(b, list, onGrid, hx = {}) {
   };
   // 49 (11-05): 영상은 지금 보는 쪽 하나만 소리 없이 재생, 넘기면 멈추고 커버로. 목차 · 쪽 찾기 중에는 멈춤
   const rdVideo = () => {
+    if (focus) return;   // 크게 보기가 위에 있으면 그쪽이 맡아요
     if (dead || document.hidden || !toc.hidden || sliding) return V.sync([]);
     const p = ps[cur()], c = p?.dataset.c != null ? cards[+p.dataset.c] : null, cv = c && $('canvas.bgv', p);
     if (!cv) return V.sync([]);
@@ -1137,7 +1146,7 @@ function openReader(b, list, onGrid, hx = {}) {
     V.sync(bg?.vd ? [{ cv, b: bg, fid: fidOf(c), onCover: cov => fixCover(c, i, bg, cov) }] : []);
   };
   const onVis = () => rdVideo(); document.addEventListener('visibilitychange', onVis);
-  const live = liveMid(() => { const p = ps[cur()]; return p?.dataset.c != null ? [p] : []; }, { video: false, overlay: false, hold: () => !toc.hidden || sliding });
+  const live = liveMid(() => { const p = ps[cur()]; return p?.dataset.c != null ? [p] : []; }, { video: false, overlay: false, hold: () => !toc.hidden || sliding || !!focus });
   // 종이 넓이: 책 줄의 넓이 · 높이(날짜 줄 32 빼고) 중 작은 쪽에 맞춰요 (머리가 커져도 종이가 넘치지 않게)
   const fitPw = () => { const pw = Math.floor(Math.max(120, Math.min(tr.clientWidth - 56, (tr.clientHeight - 8 - 34) * .75))); rd.style.setProperty('--pw', pw + 'px'); return pw; };
   fitPw();
@@ -1256,6 +1265,7 @@ function openReader(b, list, onGrid, hx = {}) {
     openFocus(p, c, { seq: cards, onClose: last => {   // 마지막에 본 카드의 첫 쪽으로
       const i = cards.findIndex(x => x.id === last.id), at = ps.findIndex(x => +x.dataset.c === i);
       if (at >= 0 && i !== +p.dataset.c) goTo(at);
+      setTimeout(rdVideo, 350);   // 닫히면 보던 쪽 영상 다시
     } });
   });
   return close;
@@ -2932,7 +2942,7 @@ function viewSet(sub) {
     ${sgrp(srow('bell', '알림', S.pref('remind', false) ? '켜짐' : '', { go: '#/set/alarm' }), srow('globe', '언어', LANGS[S.pref('lang', 'ko')], { go: '#/set/lang' }))}
     ${sgrp(srow('spark', '서비스 소개', '', { go: '#/set/about' }), srow('help', '도움말', '', { a: 'help' }), srow('bell', '공지사항 · 이벤트', '', { go: '#/set/news' }), srow('clock', '업데이트 소식', UPDATES[0][0], { go: '#/set/updates' }))}
     ${sgrp(srow('doc', '이용약관', '', { a: 'terms' }), srow('shield', '개인정보 처리방침', '', { a: 'privacy' }), srow('lic', '라이선스', '', { a: 'lic' }))}
-    ${sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' }))}<p class="sver">dayzine 1.0.0 · 테스트 · 11-05 14차</p>`, { up: '#/me' });
+    ${sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' }))}<p class="sver">dayzine 1.0.0 · 테스트 · 11-05 15차</p>`, { up: '#/me' });
   $('[data-a=place]').onclick = e => { const on = !S.pref('autoPlace', false); S.setPref('autoPlace', on); e.currentTarget.querySelector('.tg').classList.toggle('on', on); };
   $('[data-a=terms]').onclick = () => { location.href = '../legal/terms.ko.html'; };
   $('[data-a=privacy]').onclick = () => { location.href = '../legal/privacy.ko.html'; };
