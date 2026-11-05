@@ -1478,7 +1478,7 @@ html.lite #app :is(.fi .when i, .fi .mt .cb, .srw > .ic, .bks .nrow .ic) { color
 html.lite #app .nav .nb { color: rgba(20,20,22,.55); }
 html.lite #app .nav .nb.on { color: #141416; }
 html.lite #app .nav .nb.nw { background: #141416; color: #fff; }
-html.lite #app .cb:not(.bhd .cb, .vio, .w) { background: rgba(20,20,22,.07); }
+html.lite #app .cb:not(.bhd .cb, .vio, .w, .fi .mt .cb, .fi .row .cb, .bn .cb, .runv .dl .cb, .fgrp .fr .cb, .ftop .cb, .msh .mm .cb) { background: rgba(20,20,22,.07); }
 html.lite #app :is(.cb.w, .nb.nw, .cap button.on, .mseg button.on, .sseg button.on, .mdots i.on, .tg.on) { background: #141416; color: #fff; }
 html.lite #app :is(.fi .ours i, .fi .mt .nw, .pick .nm i, .mgr .on em) { background: #141416; color: #fff; }
 html.lite #app .shtop .cb:not(.vio) { background: rgba(255,255,255,.55); }
