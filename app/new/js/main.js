@@ -1038,13 +1038,13 @@ function viewBook(id) {
 // 이동은 아래 한 줄에만: 왼쪽 [‹ 슬라이더 ›] (끄는 동안 손 위 'n쪽 · 날짜' + 종이 미리보기만 바뀌고, 놓으면 그 쪽) · 오른쪽 [목차 n / N쪽] = 그 줄 위로 목차 판 (쪽 번호 · 달별)
 // 쪽의 카드를 누르면 크게 보기 (좌우로 밀면 앞 · 뒤 카드, ‹ 뒤로 = 마지막에 본 카드의 쪽). 다시 열면 마지막에 읽던 쪽부터
 // 책 쪽 마지막 방법: 카드 전체를 W 넓이로 그려서, 장 높이(W × 비율)보다 길면 그 높이씩 잘라 여러 장으로 (길지 않으면 null)
-async function sliceCard(c, W, ar) {
+async function sliceCard(c, W, ar, force) {
   const H = Math.round(W * ar), h = document.createElement('div');
   h.style.cssText = `position:fixed;left:-20000px;top:0;width:${W}px;pointer-events:none;`; document.body.appendChild(h);
   try {
     const el = renderCard(c); h.appendChild(el); fitCard(el, c); await document.fonts?.ready; fitCard(el, c);
-    const tot = Math.max(el.scrollHeight, el.offsetHeight); if (!(tot > H * 1.15)) return null;
-    const n = Math.min(30, Math.ceil(tot / H - .05));
+    const tot = Math.max(el.scrollHeight, el.offsetHeight); if (!force && !(tot > H * 1.15)) return null;
+    const n = Math.max(1, Math.min(30, Math.ceil(tot / H - .05)));
     return Array.from({ length: n }, (_, k) => { const w = document.createElement('div'); w.className = 'slc'; w.style.cssText = `height:${H}px;overflow:hidden;`; const cl = el.cloneNode(true); cl.style.marginTop = -k * H + 'px'; w.appendChild(cl); return w; });
   } catch (e) { console.warn('book slice', e); return null; } finally { h.remove(); }
 }
@@ -1091,25 +1091,27 @@ function openReader(b, list, onGrid, hx = {}) {
       await calm(); if (dead) return;
       const c = cards[i], ar = arOf(c), W = Math.floor(Math.min(sz.w, sz.h / ar));
       const tryB = async x => { try { const r = await buildPages(x, W, Math.min(2, devicePixelRatio || 1)); r.h.remove(); return r.nodes || []; } catch (e) { console.warn('book page', e); return []; } };
-      let nodes = await tryB(c);
-      if (!nodes.length && !dead) nodes = await tryB({ ...blank(c.fmt, c.date), ...c });   // 예전 카드: 빠진 값을 채워 한 번 더
+      let nodes = await tryB(c), made = nodes.length > 0;   // made = 저장 이미지와 같은 장 나누기로 만든 장 (다시 맞추지 않아요: 피드와 같이)
+      if (!nodes.length && !dead) { nodes = await tryB({ ...blank(c.fmt, c.date), ...c }); made = nodes.length > 0; }   // 예전 카드: 빠진 값을 채워 한 번 더
       if (dead) return;
       // 그래도 1장뿐이면 (예전 카드 · 아이폰): 카드를 길게 그려 보고 장 높이보다 길면 잘라서 여러 쪽으로
-      if (nodes.length <= 1) { const sl = await sliceCard(c, W, ar); if (sl) nodes = sl; }
-      if (nodes.length < (c.pages?.length || 1)) nodes = (c.pages?.length ? c.pages : ['']).map((_, k) => renderCard({ ...c, pages: c.pages?.slice(k, k + 1), pst: c.pst?.slice(k, k + 1) }));
+      if (nodes.length <= 1) { const sl = await sliceCard(c, W, ar); if (sl) { nodes = sl; made = true; } }
+      if (nodes.length < (c.pages?.length || 1)) { nodes = (c.pages?.length ? c.pages : ['']).map((_, k) => renderCard({ ...c, pages: c.pages?.slice(k, k + 1), pst: c.pst?.slice(k, k + 1) })); made = false; }
       await calm(); if (dead) return;
+      let slices = null;
       nodes.forEach((n, j) => {
         const s = document.createElement('section'); s.className = 'rp'; s.dataset.c = i; s.dataset.p = j;
         s.innerHTML = `<div class="bpc"><div class="rv0 view" style="width:${W}px"></div></div><p class="rf"><span>${c.date ? ymd(c.date) : ''}</span><span>${nodes.length > 1 ? `${j + 1}/${nodes.length}장` : ''}</span></p>`;
         $('.rv0', s).appendChild(n); tr.appendChild(s);
-        const fc = n.classList?.contains('cd') ? n : n.classList?.contains('slc') ? null : n.querySelector?.('.cd'); if (fc) requestAnimationFrame(() => fitCard(fc, c));
-        // 아이폰에서 장 나누기가 잘못 재면 (너무 길거나 비면) 2열과 같은 방식으로 그 장을 다시 그려요
-        requestAnimationFrame(() => requestAnimationFrame(() => {
-          const h = n.getBoundingClientRect?.().height || 0, want = W * ar;
+        // 11-05: 나눠 만든 장은 다시 맞추지 않아요 (다시 맞추면 아이폰에서 잘라 둔 자리가 풀려 첫 장 글이 나와요). 새로 그린 카드만 맞춰요
+        if (!made && n.classList?.contains('cd')) requestAnimationFrame(() => fitCard(n, c));
+        // 그 장이 비어 나오면 (아이폰): 카드를 길게 그려 같은 자리(j번째 장 높이)를 잘라 넣어요. 첫 장으로 되돌리지 않게
+        requestAnimationFrame(() => requestAnimationFrame(async () => {
+          const h = n.getBoundingClientRect?.().height || 0;
           const empty = !!(cardText(c) || '').trim() && !(n.textContent || '').trim() && !n.querySelector('img, canvas, video, svg');
-          if (h > 20 && h < want * 1.12 && !empty) return;
-          const k = Math.min(j, Math.max(0, (c.pages?.length || 1) - 1)), v = $('.rv0', s); v.replaceChildren();
-          mount(v, { ...c, pages: c.pages?.slice(k, k + 1), pst: c.pst?.slice(k, k + 1) });
+          if (h > 20 && !empty) return;
+          const sl = await (slices ||= sliceCard(c, W, ar, true)); const x = sl?.[Math.min(j, sl.length - 1)]; if (!x || dead) return;
+          $('.rv0', s).replaceChildren(x.cloneNode(true));
         }));
       });
       ps = $$('.rp', rd);
