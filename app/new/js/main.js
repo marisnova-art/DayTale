@@ -1098,7 +1098,17 @@ function openReader(b, list, onGrid, hx = {}) {
     sl.max = Math.max(0, tot - 1); if (!sliding) { sl.value = k; fillSl(); }
     $('[data-a=prev]', rd).disabled = k <= 0; $('[data-a=next]', rd).disabled = built && k >= tot - 1;
     if (p?.dataset.c != null && k !== lastAt) { lastAt = k; marks[b.id] = { c: cards[+p.dataset.c].id, p: +p.dataset.p }; S.setPref('bookAt', marks); }
+    rdVideo();
   };
+  // 49 (11-05): 영상은 지금 보는 쪽 하나만 소리 없이 재생, 넘기면 멈추고 커버로. 목차 · 쪽 찾기 중에는 멈춤
+  const rdVideo = () => {
+    if (dead || document.hidden || !toc.hidden || sliding) return V.sync([]);
+    const p = ps[cur()], c = p?.dataset.c != null ? cards[+p.dataset.c] : null, cv = c && $('canvas.bgv', p);
+    if (!cv) return V.sync([]);
+    const i = +(cv.closest('.pg')?.dataset.i ?? p.dataset.p ?? 0), bg = pageBg(c, i);
+    V.sync(bg?.vd ? [{ cv, b: bg, fid: fidOf(c), onCover: cov => fixCover(c, i, bg, cov) }] : []);
+  };
+  const onVis = () => rdVideo(); document.addEventListener('visibilitychange', onVis);
   // 종이 넓이: 책 줄의 넓이 · 높이(날짜 줄 32 빼고) 중 작은 쪽에 맞춰요 (머리가 커져도 종이가 넘치지 않게)
   const fitPw = () => { const pw = Math.floor(Math.max(120, Math.min(tr.clientWidth - 56, (tr.clientHeight - 8 - 34) * .75))); rd.style.setProperty('--pw', pw + 'px'); return pw; };
   fitPw();
@@ -1176,8 +1186,9 @@ function openReader(b, list, onGrid, hx = {}) {
   const vv = window.visualViewport;
   const kbFit = () => { if (!rd.classList.contains('kb') || !vv) { toc.style.bottom = ''; return; } toc.style.bottom = Math.max(0, innerHeight - vv.height - vv.offsetTop) + 8 + 'px'; };
   vv?.addEventListener('resize', kbFit); vv?.addEventListener('scroll', kbFit);
-  const closeToc = () => { toc.hidden = true; toc.replaceChildren(); rd.classList.remove('toc', 'kb'); kbFit(); };
+  const closeToc = () => { toc.hidden = true; toc.replaceChildren(); rd.classList.remove('toc', 'kb'); kbFit(); if (!dead) rdVideo(); };
   const openToc = () => {
+    V.sync([]);   // 목차를 여는 동안 영상 멈춤
     slEnd(); const pg = pages(), T = pg.length; if (!T) return;
     toc.style.top = ($('.rbh', rd).offsetHeight + 8) + 'px';   // 45: 머리 바로 아래부터
     const at = Math.max(0, pg.indexOf(ps[cur()]));
@@ -1203,7 +1214,7 @@ function openReader(b, list, onGrid, hx = {}) {
   };
   $('[data-a=toc]', rd).onclick = () => toc.hidden ? openToc() : closeToc();
   const onRs = () => fitPw(); addEventListener('resize', onRs);
-  const close = () => { dead = true; removeEventListener('resize', onRs); clearTimeout(slT); closeToc(); closeFocus(true); rd.classList.remove('in'); setTimeout(() => rd.remove(), 300); };
+  const close = () => { dead = true; V.stop(); document.removeEventListener('visibilitychange', onVis); removeEventListener('resize', onRs); clearTimeout(slT); closeToc(); closeFocus(true); rd.classList.remove('in'); setTimeout(() => rd.remove(), 300); };
   $('[data-a=back]', rd).onclick = () => { close(); hx.back ? hx.back() : location.replace('#/shelf'); };
   $('[data-a=more]', rd)?.addEventListener('click', () => hx.more?.());
   $('[data-v=list]', rd).onclick = () => { S.setPref('bookView', 'grid'); close(); rd.remove(); onGrid?.(); };   // 캡슐로 바꿀 때는 바로 (서서히 사라지며 겹치지 않게)
@@ -2891,7 +2902,7 @@ function viewSet(sub) {
     ${sgrp(srow('bell', '알림', S.pref('remind', false) ? '켜짐' : '', { go: '#/set/alarm' }), srow('globe', '언어', LANGS[S.pref('lang', 'ko')], { go: '#/set/lang' }))}
     ${sgrp(srow('spark', '서비스 소개', '', { go: '#/set/about' }), srow('help', '도움말', '', { a: 'help' }), srow('bell', '공지사항 · 이벤트', '', { go: '#/set/news' }), srow('clock', '업데이트 소식', UPDATES[0][0], { go: '#/set/updates' }))}
     ${sgrp(srow('doc', '이용약관', '', { a: 'terms' }), srow('shield', '개인정보 처리방침', '', { a: 'privacy' }), srow('lic', '라이선스', '', { a: 'lic' }))}
-    ${sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' }))}<p class="sver">dayzine 1.0.0 · 테스트 · 11-05 12차</p>`, { up: '#/me' });
+    ${sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' }))}<p class="sver">dayzine 1.0.0 · 테스트 · 11-05 13차</p>`, { up: '#/me' });
   $('[data-a=place]').onclick = e => { const on = !S.pref('autoPlace', false); S.setPref('autoPlace', on); e.currentTarget.querySelector('.tg').classList.toggle('on', on); };
   $('[data-a=terms]').onclick = () => { location.href = '../legal/terms.ko.html'; };
   $('[data-a=privacy]').onclick = () => { location.href = '../legal/privacy.ko.html'; };
