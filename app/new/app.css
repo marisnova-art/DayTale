@@ -1450,3 +1450,12 @@ html.booting #app, html.booting .nav { visibility: hidden; }
 .bhd .bcap button { color: inherit; opacity: .7; }
 .bhd .bcap button.on { background: #fff; color: #141416; opacity: 1; }
 .bhd .bnv { margin-top: 10px; }
+
+/* 책 쪽 자르기의 뒤 바탕: 같은 카드에서 글 · 꾸밈만 지워요 */
+.slbk, .slbk * { color: transparent !important; text-shadow: none !important; }
+.slbk .o, .slbk svg, .slbk img.emo, .slbk .dt, .slbk mark { visibility: hidden; }
+.slfg, .slfg * { background: transparent !important; box-shadow: none !important; }
+.slfg .bgi, .slfg canvas.bgc, .slfg video, .slfg .dim, .slfg .grain { visibility: hidden !important; }
+.slfg .dimL, .slfg .bgv, .slfg .phadd { visibility: hidden !important; }
+.brd .rv0 > * { display: flow-root; }   /* 11-05: block이면 디자인 카드 글 상자 위 여백이 밖으로 빠져 장마다 글이 위로 밀려 잘려요 */
+.brd .rv0 { display: flex; } .brd .rv0 > * { flex: 0 0 100%; min-width: 0; }   /* 피드 장 넘김(.pgs)과 같은 틀: 장 안 여백이 밖으로 빠지지 않게 */

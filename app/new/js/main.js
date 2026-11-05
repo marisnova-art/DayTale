@@ -2,7 +2,7 @@
 import { ic } from './icons.js';
 import * as S from './store.js';
 import { exampleText, quoteText } from './prompts.js';
-import { FORMATS, ORDER, LABEL, blank, sampleCard, renderCard, fitCard, cardText, newSeed, placeObjects, dateChip, weekday, toneOf, pageBg, AR, RATIOS, arOf, dateOn, placeOn, infoPos, signOf, SIZE5, V5, dimLv, inkOn, dateLine, DATE_FMT, zoomOf, zoomCss } from './formats.js';
+import { FORMATS, ORDER, LABEL, blank, sampleCard, renderCard, fitCard, cardText, newSeed, placeObjects, dateChip, weekday, toneOf, pageBg, AR, RATIOS, arOf, dateOn, placeOn, infoPos, signOf, SIZE5, V5, dimLv, inkOn, dateLine, DATE_FMT, zoomOf, zoomCss, lines, starts } from './formats.js';
 import { FREE, KIND, find as findBg, drawCode } from './bg.js';
 import { buildPages, saveImages } from './export.js';
 import { saveCard, pill } from './save.js';
@@ -1038,14 +1038,38 @@ function viewBook(id) {
 // 이동은 아래 한 줄에만: 왼쪽 [‹ 슬라이더 ›] (끄는 동안 손 위 'n쪽 · 날짜' + 종이 미리보기만 바뀌고, 놓으면 그 쪽) · 오른쪽 [목차 n / N쪽] = 그 줄 위로 목차 판 (쪽 번호 · 달별)
 // 쪽의 카드를 누르면 크게 보기 (좌우로 밀면 앞 · 뒤 카드, ‹ 뒤로 = 마지막에 본 카드의 쪽). 다시 열면 마지막에 읽던 쪽부터
 // 책 쪽 마지막 방법: 카드 전체를 W 넓이로 그려서, 장 높이(W × 비율)보다 길면 그 높이씩 잘라 여러 장으로 (길지 않으면 null)
-async function sliceCard(c, W, ar, force) {
-  const H = Math.round(W * ar), h = document.createElement('div');
-  h.style.cssText = `position:fixed;left:-20000px;top:0;width:${W}px;pointer-events:none;`; document.body.appendChild(h);
+async function sliceCard(c, W, ar, force, at = document.body) {
+  // at = 책 줄(.rtr): 책 쪽과 똑같은 틀 안에서 재야 글자 크기(cqw) · 줄 자리가 맞아요
+  const H = Math.round(W * ar), h = document.createElement('section'); h.className = 'rp';
+  h.style.cssText = 'position:absolute;left:0;top:0;visibility:hidden;pointer-events:none;';
+  h.innerHTML = `<div class="bpc"><div class="rv0 view" style="width:${W}px"><div class="slc" style="position:relative;height:${H}px;overflow:hidden;"><div class="slin" style="position:absolute;left:0;right:0;top:0;"></div></div></div></div>`; at.appendChild(h);
+  const box = h.querySelector('.slin');
   try {
-    const el = renderCard(c); h.appendChild(el); fitCard(el, c); await document.fonts?.ready; fitCard(el, c);
+    const el = renderCard(c); el.classList.add('slfg'); box.appendChild(el); fitCard(el, c);   // 잘라 넣을 자리와 똑같은 틀에서 재요
+    // 글꼴이 다 받아진 뒤에 재요 (받기 전 글꼴로 재면 줄 높이가 달라 줄 중간에서 잘려요)
+    const fams = new Set([...el.querySelectorAll('*')].slice(0, 400).map(x => getComputedStyle(x).fontFamily).filter(Boolean));
+    await Promise.all([...fams].map(f => document.fonts?.load(`500 20px ${f}`, '가나다abc').catch(() => {})));
+    await new Promise(r => requestAnimationFrame(() => r())); await document.fonts?.ready; fitCard(el, c);
     const tot = Math.max(el.scrollHeight, el.offsetHeight); if (!force && !(tot > H * 1.15)) return null;
-    const n = Math.max(1, Math.min(30, Math.ceil(tot / H - .05)));
-    return Array.from({ length: n }, (_, k) => { const w = document.createElement('div'); w.className = 'slc'; w.style.cssText = `height:${H}px;overflow:hidden;`; const cl = el.cloneNode(true); cl.style.marginTop = -k * H + 'px'; w.appendChild(cl); return w; });
+    // 11-05: 줄 사이에서 끊어요 (글 줄이 반쯤 잘리지 않게). 장마다 위아래 여백 8%, 뒤 바탕은 글을 지운 같은 카드
+    const pad = Math.round(H * .08), avail = H - pad * 2;
+    // 줄은 글 상자(디자인 = .rb, 글 = .tx)에서 재요 (저장 이미지의 장 나누기와 같은 곳). 카드 위에서부터의 자리로 바꿔요
+    const root = el.querySelector('.rb') || el.querySelector('.tx') || el, dy = root.getBoundingClientRect().top - el.getBoundingClientRect().top;
+    const ls = lines(root).map(([t, b]) => [t + dy, b + dy]);
+    let st = ls.length ? starts(ls, avail) : [0];
+    if (!ls.length) { st = []; for (let y = 0; y < tot; y += H) st.push(y); }
+    if (st.length > 1) { const last = st[st.length - 1], rest = ls.filter(([t]) => t >= last); if (rest.length <= 1 && last > tot - H * .25) st.pop(); }   // 끝의 날짜 줄만 남은 장은 빼요
+    st = st.slice(0, 30);
+    const bk = el.cloneNode(true); bk.classList.remove('slfg'); bk.classList.add('slbk');
+    return st.map((off, k) => {
+      const end = k + 1 < st.length ? st[k + 1] : Math.min(tot, off + avail), top = k ? off - pad : 0;
+      const w = document.createElement('div'); w.className = 'slc'; w.style.cssText = `position:relative;height:${H}px;overflow:hidden;`;
+      const b2 = bk.cloneNode(true); b2.style.cssText += `;position:absolute;left:0;right:0;top:0;height:${H}px;min-height:0;`;
+      const clip = document.createElement('div'); clip.style.cssText = `position:absolute;left:0;right:0;top:${k ? pad : 0}px;height:${end - off + (k ? 0 : off)}px;overflow:hidden;`;
+      const cl = el.cloneNode(true); cl.style.marginTop = -(k ? off : 0) + 'px'; clip.appendChild(cl);
+      const src = [...el.querySelectorAll('canvas')]; [...b2.querySelectorAll('canvas')].forEach((cv, i) => { const a = src[i]; if (!a?.width) return; cv.width = a.width; cv.height = a.height; try { cv.getContext('2d').drawImage(a, 0, 0); } catch {} });   // 그린 바탕(코드 그림)도 옮겨요
+      w.append(b2, clip); return w;
+    });
   } catch (e) { console.warn('book slice', e); return null; } finally { h.remove(); }
 }
 function openReader(b, list, onGrid, hx = {}) {
@@ -1086,7 +1110,13 @@ function openReader(b, list, onGrid, hx = {}) {
   const goTo = (j, smooth) => tr.scrollTo({ left: Math.max(0, Math.min(ps.length - 1, j)) * tr.clientWidth, behavior: smooth ? 'smooth' : 'instant' });
   // 쪽 만들기: 카드마다 장을 나눠서 차례로 뒤에 붙여요
   (async () => {
-    const pw = fitPw(), sz = { w: pw * .82, h: pw / .75 * .86 };   // 종이(3:4) 안에 카드가 여백을 두고 들어가게
+    fitPw();
+    // 종이 안쪽 넓이 · 높이를 실제로 재요 (여백 %는 종이가 아니라 쪽 넓이 기준이라 계산이 어긋나요)
+    const probe = document.createElement('section'); probe.className = 'rp'; probe.style.cssText = `position:absolute;left:0;top:0;width:${tr.clientWidth}px;visibility:hidden;`;
+    probe.innerHTML = '<div class="bpc"></div>'; tr.appendChild(probe);
+    const pb = $('.bpc', probe), pcs = getComputedStyle(pb);
+    const sz = { w: Math.floor(pb.clientWidth - parseFloat(pcs.paddingLeft) - parseFloat(pcs.paddingRight)), h: Math.floor(pb.clientHeight - parseFloat(pcs.paddingTop) - parseFloat(pcs.paddingBottom)) };
+    probe.remove();   // 종이(3:4)의 안쪽 (여백 11%씩) 그대로. 더 크게 재면 종이에 들어가며 줄어 장 나눈 자리가 어긋나요 (11-05)
     for (let i = 0; i < N && !dead; i++) {
       await calm(); if (dead) return;
       const c = cards[i], ar = arOf(c), W = Math.floor(Math.min(sz.w, sz.h / ar));
@@ -1095,7 +1125,7 @@ function openReader(b, list, onGrid, hx = {}) {
       if (!nodes.length && !dead) { nodes = await tryB({ ...blank(c.fmt, c.date), ...c }); made = nodes.length > 0; }   // 예전 카드: 빠진 값을 채워 한 번 더
       if (dead) return;
       // 그래도 1장뿐이면 (예전 카드 · 아이폰): 카드를 길게 그려 보고 장 높이보다 길면 잘라서 여러 쪽으로
-      if (nodes.length <= 1) { const sl = await sliceCard(c, W, ar); if (sl) { nodes = sl; made = true; } }
+      if (nodes.length <= 1) { const sl = await sliceCard(c, W, ar, false, tr); if (sl) { nodes = sl; made = true; } }
       if (nodes.length < (c.pages?.length || 1)) { nodes = (c.pages?.length ? c.pages : ['']).map((_, k) => renderCard({ ...c, pages: c.pages?.slice(k, k + 1), pst: c.pst?.slice(k, k + 1) })); made = false; }
       await calm(); if (dead) return;
       let slices = null;
@@ -1110,7 +1140,7 @@ function openReader(b, list, onGrid, hx = {}) {
           const h = n.getBoundingClientRect?.().height || 0;
           const empty = !!(cardText(c) || '').trim() && !(n.textContent || '').trim() && !n.querySelector('img, canvas, video, svg');
           if (h > 20 && !empty) return;
-          const sl = await (slices ||= sliceCard(c, W, ar, true)); const x = sl?.[Math.min(j, sl.length - 1)]; if (!x || dead) return;
+          const sl = await (slices ||= sliceCard(c, W, ar, true, tr)); const x = sl?.[Math.min(j, sl.length - 1)]; if (!x || dead) return;
           $('.rv0', s).replaceChildren(x.cloneNode(true));
         }));
       });
