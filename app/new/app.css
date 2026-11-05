@@ -1510,3 +1510,11 @@ html.lite #app .mev .mst.on { background: #141416; color: #fff; }
 html.lite #app .mev .mst.on .mlb { color: rgba(255,255,255,.72); }
 html.lite #app .mev .mgc { background-color: rgba(255,255,255,.4); color: var(--fg); }
 html.lite #app .mgc :is(.hb2, .hb2 *) { color: inherit; }
+/* 58 고침 (11-05 아이폰): 남은 흰 아이콘 · 위 흐림 */
+html.lite #app :is(.srch .sl .it > .ic, .srch .sl .it .x, .sl .it > .ic, .sl .it .x, .tt .nm .ic, .tsf .ic, .fld .ic) { color: rgba(20,20,22,.6); }
+html.lite #app .tstk.sc { background: rgba(255,255,255,.32); }
+html.lite #app .shv .stb { background: linear-gradient(rgba(0,0,0,.18), rgba(0,0,0,0)); }
+html.lite #app .tt .nm .ic { fill: rgba(20,20,22,.6); stroke: rgba(20,20,22,.6); }
+html.lite #app :is(.srch .cnt, .srch .fgrp .fr small, .fgrp .fr small, .srch .sl h4, .srch .sl .it .n) { color: rgba(20,20,22,.6); }
+html.lite #app .nb.on .ic .hd { stroke: rgba(255,255,255,.9); }   /* 책장 탭 켜짐: 검정 채움 안의 선은 밝게 */
+html.lite #app .nb.on .av { box-shadow: 0 0 0 2px rgba(255,255,255,.7), 0 0 0 4px #141416; }
