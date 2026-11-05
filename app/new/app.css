@@ -154,16 +154,16 @@ body.paused .amb b { animation-play-state: paused; }
 .fi.intro .cd.rebus .o:nth-of-type(2n) svg { animation-delay: .15s; } .fi.intro .cd.rebus .o:nth-of-type(3n) svg { animation-delay: .3s; }
 @keyframes pop { from { transform: scale(.3); opacity: 0; } }
 .cd.rebus .o svg * { transform-box: fill-box; transform-origin: center; }
-.fi.play:not(.intro) .cd.rebus .o[data-m=sway] svg > :is(path, g):last-child { animation: sway 3.2s ease-in-out infinite alternate; }
-.fi.play:not(.intro) .cd.rebus .o[data-m=dash] svg [stroke-dasharray] { animation: dash 2.4s linear infinite; }
-.fi.play:not(.intro) .cd.rebus .o[data-k="17"] svg [stroke-dasharray] { animation-name: dash2; }
-.fi.play:not(.intro) .cd.rebus .o[data-m=tw] svg :is(circle, rect, path):not(:only-child) { animation: tw 3.6s ease-in-out infinite; }
-.fi.play:not(.intro) .cd.rebus .o[data-m=tw] svg :nth-child(3n+2) { animation-delay: -1.2s; } .fi.play:not(.intro) .cd.rebus .o[data-m=tw] svg :nth-child(3n) { animation-delay: -2.4s; }
-.fi.play:not(.intro) .cd.rebus .o[data-m=spin] svg { animation: spin 16s linear infinite; }
-.fi.play:not(.intro) .cd.rebus .o[data-m=pulse] svg > :is(circle, path) { animation: pulse 3.6s ease-in-out infinite; }
-.fi.play:not(.intro) .cd.rebus .o[data-m=pulse] svg > :nth-child(2) { animation-delay: -1.2s; }
-.fi.play:not(.intro) .cd.rebus .o[data-m=rise] svg > :is(rect, path) { transform-origin: bottom; animation: rise 3.6s ease-in-out infinite; }
-.fi.play:not(.intro) .cd.rebus .o[data-m=rise] svg > :nth-child(2n) { animation-delay: -1.2s; } .fi.play:not(.intro) .cd.rebus .o[data-m=rise] svg > :nth-child(3n) { animation-delay: -2.4s; }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.rebus .o[data-m=sway] svg > :is(path, g):last-child { animation: sway 3.2s ease-in-out infinite alternate; }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.rebus .o[data-m=dash] svg [stroke-dasharray] { animation: dash 2.4s linear infinite; }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.rebus .o[data-k="17"] svg [stroke-dasharray] { animation-name: dash2; }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.rebus .o[data-m=tw] svg :is(circle, rect, path):not(:only-child) { animation: tw 3.6s ease-in-out infinite; }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.rebus .o[data-m=tw] svg :nth-child(3n+2) { animation-delay: -1.2s; } :is(.fi, .tt, .rp).play:not(.intro) .cd.rebus .o[data-m=tw] svg :nth-child(3n) { animation-delay: -2.4s; }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.rebus .o[data-m=spin] svg { animation: spin 16s linear infinite; }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.rebus .o[data-m=pulse] svg > :is(circle, path) { animation: pulse 3.6s ease-in-out infinite; }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.rebus .o[data-m=pulse] svg > :nth-child(2) { animation-delay: -1.2s; }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.rebus .o[data-m=rise] svg > :is(rect, path) { transform-origin: bottom; animation: rise 3.6s ease-in-out infinite; }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.rebus .o[data-m=rise] svg > :nth-child(2n) { animation-delay: -1.2s; } :is(.fi, .tt, .rp).play:not(.intro) .cd.rebus .o[data-m=rise] svg > :nth-child(3n) { animation-delay: -2.4s; }
 @keyframes sway { from { transform: translateX(-3px); } to { transform: translateX(3px); } }
 @keyframes dash { to { stroke-dashoffset: -36; } } @keyframes dash2 { to { stroke-dashoffset: -64; } }
 @keyframes tw { 50% { opacity: .35; } }
