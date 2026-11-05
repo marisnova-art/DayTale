@@ -1345,10 +1345,10 @@ function viewCal(month) {
   let stop = () => {};
   const open = c => openRun(all, c);
   if (all.length) {
-    stop = dayList(list, all, open, c => cardMenu(c), 3);
+    stop = dayList(list, all, open, c => cardMenu(c));   // 11-05: 2열 (3열은 들쑥날쑥)
     // 내리다 멈추면 가장 가까운 날짜 머리가 위 판 바로 아래에 와요 (11-04). 판 높이가 바뀌면(달 펼치기) 그 높이로
     const cpn = $('.cpn'), setH = () => document.documentElement.style.setProperty('--cph', cpn.offsetHeight + 'px');
-    setH(); const ro = new ResizeObserver(setH); ro.observe(cpn); document.documentElement.classList.add('csnap');
+    setH(); const ro = new ResizeObserver(setH); ro.observe(cpn);   // 11-05: 날짜에 끌려 붙기(스냅) 없음, 손 뗀 자리 그대로
     const stopList = stop; stop = () => { stopList(); ro.disconnect(); document.documentElement.classList.toggle('csnap', false); };
     list.insertAdjacentHTML('beforeend', `<p class="firstd">처음 쓴 날 · ${ymd(first)}</p>`);
     requestAnimationFrame(() => { toWeek(act, false); if (!settle(all, open)) jump(act, false); });
@@ -2848,13 +2848,13 @@ function setPick(title, opts, cur, put) {
 // 설정 › 바탕 (11-04): 그라데이션 › · 솔리드 › (안에서 랜덤 또는 하나) · 다크 (누르면 바로). 쓰는 쪽에 체크, 오른쪽에 고른 것
 const bgPickOf = m => (S.pref('bgPick', {}) || {})[m] || '';
 function setBg() {
-  const m = bgMode(), v = k => `${m === k ? ic('check') : ''}<span>${esc(bgPickOf(k) || '랜덤')}</span>`;
+  const m = bgMode(), v = k => `<span>${esc(bgPickOf(k) || '랜덤')}</span>${m === k ? `<i class="vck">${ic('check')}</i>` : ''}`;   // 11-05: ✓ 는 값 뒤 오른쪽에 크게
   setShell('바탕', sgrp(srow('', '그라데이션', v('g'), { go: '#/set/bgg' }), srow('', '솔리드', v('s'), { go: '#/set/bgs' }), srow('', '다크', '', { ck: m === 'd', a: 'dk' })), { cls: 'sbg' });
   $('[data-a=dk]').onclick = () => { S.setPref('bgMode', 'd'); resetMood(); pill('다크', 'check'); setBg(); };
 }
 function setBgPick(k) {
   const list = k === 'g' ? PAGE_G : PAGE_S, on = bgMode() === k, cur = on ? bgPickOf(k) : null;
-  const sw = x => k === 'g' ? `linear-gradient(160deg, ${x[1]}, ${x[2]} 60%, ${x[3]})` : x[1];
+  const sw = x => k === 'g' ? x[4] : x[2];   // 쓰기 화면 컬러칩과 같은 모양
   const opts = [['', '랜덤'], ...list.map(x => [x[0], x[0]])];
   setShell(k === 'g' ? '그라데이션' : '솔리드', sgrp(...opts.map(([val, label], i) => srow('', `${i ? `<i class="bsw" style="background:${sw(list[i - 1])}"></i>` : `<i class="bsw rnd">${ic('shuf')}</i>`}${esc(label)}`, '', { ck: cur === val, a: 'v' }).replace('data-a="v"', `data-v="${esc(val)}"`))), { up: '#/set/bg', cls: 'sbg' });
   $$('[data-v]').forEach(b => b.onclick = () => {

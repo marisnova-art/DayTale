@@ -1,6 +1,7 @@
 // 홈 · 템플릿 · 책장 · 프로필 · 검색 바탕 무드 (설정 › 바탕에서 그라데이션 · 솔리드 · 다크). 그라데이션은 빛 덩어리가 천천히 떠다녀요. 흐림 · 비는 채도를 낮춰요.
 // MOOD = false 로 두면 예전 방식(가운데 카드 색만 은은하게 번짐, abc7e96)으로 돌아가요. 출시 전에 톤 다시 보기
 import * as S from './store.js';
+import { FREE } from './bg.js';
 import { guessCity, cityLookup } from '../../js/data/cities.js';
 
 export const MOOD = true;
@@ -36,10 +37,14 @@ export const MODES = [['g', '그라데이션'], ['s', '솔리드'], ['d', '다�
 export const mode = () => S.pref('bgMode', 'g');
 const mix = (c, f) => '#' + [1, 3, 5].map(i => Math.round(parseInt(c.slice(i, i + 2), 16) * f).toString(16).padStart(2, '0')).join('');
 // [이름, 진한 색, 가운데 색, 밝은 색]
-export const PAGE_G = [['노을 하늘', '#5A1424', '#E5484D', '#FFB3A7'], ['귤빛 저녁', '#5C2410', '#F27A2E', '#FFD39B'], ['풀빛 아침', '#1F4A1C', '#7DBB42', '#E9F5A8'],
-  ['호수', '#0B3B3C', '#1FA39A', '#B5F0E4'], ['깊은 바다', '#0E1F55', '#2F6BE0', '#A9D2FF'], ['보랏빛 밤', '#26124F', '#7B4BD6', '#D9C2FF'],
-  ['장미 빛', '#3B0E2A', '#F0607A', '#FFC9A8'], ['새벽 빛', '#0B1236', '#4D7CF0', '#FFD6E8']];
-export const PAGE_S = [['겨자', mix('#D9A441', .5)], ['벽돌', '#9A4530'], ['장미', mix('#DE939C', .5)], ['청록', '#256662'], ['숲', '#173832'], ['밤하늘', '#131B32'], ['자두', '#3A2240'], ['먹색', '#1C1C1E']];
+// 11-05 앤드류: 바탕 목록 = 쓰기 컬러와 똑같이 (그라데이션 24 · 솔리드 11, 이름도 같게). 밝은 색은 밝기에 맞춰 눌러서 흰 글 · 버튼이 읽히게
+// PAGE_G = [이름, 진한 색, 가운데 색, 밝은 색, 쓰기 칩 css], PAGE_S = [이름, 바탕 색, 쓰기 칩 색]
+const lum = h => { const f = v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; }; const [r, g, b] = [1, 3, 5].map(i => f(parseInt(h.slice(i, i + 2), 16))); return .2126 * r + .7152 * g + .0722 * b; };
+const tame = (h, max) => { if (lum(h) <= max) return h; let lo = 0, hi = 1; for (let i = 0; i < 14; i++) { const f = (lo + hi) / 2; lum(mix(h, f)) > max ? hi = f : lo = f; } return mix(h, lo); };
+const hexes = css => (css.match(/#[0-9a-f]{6}/gi) || []).map(x => x.toUpperCase());
+export const PAGE_G = FREE.filter(b => b.kind === 'g').map(b => { const cs = hexes(b.css).sort((x, y) => lum(x) - lum(y)), d = cs[0], l = cs[cs.length - 1], md = cs[Math.floor(cs.length / 2)] === l && cs.length > 1 ? cs[cs.length - 2] : cs[Math.floor(cs.length / 2)];
+  return [b.name, tame(d, .05), tame(md, .28), tame(l, .5), b.css]; });
+export const PAGE_S = FREE.filter(b => b.kind === 's').map(b => [b.name, tame(b.css, .1), b.css]);
 const DARK = '#141416';
 const lift = (c, f) => '#' + [1, 3, 5].map(i => { const v = parseInt(c.slice(i, i + 2), 16); return Math.round(v + (255 - v) * f).toString(16).padStart(2, '0'); }).join('');
 let chosen = null;

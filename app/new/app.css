@@ -1459,3 +1459,12 @@ html.booting #app, html.booting .nav { visibility: hidden; }
 .slfg .dimL, .slfg .bgv, .slfg .phadd { visibility: hidden !important; }
 .brd .rv0 > * { display: flow-root; }   /* 11-05: block이면 디자인 카드 글 상자 위 여백이 밖으로 빠져 장마다 글이 위로 밀려 잘려요 */
 .brd .rv0 { display: flex; } .brd .rv0 > * { flex: 0 0 100%; min-width: 0; }   /* 피드 장 넘김(.pgs)과 같은 틀: 장 안 여백이 밖으로 빠지지 않게 */
+
+/* 11-05 7차: 설정 › 바탕 ✓ (값 뒤 오른쪽, 크게) · 컬러칩 가로로 길게 */
+.sbg .srw .v .vck { display: grid; margin-left: 8px; }
+.sbg .srw .v .vck .ic { width: 22px; height: 22px; stroke-width: 2.6; color: #fff; }
+.sbg .srw .v > .ic:last-child { margin-left: 4px; }
+.sbg .bsw { width: 56px; height: 32px; border-radius: 8px; margin-right: 14px; background-size: cover; box-shadow: inset 0 0 0 1px rgba(255,255,255,.18); }
+.sbg .bsw.rnd .ic { width: 18px; height: 18px; }
+.sbg .srw .v > span { display: inline-flex; align-items: center; overflow: visible; }
+.sbg .srw .v .vck { display: inline-grid; }
