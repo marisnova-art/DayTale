@@ -1468,3 +1468,45 @@ html.booting #app, html.booting .nav { visibility: hidden; }
 .sbg .bsw.rnd .ic { width: 18px; height: 18px; }
 .sbg .srw .v > span { display: inline-flex; align-items: center; overflow: visible; }
 .sbg .srw .v .vck { display: inline-grid; }
+
+/* 11-05 58: 밝은 바탕(파스텔 그라데이션 · 크림 · 연두 · 하늘 · 겨자 · 장미) = 원래 색 그대로, 그 위 글 · 버튼은 검정.
+   카드 · 책 색 머리 · 시트는 그대로. 흰 동그라미/알약(고른 것)은 검정 알약 + 흰 아이콘으로 뒤집어요 */
+html.lite #app, html.lite .brd { --fg: #141416; --mut: rgba(20,20,22,.58); --off: rgba(20,20,22,.3); --line: rgba(20,20,22,.1); --srf: rgba(255,255,255,.5); --srf2: rgba(255,255,255,.62); color: var(--fg); }
+html.lite #app :is(.top .nm, .nb.on, .strip .th.on .lab, .srch .cnt b, .srch .empty b, .rel h4 b, .shv .empty b, .mgr .on span, .fi .mt [data-a=use]) { color: var(--fg); }
+html.lite #app :is(.fi .when, .fi .ex, .fi .ex.open, .fi .row .pc, .fi .mt, .fi .mt > span:has(.nw), .fi.tile .sm p, .rel .rr p) { color: rgba(20,20,22,.78); }
+html.lite #app :is(.fi .when i, .fi .mt .cb, .srw > .ic, .bks .nrow .ic) { color: rgba(20,20,22,.55); }
+html.lite #app .nav .nb { color: rgba(20,20,22,.55); }
+html.lite #app .nav .nb.on { color: #141416; }
+html.lite #app .nav .nb.nw { background: #141416; color: #fff; }
+html.lite #app .cb:not(.bhd .cb) { background: rgba(20,20,22,.07); }
+html.lite #app :is(.cb.w, .nb.nw, .cap button.on, .mseg button.on, .sseg button.on, .mdots i.on, .tg.on) { background: #141416; color: #fff; }
+html.lite #app :is(.fi .ours i, .fi .mt .nw, .pick .nm i, .mgr .on em) { background: #141416; color: #fff; }
+html.lite #app .shtop .cb:not(.vio) { background: rgba(255,255,255,.55); }
+html.lite #app :is(.cap, .fld, .chip2, .schip) { background: rgba(255,255,255,.55); color: var(--fg); }
+html.lite #app .fld input::placeholder { color: rgba(20,20,22,.45); }
+html.lite #app .rc { color: var(--fg); background: rgba(20,20,22,.08); }
+html.lite #app :is(.srch .empty > .i, .shv .empty > .i) { background: rgba(20,20,22,.07); color: rgba(20,20,22,.7); }
+html.lite #app mark:not(.cd mark) { background: rgba(20,20,22,.14); color: var(--fg); }
+html.lite #app :is(.cpn, .cpn .mon, .cpn [data-d], .mpn, .mset, .mq) { color: var(--fg); }
+html.lite #app .cpn [data-d].on { background: #141416; color: #fff; }
+html.lite #app .cpn .grip::before { background: rgba(20,20,22,.3); }
+html.lite #app .mpro .chip { background: rgba(255,255,255,.5); color: var(--fg); }
+html.lite #app .mdots i { background: rgba(20,20,22,.22); }
+html.lite #app .mgr i { background: rgba(20,20,22,.12); }
+html.lite #app .ftop::before { background: rgba(255,255,255,.45); }
+html.lite #app .bhd, html.lite .brd .bhd { color: inherit; }
+html.lite #app .ftop .logo .lgo { color: #141416; }
+html.lite #app .gls { background: rgba(255,255,255,.42); box-shadow: inset 0 1px 0 rgba(255,255,255,.5); }
+html.lite #app :is(.tsf, .tsf .x, .tsec button, .tday .tdx p, .tt .nm small, .msg2 button, .mgt) { color: rgba(20,20,22,.6); }
+html.lite #app .tsf input { color: var(--fg); } html.lite #app .tsf input::placeholder { color: rgba(20,20,22,.5); }
+html.lite #app :is(.tch button, .tday .tdx em, .tt .nm, .mmn button, .tsec b) { color: var(--fg); }
+html.lite #app .tbs button { color: rgba(20,20,22,.42); } html.lite #app .tbs button.on { color: var(--fg); }
+html.lite #app :is(.tch button.on, .msg2 button.on) { background: #141416; color: #fff; }
+html.lite #app .msg2 { background: rgba(255,255,255,.45); }
+html.lite #app :is(.days .dh span, .sl h4, .sl .it .n, .fld .li, .fld .x) { color: rgba(20,20,22,.58); }
+html.lite #app .mev .mst { background: rgba(255,255,255,.42); box-shadow: inset 0 0 0 1px rgba(255,255,255,.4); color: var(--fg); }
+html.lite #app .mev .mst .mlb { color: rgba(20,20,22,.62); }
+html.lite #app .mev .mst.on { background: #141416; color: #fff; }
+html.lite #app .mev .mst.on .mlb { color: rgba(255,255,255,.72); }
+html.lite #app .mev .mgc { background-color: rgba(255,255,255,.4); color: var(--fg); }
+html.lite #app .mgc :is(.hb2, .hb2 *) { color: inherit; }
