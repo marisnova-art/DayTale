@@ -1520,3 +1520,5 @@ html.lite #app .nb.on .ic .hd { stroke: rgba(255,255,255,.9); }   /* 책장 탭 
 html.lite #app .nb.on .av { box-shadow: 0 0 0 2px rgba(255,255,255,.7), 0 0 0 4px #141416; }
 html.lite #app .sp.du { opacity: .8; }   /* 예시 책: 밝은 바탕에선 덜 흐리게 */
 /* 책으로 읽기는 밝은 바탕에서도 어두운 판(목차 · 아래 줄) 그대로 */
+/* 59 (11-05 A안): 밝은 바탕에서만 카드 아래 옅은 그림자 (같은 색 카드가 바탕에 묻히지 않게). 카드 이미지에는 안 들어가요 */
+html.lite #app .fi .fx { box-shadow: 0 6px 16px rgba(20,20,22,.13), 0 1px 3px rgba(20,20,22,.08); }
