@@ -114,7 +114,7 @@ function bindNav() {
 // 65 (11-06): 0.8초. 브라우저 애니메이션으로 돌려서 무거운 화면이 그려지는 동안에도 끊기지 않고, 메뉴가 새로 그려져도(홈은 한 번 더) 그 자리부터 이어 가요
 // 70 (11-06): 캡슐 하나가 모든 이동을 해요. 쓰기로 갈 때 = 가운데까지 미끄러져 와서(0.8초) 동그랗게 오므라들어 그대로 둘레 원이 되고,
 //   이어서 쓰기 동그라미가 52 → 40px로 줄어 그 안에 들어가요(0.3초). 쓰기에서 나갈 때는 거꾸로
-const CAPD = 800, CAPW = 300, CAPE = 'cubic-bezier(.22,.8,.3,1)';
+const CAPD = 600, CAPW = 300, CAPE = 'cubic-bezier(.22,.8,.3,1)';
 let capA = null;   // { from, to, kf, bkf, dur, t0, el, held }
 const capSt = (n, on) => { const nw = on.classList.contains('nw'), w = nw ? 52 : 64, cs = getComputedStyle(n);
   return { x: on.offsetLeft + (on.offsetWidth - w) / 2, w, nw, bg: cs.getPropertyValue(nw ? '--capw' : '--capbg').trim() }; };
@@ -3025,7 +3025,7 @@ function viewSet(sub) {
     ${sgrp(srow('bell', '알림', S.pref('remind', false) ? '켜짐' : '', { go: '#/set/alarm' }), srow('globe', '언어', LANGS[S.pref('lang', 'ko')], { go: '#/set/lang' }))}
     ${sgrp(srow('spark', '서비스 소개', '', { go: '#/set/about' }), srow('help', '도움말', '', { a: 'help' }), srow('bell', '공지사항 · 이벤트', '', { go: '#/set/news' }), srow('clock', '업데이트 소식', UPDATES[0][0], { go: '#/set/updates' }))}
     ${sgrp(srow('doc', '이용약관', '', { a: 'terms' }), srow('shield', '개인정보 처리방침', '', { a: 'privacy' }), srow('lic', '라이선스', '', { a: 'lic' }))}
-    ${sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' }))}<p class="sver">dayzine 1.0.0 · 테스트 · 11-06 21차</p>`, { up: '#/me' });
+    ${sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' }))}<p class="sver">dayzine 1.0.0 · 테스트 · 11-06 22차</p>`, { up: '#/me' });
   $('[data-a=place]').onclick = e => { const on = !S.pref('autoPlace', false); S.setPref('autoPlace', on); e.currentTarget.querySelector('.tg').classList.toggle('on', on); };
   $('[data-a=terms]').onclick = () => { location.href = '../legal/terms.ko.html'; };
   $('[data-a=privacy]').onclick = () => { location.href = '../legal/privacy.ko.html'; };
