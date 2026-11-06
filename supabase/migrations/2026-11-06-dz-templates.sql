@@ -3,7 +3,7 @@
 create table if not exists public.dz_templates (
   id         text primary key check (id ~ '^[a-z0-9-]{2,40}$'),
   fmt        text not null,                         -- 그리는 틀 = 폴더 app/new/tpl/<fmt>/ (볼 때만 불러와요, 폴더가 없으면 안 보여요)
-  kind       text not null check (kind in ('디자인', '아트')),
+  kind       text not null,                         -- 종류 (dz_kinds 이름: 디자인 · 아트 …)
   name       text not null,
   descr      jsonb not null default '[]',           -- 설명 3줄 (| = 줄이 넘칠 때 내려갈 자리)
   tags       text[] not null default '{}',          -- 태그 (칩 · 테마 줄, 2~3개)
@@ -24,6 +24,17 @@ alter table public.dz_templates enable row level security;
 drop policy if exists dz_templates_read on public.dz_templates;
 create policy dz_templates_read on public.dz_templates for select to anon, authenticated using (state = 'public');
 grant select on public.dz_templates to anon, authenticated;
+
+-- 종류 목록 (11-06): 새 종류는 여기 한 줄. 앱의 칩 · 홈 줄 · 프로필 그래프가 이 순서로 따라와요
+create table if not exists public.dz_kinds (
+  name text primary key check (length(name) between 1 and 20),
+  sort int not null default 0
+);
+alter table public.dz_kinds enable row level security;
+drop policy if exists dz_kinds_read on public.dz_kinds;
+create policy dz_kinds_read on public.dz_kinds for select to anon, authenticated using (true);
+grant select on public.dz_kinds to anon, authenticated;
+insert into public.dz_kinds (name, sort) values ('디자인', 1), ('아트', 2) on conflict (name) do nothing;
 
 -- 지금 있는 두 개 (앱 안 기본값과 같아요)
 insert into public.dz_templates (id, fmt, kind, name, descr, tags, words, ex, assets, paid, motion, pop, sort, added, state) values

@@ -64,8 +64,13 @@ export const onUpdate = f => { onUpd = f; };
 export async function refresh() {
   const C = window.APP_CONFIG || {};
   if (!/^https:\/\//.test(C.SUPABASE_URL || '') || !C.SUPABASE_ANON_KEY) return false;
-  const get = q => fetch(`${C.SUPABASE_URL}/rest/v1/dz_templates?${q}`, { headers: { apikey: C.SUPABASE_ANON_KEY, authorization: `Bearer ${C.SUPABASE_ANON_KEY}` } }).then(r => r.ok ? r.json() : Promise.reject(r.status));
+  const rest = tb => q => fetch(`${C.SUPABASE_URL}/rest/v1/${tb}?${q}`, { headers: { apikey: C.SUPABASE_ANON_KEY, authorization: `Bearer ${C.SUPABASE_ANON_KEY}` } }).then(r => r.ok ? r.json() : Promise.reject(r.status));
+  const get = rest('dz_templates'), getK = rest('dz_kinds');
   try {
+    try {   // 종류 순서 (작아요). 표가 없으면 그대로
+      const ks = await getK('select=name&order=sort.asc');
+      if (Array.isArray(ks) && ks.length) { KORDER = ks.map(k => k.name).filter(Boolean); localStorage.setItem(KK, JSON.stringify(KORDER)); }
+    } catch {}
     const ids = await get('select=id,updated_at&state=eq.public&limit=5000');
     if (!Array.isArray(ids) || !ids.length) return false;
     let cache = {}; try { cache = JSON.parse(localStorage.getItem(CK) || '{}'); } catch {}
@@ -85,6 +90,18 @@ export async function refresh() {
     return true;
   } catch { return false; }
 }
+
+// 종류 (11-06): 디자인 · 아트 … 관리자가 정하는 목록 (서버 표 dz_kinds: 이름 · 순서). 새 종류를 넣으면 칩 · 홈 줄 · 프로필 그래프가 저절로 따라와요.
+// 보이는 건 공개 템플릿이 1개 이상 있는 종류만. 목록에 없는 종류를 쓴 템플릿은 맨 뒤에 붙어요
+const KK = 'dz.kinds.v1';
+let KORDER = ['디자인', '아트'];
+try { const k = JSON.parse(localStorage.getItem(KK) || 'null'); if (Array.isArray(k) && k.length) KORDER = k; } catch {}
+export function kinds() {
+  const used = [...new Set(TEMPLATES.map(t => t.kind).filter(Boolean))];
+  return [...KORDER.filter(k => used.includes(k)), ...used.filter(k => !KORDER.includes(k))];
+}
+// '디자인 멤피스 문장' → '멤피스 문장' (프로필 '자주 쓴 템플릿')
+export const stripKind = s => { const k = [...KORDER, ...kinds()].find(k => s.startsWith(k + ' ')); return k ? s.slice(k.length + 1) : s; };
 
 // 칩 · 메인 줄 키워드. when = 이때 앞으로 와요 (날씨 · 시간 · 계절)
 export const TAGS = [
@@ -136,7 +153,7 @@ export function heroes(n = now()) {
   const best = Math.max(...paid.map(t => score(t, n)));
   const pool = paid.filter(t => score(t, n) === best);
   const free = pool[dayNo() % pool.length];   // 날마다 하나, 그날은 그대로 (사용자가 고르지 않아요)
-  const out = [{ k: 'free', t: free }];
+  const out = free ? [{ k: 'free', t: free }] : [];   // 유료 템플릿이 없으면 '오늘 무료' 판은 빼요
   const rec = TEMPLATES.filter(t => t !== free).sort((a, b) => score(b, n) - score(a, n))[0];
   if (rec) out.push({ k: 'now', t: rec });
   const nw = newest().find(t => !out.some(o => o.t === t));

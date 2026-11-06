@@ -17,6 +17,7 @@ import * as V from './video.js';
 import { LOGO } from './logo.js';
 import { paint as paintMood, panelCss, MODES as BG_MODES, mode as bgMode, reset as resetMood, PAGE_G, PAGE_S } from './mood.js';
 import * as T from './templates.js';
+const TPL = T;   // 함수 안에서 T를 다른 뜻(달 · 길이)으로 쓰는 곳용
 
 const app = document.getElementById('app');
 const $ = (s, r = document) => r.querySelector(s);
@@ -1352,7 +1353,7 @@ function openReader(b, list, onGrid, hx = {}) {
     cards.forEach((c, i) => { if (!first.has(String(i))) return; const m = (c.date || S.today()).slice(0, 7); if (!byM.has(m)) byM.set(m, []); byM.get(m).push([c, i]); });
     const mLab = m => (m.slice(0, 4) !== S.today().slice(0, 4) ? `${+m.slice(0, 4)}년 ` : '') + `${+m.slice(5, 7)}월`;
     const dLab = c => c.date ? `${+c.date.slice(5, 7)}.${+c.date.slice(8, 10)}` : '';
-    const line = c => (cardText(c) || '').replace(/\s+/g, ' ').trim().slice(0, 60) || T.labelOf(c) || '카드';
+    const line = c => (cardText(c) || '').replace(/\s+/g, ' ').trim().slice(0, 60) || TPL.labelOf(c) || '카드';
     toc.innerHTML = `<p class="sh">목차</p><div class="rfd"><label class="rfi"><input type="number" inputmode="numeric" min="1" max="${T}" value="${at + 1}" enterkeyhint="go"><span>/ ${T}쪽${built ? '' : ' …'}</span></label><button class="rgo" data-a="go">이동</button></div>
       <div class="tls"><div class="grp"><button class="it" data-j="-1">${ic('page')}표지</button></div>
       ${[...byM].map(([m, cs]) => `<p class="rmh">${mLab(m)}</p><div class="grp">${cs.map(([c, i]) => `<button class="rto${String(i) === curC ? ' on' : ''}" data-j="${first.get(String(i))}"><span class="th"></span><span class="t"><b>${esc(line(c))}</b><small>${dLab(c)}${String(i) === curC ? ' · 읽는 중' : ''}</small></span><span class="n">${first.get(String(i)) + 1}쪽</span></button>`).join('')}</div>`).join('')}</div>`;
@@ -1653,14 +1654,14 @@ function closeRun(now) {
 
 /* ── 템플릿 메인 ─────────────────────────────────────── */
 // 시안 4 (10-31): 홈 무드 바탕 + 고운 노이즈. 검색 · 칩 · 위 판만 글라스, 위치 · 크기는 다른 화면과 같아요.
-// 칩(전체 · 디자인 · 아트 · 키워드)과 ♥ 즐겨찾기는 같은 화면에서 아래만 2열로 바꿔요. 카드를 누르면 템플릿 소개
+// 칩(전체 · 종류(디자인 · 아트 …) · 키워드)과 ♥ 즐겨찾기는 같은 화면에서 아래만 2열로 바꿔요. 카드를 누르면 템플릿 소개
 const tstate = { f: '홈', q: '', sort: 'new' };   // 소개에서 돌아오면 보던 그대로
 const isPaidUser = () => S.pref('plan', 'free') === 'paid';
 const HEART = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>';
 function viewTpl() {
-  const free = T.heroes()[0].t, paid = isPaidUser();
+  const free = T.heroes().find(h => h.k === 'free')?.t, paid = isPaidUser();
   const lock = t => t.paid && !paid && t !== free;   // 테스트 동안은 표시만 (모두 열려 있어요)
-  const chips = [['홈', '홈'], ...(T.favs().length ? [['fav', '즐겨찾기']] : []), ['디자인', '디자인'], ['아트', '아트'], ...T.tagOrder().map(t => [t, t])];   // 11-04: 즐겨찾기는 홈 옆 칩으로 (비어 있으면 숨겨요)
+  const chips = [['홈', '홈'], ...(T.favs().length ? [['fav', '즐겨찾기']] : []), ...T.kinds().map(k => [k, k]), ...T.tagOrder().map(t => [t, t])];   // 11-04: 즐겨찾기는 홈 옆 칩으로 (비어 있으면 숨겨요)
   app.innerHTML = `<div class="amb"><div class="mo"></div></div><div class="tgr"></div><div class="tmv">
     <header class="shtop"><div class="tl"><h1>템플릿</h1></div></header>
     <div class="tstk"><label class="tsf gls">${ic('search')}<input type="search" placeholder="검색" enterkeyhint="search" autocomplete="off"><button class="x" data-a="clr" aria-label="지우기" hidden>${ic('close')}</button></label>
@@ -1683,8 +1684,7 @@ function viewTpl() {
       const seen = new Set(), rows = [];
       const row = (title, list, c) => { const l = list.filter(t => !seen.has(t)).slice(0, 8); if (l.length >= 2) { l.forEach(t => seen.add(t)); rows.push({ title, l, c }); } };
       T.tagOrder().slice(0, 2).forEach(g => row(g, T.TEMPLATES.filter(t => t.tags.includes(g)), g));
-      row('디자인', T.TEMPLATES.filter(t => t.kind === '디자인'), '디자인');
-      row('아트', T.TEMPLATES.filter(t => t.kind === '아트'), '아트');
+      T.kinds().forEach(k => row(k, T.TEMPLATES.filter(t => t.kind === k), k));   // 종류마다 한 줄 (관리자 순서)
       // 첫 줄: 새로 나온 · 인기 · 자주 쓴 탭 (아래 줄만 바뀌어요). 다른 줄과 겹쳐도 돼요
       const SORTS = [['new', '새로 나온'], ['pop', '인기'], ...(Object.keys(T.mineCount()).length ? [['mine', '자주 쓴']] : [])];
       if (!SORTS.some(x => x[0] === tstate.sort)) tstate.sort = 'new';
@@ -1707,7 +1707,7 @@ function viewTpl() {
     } else {   // 칩 · 즐겨찾기 · 검색: 2열 전부
       let l = T.newest();
       if (f === 'fav') { const fv = T.favs(); l = fv.map(T.tpl).filter(Boolean); }
-      else if (f === '디자인' || f === '아트') l = l.filter(t => t.kind === f);
+      else if (T.kinds().includes(f)) l = l.filter(t => t.kind === f);
       else if (f.startsWith('s:')) l = T.sorted(f.slice(2));
       else if (f !== '홈') l = l.filter(t => t.tags.includes(f));
       l = l.filter(t => T.hit(t, q));
@@ -1747,7 +1747,7 @@ function viewTpl() {
 // 템플릿 소개: 큰 미리보기(아트는 흐르는 빛이 움직여요). 옆으로 넘기면 같은 템플릿의 다른 예시, X 왼쪽에 '예시 1/3'
 function viewIntro(id) {
   const t = T.tpl(id); if (!t) return location.replace('#/tpl');
-  const free = T.heroes()[0].t, paid = isPaidUser();
+  const free = T.heroes().find(h => h.k === 'free')?.t, paid = isPaidUser();
   const sub = [t.kind, t === free ? (paid ? '오늘 추천' : '오늘 무료') : ''].filter(Boolean).join(' · ');
   const cards = t.ex.map((_, i) => T.exCard(t, i));
   app.innerHTML = `<div class="tiv"><div class="tip">${cards.map(c => `<div class="tpg${c.ratio === '916' ? ' full' : ''}" style="--ar:${arOf(c)}"><div class="tcd"></div>${c.ratio === '916' ? '<div class="tsh"></div>' : ''}</div>`).join('')}</div>
@@ -2858,7 +2858,7 @@ function viewMe() {
   // 10-31: 칸 바탕 = 쓰기 화면의 그라데이션 · 솔리드에서 겹치지 않게 8개를 랜덤으로 (사진 · 작품은 안 써요, 처음 쓰는 사람도 같아요)
   const tileBg = FREE.filter(b => b.name !== '먹색').sort(() => Math.random() - .5).slice(0, 8).map(b => ({ attr: ` style="background:${b.css}"`, lt: b.ink !== '#fff' }));
   const vals = s => [[`${s.days}일`, '쓴 날'], [`${s.n}장`, '카드'], [s.n ? `${s.avg}자` : NONE, '한 장 평균'],
-    [s.kind ? s.kind.replace(/^(디자인|아트) /, '') : NONE, '자주 쓴 템플릿'], [s.col || NONE, '자주 쓴 색'], [s.place || NONE, '자주 쓴 곳'], [s.when || NONE, '자주 쓴 때'], [s.wd || NONE, '자주 쓴 요일']];
+    [s.kind ? TPL.stripKind(s.kind) : NONE, '자주 쓴 템플릿'], [s.col || NONE, '자주 쓴 색'], [s.place || NONE, '자주 쓴 곳'], [s.when || NONE, '자주 쓴 때'], [s.wd || NONE, '자주 쓴 요일']];
   const by = new Map(); all.filter(c => c.date).forEach(c => { const m = c.date.slice(0, 7); by.has(m) ? by.get(m).push(c) : by.set(m, [c]); });
   const months = [...by.keys()].sort();   // 오래된 달 → 이번 달
   // 그래프: 7달씩, 처음엔 이번 달이 가운데 (지난 3달 · 이번 달 · 다음 3달). 옆으로 밀면 7달씩 지난 쪽으로, 처음 쓴 달이 든 쪽까지
@@ -2935,7 +2935,7 @@ function viewMe() {
     const k = met.k, len = c => cardText(c).replace(/\s/g, '').length; let rows, unit = '장', title;
     if (k === 'days') return paintYear();
     if (k === 'n') {
-      rows = ['기본', '디자인', '아트'].map(f => [f, all.filter(c => (T.labelOf(c) || '').split(' · ')[0] === f).length]); title = '카드 · 종류마다';
+      rows = ['기본', ...TPL.kinds()].map(f => [f, all.filter(c => (TPL.labelOf(c) || '').split(' · ')[0] === f).length]); title = '카드 · 종류마다';
     } else if (k === 'chars') {
       rows = LEN.map(([n, a, b]) => [n, all.filter(c => len(c) >= a && len(c) < b).length]); title = '글 길이 · 전체';
     } else {
@@ -3063,7 +3063,7 @@ function viewSet(sub) {
     ${sgrp(srow('bell', '알림', S.pref('remind', false) ? '켜짐' : '', { go: '#/set/alarm' }), srow('globe', '언어', LANGS[S.pref('lang', 'ko')], { go: '#/set/lang' }))}
     ${sgrp(srow('spark', '서비스 소개', '', { go: '#/set/about' }), srow('help', '도움말', '', { a: 'help' }), srow('bell', '공지사항 · 이벤트', '', { go: '#/set/news' }), srow('clock', '업데이트 소식', UPDATES[0][0], { go: '#/set/updates' }))}
     ${sgrp(srow('doc', '이용약관', '', { a: 'terms' }), srow('shield', '개인정보 처리방침', '', { a: 'privacy' }), srow('lic', '라이선스', '', { a: 'lic' }))}
-    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-06 25차</p>`, { up: '#/me' });
+    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-06 26차</p>`, { up: '#/me' });
   $('[data-a=place]').onclick = e => { const on = !S.pref('autoPlace', false); S.setPref('autoPlace', on); e.currentTarget.querySelector('.tg').classList.toggle('on', on); };
   $('[data-a=terms]').onclick = () => { location.href = '../legal/terms.ko.html'; };
   $('[data-a=privacy]').onclick = () => { location.href = '../legal/privacy.ko.html'; };
