@@ -1541,3 +1541,36 @@ html.lite #app .nav .nb.nw.on { color: #fff; }
 .pc.kp b:empty { display: none; } .pc.kp[hidden] { display: none; }
 .tt .pc { right: auto; left: 8px; }   /* 템플릿 견본: 오른쪽 위는 잠금 */
 .tg2 .tt .pc { top: 6px; left: 6px; }
+
+/* ── 로그인 · 동기화 (11-06) ── */
+/* 상태 알림 = 아래 메뉴 바와 같은 유리 (바탕 색을 따라가고, 밝은 바탕이면 밝게) · 알약 모양 */
+.pill { border-radius: 999px; background: var(--navbg, rgba(18,18,20,.5)); -webkit-backdrop-filter: blur(22px) saturate(1.5); backdrop-filter: blur(22px) saturate(1.5); box-shadow: inset 0 0 0 1px rgba(255,255,255,.07), 0 6px 24px rgba(0,0,0,.25); }
+html.lite .pill { color: #141416; box-shadow: inset 0 0 0 1px rgba(20,20,22,.08), 0 6px 24px rgba(0,0,0,.12); }
+.toast { display: none; }
+/* 로그인 시트: 제목 · 아래 줄 같은 크기(17), 아래 줄만 흐리게. 네 버튼 같은 모양 */
+.lgs .lt { font-size: var(--fs-m); font-weight: var(--fw); text-align: center; line-height: 1.45; margin: 6px 0 8px; }
+.lgs .lt span { display: block; color: var(--mut); }
+.lgb { display: flex; justify-content: center; align-items: center; width: 100%; height: 52px; border-radius: 999px; background: #fff; color: #141416; font-size: var(--fs-m); font-weight: var(--fw); }
+.lgb > span { display: flex; align-items: center; gap: 12px; width: 212px; }   /* 로고가 네 버튼 모두 같은 자리 */
+.lgb .lg, .lgb .ic { width: 24px; height: 24px; flex: none; }
+.lgb b { font-weight: var(--fw); }
+/* 메일 · 코드 화면 */
+.lgok { display: block; width: calc(100% - 2 * var(--gut)); height: 52px; margin: 20px var(--gut) 0; border-radius: 999px; background: #fff; color: #141416; font-size: var(--fs-m); font-weight: var(--fw); }
+.lgok.off { opacity: .35; }
+.lsub { margin: 8px calc(var(--gut) + 4px) 0; font-size: var(--fs-s); color: var(--mut); text-align: center; }
+.otp { position: relative; display: flex; gap: 8px; justify-content: center; margin: 24px var(--gut) 0; }
+.otp input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; font-size: 16px; color: transparent; caret-color: transparent; border: 0; background: none; }
+.otp i { width: 48px; height: 58px; border-radius: 14px; background: var(--srf); display: grid; place-items: center; font: var(--fw) var(--fs-xl, 34px) var(--ui); font-style: normal; }
+.otp i.on { box-shadow: inset 0 0 0 2px #fff; }
+.otp.bad { animation: shake .36s; }
+@keyframes shake { 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
+.ctr { display: flex; justify-content: center; gap: 8px; margin: 18px 0 0; font-size: var(--fs-s); color: var(--mut); }
+.ctr button { color: #fff; font-size: var(--fs-s); font-weight: var(--fw); }
+.ctr button:disabled { color: var(--mut); }
+.ctr b { font-weight: var(--fw); color: #fff; }
+/* 설정 계정 줄의 흰 '로그인' · 계정 화면 로그인 방법 */
+.srw .lbtn { margin-left: auto; display: inline-flex; align-items: center; height: 32px; padding: 0 14px; border-radius: 999px; background: #fff; color: #141416; font-size: var(--fs-s); font-weight: var(--fw); }
+.srw .v.lgv { gap: 8px; } .srw .v.lgv .lg, .srw .v.lgv .ic { width: 18px; height: 18px; color: var(--mut); stroke-width: 2; }
+/* 확인 창: 흰 버튼 (지우는 게 아닌 것) · 버튼 하나 */
+.ask button.wht { background: #fff; color: #141416; }
+.ask div.one { grid-template-columns: 1fr; }

@@ -5,7 +5,9 @@ import { exampleText, quoteText } from './prompts.js';
 import { FORMATS, ORDER, LABEL, blank, sampleCard, renderCard, fitCard, cardText, newSeed, placeObjects, dateChip, weekday, toneOf, pageBg, AR, RATIOS, arOf, dateOn, placeOn, infoPos, signOf, SIZE5, V5, dimLv, inkOn, dateLine, DATE_FMT, zoomOf, zoomCss, lines, starts } from './formats.js';
 import { FREE, KIND, find as findBg, drawCode } from './bg.js';
 import { buildPages, saveImages } from './export.js';
-import { saveCard, pill } from './save.js';
+import { saveCard, pill, pillOff } from './save.js';
+import * as A from './account.js';
+import * as Y from './sync.js';
 import { clean, offsetsOf, rangeAt } from './rich.js';
 import { FONTS, fontOf, fontCssOf } from './fonts.js';
 import { NAMES as STK, hydrate, preloadAll } from './stickers.js';
@@ -22,11 +24,7 @@ const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const clone = o => JSON.parse(JSON.stringify(o));
 const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-function toast(msg) {
-  $$('.toast').forEach(t => t.remove());
-  const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
-  document.body.appendChild(t); setTimeout(() => t.remove(), 1800);
-}
+function toast(msg) { pill(msg); }   // 11-06: 아래 흰 알림은 없애고, 모든 알림은 위 가운데 상태 알림 하나로
 const soon = () => toast('다음 단계에서 열려요');
 
 // 목록 시트 (10-23 UI 키트): 위에 흐린 제목, 묶음마다 둥근 카드, 지우기는 빨간색으로 따로. 바깥을 누르면 닫혀요
@@ -84,11 +82,13 @@ function route() {
   if (r === 'ti') return viewIntro(a);
   if (r === 'alarm') return viewNotes(false);
   if (r === 'set') return viewSet(a);
+  if (r === 'login') return viewLogin(a);
   if (r === 'book') return viewBook(decodeURIComponent(a || ''));
   return viewFeed();
 }
 window.addEventListener('hashchange', route);
 const go = h => { location.hash = h; };
+const goNow = h => { if (location.hash === h) route(); else location.replace(h); };   // 같은 주소면 다시 그리기만
 
 /* ── 피드 ───────────────────────────────────────────── */
 function nav(on) {
@@ -279,6 +279,7 @@ function viewFeed(fresh, quiet) {
       put(); setTimeout(put, 400);   // 긴 카드가 장으로 나뉜 뒤 한 번 더
       if (!quiet) { it.classList.add('fresh'); setTimeout(() => it.classList.remove('fresh'), 1200); }
     }
+    if (askLater) { askLater = false; maybeAskLogin(); }
   }
 }
 // 쓴 때 (인스타처럼): 방금 · N분 전 · N시간 전 · 어제 · N일 전 · M월 D일 · YYYY년 M월 D일. 고쳐도 처음 쓴 때 그대로
@@ -633,10 +634,10 @@ function relHtml(list, head = '비슷한 카드', cur, mk = esc) {
 }
 
 // 확인 창: 취소 · 빨간 버튼. 바깥을 누르면 취소
-function ask(msg, yes) {
+function ask(msg, yes, o = {}) {   // o.white: 지우는 게 아닌 확인 (흰 버튼) · o.one: 버튼 하나 (닫기)
   return new Promise(done => {
     const bg = document.createElement('div'); bg.className = 'ask-bg';
-    bg.innerHTML = `<div class="ask" role="alertdialog"><p>${msg}</p><div><button data-r="0">취소</button><button class="red" data-r="1">${yes}</button></div></div>`;
+    bg.innerHTML = `<div class="ask" role="alertdialog"><p>${msg}</p><div${o.one ? ' class="one"' : ''}>${o.one ? '' : '<button data-r="0">취소</button>'}<button class="${o.white ? 'wht' : 'red'}" data-r="1">${yes}</button></div></div>`;
     bg.addEventListener('click', e => { const b = e.target.closest('[data-r]'); if (b || e.target === bg) { bg.classList.add('out'); setTimeout(() => bg.remove(), 160); done(b?.dataset.r === '1'); } });
     document.body.appendChild(bg);
   });
@@ -2737,6 +2738,7 @@ function viewWrite({ fmt, id, like }) {
     // 다 됐다는 표시: 가운데 큰 체크가 잠깐 떴다가 피드로
     const ok = $('[data-a=ok]'); ok.disabled = true; document.activeElement?.blur?.();
     const mk = document.createElement('div'); mk.className = 'okmark'; mk.innerHTML = `<span>${ic('check')}</span>`; document.body.appendChild(mk);
+    if (isNew) askLater = true;
     setTimeout(() => { mk.remove(); if (from) backTo(); else go(`#/feed/${card.id}`); }, 900);
   };
 
@@ -2960,7 +2962,6 @@ const srow = (icon, label, val = '', o = {}) => `<button class="srw${o.red ? ' r
 const sgrp = (...r) => `<div class="sgp">${r.join('')}</div>`;
 const LANGS = { ko: '한국어', en: 'English', ja: '日本語', es: 'Español', fr: 'Français' };
 const TIMES = [['08:00', '아침 8:00'], ['12:00', '낮 12:00'], ['18:00', '저녁 6:00'], ['21:00', '밤 9:00'], ['23:00', '밤 11:00']];
-const soonLogin = () => toast('로그인 단계에서 열려요');
 
 // 설정 화면 틀: 뒤로 · 가운데 이름 (+ 오른쪽 버튼). 바탕 = 어두운 색 + 고운 노이즈 (책장과 같음)
 function setShell(title, body, o = {}) {
@@ -3017,7 +3018,8 @@ function viewSet(sub) {
   if (sub === 'updates') return setUpdates();
   if (sub === 'about') return setAbout();
   const me = meOf(), n = S.trash().length;
-  setShell('설정', `${sgrp(`<button class="srw acc" data-go="#/set/account"><span class="av"${avStyle()}></span><span class="t"><b>${esc(me.name || '나')}</b><small>${me.id ? '@' + esc(me.id) : '로그인 전'}</small></span><span class="v">${ic('next')}</span></button>`)}
+  const u = A.user();   // 11-06: 로그인 전이면 계정 줄 오른쪽에 흰 '로그인' (누르면 로그인 시트)
+  setShell('설정', `${sgrp(`<button class="srw acc" data-go="#/set/account"><span class="av"${avStyle()}></span><span class="t"><b>${esc(me.name || '나')}</b><small>${u ? esc(u.email || '') : '로그인 전'}</small></span>${u ? `<span class="v">${ic('next')}</span>` : '<span class="lbtn" data-a="login">로그인</span>'}</button>`)}
     <div class="sgp plan">${srow('star', '구독', '체험 중', { go: '#/set/plan' })}${srow('ticket', '이용권 코드 넣기', '', { a: 'code' })}</div>
     ${sgrp(srow('img', '바탕', BG_MODES.find(x => x[0] === bgMode())[1] + (bgMode() !== 'd' ? ' · ' + esc(bgPickOf(bgMode()) || '랜덤') : ''), { go: '#/set/bg' }))}
     ${sgrp(srow('pin', '장소 자동', '', { tg: S.pref('autoPlace', false), a: 'place' }), srow('sign', '서명', esc(S.pref('sign', '')) || '없음', { go: '#/set/sign' }), srow('date', '날짜 표시', dateLine(S.today()), { go: '#/set/date' }), srow('week', '한 주의 시작', weekStart() ? '월요일' : '일요일', { go: '#/set/week' }))}
@@ -3025,13 +3027,14 @@ function viewSet(sub) {
     ${sgrp(srow('bell', '알림', S.pref('remind', false) ? '켜짐' : '', { go: '#/set/alarm' }), srow('globe', '언어', LANGS[S.pref('lang', 'ko')], { go: '#/set/lang' }))}
     ${sgrp(srow('spark', '서비스 소개', '', { go: '#/set/about' }), srow('help', '도움말', '', { a: 'help' }), srow('bell', '공지사항 · 이벤트', '', { go: '#/set/news' }), srow('clock', '업데이트 소식', UPDATES[0][0], { go: '#/set/updates' }))}
     ${sgrp(srow('doc', '이용약관', '', { a: 'terms' }), srow('shield', '개인정보 처리방침', '', { a: 'privacy' }), srow('lic', '라이선스', '', { a: 'lic' }))}
-    ${sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' }))}<p class="sver">dayzine 1.0.0 · 테스트 · 11-06 22차</p>`, { up: '#/me' });
+    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-06 23차</p>`, { up: '#/me' });
   $('[data-a=place]').onclick = e => { const on = !S.pref('autoPlace', false); S.setPref('autoPlace', on); e.currentTarget.querySelector('.tg').classList.toggle('on', on); };
   $('[data-a=terms]').onclick = () => { location.href = '../legal/terms.ko.html'; };
   $('[data-a=privacy]').onclick = () => { location.href = '../legal/privacy.ko.html'; };
   $('[data-a=help]').onclick = $('[data-a=lic]').onclick = soon;
-  $('[data-a=out]').onclick = soonLogin;
-  $('[data-a=code]').onclick = soonLogin;
+  if (u) $('[data-a=out]').onclick = doLogout;
+  else $('[data-a=login]').onclick = e => { e.stopPropagation(); loginSheet('#/set'); };
+  $('[data-a=code]').onclick = () => u ? toast('결제를 붙일 때 열려요') : loginSheet('#/set');
 }
 // 업데이트 소식: 새 버전마다 맨 위에 한 줄 (버전 · 날짜 · 바뀐 것)
 // 업데이트 위키 (10-31 앤드류): 올릴 때마다 맨 위에 한 줄씩 쌓아요 (지우지 않아요). 로그인 단계에서 서버 · 관리자로 옮겨요
@@ -3054,20 +3057,142 @@ function setNews() {
   setShell('공지사항 · 이벤트', `<div class="empty"><span class="i">${ic('bell')}</span><b>아직 소식이 없어요</b><span>새 템플릿이나 이벤트가 생기면 여기에 알려 드릴게요</span></div>`);
 }
 
+/* ── 로그인 · 동기화 (11-06 시안 → 앤드류 진행) ───────────────────────── */
+// 로그인 없이 바로 써요. 처음 '완료' 뒤에 한 번, 카드 3장째에 한 번 더 묻고, 그다음은 설정에서만
+const GOOG = '<svg class="lg" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.5 12.2c0-.8-.1-1.5-.2-2.2H12v4.2h5.9c-.3 1.4-1 2.5-2.2 3.3v2.7h3.5c2.1-1.9 3.3-4.7 3.3-8z"/><path fill="#34A853" d="M12 23c3 0 5.4-1 7.2-2.7l-3.5-2.7c-1 .7-2.2 1.1-3.7 1.1-2.9 0-5.3-1.9-6.2-4.5H2.2v2.8C4 20.6 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.8 14.2c-.2-.7-.4-1.4-.4-2.2s.1-1.5.4-2.2V7H2.2C1.4 8.5 1 10.2 1 12s.4 3.5 1.2 5l3.6-2.8z"/><path fill="#EA4335" d="M12 5.3c1.6 0 3.1.6 4.2 1.7l3.2-3.2C17.4 2 14.9 1 12 1 7.7 1 4 3.4 2.2 7l3.6 2.8c.9-2.6 3.3-4.5 6.2-4.5z"/></svg>';
+const APPL = '<svg class="lg" viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.6c0-2.4 2-3.6 2.1-3.7-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.8-1.6 0-3.1 1-4 2.4-1.7 3-.4 7.4 1.2 9.8.8 1.2 1.8 2.5 3.1 2.4 1.2 0 1.7-.8 3.2-.8s1.9.8 3.2.8c1.3 0 2.2-1.2 3-2.4.9-1.4 1.3-2.7 1.3-2.8 0 0-2.5-1-2.5-3.9zM14 5.5c.7-.8 1.1-1.9 1-3-1 0-2.1.6-2.8 1.4-.6.7-1.2 1.8-1 2.9 1.1.1 2.1-.5 2.8-1.3z"/></svg>';
+let askLater = false;
+const ls = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} }, del: k => { try { localStorage.removeItem(k); } catch {} } };
+function maybeAskLogin() {
+  if (!A.configured() || A.user()) return;
+  const n = +(ls.get('dz.ask') || 0), cnt = S.cards().length;
+  if (n === 0 || (n === 1 && cnt >= 3)) { ls.set('dz.ask', String(n + 1)); setTimeout(() => { if (!A.user() && /^#\/?$/.test(location.hash || '#/')) loginSheet('#/'); }, 1300); }
+}
+// 로그인 시트: 네 버튼 모두 같은 모양 (흰 알약, 로고 24 + 글, 로고 자리 같은 줄). Apple은 앱 단계에서 켜요
+function loginSheet(back) {
+  if ($('.sheet-bg')) return;
+  const bg = document.createElement('div'); bg.className = 'sheet-bg';
+  const b = (k, icon, label) => `<button class="lgb" data-k="${k}"><span>${icon}<b>${label}</b></span></button>`;
+  bg.innerHTML = `<div class="sheet lgs"><div class="grab"></div><p class="lt">카드를 잃지 않게 저장해 둘까요?<span>다른 기기에서도 그대로 이어서 써요</span></p>
+    ${A.appleOn() ? b('apple', APPL, 'Apple로 계속하기') : ''}${b('google', GOOG, 'Google로 계속하기')}${b('mail', ic('mail'), '메일로 계속하기')}${b('skip', ic('fwd'), '로그인 없이 계속하기')}</div>`;
+  let shut = false;
+  const close = () => { if (shut) return; shut = true; bg.classList.add('out'); unlockBg(); setTimeout(() => bg.remove(), 300); };
+  bg.addEventListener('click', async e => {
+    const k = e.target.closest('.lgb')?.dataset.k;
+    if (!k && e.target.closest('.sheet')) return;
+    close();
+    if (k === 'mail') { ls.set('dz.back', back || '#/'); go('#/login/mail'); }
+    else if (k === 'google' || k === 'apple') {
+      ls.set('dz.back', back || '#/');
+      try { pill('연결하는 중', '', { keep: true }); await A.oauth(k); } catch { pill('지금은 연결하지 못했어요'); }
+    }
+  });
+  lockBg(); document.body.appendChild(bg);
+}
+const MAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const mailErr = e => /rate|429|seconds/i.test(`${e?.status} ${e?.message}`) ? '잠시 뒤에 다시 해 주세요' : '보내지 못했어요. 다시 해 주세요';
+function viewLogin(step) {
+  const back = ls.get('dz.back') || '#/';
+  if (step === 'code') return viewCode(back);
+  setShell('메일로 로그인', `<input class="sinp" type="email" inputmode="email" autocomplete="email" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="send" placeholder="메일 주소" value="${esc(ls.get('dz.mail') || '')}">
+    <p class="shint">이 메일로 6자리 코드를 보내요</p><button class="lgok" data-a="send">코드 받기</button>`, { up: back });
+  const inp = $('.sinp'), btn = $('[data-a=send]');
+  const ok = () => btn.classList.toggle('off', !MAIL_RE.test(inp.value.trim()));
+  inp.oninput = ok; ok(); inp.focus();
+  const send = async () => {
+    const m = inp.value.trim().toLowerCase(); if (!MAIL_RE.test(m) || btn.disabled) return;
+    btn.disabled = true; pill('보내는 중', 'mail', { keep: true });
+    try { await A.sendCode(m); ls.set('dz.mail', m); ls.set('dz.sent', String(Date.now())); pillOff(); location.replace('#/login/code'); }
+    catch (e) { pill(mailErr(e)); btn.disabled = false; }
+  };
+  btn.onclick = send;
+  inp.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); send(); } };
+}
+function viewCode(back) {
+  const m = ls.get('dz.mail'); if (!m) return location.replace('#/login/mail');
+  setShell('코드 넣기', `<p class="lsub">${esc(m)} 으로 보냈어요</p>
+    <label class="otp"><input inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="6" aria-label="6자리 코드">${'<i></i>'.repeat(6)}</label>
+    <p class="ctr"><button data-a="re" disabled>다시 받기</button><b></b></p>`, { up: back });
+  const inp = $('.otp input'), cells = $$('.otp i'), re = $('[data-a=re]'), tm = $('.ctr b');
+  let busy = false, tick = 0;
+  const paint = () => { const v = inp.value; cells.forEach((c, i) => { c.textContent = v[i] || ''; c.classList.toggle('on', document.activeElement === inp && i === Math.min(v.length, 5)); }); };
+  const left = () => Math.max(0, 60 - Math.floor((Date.now() - +(ls.get('dz.sent') || 0)) / 1000));
+  const count = () => { const s = left(); re.disabled = s > 0; tm.textContent = s ? `0:${String(s).padStart(2, '0')}` : ''; if (!s) clearInterval(tick); };
+  tick = setInterval(count, 1000); count(); cleanup = () => clearInterval(tick);
+  inp.addEventListener('focus', paint); inp.addEventListener('blur', paint);
+  inp.oninput = async () => {
+    inp.value = inp.value.replace(/\D/g, '').slice(0, 6); paint();
+    if (inp.value.length < 6 || busy) return;
+    busy = true; inp.blur(); pill('확인하는 중', '', { keep: true });
+    try { await A.verifyCode(m, inp.value); pillOff(); afterLogin(); }
+    catch { pill('코드가 맞지 않아요'); $('.otp').classList.add('bad'); setTimeout(() => $('.otp')?.classList.remove('bad'), 400); inp.value = ''; paint(); busy = false; inp.focus(); }
+  };
+  re.onclick = async () => {
+    re.disabled = true;
+    try { await A.sendCode(m); ls.set('dz.sent', String(Date.now())); pill('다시 보냈어요', 'check'); clearInterval(tick); tick = setInterval(count, 1000); count(); }
+    catch (e) { pill(mailErr(e)); re.disabled = false; }
+  };
+  inp.focus(); paint();
+}
+// 로그인 끝: 탈퇴 대기였으면 되살리고, 원래 화면으로 돌아가서 이 기기 카드를 계정에 올려요 (위 가운데 '저장하는 중 2/5')
+async function afterLogin() {
+  const back = ls.get('dz.back') || '#/'; ls.del('dz.back'); ls.del('dz.mail'); ls.del('dz.sent');
+  goNow(back);
+  let came = false; try { came = await A.stay(); } catch {}
+  try {
+    await Y.run((d, n) => { if (n > 1) pill(`저장하는 중 ${d}/${n}`, 'send', { keep: true }); });
+    pill(came ? '다시 오셨어요. 계정을 되살렸어요' : '저장했어요', 'check');
+  } catch { pill('지금은 저장하지 못했어요. 인터넷이 되면 다시 해요'); }
+}
+function syncAgo() {
+  const t = Y.lastAt(); if (!t) return '아직 안 함';
+  const m = (Date.now() - Date.parse(t)) / 6e4;
+  return m < 1 ? '방금 전' : m < 60 ? `${Math.floor(m)}분 전` : m < 1440 ? `${Math.floor(m / 60)}시간 전` : `${new Date(t).getMonth() + 1}월 ${new Date(t).getDate()}일`;
+}
+// 로그아웃: 못 올린 게 있으면 먼저 올리고, 안 되면 나가지 않아요. 나가면 이 기기의 카드 · 책 · 설정만 비워요 (계정에는 그대로)
+async function doLogout() {
+  if (!await ask('로그아웃할까요?<small>카드는 계정에 그대로 있어요. 이 기기에서만 지워져요</small>', '로그아웃', { white: true })) return;
+  if (Y.pending()) { pill('저장하는 중', 'send', { keep: true }); try { await Y.run(); } catch {} pillOff(); }
+  if (Y.pending()) { await ask('아직 저장하지 못한 카드가 있어요<small>인터넷이 연결되면 다시 해 주세요</small>', '닫기', { white: true, one: true }); return; }
+  await A.signOut(); S.wipe(); Y.forget();
+  goNow('#/'); pill('로그아웃했어요', 'check');
+}
+// 탈퇴: 7일 뒤에 계정과 모든 기록이 지워져요. 그 안에 다시 로그인하면 그대로
+async function doBye() {
+  if (!await ask('탈퇴할까요?<small>카드 · 사진이 모두 지워져요. 7일 안에 다시 로그인하면 되살릴 수 있어요</small>', '탈퇴')) return;
+  try { await A.leave(); } catch (e) { return pill(/cancel_subscription_first/.test(e?.message || '') ? '구독을 먼저 해지해 주세요' : '지금은 할 수 없어요. 다시 해 주세요'); }
+  await A.signOut(); S.wipe(); Y.forget();
+  goNow('#/'); pill('탈퇴했어요', 'check');
+}
+// 다른 기기에서 바뀐 게 오면: 쓰는 중이 아니면 보던 자리 그대로 다시 그려요
+Y.whenPulled(() => { if (!/^#\/(write|edit|like|login)/.test(location.hash) && !focus && !lockN) refresh(); });
+
 // 계정: 사진(카메라) · 이름 · 아이디 / 구독 · 이용권 / 탈퇴 (로그인 · 탈퇴 · 이용권은 로그인 단계에서)
 function setAccount() {
-  const me = meOf();
+  const me = meOf(), u = A.user();
+  // 11-06: 로그인 후 = 로그인 방법(로고) · 메일, 동기화(마지막으로 맞춘 때, 누르면 지금 맞추기), 탈퇴. 로그인 전 = 로그인 줄만 (탈퇴 숨김)
+  const how = { google: GOOG, apple: APPL, email: ic('mail') }[A.provider()] || '';
   setShell('계정', `<div class="ahd"><button class="avw" data-a="ph" aria-label="사진 바꾸기"><span class="av"${avStyle()}></span><span class="cam">${ic('cam')}</span></button><input type="file" accept="image/*" hidden>
-    <b>${esc(me.name || '나')}</b><small>${me.id ? '@' + esc(me.id) : '로그인 전'}</small></div>
-    ${sgrp(srow('user', '이름', esc(me.name) || '정하기', { go: '#/set/name' }), srow('sign', '아이디', me.id ? '@' + esc(me.id) : '정하기', { go: '#/set/id' }), srow('read', '한 줄 소개', me.bio ? '' : '쓰기', { go: '#/set/bio' }), srow('key', '로그인', '로그인 전', { a: 'login' }))}
-    ${sgrp(srow('trash', '탈퇴', '', { end: '', red: 1, a: 'bye' }))}`);
+    <b>${esc(me.name || '나')}</b><small>${me.id ? '@' + esc(me.id) : u ? '' : '로그인 전'}</small></div>
+    ${sgrp(srow('user', '이름', esc(me.name) || '정하기', { go: '#/set/name' }), srow('sign', '아이디', me.id ? '@' + esc(me.id) : '정하기', { go: '#/set/id' }), srow('read', '한 줄 소개', me.bio ? '' : '쓰기', { go: '#/set/bio' }))}
+    ${u ? sgrp(srow('key', '로그인', '', { end: `<span class="v lgv">${how}<span>${esc(u.email || '')}</span></span>` }), srow('restore', '동기화', '', { end: `<span class="v"><span class="syv">${syncAgo()}</span></span>`, a: 'sync' }))
+      : sgrp(srow('key', '로그인', '로그인 전', { a: 'login' }))}
+    ${u ? sgrp(srow('trash', '탈퇴', '', { end: '', red: 1, a: 'bye' })) : ''}`);
   const inp = $('.ahd input');
   $('[data-a=ph]').onclick = () => inp.click();
   inp.onchange = async () => {
     const f = inp.files?.[0]; if (!f) return;
     try { setMe({ photo: await avatarOf(f) }); route(); } catch { toast('사진을 못 읽었어요'); }
   };
-  $('[data-a=login]').onclick = $('[data-a=bye]').onclick = soonLogin;
+  if (!u) $('[data-a=login]').onclick = () => loginSheet('#/set/account');
+  else {
+    $('[data-a=bye]').onclick = doBye;
+    $('[data-a=sync]').onclick = async () => {
+      pill('맞추는 중', 'restore', { keep: true });
+      try { await Y.run(); pill('맞췄어요', 'check'); } catch { pill('지금은 맞추지 못했어요'); }
+      const v = $('.syv'); if (v) v.textContent = syncAgo();
+    };
+  }
 }
 // 프로필 사진: 가운데를 정사각형으로 잘라 256px JPEG (사진 속 위치 정보는 다시 그리며 빠져요)
 async function avatarOf(file) {
@@ -3190,4 +3315,5 @@ const boot = document.getElementById('boot');
 if (boot) boot.innerHTML = LOGO;
 const bootEnd = () => { document.documentElement.classList.remove('booting'); if (!boot || boot.classList.contains('out')) return; boot.classList.add('out'); setTimeout(() => boot.remove(), 400); };
 setTimeout(bootEnd, 2000);
-P.boot(usedPhotos()).then(route).then(() => document.fonts.ready).then(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))).then(bootEnd, bootEnd);
+const oauthBack = /[?&]code=/.test(location.search);
+Promise.all([P.boot(usedPhotos()), A.start()]).then(() => { if (oauthBack && A.user()) afterLogin(); else { route(); if (A.user()) Y.run().catch(() => {}); } }).then(() => document.fonts.ready).then(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))).then(bootEnd, bootEnd);

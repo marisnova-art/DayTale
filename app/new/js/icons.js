@@ -8,6 +8,8 @@ const P = {
   send: '<path d="M12 19V5M6 11l6-6 6 6"/>',
   close: '<path d="M6 6l12 12M18 6 6 18"/>',
   check: '<path d="M20 6 9 17l-5-5"/>',
+  mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
+  fwd: '<path d="M5 12h14M13 6l6 6-6 6"/>',
   fmt: '<path d="M4 7V5h16v2"/><path d="M12 5v14"/><path d="M9 19h6"/>',
   photo: '<rect x="3" y="5" width="15" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.5"/><path d="m18 15-4-4-8 8"/><path d="M21 3v6M18 6h6"/>',
   quote: '<path d="M4 5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-9l-4.5 3.5V17H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/><path d="M8 14v-2.2c0-1.6.8-2.7 2.4-3.1l.4.9c-.8.3-1.3.9-1.4 1.6H10.6V14zM13 14v-2.2c0-1.6.8-2.7 2.4-3.1l.4.9c-.8.3-1.3.9-1.4 1.6h1.2V14z" fill="currentColor" stroke-width=".8"/>',   // 문장 넣기: 말풍선 안 큰따옴표 (11-04 바꿈)

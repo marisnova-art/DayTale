@@ -7,6 +7,10 @@ const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); retu
 const norm = c => { if (c?.fmt === 'photo') c.fmt = 'text'; return c; };
 const readCards = k => read(k, []).map(norm);
 
+// 바뀐 것을 동기화(sync.js)에 알려요: kind = card · book · trash · pref, del = 지움
+let changed = null;
+export const onChange = f => { changed = f; };
+const mark = (kind, id, del = false) => { try { changed?.(kind, id, del); } catch {} };
 export const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 export const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 
@@ -16,7 +20,7 @@ export function saveCard(c, touch = true) {   // touch = false: 메모 · 알림
   const all = read(K_CARDS, []), i = all.findIndex(x => x.id === c.id);
   if (touch) c.updated = new Date().toISOString();
   if (i < 0) all.push(c); else all[i] = c;
-  return write(K_CARDS, all);
+  const ok = write(K_CARDS, all); mark('card', c.id); return ok;
 }
 // 지운 카드는 휴지통에 30일 동안 두었다가 없애요 (휴지통 화면에서 되살려요)
 const DAY = 864e5;
@@ -24,6 +28,7 @@ export function removeCard(id) {
   const all = read(K_CARDS, []), c = all.find(x => x.id === id); if (!c) return;
   write(K_TRASH, [{ ...c, deleted: new Date().toISOString() }, ...trash()]);
   write(K_CARDS, all.filter(x => x.id !== id));
+  mark('card', id, true); mark('trash', id);
 }
 export function trash() {
   const all = readCards(K_TRASH), keep = all.filter(c => Date.now() - Date.parse(c.deleted) < 30 * DAY);
@@ -32,7 +37,7 @@ export function trash() {
 }
 export function restoreCard(id) {
   const c = trash().find(x => x.id === id); if (!c) return null;
-  delete c.deleted; write(K_TRASH, trash().filter(x => x.id !== id)); saveCard(c); return c;
+  delete c.deleted; write(K_TRASH, trash().filter(x => x.id !== id)); mark('trash', id, true); saveCard(c); return c;
 }
 
 // 쓰다 만 글 (10-31): 여러 개를 모아 둬요 (최대 10개, 최근 것부터). 예전 한 개짜리(K_DRAFT)는 처음 읽을 때 옮겨요
@@ -47,7 +52,7 @@ export const saveDraft = (id, card) => write(K_DRAFTS, [{ id, card, at: new Date
 export const clearDraft = id => write(K_DRAFTS, drafts().filter(d => d.id !== id));
 
 export const pref = (k, d) => (read(K_PREF, {})[k] ?? d);
-export const setPref = (k, v) => { const p = read(K_PREF, {}); p[k] = v; write(K_PREF, p); };
+export const setPref = (k, v) => { const p = read(K_PREF, {}); p[k] = v; write(K_PREF, p); mark('pref'); };
 
 // 책: 내가 만든 책만 저장해요 (올해 · 지난해 · 책갈피 책은 카드에서 바로 계산). 카드는 책에 넣어도 한 장 그대로, 책은 id만 가져요
 const K_BOOKS = 'dz.books.v1';
@@ -56,13 +61,13 @@ export const book = id => read(K_BOOKS, []).find(b => b.id === id) || null;
 export function saveBook(b) {
   const all = read(K_BOOKS, []), i = all.findIndex(x => x.id === b.id);
   if (i < 0) all.push(b); else all[i] = b;
-  return write(K_BOOKS, all);
+  const ok = write(K_BOOKS, all); mark('book', b.id); return ok;
 }
-export const removeBook = id => write(K_BOOKS, read(K_BOOKS, []).filter(b => b.id !== id));
+export const removeBook = id => { write(K_BOOKS, read(K_BOOKS, []).filter(b => b.id !== id)); mark('book', id, true); };
 
 // 휴지통에서 바로 지우기 · 모두 비우기
-export const purge = id => write(K_TRASH, trash().filter(c => c.id !== id));
-export const emptyTrash = () => write(K_TRASH, []);
+export const purge = id => { write(K_TRASH, trash().filter(c => c.id !== id)); mark('trash', id, true); };
+export const emptyTrash = () => { trash().forEach(c => mark('trash', c.id, true)); write(K_TRASH, []); };
 
 // 백업 파일: 카드 · 책 · 설정 (휴지통은 빼요). 되살리기는 이미 있는 카드는 두고 없는 것만 더해요
 export const dump = () => ({ cards: read(K_CARDS, []), books: read(K_BOOKS, []), prefs: read(K_PREF, {}) });
@@ -71,6 +76,20 @@ export function merge(d) {
   write(K_CARDS, [...cs, ...add]);
   const bs = read(K_BOOKS, []), hb = new Set(bs.map(b => b.id));
   write(K_BOOKS, [...bs, ...(d.books || []).filter(b => b?.id && !hb.has(b.id))]);
-  if (d.prefs && !Object.keys(read(K_PREF, {})).length) write(K_PREF, d.prefs);
+  if (d.prefs && !Object.keys(read(K_PREF, {})).length) { write(K_PREF, d.prefs); mark('pref'); }
+  add.forEach(c => mark('card', c.id)); (d.books || []).filter(b => b?.id && !hb.has(b.id)).forEach(b => mark('book', b.id));
   return add.length;
 }
+
+// 동기화용: 서버에서 받은 것을 그대로 넣어요 (다시 올리지 않게 표시하지 않아요)
+const KEY = { card: K_CARDS, book: K_BOOKS, trash: K_TRASH };
+export const rawList = kind => read(KEY[kind], []);
+export const rawPrefs = () => read(K_PREF, {});
+export function putRemote(kind, id, data) {   // data = null 이면 지워요
+  const all = read(KEY[kind], []).filter(x => x.id !== id);
+  if (data) all.push(kind === 'book' ? data : norm(data));
+  write(KEY[kind], all);
+}
+export const putPrefs = p => write(K_PREF, p || {});
+// 로그아웃 · 탈퇴: 이 기기의 기록을 비워요 (사진 파일은 그대로)
+export function wipe() { [K_CARDS, K_BOOKS, K_TRASH, K_PREF, K_DRAFTS, K_DRAFT].forEach(k => { try { localStorage.removeItem(k); } catch {} }); }
