@@ -4,7 +4,7 @@ const UA = navigator.userAgent;
 // 아이패드(맥처럼 보여도 터치가 있어요) · 폰은 빼요
 export const isPC = matchMedia('(hover: hover) and (pointer: fine)').matches && !/iPhone|iPad|iPod|Android/i.test(UA) && !(/Macintosh/.test(UA) && navigator.maxTouchPoints > 1);
 
-// 넓은 PC 화면: 앱 기둥이 768px (app.css 의 .pc @media min-width 900px 과 같아요)
+// 넓은 PC 화면: 앱 기둥이 640px (app.css 의 .pc @media min-width 900px 과 같아요)
 const WIDE = matchMedia('(min-width: 900px)');
 export const wide = () => isPC && WIDE.matches;
 

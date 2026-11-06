@@ -1555,29 +1555,36 @@ img.tth { display: block; width: 100%; aspect-ratio: 4 / 5; object-fit: cover; }
 .pcar .ic { width: 22px; height: 22px; }
 .nb .nl { display: none; }
 
-/* PC 넓은 화면 (29차): 앱 기둥 768px (패드 세로 정도). 폰 · 아이패드는 그대로 */
+/* PC 넓은 화면 (29차 · 30차 640): 앱 기둥 640px (패드 세로 정도). 폰 · 아이패드는 그대로 */
 @media (hover: hover) and (pointer: fine) and (min-width: 900px) {
-  .pc #app { max-width: 768px; }
-  .pc :is(.wr, .sheet, .sv, .obar, .rv .rin) { max-width: 768px; }
-  .pc :is(.rel, .scv .svb, .runv .runl) { width: min(100%, 768px); }
-  .pc .scta { width: calc(min(100vw, 768px) - 2 * var(--gut)); }
+  .pc #app { max-width: 640px; }
+  .pc :is(.wr, .sheet, .sv, .obar, .rv .rin) { max-width: 640px; }
+  .pc :is(.rel, .scv .svb, .runv .runl) { width: min(100%, 640px); }
+  .pc .scta { width: calc(min(100vw, 640px) - 2 * var(--gut)); }
   /* 화면을 덮는 판(책 · 템플릿 소개 · 검색 · 지난 이야기)도 기둥 안에서, 양옆은 어둡게 */
-  .pc :is(.brd, .tiv, .scv, .runv) { left: max(0px, calc(50% - 384px)); right: max(0px, calc(50% - 384px)); box-shadow: 0 0 0 100vw rgba(0,0,0,.6); }
+  .pc :is(.brd, .tiv, .scv, .runv) { left: max(0px, calc(50% - 320px)); right: max(0px, calc(50% - 320px)); box-shadow: 0 0 0 100vw rgba(0,0,0,.6); }
   .pc .tiv::after { left: 0; right: 0; }
   /* 쓰기: 카드는 화면 높이에 맞춰 크게, 도구 줄은 폰 크기(480) 그대로 가운데 */
   .pc .wr :is(.g6, .panel) { max-width: 480px; width: 100%; margin-left: auto; margin-right: auto; box-sizing: border-box; }
   /* 크게 보기: 기둥 안에서만 (양옆은 어둡게, ‹ 는 기둥 안 왼쪽 위) */
   .pc .fv.in { background: rgba(0,0,0,.6); }
-  .pc .fv::before { content: ''; position: fixed; top: 0; bottom: 0; left: 50%; width: min(100%, 768px); transform: translateX(-50%); background: rgb(12,12,13); opacity: 0; transition: opacity .36s ease; pointer-events: none; }
+  .pc .fv::before { content: ''; position: fixed; top: 0; bottom: 0; left: 50%; width: min(100%, 640px); transform: translateX(-50%); background: rgb(12,12,13); opacity: 0; transition: opacity .36s ease; pointer-events: none; }
   .pc .fv.in::before { opacity: 1; }
-  .pc .fvb { width: min(100%, 768px, calc((100vh - 150px) * .8)); }
-  .pc .fv .fvx { left: calc(max(0px, 50% - 384px) + var(--gut)); }
+  .pc .fvb { width: min(100%, 640px, calc((100vh - 150px) * .8)); }
+  .pc .fv .fvx { left: calc(max(0px, 50% - 320px) + var(--gut)); }
   /* 아래 메뉴: 넓이는 기둥만큼, 조금 더 크게 + 아이콘 옆 이름 */
-  .pc .nav { max-width: 744px; }
+  .pc .nav { max-width: 616px; }
   .pc .nb { width: auto; height: 60px; padding: 0 22px; display: flex; align-items: center; justify-content: center; gap: 8px; }
   .pc .nb .nl { display: block; font-size: var(--fs-s); font-weight: var(--fw); white-space: nowrap; }
   .pc .nb.nw { width: auto; height: 60px; border-radius: 999px; padding: 0 22px; margin: 0 4px; }
   .pc .nav .ncap { height: 60px; margin-top: -30px; }
   /* 달력 띠: 한 장에 2주 (날짜 간격이 폰과 비슷하게) */
   .pc .cpn .wk { grid-template-columns: repeat(14, minmax(0, 1fr)); }
+  /* 30차: 페이지 스크롤 막대를 숨겨요 (생겼다 없어졌다 하면 기둥 · 메뉴가 좌우로 흔들려서) */
+  html.pc { scrollbar-width: none; }
+  html.pc::-webkit-scrollbar { display: none; }
+  /* 30차: 위로 올리면 내려오는 상단 줄의 흐린 바탕은 화면 양끝까지 (기둥만 한 상자로 보이지 않게) */
+  .pc .ftop::before { left: calc(50% - 50vw); right: calc(50% - 50vw); }
+  /* 30차: 1열 카드는 화면 높이의 65%까지만 (다음 카드가 아래에 조금 보이게) */
+  .pc .feed:not(.two) > .fi { width: min(100%, calc(65vh * .8)); margin-left: auto; margin-right: auto; }
 }
