@@ -92,7 +92,7 @@ const go = h => { location.hash = h; };
 
 /* ── 피드 ───────────────────────────────────────────── */
 function nav(on) {
-  return `<nav class="nav"><i class="ncap" aria-hidden="true"${capA ? ` style="transform:translateX(${capNow()}px);opacity:${capA.held ? (capA.nw0 ? 0 : 1) : capA.nw ? 0 : 1}"` : ' style="opacity:0"'}></i>
+  return `<nav class="nav"><i class="ncap" aria-hidden="true"${capA ? ` style="${capNow()}"` : ' style="opacity:0"'}></i>
     <button class="nb ${on === 'home' ? 'on' : ''}" data-n="home" aria-label="홈">${ic('home')}</button>
     <button class="nb ${on === 'tpl' ? 'on' : ''}" data-n="tpl" aria-label="템플릿">${ic('layers')}</button>
     <button class="nb nw${on === 'write' ? ' on' : ''}" data-n="write" aria-label="쓰기">${ic('pen')}</button>
@@ -109,36 +109,48 @@ function bindNav() {
   $$('[data-a=me]').forEach(b => b.onclick = me);   // 프로필은 홈 위 줄 (알림 옆)
   requestAnimationFrame(placeCap);
 }
-// 62 (11-06): 켜진 탭 뒤 캡슐. 화면이 바뀌어도 앞 탭 자리에서 출발해 새 탭으로 미끄러져요. 쓰기 화면이면 가운데로 와서 쓰기 둘레 빛 테두리로 바뀌어요
-// 65 (11-06): 0.8초. 움직임은 브라우저 애니메이션으로 돌려서 홈처럼 무거운 화면이 그려지는 동안에도 끊기지 않아요.
-//   메뉴가 새로 그려져도(홈은 열릴 때 한 번 더) 하던 움직임을 그 자리부터 이어 가요
-const CAPD = 800, CAPE = 'cubic-bezier(.22,.8,.3,1)';
-let capA = null;   // { from, to, t0, el, nw0, nw }
-const capNow = () => capA.el?.isConnected ? new DOMMatrix(getComputedStyle(capA.el).transform).m41 : capA.held ? capA.from : capA.to;   // 메뉴를 새로 그릴 때 캡슐이 지금 보이는 자리 (한 프레임도 튀지 않게)
+// 62 (11-06): 켜진 탭 뒤 캡슐. 화면이 바뀌어도 앞 탭 자리에서 출발해 새 탭으로 미끄러져요
+// 65 (11-06): 0.8초. 브라우저 애니메이션으로 돌려서 무거운 화면이 그려지는 동안에도 끊기지 않고, 메뉴가 새로 그려져도(홈은 한 번 더) 그 자리부터 이어 가요
+// 70 (11-06): 캡슐 하나가 모든 이동을 해요. 쓰기로 갈 때 = 가운데까지 미끄러져 와서(0.8초) 동그랗게 오므라들어 그대로 둘레 원이 되고,
+//   이어서 쓰기 동그라미가 52 → 40px로 줄어 그 안에 들어가요(0.3초). 쓰기에서 나갈 때는 거꾸로
+const CAPD = 800, CAPW = 300, CAPE = 'cubic-bezier(.22,.8,.3,1)';
+let capA = null;   // { from, to, kf, bkf, dur, t0, el, held }
+const capSt = (n, on) => { const nw = on.classList.contains('nw'), w = nw ? 52 : 64, cs = getComputedStyle(n);
+  return { x: on.offsetLeft + (on.offsetWidth - w) / 2, w, nw, bg: cs.getPropertyValue(nw ? '--capw' : '--capbg').trim() }; };
+const capSeen = () => { const c = capA.el; if (c?.isConnected) { const cs = getComputedStyle(c); return { x: new DOMMatrix(cs.transform).m41, w: parseFloat(cs.width), nw: capA.to.nw, bg: cs.backgroundColor }; } return capA.held ? capA.from : capA.to; };
+const capNow = () => { const v = capSeen(); return `transform:translateX(${v.x}px);width:${v.w}px;background-color:${v.bg}`; };   // 메뉴를 새로 그릴 때 캡슐이 지금 보이는 모양 (한 프레임도 튀지 않게)
+function capFrames(f, t) {
+  const F = v => ({ transform: `translateX(${v.x}px)`, width: v.w + 'px', backgroundColor: v.bg });
+  if (t.nw && !f.nw) { const k = CAPD / (CAPD + CAPW);   // 가운데까지 캡슐 모양 그대로 → 오므라들며 둘레 원 → 쓰기 동그라미가 줄어 들어감
+    return { dur: CAPD + CAPW, kf: [{ ...F(f), easing: CAPE }, { ...F({ ...f, x: t.x - (f.w - t.w) / 2 }), offset: k, easing: 'ease-out' }, F(t)],
+      bkf: [{ borderWidth: '0px' }, { borderWidth: '0px', offset: k, easing: 'ease-out' }, { borderWidth: '6px' }] }; }
+  if (f.nw && !t.nw) { const k = CAPW / (CAPD + CAPW);   // 쓰기 동그라미가 커지고 → 캡슐이 늘어나 새 탭으로
+    return { dur: CAPD + CAPW, kf: [{ ...F(f), easing: 'ease-out' }, { ...F({ ...t, x: f.x - (t.w - f.w) / 2 }), offset: k, easing: CAPE }, F(t)],
+      bkf: [{ borderWidth: '6px', easing: 'ease-out' }, { borderWidth: '0px', offset: k }, { borderWidth: '0px' }] }; }
+  return { dur: CAPD, kf: [{ ...F(f), easing: CAPE }, F(t)], bkf: null };
+}
 function placeCap() {
   const n = $('.nav'), cap = n && $('.ncap', n); if (!cap) return;
   const on = $('.nb.on', n); if (!on) { cap.style.opacity = 0; return; }
-  const w = 64, x = on.offsetLeft + (on.offsetWidth - w) / 2, nw = on.classList.contains('nw'), now = performance.now();
-  let from = x, el = 0, nw0 = nw;
-  if (capA && capA.el === cap && capA.to === x) return;   // 같은 메뉴에 같은 자리
+  const to = capSt(n, on), now = performance.now(), same = (a, b) => a.x === b.x && a.nw === b.nw;
+  if (capA && capA.el === cap && same(capA.to, to)) return;   // 같은 메뉴에 같은 자리
+  let from = to, el = 0, keep = null;
   if (capA) {
-    const run = now - capA.t0 < CAPD;
-    if (capA.to === x && (run || capA.held)) { from = capA.from; el = capA.held ? 0 : now - capA.t0; nw0 = capA.nw0; }   // 새로 그려진 메뉴: 하던 움직임 이어서
-    else if (capA.to !== x) {
-      from = capA.el.isConnected ? new DOMMatrix(getComputedStyle(capA.el).transform).m41 : run ? capA.from + (capA.to - capA.from) * Math.min(1, (now - capA.t0) / CAPD) : capA.to;
-      nw0 = capA.nw;
-    }
+    if (same(capA.to, to) && (capA.held || now - capA.t0 < capA.dur)) { keep = capA; from = capA.from; el = capA.held ? 0 : now - capA.t0; }   // 새로 그려진 메뉴: 하던 움직임 이어서
+    else if (!same(capA.to, to)) from = capSeen();
   }
   capA?.el?.getAnimations?.().forEach(a => a.cancel());
-  cap.style.transform = `translateX(${x}px)`; cap.style.opacity = nw ? 0 : 1;
-  const A = capA = { from, to: x, t0: now - el, el: cap, nw0, nw };
-  if (from === x && nw0 === nw) return;
-  const an = cap.animate([{ transform: `translateX(${from}px)`, opacity: nw0 ? 0 : 1 }, { transform: `translateX(${x}px)`, opacity: nw ? 0 : 1 }], { duration: CAPD, easing: CAPE });
-  an.currentTime = el;
+  cap.style.transform = `translateX(${to.x}px)`; cap.style.width = to.w + 'px'; cap.style.backgroundColor = to.bg; cap.style.opacity = 1;
+  const fr = keep || capFrames(from, to), bt = $('.nb.nw', n);
+  const A = capA = { from, to, kf: fr.kf, bkf: fr.bkf, dur: fr.dur, t0: now - el, el: cap };
+  if (same(from, to) && from.w === to.w) return;
+  const ans = [cap.animate(fr.kf, { duration: fr.dur, easing: 'linear' })];
+  if (fr.bkf && bt) ans.push(bt.animate(fr.bkf, { duration: fr.dur, easing: 'linear' }));
+  ans.forEach(an => an.currentTime = el);
   if (el) return;
   // 새 화면을 그리느라 바쁜 동안은 출발 자리에서 기다렸다가, 화면이 한가해지면(두 프레임이 40ms 안) 그때 출발 — 앞부분이 건너뛰지 않게
-  an.pause(); A.held = true; let last = -1e9;
-  const wait = t => { if (capA !== A) return; if (t - last < 40 || t - now > 450) { an.play(); A.held = false; A.t0 = performance.now(); return; } last = t; requestAnimationFrame(wait); };
+  ans.forEach(an => an.pause()); A.held = true; let last = -1e9;
+  const wait = t => { if (capA !== A) return; if (t - last < 40 || t - now > 450) { ans.forEach(an => an.play()); A.held = false; A.t0 = performance.now(); return; } last = t; requestAnimationFrame(wait); };
   requestAnimationFrame(wait);
 }
 addEventListener('resize', () => { capA = null; placeCap(); });
@@ -3007,7 +3019,7 @@ function viewSet(sub) {
     ${sgrp(srow('bell', '알림', S.pref('remind', false) ? '켜짐' : '', { go: '#/set/alarm' }), srow('globe', '언어', LANGS[S.pref('lang', 'ko')], { go: '#/set/lang' }))}
     ${sgrp(srow('spark', '서비스 소개', '', { go: '#/set/about' }), srow('help', '도움말', '', { a: 'help' }), srow('bell', '공지사항 · 이벤트', '', { go: '#/set/news' }), srow('clock', '업데이트 소식', UPDATES[0][0], { go: '#/set/updates' }))}
     ${sgrp(srow('doc', '이용약관', '', { a: 'terms' }), srow('shield', '개인정보 처리방침', '', { a: 'privacy' }), srow('lic', '라이선스', '', { a: 'lic' }))}
-    ${sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' }))}<p class="sver">dayzine 1.0.0 · 테스트 · 11-06 19차</p>`, { up: '#/me' });
+    ${sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' }))}<p class="sver">dayzine 1.0.0 · 테스트 · 11-06 20차</p>`, { up: '#/me' });
   $('[data-a=place]').onclick = e => { const on = !S.pref('autoPlace', false); S.setPref('autoPlace', on); e.currentTarget.querySelector('.tg').classList.toggle('on', on); };
   $('[data-a=terms]').onclick = () => { location.href = '../legal/terms.ko.html'; };
   $('[data-a=privacy]').onclick = () => { location.href = '../legal/privacy.ko.html'; };
