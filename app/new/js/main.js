@@ -3084,7 +3084,7 @@ function loginSheet(back) {
     if (k === 'mail') { ls.set('dz.back', back || '#/'); go('#/login/mail'); }
     else if (k === 'google' || k === 'apple') {
       ls.set('dz.back', back || '#/');
-      try { pill('연결하는 중', '', { keep: true }); await A.oauth(k); } catch { pill('지금은 연결하지 못했어요'); }
+      try { pill('연결하는 중', '', { keep: true }); await A.oauth(k); } catch (e) { pill(e?.message === 'off' ? `${k === 'apple' ? 'Apple' : 'Google'} 로그인은 준비 중이에요` : '지금은 연결하지 못했어요'); }
     }
   });
   lockBg(); document.body.appendChild(bg);

@@ -42,8 +42,14 @@ export function provider() {
 }
 
 // Google · Apple: 그 회사 화면에 다녀와요. 돌아올 곳 = 이 앱 첫 화면
+// 서버에서 그 로그인이 켜져 있는지 먼저 봐요 (꺼져 있으면 오류 화면으로 보내지 않게)
+export async function providerOn(p) {
+  try { const r = await fetch(`${CFG.SUPABASE_URL}/auth/v1/settings`, { headers: { apikey: CFG.SUPABASE_ANON_KEY } }); const j = await r.json(); return !!j?.external?.[p]; }
+  catch { return true; }   // 확인을 못 하면 그냥 시도해요
+}
 export async function oauth(p) {
   const c = await sb(); if (!c) throw new Error('config');
+  if (!await providerOn(p)) throw new Error('off');
   const { error } = await c.auth.signInWithOAuth({ provider: p, options: { redirectTo: location.origin + location.pathname } });
   if (error) throw error;
 }
