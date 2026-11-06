@@ -349,7 +349,7 @@ function feedItem(c, tile, x = {}) {
   pageInto(view, c, (i, n) => { if (pc) { pc.hidden = false; $('b', pc).textContent = `${i}/${n}`; } });
   fx.addEventListener('click', () => x.open ? x.open(it, c) : openFocus(it, c));
   const on = (k, fn) => { const b = $(`[data-a=${k}]`, it); if (b) b.onclick = fn; };
-  on('use', () => go(`#/write/${c.fmt}`));
+  on('use', () => go(c.tpl && T.tpl(c.tpl) ? `#/write/t-${c.tpl}` : `#/write/${c.fmt}`));
   on('edit', () => go(`#/edit/${c.id}`));
   on('save', () => saveCard(c));
   const mark = () => { c.mark = !c.mark; S.saveCard(c, false); $('[data-a=mark]', it)?.classList.toggle('on', c.mark); syncCard(c); toast(c.mark ? '책갈피에 넣었어요' : '책갈피에서 뺐어요'); };
@@ -366,7 +366,7 @@ function feedItem(c, tile, x = {}) {
   });
   on('mark', mark); on('del', del); on('like', () => go(`#/like/${c.id}`));
   // ⋯: 책갈피 · 이미지 저장 · 고치기 · 이 포맷으로 쓰기 | 지우기. 위에 날짜 · 종류
-  on('more', () => sheet(`${+c.date.slice(5, 7)}월 ${+c.date.slice(8, 10)}일 · ${LABEL[c.fmt] || ''}`, [[
+  on('more', () => sheet(`${+c.date.slice(5, 7)}월 ${+c.date.slice(8, 10)}일 · ${T.labelOf(c) || ''}`, [[
     { icon: 'bookmark', label: c.mark ? '책갈피 빼기' : '책갈피', on: c.mark, run: mark },
     { icon: 'spines', label: '책에 담기', run: () => putSheet(c) },
     { icon: 'save', label: '이미지 저장', run: () => saveCard(c) },
@@ -403,7 +403,7 @@ function banner(rec) {
   if (!el || !rec || S.pref('bnDay') === day) return;
   const c = rec.c;
   el.hidden = false;
-  el.innerHTML = `<div class="th"></div><div class="tx">${rec.n}년 전 오늘<small>${esc(cardText(c).replace(/\s+/g, ' ').trim() || LABEL[c.fmt] || '')}</small></div><button class="cb" data-a="x" aria-label="닫기">${ic('close')}</button>`;
+  el.innerHTML = `<div class="th"></div><div class="tx">${rec.n}년 전 오늘<small>${esc(cardText(c).replace(/\s+/g, ' ').trim() || T.labelOf(c) || '')}</small></div><button class="cb" data-a="x" aria-label="닫기">${ic('close')}</button>`;
   mount($('.th', el), c);
   const done = () => { S.setPref('bnDay', day); el.classList.add('gone'); setTimeout(() => { el.hidden = true; el.classList.remove('gone'); el.style.transform = ''; }, 260); };
   $('[data-a=x]', el).onclick = e => { e.stopPropagation(); done(); };
@@ -531,12 +531,12 @@ function alarmSheet(c) {
 }
 // 정보 시트: 이 카드가 어떻게 만들어졌는지 + 글만보기 + 흰 '이 포맷으로 쓰기'
 function infoSheet(c) {
-  const t = c.fmt !== 'text' ? T.tplOfCard(c) : null, b = pageBg(c, 0);
+  const t = T.tplOfCard(c), b = pageBg(c, 0);
   const bgName = b?.id === 'photo' ? (b.vd ? '내 영상' : '내 사진') : b?.id === 'hex' ? '직접 색' : b?.id ? `${KIND[findBg(b.id).kind] || ''} ${findBg(b.id).name || ''}`.trim() : '—';
   const txt = cardText(c), n = c.fmt === 'rebus' ? 1 : (c.pages || []).length || 1;
   const dt = iso => iso ? stamp(iso) : '—';
   const edited = c.updated && c.created && Date.parse(c.updated) - Date.parse(c.created) > 6e4;
-  const rows = [['종류', FORMATS[c.fmt]?.name === '기본' ? '기본' : (LABEL[c.fmt] || '').split(' · ')[0]], ['템플릿', t?.name || '기본'], ['비율', (RATIOS.find(r => r[0] === (c.ratio || '45')) || RATIOS[0])[1]],
+  const rows = [['종류', t?.kind || '기본'], ['템플릿', t?.name || '기본'], ['비율', (RATIOS.find(r => r[0] === (c.ratio || '45')) || RATIOS[0])[1]],
     ['글꼴', c.font ? fontOf(c.font).name : '—'], ['배경', bgName], ['장 · 글자', `${n}장 · ${[...txt.replace(/\s/g, '')].length}자`],
     ['쓴 날', dt(c.created)], ...(edited ? [['고친 날', dt(c.updated)]] : []), ...((c.place || '').trim() ? [['장소', esc(c.place.trim())]] : [])];
   const sh = panelSheet(`<div class="grab"></div><p class="sh">정보</p>
@@ -583,7 +583,7 @@ function viewNotes(fromSet) {
   const when = n => { const d = new Date(n.at), s = ymdOf(d); return s === today ? hmOf(d) : `${md(s)} ${hmOf(d)}`; };
   const rowOf = n => {
     const i = list.indexOf(n);
-    if (n.k === 'card') { const c = S.card(n.cid); return `<button class="nrw${n.read ? '' : ' new'}" data-i="${i}"><span class="nth"><span class="view"></span></span><span class="nt"><b>다시 볼 카드예요</b><small>${c ? esc(cardText(c).replace(/\s+/g, ' ').trim().slice(0, 60)) || esc(LABEL[c.fmt] || '') : '지운 카드예요'}</small><small>${when(n)}</small></span></button>`; }
+    if (n.k === 'card') { const c = S.card(n.cid); return `<button class="nrw${n.read ? '' : ' new'}" data-i="${i}"><span class="nth"><span class="view"></span></span><span class="nt"><b>다시 볼 카드예요</b><small>${c ? esc(cardText(c).replace(/\s+/g, ' ').trim().slice(0, 60)) || esc(T.labelOf(c) || '') : '지운 카드예요'}</small><small>${when(n)}</small></span></button>`; }
     if (n.k === 'tpl') { const t = T.tpl(n.tid); return `<button class="nrw${n.read ? '' : ' new'}" data-i="${i}"><span class="nth sq"><span class="view"></span></span><span class="nt"><b>새 템플릿이 나왔어요</b><small>${esc(t?.name || '')} · ${esc(t?.kind || '')}</small><small>${when(n)}</small></span></button>`; }
     return `<button class="nrw${n.read ? '' : ' new'}" data-i="${i}"><span class="nth ic0">${ic('bell')}</span><span class="nt"><b>${esc(n.title || '공지')}</b><small>${esc(n.body || '')}</small><small>${when(n)}</small></span></button>`;
   };
@@ -630,7 +630,7 @@ function related(c) {
   }).sort((a, b) => b.sc - a.sc).slice(0, 5).map(x => x.m);
 }
 function relHtml(list, head = '비슷한 카드', cur, mk = esc) {
-  return list.length ? `<h4>${head}</h4><div class="rl">${list.map(m => `<button class="rr${m.id === cur ? ' on' : ''}" data-id="${m.id}"><div class="th"></div><div class="m"><small>${+m.date.slice(0, 4)}년 ${+m.date.slice(5, 7)}월 ${+m.date.slice(8, 10)}일 · ${LABEL[m.fmt] || ''}</small><p>${mk(cardText(m).replace(/\s+/g, ' ').trim())}</p></div></button>`).join('')}</div>` : '';
+  return list.length ? `<h4>${head}</h4><div class="rl">${list.map(m => `<button class="rr${m.id === cur ? ' on' : ''}" data-id="${m.id}"><div class="th"></div><div class="m"><small>${+m.date.slice(0, 4)}년 ${+m.date.slice(5, 7)}월 ${+m.date.slice(8, 10)}일 · ${T.labelOf(m)}</small><p>${mk(cardText(m).replace(/\s+/g, ' ').trim())}</p></div></button>`).join('')}</div>` : '';
 }
 
 // 확인 창: 취소 · 빨간 버튼. 바깥을 누르면 취소
@@ -807,7 +807,7 @@ function viewSearch(fromPick) {
     else if (mode?.k === 'fmt') { found = mine.filter(c => c.fmt === mode.v); fmts = [mode.v]; }
     else if (mode?.k === 'mark') found = mine.filter(c => c.mark);
     else {
-      const hay = c => [flat(c), (c.memos || []).map(m => m.t).join(' '), c.place || '', LABEL[c.fmt] || '', c.date ? ymd(c.date) : ''].join(' ').toLowerCase();
+      const hay = c => [flat(c), (c.memos || []).map(m => m.t).join(' '), c.place || '', T.labelOf(c) || '', c.date ? ymd(c.date) : ''].join(' ').toLowerCase();
       const has = c => { const h = hay(c); return words.every(w => h.includes(w)); };
       dq = dateQ(q);
       if (dq) {   // 그 기간 카드 (최근 날짜가 위) → 글에 같은 말이 있는 카드는 그 뒤에
@@ -846,7 +846,7 @@ function viewSearch(fromPick) {
     const d = c.date ? md(c.date) : '', pl = (c.place || '').trim();
     const dh = dqNow && inDate(c, dqNow) ? `<mark>${esc(d)}</mark>` : esc(d);
     const ph = mode?.k === 'place' ? `<mark>${esc(pl)}</mark>` : hl(pl, words);
-    const fm = mode?.k === 'fmt' || (words.length && words.every(w => (LABEL[c.fmt] || '').toLowerCase().includes(w)) && !words.every(w => `${flat(c)} ${pl}`.toLowerCase().includes(w))) ? `<mark>${esc(LABEL[c.fmt])}</mark>` : '';
+    const fm = mode?.k === 'fmt' || (words.length && words.every(w => (T.labelOf(c) || '').toLowerCase().includes(w)) && !words.every(w => `${flat(c)} ${pl}`.toLowerCase().includes(w))) ? `<mark>${esc(T.labelOf(c))}</mark>` : '';
     return [dh, pl ? ph : '', fm].filter(Boolean).join(' · ');
   };
   function tile(c) {
@@ -997,7 +997,7 @@ function viewShelf() {
 
 // 날짜별 2열 (책 · 달력 같이): 날짜 머리 + 2열 칸(더 짧은 열에 차례로) + 칸 아래 [시간 · ⋯] (홈 2열과 같은 줄). 칸은 화면 가까이 올 때 그려요
 // 63 (11-06): 영상 카드 = 영상 아이콘, 움직이는 카드(아트 흐름 · 움직이는 아이콘) = 반짝임 둘. 오른쪽 위 쪽수 알약 안 (쪽수가 없어도 아이콘만)
-const motionKind = it => (it._card && hasVideo(it._card)) ? 'video' : it.querySelector('canvas.bgc, .cd.rebus .o[data-m]') ? 'spark2' : '';
+const motionKind = it => (it._card && hasVideo(it._card)) ? 'video' : (it._card && T.tplOfCard(it._card)?.motion === false) ? '' : it.querySelector('canvas.bgc, .cd.rebus .o[data-m]') ? 'spark2' : '';
 function pcNum(pc, t) { if (!pc) return; let b = $('b', pc); if (!b) { b = document.createElement('b'); pc.appendChild(b); } b.textContent = t; pc.hidden = !t && !$('.kic', pc); }
 function markKind(it) {
   if (it.dataset.kd || !it.querySelector('.cd')) return; it.dataset.kd = 1;
@@ -1079,7 +1079,7 @@ function cardMenu(c, o = {}) {
   const mark = () => { c.mark = !c.mark; S.saveCard(c, false); syncCard(c); toast(c.mark ? '책갈피에 넣었어요' : '책갈피에서 뺐어요'); };
   const out = () => { const bk = S.book(o.book.id); if (!bk) return; bk.ids = bk.ids.filter(id => id !== c.id); S.saveBook(bk); toast('이 책에서 뺐어요'); dropCard(c.id); };
   const del = async () => { if (!(await ask('이 카드를 지울까요?', '삭제'))) return; S.removeCard(c.id); dropCard(c.id); };
-  sheet(`${+c.date.slice(5, 7)}월 ${+c.date.slice(8, 10)}일 · ${LABEL[c.fmt] || ''}`, [[
+  sheet(`${+c.date.slice(5, 7)}월 ${+c.date.slice(8, 10)}일 · ${T.labelOf(c) || ''}`, [[
     { icon: 'bookmark', label: c.mark ? '책갈피 빼기' : '책갈피', on: c.mark, run: mark },
     { icon: 'spines', label: '책에 담기', run: () => putSheet(c) },
     { icon: 'save', label: '이미지 저장', run: () => saveCard(c) },
@@ -1319,7 +1319,7 @@ function openReader(b, list, onGrid, hx = {}) {
     cards.forEach((c, i) => { if (!first.has(String(i))) return; const m = (c.date || S.today()).slice(0, 7); if (!byM.has(m)) byM.set(m, []); byM.get(m).push([c, i]); });
     const mLab = m => (m.slice(0, 4) !== S.today().slice(0, 4) ? `${+m.slice(0, 4)}년 ` : '') + `${+m.slice(5, 7)}월`;
     const dLab = c => c.date ? `${+c.date.slice(5, 7)}.${+c.date.slice(8, 10)}` : '';
-    const line = c => (cardText(c) || '').replace(/\s+/g, ' ').trim().slice(0, 60) || LABEL[c.fmt] || '카드';
+    const line = c => (cardText(c) || '').replace(/\s+/g, ' ').trim().slice(0, 60) || T.labelOf(c) || '카드';
     toc.innerHTML = `<p class="sh">목차</p><div class="rfd"><label class="rfi"><input type="number" inputmode="numeric" min="1" max="${T}" value="${at + 1}" enterkeyhint="go"><span>/ ${T}쪽${built ? '' : ' …'}</span></label><button class="rgo" data-a="go">이동</button></div>
       <div class="tls"><div class="grp"><button class="it" data-j="-1">${ic('page')}표지</button></div>
       ${[...byM].map(([m, cs]) => `<p class="rmh">${mLab(m)}</p><div class="grp">${cs.map(([c, i]) => `<button class="rto${String(i) === curC ? ' on' : ''}" data-j="${first.get(String(i))}"><span class="th"></span><span class="t"><b>${esc(line(c))}</b><small>${dLab(c)}${String(i) === curC ? ' · 읽는 중' : ''}</small></span><span class="n">${first.get(String(i)) + 1}쪽</span></button>`).join('')}</div>`).join('')}</div>`;
@@ -1736,7 +1736,7 @@ function viewIntro(id) {
   const hb = $('[data-a=heart]'); hb.classList.toggle('on', T.isFav(t.id));
   hb.onclick = () => { const on = T.toggleFav(t.id); hb.classList.toggle('on', on); toast(on ? '즐겨찾기에 담았어요' : '즐겨찾기에서 뺐어요'); };
   $('[data-a=x]').onclick = () => lastHash ? history.back() : location.replace('#/tpl');
-  $('[data-a=go]').onclick = () => go('#/write/' + t.fmt);   // 유료 · 오늘 무료 확인은 결제를 붙일 때
+  $('[data-a=go]').onclick = () => go('#/write/t-' + t.id);   // 유료 · 오늘 무료 확인은 결제를 붙일 때
   // 지금 보이는 예시의 아트 그림만 움직여요
   let anim = 0; const t0 = performance.now(), still = matchMedia('(prefers-reduced-motion: reduce)').matches;
   // ro: 설명 글 · 카드 위치가 바뀌면 (아이폰 글꼴 · 화면) 매 프레임 확인해서 카드를 다시 맞춰요
@@ -1846,7 +1846,7 @@ function viewPick(sub) {
 // 내 사진 · 영상은 그 카드 것이라 빼요 (포토 포맷은 빈 사진 자리로)
 function likeCard(src) {
   if (!src || !FORMATS[src.fmt]) return null;
-  const c = blank(src.fmt, S.today()), noPh = b => b?.id === 'photo' ? { id: 'photo', dim: b.dim || 'dark' } : clone(b);
+  const c = blank(src.fmt, S.today()); if (src.tpl) c.tpl = src.tpl, noPh = b => b?.id === 'photo' ? { id: 'photo', dim: b.dim || 'dark' } : clone(b);
   ['font', 'size', 'ratio', 'lh', 'bold', 'ink', 'inkPos', 'align', 'datePos', 'dh', 'showDate', 'placeOff', 'sg', 'filter', 'leak'].forEach(k => { if (src[k] !== undefined) c[k] = clone(src[k]); });
   c.signTxt = S.pref('sign', src.signTxt || '');
   if (src.bg && c.pages) c.bg = noPh(src.bg);   // 아트 그림도 같은 씨앗 그대로
@@ -1866,7 +1866,10 @@ function viewWrite({ fmt, id, like }) {
   else if (fmt?.startsWith('draft-')) { did = fmt.slice(6); card = S.draft(did)?.card; }
   else if (like) card = likeCard(S.card(like));
   else {   // 새 카드는 마지막에 쓴 글꼴 · 날짜 줄 · 비율 · 서명 자리로
-    card = blank(fmt, S.today());
+    const tp = fmt?.startsWith('t-') ? T.tpl(fmt.slice(2)) : null;   // 템플릿으로 쓰기: #/write/t-<템플릿 id>
+    if (fmt?.startsWith('t-') && !tp) return go('#/tpl');
+    card = blank(tp ? tp.fmt : fmt, S.today());
+    if (tp) card.tpl = tp.id;   // 카드에 템플릿 이름표
     if (card.fmt === 'text') { card.font = fontOf(S.pref('font', card.font)).id; const dp = S.pref('datePos', ''); if (dp === 'top' || dp === 'bottom') card.datePos = dp; const dh = S.pref('dh', ''); if (dh) card.dh = dh; }
     card.showDate = S.pref('showDate:' + card.fmt, dateOn(card));
     card.ratio = S.pref('ratio', '45'); card.sg = S.pref('sg', ''); card.signTxt = S.pref('sign', '');
@@ -1876,7 +1879,7 @@ function viewWrite({ fmt, id, like }) {
   }
   const intent = writeIntent; writeIntent = null;
   if (!card || !FORMATS[card.fmt]) return go('#/');
-  const f = FORMATS[card.fmt], rich = !!f.rich;   // 장으로 쓰는 포맷(글 · 아트)
+  const f = { ...FORMATS[card.fmt], tools: T.toolsOf(card) }, rich = !!f.rich;   // 도구 = 틀 기본값 + 템플릿이 바꾼 것   // 장으로 쓰는 포맷(글 · 아트)
   if (!rich && card.html == null) { card.html = renderCard(card).querySelector('.rb').innerHTML; card.html = clean(card.html); delete card.text; }
   const st = { panel: null, tab: intent?.color ? 'bg' : 'fmt', hist: [clone(card)], hi: 0, timer: 0, pg: 0, sel: null, composing: false };
   const root = document.documentElement;
@@ -2768,7 +2771,7 @@ const LINES = [
 // 통계: 쓴 날 · 카드 · 글자 · 자주 쓴 종류 · 곳 · 때 · 색 (쌓인 값만, 연속 기록은 안 세요)
 const SLOT = h => h < 5 ? '새벽' : h < 11 ? '아침' : h < 17 ? '오후' : h < 21 ? '저녁' : '밤';
 const slotOf = c => c.created ? SLOT(new Date(c.created).getHours()) : '';
-const kindOf = c => (LABEL[c.fmt] || '').replace(' · ', ' ');
+const kindOf = c => (T.labelOf(c) || '').replace(' · ', ' ');
 const placeOf = c => (c.place || '').trim();
 function bgName(c) {
   const b = c.bg; if (!b) return '';
@@ -2899,7 +2902,7 @@ function viewMe() {
     const k = met.k, len = c => cardText(c).replace(/\s/g, '').length; let rows, unit = '장', title;
     if (k === 'days') return paintYear();
     if (k === 'n') {
-      rows = ['기본', '디자인', '아트'].map(f => [f, all.filter(c => (LABEL[c.fmt] || '').split(' · ')[0] === f).length]); title = '카드 · 종류마다';
+      rows = ['기본', '디자인', '아트'].map(f => [f, all.filter(c => (T.labelOf(c) || '').split(' · ')[0] === f).length]); title = '카드 · 종류마다';
     } else if (k === 'chars') {
       rows = LEN.map(([n, a, b]) => [n, all.filter(c => len(c) >= a && len(c) < b).length]); title = '글 길이 · 전체';
     } else {
@@ -3027,7 +3030,7 @@ function viewSet(sub) {
     ${sgrp(srow('bell', '알림', S.pref('remind', false) ? '켜짐' : '', { go: '#/set/alarm' }), srow('globe', '언어', LANGS[S.pref('lang', 'ko')], { go: '#/set/lang' }))}
     ${sgrp(srow('spark', '서비스 소개', '', { go: '#/set/about' }), srow('help', '도움말', '', { a: 'help' }), srow('bell', '공지사항 · 이벤트', '', { go: '#/set/news' }), srow('clock', '업데이트 소식', UPDATES[0][0], { go: '#/set/updates' }))}
     ${sgrp(srow('doc', '이용약관', '', { a: 'terms' }), srow('shield', '개인정보 처리방침', '', { a: 'privacy' }), srow('lic', '라이선스', '', { a: 'lic' }))}
-    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-06 23차</p>`, { up: '#/me' });
+    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-06 24차</p>`, { up: '#/me' });
   $('[data-a=place]').onclick = e => { const on = !S.pref('autoPlace', false); S.setPref('autoPlace', on); e.currentTarget.querySelector('.tg').classList.toggle('on', on); };
   $('[data-a=terms]').onclick = () => { location.href = '../legal/terms.ko.html'; };
   $('[data-a=privacy]').onclick = () => { location.href = '../legal/privacy.ko.html'; };
@@ -3316,4 +3319,7 @@ if (boot) boot.innerHTML = LOGO;
 const bootEnd = () => { document.documentElement.classList.remove('booting'); if (!boot || boot.classList.contains('out')) return; boot.classList.add('out'); setTimeout(() => boot.remove(), 400); };
 setTimeout(bootEnd, 2000);
 const oauthBack = /[?&]code=/.test(location.search);
+// 템플릿 목록: 서버에서 새로 받아 바뀌었으면 템플릿 화면만 다시 그려요
+T.onUpdate(() => { if (/^#\/(tpl|pick|ti)\b/.test(location.hash)) route(); });
+T.refresh();
 Promise.all([P.boot(usedPhotos()), A.start()]).then(() => { if (oauthBack && A.user()) afterLogin(); else { route(); if (A.user()) Y.run().catch(() => {}); } }).then(() => document.fonts.ready).then(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))).then(bootEnd, bootEnd);
