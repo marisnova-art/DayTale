@@ -1524,9 +1524,9 @@ html.lite #app .sp.du { opacity: .8; }   /* 예시 책: 밝은 바탕에선 덜 
 html.lite #app .fi .fx { box-shadow: 0 6px 16px rgba(20,20,22,.13), 0 1px 3px rgba(20,20,22,.08); }
 
 /* 62 (11-06): 켜진 탭 캡슐 (미끄러지며 이동) · 쓰기 화면이면 쓰기 둘레 빛 테두리 + 살짝 튐 */
-.nav .ncap { position: absolute; left: 0; top: 50%; width: 64px; height: 52px; margin-top: -26px; border-radius: 999px; background: rgba(255,255,255,.16); pointer-events: none; z-index: 0; transition: transform .32s cubic-bezier(.3,.9,.3,1), opacity .22s ease; }
+.nav .ncap { position: absolute; left: 0; top: 50%; width: 64px; height: 52px; margin-top: -26px; border-radius: 999px; background: rgba(255,255,255,.16); pointer-events: none; z-index: 0; }
 .nav .nb { position: relative; z-index: 1; }
-.nav .nb.nw.on { box-shadow: 0 0 0 4px rgba(255,255,255,.3); animation: nwpop .38s cubic-bezier(.3,1.5,.5,1); }
+.nav .nb.nw.on { box-shadow: 0 0 0 4px rgba(255,255,255,.3); animation: nwpop .8s cubic-bezier(.3,1.4,.5,1); }
 @keyframes nwpop { 0% { transform: scale(1); } 45% { transform: scale(1.08); } 100% { transform: scale(1); } }
 html.lite #app .nav .ncap { background: rgba(20,20,22,.1); }
 html.lite #app .nav .nb.nw.on { box-shadow: 0 0 0 4px rgba(20,20,22,.16); }
