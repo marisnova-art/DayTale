@@ -36,6 +36,7 @@ const P = {
   vm: '<path d="M4 12h3M17 12h3"/><rect x="8" y="9" width="8" height="6" rx="1"/>',
   vb: '<path d="M4 21h16"/><rect x="8" y="11" width="8" height="6" rx="1"/>',
   grad: '<circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/>',
+  spark2: '<path d="M10 5l1.6 4.4L16 11l-4.4 1.6L10 17l-1.6-4.4L4 11l4.4-1.6z"/><path d="M18 3l.8 2.2L21 6l-2.2.8L18 9l-.8-2.2L15 6l2.2-.8z"/>',   // 움직이는 카드 (63)
   spark: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 17v4M17 19h4"/>',
   scene: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="m3 17 6-6 5 5 3-3 4 4"/><path d="M15 8h.01"/>',
   img: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="m3 17 6-6 5 5 3-3 4 4"/><path d="M15 8h.01"/>',   // 이미지 탭 (= scene)

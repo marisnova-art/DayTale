@@ -92,10 +92,10 @@ const go = h => { location.hash = h; };
 
 /* ── 피드 ───────────────────────────────────────────── */
 function nav(on) {
-  return `<nav class="nav">
+  return `<nav class="nav"><i class="ncap" aria-hidden="true"></i>
     <button class="nb ${on === 'home' ? 'on' : ''}" data-n="home" aria-label="홈">${ic('home')}</button>
     <button class="nb ${on === 'tpl' ? 'on' : ''}" data-n="tpl" aria-label="템플릿">${ic('layers')}</button>
-    <button class="nb nw" data-n="write" aria-label="쓰기">${ic('pen')}</button>
+    <button class="nb nw${on === 'write' ? ' on' : ''}" data-n="write" aria-label="쓰기">${ic('pen')}</button>
     <button class="nb ${on === 'shelf' ? 'on' : ''}" data-n="shelf" aria-label="책장">${ic('drawer')}</button>
     <button class="nb ${on === 'search' ? 'on' : ''}" data-n="search" aria-label="검색">${ic('search')}</button></nav>`;   // 검색은 검은 바탕이라 맨 오른쪽 (10-31)
 }
@@ -107,12 +107,25 @@ function bindNav() {
   const tpl = () => $('.tmv') ? window.scrollTo({ top: 0, behavior: 'smooth' }) : go('#/tpl');
   $$('.nb').forEach(b => b.onclick = () => ({ home, search: find, write: () => go('#/pick'), tpl, shelf }[b.dataset.n] || soon)());
   $$('[data-a=me]').forEach(b => b.onclick = me);   // 프로필은 홈 위 줄 (알림 옆)
+  requestAnimationFrame(placeCap);
 }
-// 하단 메뉴 (11-04): 아래로 내리면 0.8배로 작아지고, 멈춰도 작은 채로. 위로 올리거나 맨 위에 오면 다시 커져요 (작아도 바로 눌러져요)
+// 62 (11-06): 켜진 탭 뒤 캡슐. 화면이 바뀌어도 앞 탭 자리에서 출발해 새 탭으로 미끄러져요. 쓰기 화면이면 가운데로 와서 쓰기 둘레 빛 테두리로 바뀌어요
+let capX = null;
+function placeCap() {
+  const n = $('.nav'), cap = n && $('.ncap', n); if (!cap) return;
+  const on = $('.nb.on', n); if (!on) { cap.style.opacity = 0; return; }
+  const w = 64, x = on.offsetLeft + (on.offsetWidth - w) / 2, nw = on.classList.contains('nw');
+  if (capX != null && capX !== x) { cap.style.transition = 'none'; cap.style.transform = `translateX(${capX}px)`; cap.style.opacity = 1; void cap.offsetWidth; cap.style.transition = ''; }
+  else if (capX == null) { cap.style.transition = 'none'; cap.style.transform = `translateX(${x}px)`; void cap.offsetWidth; cap.style.transition = ''; }
+  cap.style.transform = `translateX(${x}px)`; cap.style.opacity = nw ? 0 : 1; capX = x;
+}
+addEventListener('resize', () => { capX = null; placeCap(); });
+// 하단 메뉴 (61, 11-06): 아래로 내리면 아래로 사라지고, 조금만 올려도 바로 다시 (맨 위 · 맨 아래에서는 늘 보여요). 크기는 그대로
 { let y0 = 0;
   addEventListener('scroll', () => {
     const n = $('.nav'), y = scrollY; if (!n) return;
-    if (y > 60 && y - y0 > 6) n.classList.add('sm'); else if (y0 - y > 6 || y <= 60) n.classList.remove('sm');
+    const end = y + innerHeight >= document.documentElement.scrollHeight - 40;
+    if (y <= 60 || end) n.classList.remove('out'); else if (y - y0 > 6) n.classList.add('out'); else if (y0 - y > 6) n.classList.remove('out');
     y0 = y;
   }, { passive: true }); }
 // 아이폰은 누른 그 순간에만 키보드를 올려 줘요: 화면이 바뀌기 전에 빈 칸에 먼저 커서를 두고, 새 화면의 검색 칸이 이어받아요
@@ -172,9 +185,7 @@ function viewFeed(fresh, quiet) {
       ds.push({ it, d: Math.abs((r.top + r.bottom) / 2 - mid), on });
       if (on && !it.dataset.seen) { it.dataset.seen = 1; it.classList.add('intro'); setTimeout(() => it.classList.remove('intro'), 1800); if (it.dataset.promo) promoSeen(it._card.fmt); }
     });
-    const vis = ds.filter(x => x.on).sort((a, b) => a.d - b.d), tie = vis.filter(x => vis[0] && x.d - vis[0].d < 4);
-    const best = tie.length > 1 ? tie[Math.floor(Date.now() / 1e4) % tie.length].it : vis[0]?.it || null;
-    ds.forEach(({ it }) => { const on = it === best; if (on !== it.classList.contains('play')) it.classList.toggle('play', on); });
+    const vis = ds.filter(x => x.on).sort((a, b) => a.d - b.d), best = vis[0]?.it || null;   // 바탕 빛 = 가운데 카드 색 (움직일 카드는 64 규칙, liveMid)
     if (best === cur) return;
     cur = best; if (cur) glow(cur.dataset.tone);
   };
@@ -215,7 +226,8 @@ function viewFeed(fresh, quiet) {
     V.sync(out.sort((a, b) => a.d - b.d).slice(0, 1));   // 영상은 한 번에 하나
   };
   if (!still) anim = requestAnimationFrame(tick); else feedTimer = setInterval(() => { pickMid(); feedVideo(); }, 300);
-  cleanup = () => { clearTimeout(idle); stopMood(); cancelAnimationFrame(anim); clearInterval(feedTimer); V.stop(); removeEventListener('scroll', onScroll); document.removeEventListener('visibilitychange', onVis); closeFocus(true); };
+  const live = liveMid(() => $$('.feed .fi'), { video: false, art: false, home: true, overlay: false, hold: () => !!focus });   // 영상 · 아트 그리기는 아래 tick · feedVideo 가 .play 카드로
+  cleanup = () => { live(); clearTimeout(idle); stopMood(); cancelAnimationFrame(anim); clearInterval(feedTimer); V.stop(); removeEventListener('scroll', onScroll); document.removeEventListener('visibilitychange', onVis); closeFocus(true); };
   setTimeout(pickMid, 80);
 
   // 방금 쓰거나 고친 카드: 그 자리로 가서 살짝 커지며 나와요. 고치다 뒤로 오면 그 자리로만 (주소는 홈으로 되돌려 둬요)
@@ -800,7 +812,7 @@ function viewSearch(fromPick) {
     const it = document.createElement('article'); it.className = 'fi tile'; it.dataset.id = c.id; it._card = c;
     it.innerHTML = `<div class="fx"><div class="view"></div><span class="pc bd" hidden></span></div><div class="sm"><p>${snip(c)}</p><small>${metaOf(c)}</small></div>`;
     const view = $('.view', it), pc = $('.pc', it);
-    mount(view, c); pageInto(view, c, (i, n) => { pc.hidden = false; pc.textContent = `${i}/${n}`; });
+    mount(view, c); pageInto(view, c, (i, n) => pcNum(pc, `${i}/${n}`));
     it.onclick = () => { remember(); openCard(c); };
     return it;
   }
@@ -840,7 +852,7 @@ function viewSearch(fromPick) {
   const tick = now => {
     anim = requestAnimationFrame(tick);
     if (document.hidden) return V.sync([]);
-    const host = focus?.box || sv; if (!host) return V.sync([]);
+    const host = focus?.box || sv; if (!host) return;   // 결과 칸 영상은 liveMid 가 맡아요
     if (!still) $$('.fi.play canvas.bgc', host.closest('.fv, .scv') || host).forEach(cv => cv.width && drawCode(cv, +cv.dataset.seed, +cv.dataset.shift || 0, (now - t0) / 1000 + .01));
     const cv = $$('canvas.bgv', host).find(x => { const r = x.getBoundingClientRect(); return r.width && r.left > -r.width / 2 && r.left < innerWidth - r.width / 2; });
     const cc = focus?.c || sv?.querySelector('.fi')?._card, pg = cv?.closest('.pg'), i = +(pg?.dataset.i || 0), b = cv && cc && pageBg(cc, i);
@@ -943,28 +955,59 @@ function viewShelf() {
 }
 
 // 날짜별 2열 (책 · 달력 같이): 날짜 머리 + 2열 칸(더 짧은 열에 차례로) + 칸 아래 [시간 · ⋯] (홈 2열과 같은 줄). 칸은 화면 가까이 올 때 그려요
-// 60 (11-05): 홈 밖 화면(달력 · 책 리스트 · 검색 결과 · 템플릿 · 책으로 읽기)도 홈처럼, 화면 가운데에 가장 가까운 카드 하나만 움직여요
-// (그림 문장 움직임 = .play, 아트 흐름 = 캔버스 그리기, 영상 = V.sync). 크게 보기 · 다른 창이 위에 열리면 그쪽에 맡기고 쉬어요
-function liveMid(items, { video = true, hold = () => false, overlay = true } = {}) {
-  let anim = 0, n = 0, best = null; const t0 = performance.now(), still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+// 63 (11-06): 영상 카드 = 영상 아이콘, 움직이는 카드(아트 흐름 · 움직이는 아이콘) = 반짝임 둘. 오른쪽 위 쪽수 알약 안 (쪽수가 없어도 아이콘만)
+const motionKind = it => (it._card && hasVideo(it._card)) ? 'video' : it.querySelector('canvas.bgc, .cd.rebus .o[data-m]') ? 'spark2' : '';
+function pcNum(pc, t) { if (!pc) return; let b = $('b', pc); if (!b) { b = document.createElement('b'); pc.appendChild(b); } b.textContent = t; pc.hidden = !t && !$('.kic', pc); }
+function markKind(it) {
+  if (it.dataset.kd || !it.querySelector('.cd')) return; it.dataset.kd = 1;
+  const k = motionKind(it); if (!k) return;
+  const host = it.querySelector('.fx') || it.querySelector('.tc') || it.querySelector('.cd'); let pc = host && host.querySelector(':scope > .pc');
+  if (!host) return;
+  if (!pc) { pc = document.createElement('span'); pc.className = 'pc bd kp'; pc.innerHTML = '<b></b>'; host.appendChild(pc); }
+  if (!$('b', pc)) { const t = pc.textContent; pc.textContent = ''; pc.innerHTML = '<b></b>'; $('b', pc).textContent = t; }
+  pc.querySelectorAll(':scope > .ic, :scope > .kic').forEach(x => x.remove());
+  pc.insertAdjacentHTML('afterbegin', `<i class="kic">${ic(k)}</i>`); pc.hidden = false;
+}
+// 64 (11-06): 움직일 카드 고르기. 후보는 화면에 보이는 '움직이는 카드'만.
+// ① 화면 가운데 영역(위에서 30~60%)에 걸친 카드 ② 홈 맨 위(스크롤 전)에서만, 가운데에 없으면 맨 위쪽 카드 ③ 나란히 둘이면 왼쪽부터 → 끝나면 오른쪽 (영상 = 한 번 다 돌면, 모션 = 6초)
+// 스크롤하는 동안은 모두 멈추고, 멈추고 0.3초 뒤 다시 골라요. 2분 동안 화면을 안 만지면 멈추고, 만지면 바로 이어서
+let lastTouch = Date.now(), lastScroll = 0;
+['pointerdown', 'touchstart', 'keydown', 'wheel'].forEach(e => addEventListener(e, () => { lastTouch = Date.now(); }, { passive: true, capture: true }));
+addEventListener('scroll', () => { lastScroll = lastTouch = Date.now(); }, { passive: true, capture: true });
+const IDLE = 120e3, SETTLE = 300, MOT = 6000;
+const movable = it => motionKind(it) !== '';
+const boxOf = it => (it.querySelector('.fx, .tc') || it).getBoundingClientRect();
+function chooseMoving(list, home) {
+  const H = innerHeight, W = innerWidth, z0 = H * .3, z1 = H * .6, vis = [];
+  for (const it of list) { if (!it.querySelector('.cd') || !movable(it)) continue; const r = boxOf(it); if (!r.width || r.bottom <= 0 || r.top >= H || r.right <= 0 || r.left >= W) continue; vis.push({ it, r }); }
+  let cand = vis.filter(x => x.r.bottom > z0 && x.r.top < z1), lead;
+  if (cand.length) lead = cand.slice().sort((a, b) => Math.abs((a.r.top + a.r.bottom) / 2 - H * .45) - Math.abs((b.r.top + b.r.bottom) / 2 - H * .45))[0];
+  else if (home && scrollY < 10 && vis.length) { cand = vis; lead = vis.slice().sort((a, b) => a.r.top - b.r.top || a.r.left - b.r.left)[0]; }
+  else return [];
+  const side = cand.filter(x => x === lead || (Math.abs(x.r.left - lead.r.left) > 20 && Math.min(x.r.bottom, lead.r.bottom) - Math.max(x.r.top, lead.r.top) > .5 * Math.min(x.r.height, lead.r.height)));
+  return side.sort((a, b) => a.r.left - b.r.left).slice(0, 2).map(x => x.it);
+}
+function liveMid(items, { video = true, art = true, home = false, hold = () => false, overlay = true, all = false } = {}) {
+  let anim = 0, n = 0, best = null, pair = [], pi = 0, since = 0; const t0 = performance.now(), still = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const covered = () => overlay && (runv || focus || document.querySelector('.scv, .brd'));
-  const set = b => { if (b === best) return; best?.classList.remove('play'); best = b; best?.classList.add('play'); };
+  const set = b => { if (b === best) return; best?.classList.remove('play'); best = b; best?.classList.add('play'); since = Date.now(); };
+  const vidOf = b => { const c = b?._card, cv = c && $$('canvas.bgv', b).find(x => { const r = x.getBoundingClientRect(); return r.width && r.bottom > 0 && r.top < innerHeight; }); if (!cv) return null; const i = +(cv.closest('.pg')?.dataset.i || 0), bg = pageBg(c, i); return bg?.vd ? { cv, b: bg, fid: fidOf(c), onCover: cov => fixCover(c, i, bg, cov) } : null; };
+  const lenMs = b => { const v = b && b._card && hasVideo(b._card) && vidOf(b); return v ? V.lenOf(v.b) * 1000 + 300 : MOT; };
   const pick = () => {
-    const cx = innerWidth / 2, cy = innerHeight * .45; let b = null, bd = 1e12;
-    for (const it of items()) { const r = it.getBoundingClientRect(); if (!r.width || r.bottom <= 0 || r.top >= innerHeight || r.right <= 0 || r.left >= innerWidth) continue; const d = ((r.left + r.right) / 2 - cx) ** 2 + ((r.top + r.bottom) / 2 - cy) ** 2; if (d < bd) { bd = d; b = it; } }
-    set(b);
-    if (!video) return;
-    const c = b?._card, cv = c && $$('canvas.bgv', b).find(x => { const r = x.getBoundingClientRect(); return r.width && r.bottom > 0 && r.top < innerHeight; });
-    const i = cv ? +(cv.closest('.pg')?.dataset.i || 0) : 0, bg = cv && pageBg(c, i);
-    V.sync(bg?.vd ? [{ cv, b: bg, fid: fidOf(c), onCover: cov => fixCover(c, i, bg, cov) }] : []);
+    const list = items(); list.forEach(markKind);
+    const now = Date.now(), next = all ? list.slice(0, 1) : chooseMoving(list, home);
+    if (next.length !== pair.length || next.some((x, i) => x !== pair[i])) { pair = next; pi = 0; }
+    else if (pair.length > 1 && now - since > lenMs(pair[pi])) pi = (pi + 1) % pair.length;
+    set(pair[pi] || null);
+    if (video) { const v = vidOf(best); V.sync(v ? [v] : []); }
   };
+  const rest = () => { set(null); pair = []; if (video) V.sync([]); };
   const tick = now => {
     anim = requestAnimationFrame(tick);
     if (document.hidden) return;
-    if (covered()) { set(null); return; }   // 위 창이 영상을 맡아요 (여기서 멈추게 하면 그 창 영상까지 꺼져요)
-    if (hold()) { set(null); if (video) V.sync([]); return; }
-    if (++n % 10 === 1) pick();
-    if (!still && best && n % 2 === 0) $$('canvas.bgc', best).forEach(cv => cv.width && drawCode(cv, +cv.dataset.seed, +cv.dataset.shift || 0, (now - t0) / 1000 + .01));
+    if (covered()) { set(null); pair = []; return; }   // 위 창이 영상을 맡아요 (여기서 멈추게 하면 그 창 영상까지 꺼져요)
+    if (++n % 10 === 1) { const t = Date.now(); if (hold() || t - lastScroll < SETTLE || t - lastTouch > IDLE) rest(); else pick(); }
+    if (art && !still && best && n % 2 === 0) $$('canvas.bgc', best).forEach(cv => cv.width && drawCode(cv, +cv.dataset.seed, +cv.dataset.shift || 0, (now - t0) / 1000 + .01));
   };
   anim = requestAnimationFrame(tick);
   return () => { cancelAnimationFrame(anim); set(null); if (video && !covered()) V.sync([]); };
@@ -972,7 +1015,7 @@ function liveMid(items, { video = true, hold = () => false, overlay = true } = {
 function dayList(host, list, onOpen, onMore, n = 2) {   // n = 열 수 (달력 3열, 11-04)
   const groups = new Map(); list.forEach(c => { const d = c.date || S.today(); if (!groups.has(d)) groups.set(d, []); groups.get(d).push(c); });
   host.innerHTML = [...groups].map(([d, cs]) => { const [b, s] = dayHead(d, cs.length); return `<div class="dh" data-d="${d}"><b>${b}</b><span>${s}</span></div><div class="f2${n === 3 ? ' f3' : ''}" data-d="${d}">${'<div class="mc"></div>'.repeat(n)}</div>`; }).join('');
-  const io = new IntersectionObserver(es => es.forEach(e => { if (!e.isIntersecting) return; io.unobserve(e.target); const it = e.target, c = it._card, view = $('.view', it), pc = $('.pc', it); mount(view, c); pageInto(view, c, (i, n) => { pc.hidden = false; pc.textContent = `${i}/${n}`; }); }), { rootMargin: '900px 0px' });
+  const io = new IntersectionObserver(es => es.forEach(e => { if (!e.isIntersecting) return; io.unobserve(e.target); const it = e.target, c = it._card, view = $('.view', it), pc = $('.pc', it); mount(view, c); pageInto(view, c, (i, n) => pcNum(pc, `${i}/${n}`)); }), { rootMargin: '900px 0px' });
   groups.forEach((cs, d) => {
     const cols = $$(`.f2[data-d="${d}"] .mc`, host), h = cols.map(() => 0);
     cs.forEach(c => {
@@ -1146,7 +1189,7 @@ function openReader(b, list, onGrid, hx = {}) {
     V.sync(bg?.vd ? [{ cv, b: bg, fid: fidOf(c), onCover: cov => fixCover(c, i, bg, cov) }] : []);
   };
   const onVis = () => rdVideo(); document.addEventListener('visibilitychange', onVis);
-  const live = liveMid(() => { const p = ps[cur()]; return p?.dataset.c != null ? [p] : []; }, { video: false, overlay: false, hold: () => !toc.hidden || sliding || !!focus });
+  const live = liveMid(() => { const p = ps[cur()]; return p?.dataset.c != null ? [p] : []; }, { video: false, overlay: false, all: true, hold: () => !toc.hidden || sliding || !!focus });
   // 종이 넓이: 책 줄의 넓이 · 높이(날짜 줄 32 빼고) 중 작은 쪽에 맞춰요 (머리가 커져도 종이가 넘치지 않게)
   const fitPw = () => { const pw = Math.floor(Math.max(120, Math.min(tr.clientWidth - 56, (tr.clientHeight - 8 - 34) * .75))); rd.style.setProperty('--pw', pw + 'px'); return pw; };
   fitPw();
@@ -1178,7 +1221,7 @@ function openReader(b, list, onGrid, hx = {}) {
       await calm(); if (dead) return;
       let slices = null;
       nodes.forEach((n, j) => {
-        const s = document.createElement('section'); s.className = 'rp'; s.dataset.c = i; s.dataset.p = j;
+        const s = document.createElement('section'); s.className = 'rp'; s.dataset.c = i; s.dataset.p = j; s._card = c;
         s.innerHTML = `<div class="bpc"><div class="rv0 view" style="width:${W}px"></div></div><p class="rf"><span>${c.date ? ymd(c.date) : ''}</span><span>${nodes.length > 1 ? `${j + 1}/${nodes.length}장` : ''}</span></p>`;
         $('.rv0', s).appendChild(n); tr.appendChild(s);
         // 11-05: 나눠 만든 장은 다시 맞추지 않아요 (다시 맞추면 아이폰에서 잘라 둔 자리가 풀려 첫 장 글이 나와요). 새로 그린 카드만 맞춰요
@@ -2942,7 +2985,7 @@ function viewSet(sub) {
     ${sgrp(srow('bell', '알림', S.pref('remind', false) ? '켜짐' : '', { go: '#/set/alarm' }), srow('globe', '언어', LANGS[S.pref('lang', 'ko')], { go: '#/set/lang' }))}
     ${sgrp(srow('spark', '서비스 소개', '', { go: '#/set/about' }), srow('help', '도움말', '', { a: 'help' }), srow('bell', '공지사항 · 이벤트', '', { go: '#/set/news' }), srow('clock', '업데이트 소식', UPDATES[0][0], { go: '#/set/updates' }))}
     ${sgrp(srow('doc', '이용약관', '', { a: 'terms' }), srow('shield', '개인정보 처리방침', '', { a: 'privacy' }), srow('lic', '라이선스', '', { a: 'lic' }))}
-    ${sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' }))}<p class="sver">dayzine 1.0.0 · 테스트 · 11-05 15차</p>`, { up: '#/me' });
+    ${sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' }))}<p class="sver">dayzine 1.0.0 · 테스트 · 11-06 16차</p>`, { up: '#/me' });
   $('[data-a=place]').onclick = e => { const on = !S.pref('autoPlace', false); S.setPref('autoPlace', on); e.currentTarget.querySelector('.tg').classList.toggle('on', on); };
   $('[data-a=terms]').onclick = () => { location.href = '../legal/terms.ko.html'; };
   $('[data-a=privacy]').onclick = () => { location.href = '../legal/privacy.ko.html'; };
