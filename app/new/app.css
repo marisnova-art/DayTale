@@ -180,6 +180,7 @@ body.paused .fi * { animation-play-state: paused !important; }
 .nav.out { transform: translateY(calc(100% + 12px + var(--safe-b))); }   /* 61: 내리면 아래로 사라지고, 올리면 다시 (크기는 그대로) */
 .nb { width: 64px; height: 52px; border-radius: 999px; display: grid; place-items: center; color: #b8b8be; }
 .nb.on { color: #fff; }
+.nav .nb { transition: color .2s ease; }   /* 71: 캡슐이 도착하면 0.2초 동안 켜진 색으로 */
 .nb.nw { background: #fff; color: var(--bg); width: 52px; height: 52px; border-radius: 50%; margin: 0 6px; }   /* 메뉴 바 60px */
 .nb .ic { width: 28px; height: 28px; stroke-width: 2.2; }
 .nb.on .ic { fill: currentColor; }   /* 켜지면 채운 모양 (동그라미 없이) */

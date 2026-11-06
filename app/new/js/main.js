@@ -92,12 +92,13 @@ const go = h => { location.hash = h; };
 
 /* ── 피드 ───────────────────────────────────────────── */
 function nav(on) {
+  const T = me => me ? (capA ? '" data-on="1' : ' on" data-on="1') : '';   // 71 (11-06): 아이콘이 켜지는 건 캡슐이 도착한 뒤 (처음 열 때만 바로)
   return `<nav class="nav"><i class="ncap" aria-hidden="true"${capA ? ` style="${capNow()}"` : ' style="opacity:0"'}></i>
-    <button class="nb ${on === 'home' ? 'on' : ''}" data-n="home" aria-label="홈">${ic('home')}</button>
-    <button class="nb ${on === 'tpl' ? 'on' : ''}" data-n="tpl" aria-label="템플릿">${ic('layers')}</button>
-    <button class="nb nw${on === 'write' ? ' on' : ''}" data-n="write" aria-label="쓰기">${ic('pen')}</button>
-    <button class="nb ${on === 'shelf' ? 'on' : ''}" data-n="shelf" aria-label="책장">${ic('drawer')}</button>
-    <button class="nb ${on === 'search' ? 'on' : ''}" data-n="search" aria-label="검색">${ic('search')}</button></nav>`;   // 검색은 검은 바탕이라 맨 오른쪽 (10-31)
+    <button class="nb${T(on === 'home')}" data-n="home" aria-label="홈">${ic('home')}</button>
+    <button class="nb${T(on === 'tpl')}" data-n="tpl" aria-label="템플릿">${ic('layers')}</button>
+    <button class="nb nw${T(on === 'write')}" data-n="write" aria-label="쓰기">${ic('pen')}</button>
+    <button class="nb${T(on === 'shelf')}" data-n="shelf" aria-label="책장">${ic('drawer')}</button>
+    <button class="nb${T(on === 'search')}" data-n="search" aria-label="검색">${ic('search')}</button></nav>`;   // 검색은 검은 바탕이라 맨 오른쪽 (10-31)
 }
 function bindNav() {
   const home = () => $('main.feed') ? window.scrollTo({ top: 0, behavior: 'smooth' }) : go('#/');   // 검색 결과 칸도 .feed 모양을 써서 main만
@@ -131,7 +132,8 @@ function capFrames(f, t) {
 }
 function placeCap() {
   const n = $('.nav'), cap = n && $('.ncap', n); if (!cap) return;
-  const on = $('.nb.on', n); if (!on) { cap.style.opacity = 0; return; }
+  const on = $('.nb[data-on]', n); if (!on) { cap.style.opacity = 0; return; }
+  const lit = () => { $$('.nb.on', n).forEach(b => b !== on && b.classList.remove('on')); on.classList.add('on'); };
   const to = capSt(n, on), now = performance.now(), same = (a, b) => a.x === b.x && a.nw === b.nw;
   if (capA && capA.el === cap && same(capA.to, to)) return;   // 같은 메뉴에 같은 자리
   let from = to, el = 0, keep = null;
@@ -143,10 +145,14 @@ function placeCap() {
   cap.style.transform = `translateX(${to.x}px)`; cap.style.width = to.w + 'px'; cap.style.backgroundColor = to.bg; cap.style.opacity = 1;
   const fr = keep || capFrames(from, to), bt = $('.nb.nw', n);
   const A = capA = { from, to, kf: fr.kf, bkf: fr.bkf, dur: fr.dur, t0: now - el, el: cap };
-  if (same(from, to) && from.w === to.w) return;
+  if (same(from, to) && from.w === to.w) return lit();
   const ans = [cap.animate(fr.kf, { duration: fr.dur, easing: 'linear' })];
   if (fr.bkf && bt) ans.push(bt.animate(fr.bkf, { duration: fr.dur, easing: 'linear' }));
   ans.forEach(an => an.currentTime = el);
+  // 71: 캡슐이 도착하면 그때 켜진 모양으로 (쓰기로 갈 땐 동그라미가 줄어들기 시작할 때)
+  const litAt = fr.bkf && to.nw ? CAPD : fr.dur - CAPD * .3;   // 끝 0.24초는 거의 멈춘 꼬리라, 눈에 도착한 때(97%)에 켜요
+  const watch = () => { if (capA !== A || !on.isConnected) return; const t = ans[0].currentTime; if (ans[0].playState === 'finished' || (t != null && t >= litAt)) return lit(); requestAnimationFrame(watch); };
+  requestAnimationFrame(watch);
   if (el) return;
   // 새 화면을 그리느라 바쁜 동안은 출발 자리에서 기다렸다가, 화면이 한가해지면(두 프레임이 40ms 안) 그때 출발 — 앞부분이 건너뛰지 않게
   ans.forEach(an => an.pause()); A.held = true; let last = -1e9;
@@ -3019,7 +3025,7 @@ function viewSet(sub) {
     ${sgrp(srow('bell', '알림', S.pref('remind', false) ? '켜짐' : '', { go: '#/set/alarm' }), srow('globe', '언어', LANGS[S.pref('lang', 'ko')], { go: '#/set/lang' }))}
     ${sgrp(srow('spark', '서비스 소개', '', { go: '#/set/about' }), srow('help', '도움말', '', { a: 'help' }), srow('bell', '공지사항 · 이벤트', '', { go: '#/set/news' }), srow('clock', '업데이트 소식', UPDATES[0][0], { go: '#/set/updates' }))}
     ${sgrp(srow('doc', '이용약관', '', { a: 'terms' }), srow('shield', '개인정보 처리방침', '', { a: 'privacy' }), srow('lic', '라이선스', '', { a: 'lic' }))}
-    ${sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' }))}<p class="sver">dayzine 1.0.0 · 테스트 · 11-06 20차</p>`, { up: '#/me' });
+    ${sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' }))}<p class="sver">dayzine 1.0.0 · 테스트 · 11-06 21차</p>`, { up: '#/me' });
   $('[data-a=place]').onclick = e => { const on = !S.pref('autoPlace', false); S.setPref('autoPlace', on); e.currentTarget.querySelector('.tg').classList.toggle('on', on); };
   $('[data-a=terms]').onclick = () => { location.href = '../legal/terms.ko.html'; };
   $('[data-a=privacy]').onclick = () => { location.href = '../legal/privacy.ko.html'; };
