@@ -20,7 +20,7 @@ const ago = d => {
 };
 const STATUS = { active: '이용 중', trialing: '체험 중', past_due: '결제 실패', paused: '일시정지', canceled: '해지됨' };
 const PLAN = { monthly: '월간', yearly: '연간' };
-const ACTION = { ban: '이용 정지', unban: '정지 해제', delete_user: '계정 삭제', cancel_subscription: '구독 해지', extend_trial: '체험 연장', notice_create: '공지 올림', notice_delete: '공지 내림', ops_daily: '매일 운영 실행', phrase_save: '문장 저장', phrase_delete: '문장 삭제', phrase_batch: '주간 묶음 올림', phrase_batch_active: '묶음 켜기·끄기', phrase_batch_delete: '묶음 지움', voucher_create: '이용권 발급', voucher_revoke: '이용권 취소' };
+const ACTION = { ban: '이용 정지', unban: '정지 해제', delete_user: '계정 삭제', cancel_subscription: '구독 해지', extend_trial: '체험 연장', notice_create: '공지 올림', notice_delete: '공지 내림', ops_daily: '매일 운영 실행', phrase_save: '문장 저장', phrase_delete: '문장 삭제', phrase_batch: '주간 묶음 올림', phrase_batch_active: '묶음 켜기·끄기', phrase_batch_delete: '묶음 지움', voucher_create: '이용권 발급', voucher_revoke: '이용권 취소', tpl_save: '템플릿 고침', tpl_public: '템플릿 공개', tpl_hide: '템플릿 숨김', kind_add: '종류 넣음', kind_remove: '종류 뺌', kinds_order: '종류 순서', tag_add: '태그 넣음', tag_remove: '태그 뺌', tag_cond: '태그 때 바꿈', tags_order: '태그 순서' };
 const FLAG = c => !c || c === '—' ? '🌐' : String.fromCodePoint(...[...c.toUpperCase()].map(x => 0x1F1E6 + x.charCodeAt(0) - 65));
 const bytes = n => { n = Number(n || 0); return n >= 1024 ** 3 ? (n / 1024 ** 3).toFixed(2) + 'GB' : n >= 1024 ** 2 ? (n / 1024 ** 2).toFixed(1) + 'MB' : Math.round(n / 1024) + 'KB'; };
 const trialLeft = d => { if (!d) return ''; const n = Math.ceil((new Date(d) - Date.now()) / 864e5); return n > 0 ? `체험 ${n}일` : '체험 끝'; };
@@ -30,7 +30,10 @@ const ERR = {
   'duration must be 1 day - 1 year': '기간은 1일부터 1년까지예요.', 'count must be 1-50': '한 번에 1~50개까지 만들 수 있어요.', 'uses must be 1-1000': '쓸 수 있는 사람 수는 1~1000이에요.',
   'one code per email': '메일을 정하면 코드는 한 개만 만들어요.', 'bad email': '메일 주소를 확인해 주세요.', 'bad date': '사용 기한 날짜를 확인해 주세요 (오늘 이후).',
   'remove admin role first': '관리자 계정입니다. 먼저 관리자 명단에서 빼 주세요.', 'email does not match': '확인용 이메일이 일치하지 않습니다.',
-  'cancel the subscription first': '이용 중인 구독이 있습니다. 먼저 구독을 해지해 주세요.', 'PADDLE_API_KEY not set': '서버에 Paddle API 키가 없어 여기서 해지할 수 없습니다. Paddle 대시보드에서 해지해 주세요.', 'days must be 1-90': '연장은 1~90일까지입니다.', 'title required': '제목을 적어 주세요.', 'text required': '문장을 적어 주세요.', 'bad condition': '조건이 맞지 않습니다. 날짜는 2026-09-24 또는 12-24 모양으로 적어 주세요.', 'bad phrase': '언어·자리·가중치(1~10)·나라·여는 날을 확인해 주세요.', 'bad batch': '묶음 이름과 줄(최대 300)을 확인해 주세요.'
+  'cancel the subscription first': '이용 중인 구독이 있습니다. 먼저 구독을 해지해 주세요.', 'PADDLE_API_KEY not set': '서버에 Paddle API 키가 없어 여기서 해지할 수 없습니다. Paddle 대시보드에서 해지해 주세요.', 'days must be 1-90': '연장은 1~90일까지입니다.', 'title required': '제목을 적어 주세요.', 'text required': '문장을 적어 주세요.', 'bad condition': '조건이 맞지 않습니다. 날짜는 2026-09-24 또는 12-24 모양으로 적어 주세요.', 'bad phrase': '언어·자리·가중치(1~10)·나라·여는 날을 확인해 주세요.', 'bad batch': '묶음 이름과 줄(최대 300)을 확인해 주세요.',
+  'incomplete': '빈칸이 있어요. 정지 그림 · 예시 3개 · 설명 3줄 · 태그 2~3개 · 검색어 10개 이상을 채워 주세요.', 'bad name': '이름을 확인해 주세요 (1~40자).', 'bad kind': '종류를 골라 주세요.', 'bad tags': '태그는 목록에서 3개까지 골라요.',
+  'bad words': '검색어는 20개까지, 한 개에 30자까지예요.', 'bad ex': '예시를 확인해 주세요.', 'bad descr': '설명은 3줄, 한 줄에 120자까지예요.', 'bad sort': '순서는 0 이상 숫자예요.', 'bad tools': '도구 설정을 확인해 주세요.',
+  'already exists': '이미 있는 이름이에요.', 'too many kinds': '종류는 6개까지예요. 스타일은 태그로 넣어 주세요.', 'in use': '쓰는 템플릿이 있어서 뺄 수 없어요.', 'bad cond': '이때 앞으로 값을 확인해 주세요.', 'bad order': '목록이 바뀌었어요. 새로고침해 주세요.', 'not found': '찾을 수 없어요.'
 };
 const badge = (s, cls = '') => `<span class="badge ${esc(cls || s)}">${esc(STATUS[s] || s)}</span>`;
 /* 초록 알약(↗ +21) — 참고 이미지의 변화량 표시 */
@@ -70,6 +73,12 @@ const I = {
   chart: svg('<path d="M4 20h16"/><rect x="5.5" y="11" width="3" height="6.5" rx="1"/><rect x="10.5" y="6.5" width="3" height="11" rx="1"/><rect x="15.5" y="13.5" width="3" height="4" rx="1"/>'),
   quote: svg('<path d="M5 6.5h14a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5H10l-4.5 3v-3H5A1.5 1.5 0 0 1 3.5 16V8A1.5 1.5 0 0 1 5 6.5z"/><path d="M8 11h8M8 14h5"/>'),
   ticket: svg('<path d="M3.5 8.5V7A1.5 1.5 0 0 1 5 5.5h14A1.5 1.5 0 0 1 20.5 7v1.5a2.5 2.5 0 0 0 0 5V17a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 17v-1.5a2.5 2.5 0 0 0 0-5z"/><path d="M14 6v2M14 11v2M14 16v2"/>'),
+  tpl: svg('<rect x="4" y="4" width="7" height="9" rx="2"/><rect x="13" y="4" width="7" height="5" rx="2"/><rect x="13" y="11" width="7" height="9" rx="2"/><rect x="4" y="15" width="7" height="5" rx="2"/>'),
+  grip: svg('<path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01" stroke-width="3"/>'),
+  eye: svg('<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="2.8"/>'),
+  eyeoff: svg('<path d="M4 4l16 16M10 6c.6-.1 1.3-.2 2-.2 6 0 9.5 6.2 9.5 6.2a17 17 0 0 1-3 3.6M6.5 7.6A16 16 0 0 0 2.5 12s3.5 6.5 9.5 6.5c1.6 0 3-.4 4.2-1"/>'),
+  plus: svg('<path d="M12 5v14M5 12h14"/>'),
+  x: svg('<path d="M6 6l12 12M18 6 6 18"/>'),
   gift: svg('<rect x="3.5" y="8" width="17" height="4" rx="1"/><path d="M12 8v12.5M5.5 12v8.5h13V12M12 8S10.5 3.5 8 4.5 9 8 12 8zm0 0s1.5-4.5 4-3.5S15 8 12 8z"/>')
 };
 
@@ -200,7 +209,7 @@ async function start() {
 }
 
 /* ---------- shell: 검은 프레임 + 아이콘 레일 + 상단바 + 둥근 패널 ---------- */
-const NAV = [['#/', '대시보드', I.dash], ['#/users', '회원', I.users], ['#/subs', '구독·결제', I.card], ['#/usage', '이용 현황', I.chart], ['#/ops', '운영', I.gauge], ['#/notices', '공지', I.bell], ['#/phrases', '이야기 문장', I.quote], ['#/vouchers', '이용권', I.ticket], ['#/audit', '관리 기록', I.log]];
+const NAV = [['#/', '대시보드', I.dash], ['#/users', '회원', I.users], ['#/subs', '구독·결제', I.card], ['#/usage', '이용 현황', I.chart], ['#/ops', '운영', I.gauge], ['#/notices', '공지', I.bell], ['#/phrases', '이야기 문장', I.quote], ['#/templates', '템플릿', I.tpl], ['#/vouchers', '이용권', I.ticket], ['#/audit', '관리 기록', I.log]];
 function greet() { const h = new Date().getHours(); return h < 6 ? '늦은 밤이에요' : h < 12 ? '좋은 아침이에요' : h < 18 ? '좋은 오후예요' : '좋은 저녁이에요'; }
 function shell(active, inner) {
   const q = active === '#/users' ? new URLSearchParams((location.hash.split('?')[1]) || '').get('q') || '' : '';
@@ -878,6 +887,146 @@ async function viewNotices() {
   document.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => { if (!await confirmBox({ title: '공지 내리기', body: '앱 알림함에서 사라집니다.', ok: '내리기', danger: true })) return; try { await api('notice_delete', { id: Number(b.dataset.del) }); viewNotices(); } catch (e) { toast(e.message, true); } });
 }
 
+/* ---------- 템플릿 (11-06): 피터가 숨김으로 올리고, 앤드류(owner)가 공개. 지우기 없음 (숨김만) ---------- */
+// 정지 그림은 앱 주소에 있어요 (assets.thumb = 'tpl/<틀>/thumbs/<id>.webp')
+const APP_URL = (CFG.APP_URL || 'https://todaytale.pages.dev/new/').replace(/\/?$/, '/');
+const thumbSrc = p => p ? (/^https:\/\//.test(p) ? p : APP_URL + String(p).replace(/^\//, '')) : '';
+const thumbImg = (p, cls = '') => p ? `<img class="th ${cls}" src="${esc(thumbSrc(p))}" alt="">` : `<span class="th none ${cls}"></span>`;
+// 그림이 없으면 빗금 칸 (CSP 때문에 onerror 속성 대신)
+const fixThumbs = () => document.querySelectorAll('img.th').forEach(i => { const bad = () => { i.removeAttribute('src'); i.classList.add('none'); }; if (i.complete && !i.naturalWidth) bad(); else i.addEventListener('error', bad); });
+const MISS = { thumb: '정지 그림', ex: '예시 3개', descr: '설명 3줄', tags: '태그 2~3개', words: '관련 검색어 10개 이상' };
+const tplBadge = t => t.state === 'public' ? '<span class="badge active">공개</span>' : '<span class="badge wait">검토 대기</span>';
+const sw = (on, attrs = '') => `<button type="button" class="sw ${on ? 'on' : ''}" role="switch" aria-checked="${on}" ${attrs}><i></i></button>`;
+// 태그 '이때 앞으로' (앱 templates.js fit과 같은 값)
+const WHEN = [['', '없음'], ['time:morning', '시간 · 아침'], ['time:day', '시간 · 낮'], ['time:evening,night', '시간 · 저녁·밤'], ['wx:sun,suncloud', '날씨 · 맑음'], ['wx:cloud,fog', '날씨 · 흐림·안개'],
+  ['wx:rain,thunder', '날씨 · 비·천둥'], ['wx:snow', '날씨 · 눈'], ['season:spring', '계절 · 봄'], ['season:summer', '계절 · 여름'], ['season:autumn', '계절 · 가을'], ['season:winter', '계절 · 겨울']];
+const condKey = c => { const k = Object.keys(c || {})[0]; return k ? k + ':' + [...c[k]].join(',') : ''; };
+const keyCond = v => { if (!v) return {}; const [k, l] = v.split(':'); return { [k]: l.split(',') }; };
+const whenLabel = c => { const k = condKey(c); return (WHEN.find(w => w[0] === k) || [k, k])[1]; };
+
+async function viewTemplates(q) {
+  const state = q.get('state') || 'all', kind = q.get('kind') || '', s = q.get('q') || '', pg = Number(q.get('page') || 0);
+  loading('#/templates');
+  let r; try { r = await api('tpl_list', { state, kind, q: s, page: pg }); } catch (e) { return failed('#/templates', e); }
+  const pages = Math.ceil((state === 'all' ? r.n.all : r.n[state] || 0) / r.pageSize) || 1, own = me.role === 'owner';
+  const P = { state, kind, q: s };
+  shell('#/templates', `${head('템플릿', big(num(r.n.all)) + '<span class="unit">개</span>', '<p class="muted">피터가 숨김으로 올리고, 공개는 앤드류만 해요. 앱에는 공개만 보여요.</p>')}
+    <div class="row between wrap gap"><div class="ranges left">${[['all', '전체', r.n.all], ['hidden', '검토 대기', r.n.hidden], ['public', '공개', r.n.public]].map(([k, l, n]) => `<a href="${link('#/templates', { ...P, state: k, page: 0 })}" class="${k === state ? 'on' : ''}">${l} ${num(n)}</a>`).join('')}</div>
+      <a class="btn ghost sm" href="#/templates/tax">${I.folder}종류 · 태그</a></div>
+    <div class="row between wrap gap"><div class="ranges left"><a href="${link('#/templates', { ...P, kind: '', page: 0 })}" class="${!kind ? 'on' : ''}">모든 종류</a>${Object.keys(r.kinds).map(k => `<a href="${link('#/templates', { ...P, kind: k, page: 0 })}" class="${k === kind ? 'on' : ''}">${esc(k)}</a>`).join('')}</div>
+      <form id="tq" class="fsearch" role="search">${I.search}<input name="q" type="search" value="${esc(s)}" placeholder="이름 · 태그 · 검색어" aria-label="템플릿 검색"></form></div>
+    <section class="box tablebox"><table><thead><tr><th></th><th>이름</th><th>종류</th><th>태그</th><th>유료</th><th>올린 날</th><th>올린 사람</th><th>상태</th><th class="r">공개</th></tr></thead><tbody>
+      ${r.rows.map(t => `<tr data-id="${esc(t.id)}"><td class="tcell">${thumbImg(t.thumb)}</td><td><b>${esc(t.name)}</b>${t.state === 'hidden' ? `<br><small class="xs ${t.missing.length ? 'warn-t' : 'muted'}">${t.missing.length ? `빈칸 ${t.missing.length}개` : '다 채움'}</small>` : ''}</td>
+        <td>${esc(t.kind)}</td><td>${(t.tags || []).map(g => `<span class="tag">${esc(g)}</span>`).join(' ')}</td><td>${t.paid ? '유료' : '<span class="muted">무료</span>'}</td><td class="muted">${esc(String(t.added || '').slice(5))}</td><td>${esc(t.author)}</td><td>${tplBadge(t)}</td>
+        <td class="r">${sw(t.state === 'public', `data-st="${esc(t.id)}" ${!own || (t.state === 'hidden' && t.missing.length) ? 'disabled' : ''} title="${!own ? '공개는 최고 관리자만' : t.missing.length && t.state === 'hidden' ? '빈칸을 먼저 채워 주세요' : ''}"`)}</td></tr>`).join('') || `<tr><td colspan="9" class="muted pad">${s ? '찾는 템플릿이 없어요.' : '아직 템플릿이 없어요.'}</td></tr>`}
+    </tbody></table></section>
+    ${pages > 1 ? pager('#/templates', P, pg, pages) : '<div class="row center pager"><span class="muted xs">50개씩 보여요 · 검토 대기가 먼저 와요</span></div>'}`);
+  fixThumbs();
+  document.getElementById('tq').onsubmit = e => { e.preventDefault(); location.hash = link('#/templates', { ...P, q: new FormData(e.target).get('q'), page: 0 }); };
+  document.querySelectorAll('tr[data-id]').forEach(tr => tr.onclick = e => { if (!e.target.closest('.sw')) location.hash = '#/templates/' + tr.dataset.id; });
+  document.querySelectorAll('[data-st]').forEach(b => b.onclick = async () => { const pub = b.getAttribute('aria-checked') !== 'true';
+    if (pub && !await confirmBox({ title: '공개하기', body: '앱에 바로 보여요. 사용자 폰에는 다음에 앱을 열 때 들어가요.', ok: '공개하기' })) return;
+    try { await api('tpl_state', { id: b.dataset.st, state: pub ? 'public' : 'hidden' }); toast(pub ? '공개했어요.' : '숨겼어요. 앱에서 빠져요.'); viewTemplates(q); } catch (e) { toast(e.message, true); } });
+}
+
+async function viewTemplate(id) {
+  loading('#/templates');
+  let t, tx; try { [t, tx] = await Promise.all([api('tpl_get', { id }), api('tax')]); } catch (e) { return failed('#/templates', e); }
+  const own = me.role === 'owner', dis = own ? '' : 'disabled';
+  const exText = e => typeof e === 'string' ? e : e[0];
+  const ex = [0, 1, 2].map(i => t.ex[i]);
+  const tags = new Set(t.tags || []);
+  shell('#/templates', `<a href="#/templates" class="back">${I.back}템플릿 목록</a>
+    <header class="hero person">${thumbImg(t.assets?.thumb, 'xl')}<div><p class="label">${esc(t.kind)} · 틀 ${esc(t.fmt)} · ${esc(t.author)}가 ${esc(String(t.added).slice(5))}에 올림</p><h1 class="display sm">${esc(t.name)}</h1>
+      <div class="row gap">${tplBadge(t)}${t.paid ? '<span class="badge">유료</span>' : ''}${t.motion ? '<span class="badge">모션</span>' : ''}</div></div></header>
+    <div class="dgrid">
+      <div class="stack-v">
+        <div class="box pad"><p class="label">정지 그림</p><div class="bigthumb">${thumbImg(t.assets?.thumb, 'full')}</div><p class="muted xs">목록에 보이는 그림이에요. 피터가 틀에서 만들어 올려요.</p></div>
+        <div class="box pad"><p class="label">공개 전 점검</p><ul class="chk">${Object.entries(MISS).map(([k, l]) => `<li class="${t.missing.includes(k) ? 'no' : 'ok'}">${t.missing.includes(k) ? I.alert : I.check}${l}</li>`).join('')}</ul>
+          <p class="muted xs">${t.missing.length ? '다 채워야 공개 버튼이 눌려요.' : '다 채웠어요. 공개할 수 있어요.'}</p></div>
+      </div>
+      <form id="tf" class="box pad form">
+        <div class="f2"><label>이름<input name="name" maxlength="40" required value="${esc(t.name)}" ${dis}></label>
+          <label>종류<select name="kind" ${dis}>${tx.kinds.map(k => `<option${k.name === t.kind ? ' selected' : ''}>${esc(k.name)}</option>`).join('')}${tx.kinds.some(k => k.name === t.kind) ? '' : `<option selected>${esc(t.kind)}</option>`}</select></label></div>
+        <label>설명 3줄 <span class="muted xs">( | = 넘칠 때 줄 바꿀 자리)</span>${[0, 1, 2].map(i => `<input name="d${i}" maxlength="120" value="${esc(t.descr?.[i] || '')}" ${dis}>`).join('')}</label>
+        <label>예시 3개 <span class="muted xs">(상세 화면 1·2·3 · 글만 고쳐요${typeof ex[0] === 'string' ? ' · &lt;b&gt; &lt;mark&gt; 그대로' : ''})</span>${ex.map((e, i) => `<textarea name="e${i}" rows="2" maxlength="${typeof e === 'string' || e == null && typeof ex[0] === 'string' ? 600 : 300}" placeholder="예시 ${i + 1} 비어 있어요" ${dis}>${esc(e == null ? '' : exText(e))}</textarea>`).join('')}</label>
+        <label>태그 <span class="muted xs">(2~3개 · 종류·태그 화면과 같은 목록)</span></label>
+        <div class="cks">${tx.tags.map(g => `<label class="ck ${tags.has(g.id) ? 'on' : ''}"><input type="checkbox" name="tag" value="${esc(g.id)}" ${tags.has(g.id) ? 'checked' : ''} ${dis}><i>${I.check}</i>${esc(g.id)}</label>`).join('')}</div>
+        <label>관련 검색어 <span class="muted xs">(앱에 안 보여요 · 10~20개)</span> <b class="cnt" id="wc"></b></label>
+        <div class="chips" id="chips"></div>
+        <div class="f4"><label>올린 날<input name="added" type="date" value="${esc(t.added)}" ${dis}></label><label>순서<input name="sort" type="number" min="0" value="${esc(t.sort ?? 0)}" ${dis}></label>
+          <div class="tg"><span>유료</span>${sw(t.paid, `data-b="paid" ${dis}`)}</div><div class="tg"><span>모션</span>${sw(t.motion, `data-b="motion" ${dis}`)}</div></div>
+        <details><summary>도구 설정 (틀 기본값에서 바꿀 것만)</summary><textarea name="tools" rows="4" class="mono" ${dis}>${esc(JSON.stringify(t.tools || {}, null, 1))}</textarea></details>
+        ${own ? `<div class="row end"><button class="btn ghost" value="save">저장</button>${t.state === 'public' ? `<button type="button" class="btn" id="hide">${I.eyeoff}숨기기</button>` : `<button type="button" class="btn primary" id="pub" ${t.missing.length ? 'disabled' : ''}>${I.eye}공개하기</button>`}</div>` : '<p class="muted xs">고치기와 공개는 최고 관리자만 할 수 있어요.</p>'}
+      </form>
+    </div>`);
+  fixThumbs();
+  // 검색어 칩
+  let words = [...(t.words || [])];
+  const chips = document.getElementById('chips'), wc = document.getElementById('wc');
+  const drawW = () => {
+    chips.innerHTML = words.map((w, i) => `<span class="chip">${esc(w)}${own ? `<button type="button" data-w="${i}" aria-label="${esc(w)} 빼기">${I.x}</button>` : ''}</span>`).join('') + (own ? '<input class="chipin" placeholder="쉼표로 여러 개, Enter">' : '');
+    wc.textContent = words.length; wc.className = 'cnt ' + (words.length >= 10 && words.length <= 20 ? 'good' : 'bad');
+    chips.querySelectorAll('[data-w]').forEach(b => b.onclick = () => { words.splice(Number(b.dataset.w), 1); drawW(); });
+    const inp = chips.querySelector('.chipin');
+    if (inp) { const add = () => { inp.value.split(',').map(x => x.trim()).filter(Boolean).forEach(x => { if (!words.includes(x) && words.length < 20) words.push(x.slice(0, 30)); }); inp.value = ''; drawW(); chips.querySelector('.chipin')?.focus(); };
+      inp.onkeydown = e => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); add(); } }; inp.onblur = () => { if (inp.value.trim()) add(); }; }
+  };
+  drawW();
+  const f = document.getElementById('tf');
+  f.querySelectorAll('.ck input').forEach(c => c.onchange = () => { const n = f.querySelectorAll('.ck input:checked').length; if (n > 3) { c.checked = false; return toast('태그는 3개까지예요.', true); } c.closest('.ck').classList.toggle('on', c.checked); });
+  f.querySelectorAll('[data-b]').forEach(b => b.onclick = () => { if (b.disabled) return; const on = b.getAttribute('aria-checked') !== 'true'; b.setAttribute('aria-checked', on); b.classList.toggle('on', on); });
+  const values = () => {
+    const v = new FormData(f);
+    let tools; try { tools = JSON.parse(v.get('tools') || '{}'); } catch { throw new Error('도구 설정이 JSON 모양이 아니에요.'); }
+    const exs = [0, 1, 2].map(i => String(v.get('e' + i) || '').trim()).map((txt, i) => { if (!txt) return null; const o = t.ex[i] ?? t.ex[0]; return Array.isArray(o) ? [txt, ...(t.ex[i] ? o.slice(1) : [7 + i * 14, ...o.slice(2)])] : txt; }).filter(x => x != null);
+    return { id: t.id, name: v.get('name'), kind: v.get('kind'), descr: [0, 1, 2].map(i => v.get('d' + i)), ex: exs, tags: v.getAll('tag'), words, added: v.get('added'), sort: Number(v.get('sort') || 0),
+      paid: f.querySelector('[data-b="paid"]').getAttribute('aria-checked') === 'true', motion: f.querySelector('[data-b="motion"]').getAttribute('aria-checked') === 'true', tools };
+  };
+  const save = async () => { await api('tpl_save', values()); };
+  f.onsubmit = async e => { e.preventDefault(); try { await save(); toast('저장했어요.'); viewTemplate(id); } catch (er) { toast(er.message, true); } };
+  const pub = document.getElementById('pub'), hide = document.getElementById('hide');
+  if (pub) pub.onclick = async () => { if (!await confirmBox({ title: '공개하기', body: `「${esc(t.name)}」이 앱에 바로 보여요. 고친 내용이 있으면 먼저 저장해요.`, ok: '저장하고 공개' })) return;
+    try { await save(); await api('tpl_state', { id: t.id, state: 'public' }); toast('공개했어요.'); viewTemplate(id); } catch (er) { toast(er.message, true); } };
+  if (hide) hide.onclick = async () => { if (!await confirmBox({ title: '숨기기', body: '앱에서 빠져요. 이 템플릿으로 이미 쓴 카드는 그대로 남아요.', ok: '숨기기' })) return;
+    try { await api('tpl_state', { id: t.id, state: 'hidden' }); toast('숨겼어요.'); viewTemplate(id); } catch (er) { toast(er.message, true); } };
+}
+
+async function viewTax() {
+  loading('#/templates');
+  let x; try { x = await api('tax'); } catch (e) { return failed('#/templates', e); }
+  const own = me.role === 'owner';
+  const row = (kind, name, n, extra = '') => `<li ${own ? 'draggable="true"' : ''} data-name="${esc(name)}"><span class="gr">${own ? I.grip : ''}</span><b>${esc(name)}</b>${extra}<span class="muted xs cnt2">템플릿 ${num(n)}</span>${own && !n ? `<button class="iconbtn sm" data-rm="${kind}" title="빼기" aria-label="${esc(name)} 빼기">${I.trash}</button>` : '<span class="rmgap"></span>'}</li>`;
+  const sel = (v, attrs = '') => `<select ${attrs}>${WHEN.map(([k, l]) => `<option value="${k}"${k === v ? ' selected' : ''}>이때 앞으로: ${l}</option>`).join('')}</select>`;
+  shell('#/templates', `<a href="#/templates" class="back">${I.back}템플릿 목록</a>
+    ${head('템플릿', '종류 · 태그', `<p class="muted">여기서 고치면 앱 칩 · 홈 줄 · 템플릿 화면이 같이 바뀌어요.${own ? ' 끌어서 순서를 바꿔요.' : ''}</p>`).replace('class="display"', 'class="display sm"')}
+    <div class="grid2">
+      <div class="box pad"><div class="row between"><p class="label">종류 · 최대 ${x.maxKinds}개</p><span class="muted xs">${x.kinds.length} / ${x.maxKinds}</span></div>
+        <ul class="ord" id="ok">${x.kinds.map(k => row('kind', k.name, k.n)).join('')}</ul>
+        ${own && x.kinds.length < x.maxKinds ? `<form class="addrow" id="ak"><input name="name" maxlength="20" required placeholder="새 종류 (큰 갈래만: 디자인 · 아트 · 포토 · 영상)"><button class="btn sm">${I.plus}넣기</button></form>` : ''}
+        <p class="muted xs">패턴 · 옵아트 · 명화 같은 스타일은 종류가 아니라 태그로 넣어요.</p></div>
+      <div class="box pad"><div class="row between"><p class="label">태그</p><span class="muted xs">${num(x.tags.length)}개</span></div>
+        <ul class="ord" id="ot">${x.tags.map(g => row('tag', g.id, g.n, own ? `<span class="when">${sel(condKey(g.cond), `data-cond="${esc(g.id)}"`)}</span>` : `<span class="when">이때 앞으로: ${esc(whenLabel(g.cond))}</span>`)).join('')}</ul>
+        ${own ? `<form class="addrow" id="at"><input name="name" maxlength="20" required placeholder="새 태그 (예: 레트로)">${sel('', 'name="cond"')}<button class="btn sm">${I.plus}넣기</button></form>` : ''}
+        <p class="muted xs">쓰는 템플릿이 0개일 때만 뺄 수 있어요. '이때 앞으로'를 고르면 그 날씨 · 시간 · 계절에 앱 칩 앞쪽에 와요.</p></div>
+    </div>`);
+  if (!own) return;
+  const run = async (action, args, msg) => { try { await api(action, args); if (msg) toast(msg); viewTax(); } catch (e) { toast(e.message, true); viewTax(); } };
+  document.getElementById('ak')?.addEventListener('submit', e => { e.preventDefault(); run('kind_add', { name: new FormData(e.target).get('name').trim() }, '종류를 넣었어요.'); });
+  document.getElementById('at').onsubmit = e => { e.preventDefault(); const v = new FormData(e.target); run('tag_add', { name: v.get('name').trim(), cond: keyCond(v.get('cond')) }, '태그를 넣었어요.'); };
+  document.querySelectorAll('[data-cond]').forEach(s => s.onchange = () => run('tag_cond', { name: s.dataset.cond, cond: keyCond(s.value) }, '바꿨어요.'));
+  document.querySelectorAll('[data-rm]').forEach(b => b.onclick = async () => { const name = b.closest('li').dataset.name, k = b.dataset.rm;
+    if (!await confirmBox({ title: k === 'kind' ? '종류 빼기' : '태그 빼기', body: `「${esc(name)}」을 목록에서 빼요.`, ok: '빼기', danger: true })) return;
+    run(k === 'kind' ? 'kind_remove' : 'tag_remove', { name }, '뺐어요.'); });
+  // 끌어서 순서 바꾸기
+  for (const [ul, action] of [['ok', 'kinds_order'], ['ot', 'tags_order']]) {
+    const list = document.getElementById(ul); let drag = null;
+    list.addEventListener('dragstart', e => { drag = e.target.closest('li'); drag?.classList.add('drag'); e.dataTransfer.effectAllowed = 'move'; });
+    list.addEventListener('dragover', e => { e.preventDefault(); const li = e.target.closest('li'); if (!drag || !li || li === drag) return; const r = li.getBoundingClientRect(); li.parentNode.insertBefore(drag, e.clientY > r.top + r.height / 2 ? li.nextSibling : li); });
+    list.addEventListener('dragend', () => { if (!drag) return; drag.classList.remove('drag'); drag = null; run(action, { names: [...list.children].map(li => li.dataset.name) }, '순서를 바꿨어요.'); });
+  }
+}
+
 /* ---------- router ---------- */
 function route() {
   if (!me) return;
@@ -893,6 +1042,10 @@ function route() {
   if (path === '#/usage') return viewUsage(q);
   if (path === '#/phrases') return viewPhrases(q);
   if (path === '#/vouchers') return viewVouchers(q);
+  if (path === '#/templates') return viewTemplates(q);
+  if (path === '#/templates/tax') return viewTax();
+  const tm = path.match(/^#\/templates\/([a-z0-9-]{2,40})$/);
+  if (tm) return viewTemplate(tm[1]);
   return viewDash();
 }
 window.addEventListener('hashchange', route);

@@ -17,8 +17,10 @@ class Fail extends Error { status: number; constructor(status: number, msg: stri
 function cors(req: Request, env: Env) {
   const allowed = env.ADMIN_ORIGIN.split(',').map(s => s.trim()).filter(Boolean);
   const origin = req.headers.get('origin') ?? '';
+  // 브랜치 미리보기 주소(https://<브랜치>.daytale-admin.pages.dev)도 받아요. 그래도 관리자 로그인 + admins 명단은 그대로 확인해요
+  const preview = /^https:\/\/[a-z0-9-]+\.daytale-admin\.pages\.dev$/.test(origin);
   return {
-    'Access-Control-Allow-Origin': allowed.includes(origin) ? origin : (allowed[0] ?? 'null'),
+    'Access-Control-Allow-Origin': allowed.includes(origin) || preview ? origin : (allowed[0] ?? 'null'),
     'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Vary': 'Origin'
@@ -95,6 +97,47 @@ function phraseRow(b: any) {
   if (country && !/^[A-Z]{2}$/.test(country)) throw new Fail(400, 'bad phrase');
   if (starts_on && !/^\d{4}-\d{2}-\d{2}$/.test(starts_on)) throw new Fail(400, 'bad phrase');
   return { lang, slot, text, weight, cond, country, starts_on, batch, active: b.active !== false, updated_at: new Date().toISOString() };
+}
+
+// 템플릿 (11-06) — 앱(js/templates.js)이 읽는 모양 그대로 받아요
+const MAX_KINDS = 6;
+const TPL_LIST = 'id,fmt,kind,name,descr,tags,words,ex,assets,paid,state,author,added,sort';
+const TPL_ID = /^[a-z0-9-]{2,40}$/;
+const day10 = (v: any) => v == null ? null : v instanceof Date ? v.toISOString().slice(0, 10) : String(v).slice(0, 10);
+const uniq = (v: unknown) => [...new Set((Array.isArray(v) ? v : []).map(x => String(x ?? '').trim()).filter(Boolean))];
+// 예시: 디자인 = 글 한 덩어리 (string) · 아트 = [글, 셔플 번호, 비율]
+const exOk = (e: any) => typeof e === 'string' ? e.trim().length > 0 && e.length <= 600 :
+  Array.isArray(e) && e.length >= 1 && e.length <= 3 && typeof e[0] === 'string' && e[0].trim().length > 0 && e[0].length <= 300 && e.slice(1).every((x: any) => typeof x === 'number' || (typeof x === 'string' && x.length <= 10));
+// 공개 전 점검: 비어 있는 것 목록 (비면 공개할 수 있어요)
+function tplMissing(t: any): string[] {
+  const m: string[] = [];
+  if (!t.assets?.thumb) m.push('thumb');
+  const ex = Array.isArray(t.ex) ? t.ex : []; if (ex.length < 3 || !ex.every(exOk)) m.push('ex');
+  const d = Array.isArray(t.descr) ? t.descr : []; if (d.length < 3 || d.some((s: any) => !String(s ?? '').trim())) m.push('descr');
+  const g = t.tags || []; if (g.length < 2 || g.length > 3) m.push('tags');
+  if ((t.words || []).length < 10) m.push('words');
+  return m;
+}
+async function tplRow(db: any, id: unknown) {
+  if (typeof id !== 'string' || !TPL_ID.test(id)) throw new Fail(400, 'bad id');
+  const { data, error } = await db.from('dz_templates').select('*').eq('id', id).maybeSingle();
+  if (error) throw new Fail(500, error.message);
+  if (!data) throw new Fail(404, 'not found');
+  return data;
+}
+async function taxNames(db: any) {
+  const [k, g] = await Promise.all([db.from('dz_kinds').select('name'), db.from('dz_tags').select('id')]);
+  if (k.error || g.error) throw new Fail(500, (k.error || g.error).message);
+  return { kinds: (k.data || []).map((x: any) => x.name) as string[], tags: (g.data || []).map((x: any) => x.id) as string[] };
+}
+// 태그 '이때 앞으로': 없음 {} 또는 한 가지 (시간 · 날씨 · 계절). 앱 templates.js fit()이 아는 값만
+const COND_VALS: Record<string, string[]> = { time: ['morning', 'day', 'evening', 'night'], wx: ['sun', 'suncloud', 'cloud', 'fog', 'rain', 'snow', 'thunder'], season: ['spring', 'summer', 'autumn', 'winter'] };
+function condOk(c: any) {
+  if (c == null) return {};
+  if (typeof c !== 'object' || Array.isArray(c)) throw new Fail(400, 'bad cond');
+  const k = Object.keys(c); if (!k.length) return {};
+  if (k.length !== 1 || !COND_VALS[k[0]] || !Array.isArray(c[k[0]]) || !c[k[0]].length || !c[k[0]].every((v: any) => COND_VALS[k[0]].includes(v))) throw new Fail(400, 'bad cond');
+  return { [k[0]]: [...new Set(c[k[0]])] };
 }
 
 async function act(a: Admin, body: any, { db, env, fetch }: Deps) {
@@ -372,6 +415,120 @@ async function act(a: Admin, body: any, { db, env, fetch }: Deps) {
       // 상태 반영은 paddle-webhook이 합니다(subscription.updated / canceled)
       const { data: u } = sub.user_id ? await db.auth.admin.getUserById(sub.user_id) : { data: null };
       await audit(db, a, 'cancel_subscription', { id: sub.user_id ?? undefined, email: u?.user?.email }, { subscription_id: sid, when, reason: String(body.reason ?? '').slice(0, 500) });
+      return { ok: true };
+    }
+
+    // ---------- 템플릿 (11-06): 피터가 숨김으로 올리고, 공개는 owner만. 지우기 없음 (숨김만) ----------
+    case 'tpl_list': {
+      const pg = page(body.page);
+      let q = db.from('dz_templates').select(TPL_LIST).order('state', { ascending: true }).order('added', { ascending: false }).order('sort', { ascending: true }).range(pg * PAGE, pg * PAGE + PAGE - 1);
+      if (body.state === 'hidden' || body.state === 'public') q = q.eq('state', body.state);
+      if (typeof body.kind === 'string' && body.kind) q = q.eq('kind', body.kind.slice(0, 20));
+      const s = String(body.q ?? '').replace(/[,(){}*"\\%.:]/g, ' ').trim().slice(0, 30);
+      if (s) q = q.or(`name.ilike.*${s}*,tags.cs.{${s}},words.cs.{${s}}`);
+      const { data, error } = await q;
+      if (error) throw new Fail(500, error.message);
+      const all = await db.from('dz_templates').select('state,kind').range(0, 99999);
+      if (all.error) throw new Fail(500, all.error.message);
+      const n = { all: 0, hidden: 0, public: 0 } as Record<string, number>, kinds: Record<string, number> = {};
+      for (const r of all.data || []) { n.all++; n[r.state]++; kinds[r.kind] = (kinds[r.kind] || 0) + 1; }
+      return { rows: (data || []).map((t: any) => ({ id: t.id, fmt: t.fmt, kind: t.kind, name: t.name, tags: t.tags, paid: t.paid, added: day10(t.added), state: t.state, author: t.author, thumb: t.assets?.thumb ?? null, missing: tplMissing(t) })), n, kinds, pageSize: PAGE };
+    }
+
+    case 'tpl_get': {
+      const t = await tplRow(db, body.id);
+      return { ...t, added: day10(t.added), missing: tplMissing(t) };
+    }
+
+    case 'tpl_save': {
+      ownerOnly(a);
+      const t = await tplRow(db, body.id), { kinds, tags } = await taxNames(db);
+      const name = String(body.name ?? '').trim();
+      if (!name || name.length > 40) throw new Fail(400, 'bad name');
+      const kind = String(body.kind ?? ''); if (!kinds.includes(kind)) throw new Fail(400, 'bad kind');
+      const descr = Array.isArray(body.descr) ? body.descr.map((s: any) => String(s ?? '').trim()).filter(Boolean) : [];
+      if (descr.length > 3 || descr.some((s: string) => s.length > 120)) throw new Fail(400, 'bad descr');
+      const tg = uniq(body.tags); if (tg.length > 3 || tg.some(x => !tags.includes(x))) throw new Fail(400, 'bad tags');
+      const words = uniq(body.words).filter(Boolean); if (words.length > 20 || words.some(w => w.length > 30)) throw new Fail(400, 'bad words');
+      const ex = Array.isArray(body.ex) ? body.ex : null;
+      if (!ex || ex.length > 3 || !ex.every(exOk)) throw new Fail(400, 'bad ex');
+      const added = String(body.added ?? ''); if (!/^\d{4}-\d{2}-\d{2}$/.test(added) || isNaN(Date.parse(added))) throw new Fail(400, 'bad date');
+      const sort = Number(body.sort ?? 0); if (!Number.isInteger(sort) || sort < 0 || sort > 100000) throw new Fail(400, 'bad sort');
+      const tools = body.tools ?? {}; if (typeof tools !== 'object' || Array.isArray(tools) || JSON.stringify(tools).length > 4000) throw new Fail(400, 'bad tools');
+      const row = { name, kind, descr, tags: tg, words, ex, added, sort, tools, paid: body.paid === true, motion: body.motion === true, updated_at: new Date().toISOString() };
+      if (t.state === 'public' && tplMissing({ ...t, ...row }).length) throw new Fail(400, 'incomplete');
+      const { error } = await db.from('dz_templates').update(row).eq('id', t.id);
+      if (error) throw new Fail(500, error.message);
+      await audit(db, a, 'tpl_save', {}, { id: t.id, name });
+      return { ok: true };
+    }
+
+    case 'tpl_state': {
+      ownerOnly(a);
+      const t = await tplRow(db, body.id), state = body.state === 'public' ? 'public' : body.state === 'hidden' ? 'hidden' : null;
+      if (!state) throw new Fail(400, 'bad state');
+      if (state === 'public' && tplMissing(t).length) throw new Fail(400, 'incomplete');
+      const { error } = await db.from('dz_templates').update({ state, updated_at: new Date().toISOString() }).eq('id', t.id);
+      if (error) throw new Fail(500, error.message);
+      await audit(db, a, state === 'public' ? 'tpl_public' : 'tpl_hide', {}, { id: t.id, name: t.name });
+      return { ok: true };
+    }
+
+    // 종류 · 태그: 템플릿 화면과 앱이 같은 표를 써요. 쓰는 템플릿이 있으면 못 빼요
+    case 'tax': {
+      const [k, g, all] = await Promise.all([db.from('dz_kinds').select('name,sort').order('sort'), db.from('dz_tags').select('id,cond,sort').order('sort'), db.from('dz_templates').select('kind,tags').range(0, 99999)]);
+      for (const r of [k, g, all]) if (r.error) throw new Fail(500, r.error.message);
+      const nk: Record<string, number> = {}, nt: Record<string, number> = {};
+      for (const t of all.data || []) { nk[t.kind] = (nk[t.kind] || 0) + 1; for (const x of t.tags || []) nt[x] = (nt[x] || 0) + 1; }
+      return { kinds: (k.data || []).map((x: any) => ({ ...x, n: nk[x.name] || 0 })), tags: (g.data || []).map((x: any) => ({ ...x, n: nt[x.id] || 0 })), maxKinds: MAX_KINDS };
+    }
+
+    case 'kind_add': case 'tag_add': {
+      ownerOnly(a);
+      const isK = body.action === 'kind_add', id = String(body.name ?? '').trim(), { kinds, tags } = await taxNames(db), list = isK ? kinds : tags;
+      if (!id || id.length > 20 || /[,(){}"\\]/.test(id)) throw new Fail(400, 'bad name');
+      if (list.includes(id)) throw new Fail(400, 'already exists');
+      if (isK && list.length >= MAX_KINDS) throw new Fail(400, 'too many kinds');
+      const cond = isK ? null : condOk(body.cond);
+      const sort = list.length + 1;
+      const { error } = await db.from(isK ? 'dz_kinds' : 'dz_tags').insert(isK ? { name: id, sort } : { id, cond, sort });
+      if (error) throw new Fail(500, error.message);
+      await audit(db, a, body.action, {}, { name: id });
+      return { ok: true };
+    }
+
+    case 'tag_cond': {
+      ownerOnly(a);
+      const id = String(body.name ?? ''), { tags } = await taxNames(db);
+      if (!tags.includes(id)) throw new Fail(404, 'not found');
+      const { error } = await db.from('dz_tags').update({ cond: condOk(body.cond) }).eq('id', id);
+      if (error) throw new Fail(500, error.message);
+      await audit(db, a, 'tag_cond', {}, { name: id, cond: body.cond });
+      return { ok: true };
+    }
+
+    case 'kind_remove': case 'tag_remove': {
+      ownerOnly(a);
+      const isK = body.action === 'kind_remove', id = String(body.name ?? '');
+      const { kinds, tags } = await taxNames(db); if (!(isK ? kinds : tags).includes(id)) throw new Fail(404, 'not found');
+      const used = isK ? await db.from('dz_templates').select('id').eq('kind', id).range(0, 0) : await db.from('dz_templates').select('id').contains('tags', [id]).range(0, 0);
+      if (used.error) throw new Fail(500, used.error.message);
+      if ((used.data || []).length) throw new Fail(400, 'in use');
+      const { error } = await (isK ? db.from('dz_kinds').delete().eq('name', id) : db.from('dz_tags').delete().eq('id', id));
+      if (error) throw new Fail(500, error.message);
+      await audit(db, a, body.action, {}, { name: id });
+      return { ok: true };
+    }
+
+    case 'kinds_order': case 'tags_order': {
+      ownerOnly(a);
+      const isK = body.action === 'kinds_order', want = uniq(body.names), { kinds, tags } = await taxNames(db), have = isK ? kinds : tags;
+      if (want.length !== have.length || want.some(x => !have.includes(x))) throw new Fail(400, 'bad order');
+      for (let i = 0; i < want.length; i++) {
+        const { error } = await db.from(isK ? 'dz_kinds' : 'dz_tags').update({ sort: i + 1 }).eq(isK ? 'name' : 'id', want[i]);
+        if (error) throw new Fail(500, error.message);
+      }
+      await audit(db, a, body.action, {}, { names: want });
       return { ok: true };
     }
 

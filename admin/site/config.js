@@ -5,5 +5,6 @@ window.ADMIN_CONFIG = {
   BRAND: "Daytale",
   SUPABASE_URL: "https://qovcfpvitifbbmizdqop.supabase.co",
   SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFvdmNmcHZpdGlmYmJtaXpkcW9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0NTA3MzksImV4cCI6MjEwNzAyNjczOX0.GhbBBj_ENOUiDZ7B_eHtESjX_8cirCNGEQw6HGOK6K8",
+  APP_URL: "https://claude-project-thread-uy73ym.todaytale.pages.dev/new/",   // 템플릿 정지 그림이 있는 앱 주소 (오픈 때 https://todaytale.pages.dev/new/ 로)
   PRICES: { monthly: 3.99, yearly: 39.9, currency: "USD" }   // 예상 월 매출 계산용 (실제 금액은 Paddle 대시보드 기준)
 };

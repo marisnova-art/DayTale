@@ -64,6 +64,10 @@ async function page(viewport) {
       if (f === 'config.js') body = body.replace(/SUPABASE_URL: "[^"]*"/, 'SUPABASE_URL: "https://fake.supabase.co"');
       return route.fulfill({ body, contentType: f.endsWith('.js') ? 'text/javascript' : f.endsWith('.css') ? 'text/css' : 'text/html' });
     }
+    // 템플릿 정지 그림 = 앱 주소 (app/new/…)
+    if (u.hostname.endsWith('todaytale.pages.dev') && u.pathname.startsWith('/new/')) {
+      try { return route.fulfill({ body: readFileSync(new URL('../../app' + u.pathname, import.meta.url)), contentType: 'image/webp' }); } catch { return route.fulfill({ status: 404, body: '' }); }
+    }
     return route.abort();
   });
   const p = await ctx.newPage();
@@ -161,6 +165,40 @@ await p.goto('http://admin.test/#/vouchers'); await p.waitForSelector('.tablebox
 ok((await p.textContent('.tablebox')).includes('24story@gmail.com'), '이용권: 쓴 사람 보임');
 await p.screenshot({ path: `${out}/admin-vouchers.png`, fullPage: true });
 await p.click('[data-revoke]'); await p.click('dialog button[value=ok]'); await p.waitForFunction(() => document.querySelectorAll('.tablebox tr.off').length === 2); ok(true, '이용권: 취소');
+// 템플릿 (11-06)
+await pg.exec(`insert into dz_templates (id, fmt, kind, name, tags, words, ex, descr, assets, paid, motion, state, added, sort) values
+  ('snow-night', 'art', '아트', '눈 내리는 밤', '{겨울,밤}', '{눈,첫눈,겨울밤,하얀,고요,크리스마스,12월,눈송이,포근}', '[["첫눈이 왔다. 창밖이 조용했다.", 3, "45"], ["퇴근길 가로등 아래 눈송이.", 9, "916"]]',
+   '["천천히 내리는 눈 사이로|가로등 불빛이 번져요.", "셔플할 때마다 눈송이가 새로 내려요.", "12월 밤,|짧은 한 줄과 잘 어울려요."]', '{"thumb":"tpl/art/thumbs/art.webp"}', true, true, 'hidden', '2026-11-06', 3),
+  ('stamp-line', 'rebus', '디자인', '도장 문장', '{짧은글}', '{}', '[]', '[]', '{}', true, false, 'hidden', '2026-11-05', 4)`);
+await p.goto('http://admin.test/#/templates'); await p.waitForSelector('tbody tr[data-id]'); await p.waitForTimeout(500);
+ok((await p.$$eval('tbody tr[data-id]', r => r.map(x => x.dataset.id))).join() === 'snow-night,stamp-line,art,rebus', '템플릿: 검토 대기가 먼저');
+ok(await p.$eval('[data-st="snow-night"]', b => b.disabled) && !(await p.$eval('[data-st="art"]', b => b.disabled)), '템플릿: 빈칸 있으면 공개 스위치 잠김');
+ok(await p.$eval('tr[data-id="art"] img.th', i => i.naturalWidth > 0), '템플릿: 정지 그림 보임');
+await p.screenshot({ path: `${out}/admin-templates.png`, fullPage: true });
+await p.fill('#tq input', '첫눈'); await p.press('#tq input', 'Enter'); await p.waitForFunction(() => document.querySelectorAll('tbody tr[data-id]').length === 1); ok(true, '템플릿: 검색어로 찾기');
+await p.goto('http://admin.test/#/templates?kind=디자인'); await p.waitForFunction(() => document.querySelectorAll('tbody tr[data-id]').length === 2); ok(true, '템플릿: 종류 거르기');
+await p.goto('http://admin.test/#/templates/snow-night'); await p.waitForSelector('#tf'); await p.waitForTimeout(400);
+ok(await p.$eval('#pub', b => b.disabled) && (await p.textContent('.chk')).includes('예시 3개'), '상세: 빈칸 있으면 공개하기 잠김');
+await p.screenshot({ path: `${out}/admin-template.png`, fullPage: true });
+await p.click('.ck:has(input[value="감성"])'); await p.click('.ck:has(input[value="눈"])');
+ok(await p.$$eval('.ck input:checked', c => c.length) === 3, '상세: 태그 3개까지만');
+await p.fill('.chipin', '함박눈, 겨울'); await p.press('.chipin', 'Enter'); ok((await p.textContent('#wc')) === '11', '상세: 검색어 칩 넣기');
+await p.fill('textarea[name=e2]', '고요한 밤, 따뜻한 차.'); await p.fill('input[name=name]', '눈 오는 밤');
+await p.click('#tf button[value=save]'); await p.waitForFunction(() => !document.querySelector('#pub')?.disabled && document.querySelector('h1').textContent === '눈 오는 밤'); ok(true, '상세: 저장하면 빈칸 없어지고 공개하기 켜짐');
+const sv = (await pg.query(`select ex, tags, words from dz_templates where id = 'snow-night'`)).rows[0];
+ok(sv.ex.length === 3 && Array.isArray(sv.ex[2]) && sv.ex[2][0] === '고요한 밤, 따뜻한 차.' && sv.ex[0][1] === 3 && sv.tags.length === 3 && sv.words.includes('함박눈'), '상세: 예시 모양(글 · 셔플 · 비율) 그대로 저장');
+await p.click('#pub'); await p.click('dialog button[value=ok]'); await p.waitForSelector('#hide'); ok((await pg.query(`select state from dz_templates where id = 'snow-night'`)).rows[0].state === 'public', '상세: 공개');
+await p.click('#hide'); await p.click('dialog button[value=ok]'); await p.waitForSelector('#pub'); ok(true, '상세: 숨기기');
+await p.goto('http://admin.test/#/templates/tax'); await p.waitForSelector('#ot li'); await p.waitForTimeout(300);
+await p.screenshot({ path: `${out}/admin-tax.png`, fullPage: true });
+await p.fill('#at input[name=name]', '레트로'); await p.selectOption('#at select', 'season:winter'); await p.click('#at button'); await p.waitForSelector('#ot li[data-name="레트로"]');
+ok((await pg.query(`select cond from dz_tags where id = '레트로'`)).rows[0].cond.season[0] === 'winter', '종류·태그: 태그 넣기 + 이때 앞으로');
+await p.selectOption('[data-cond="레트로"]', ''); await p.waitForFunction(() => document.querySelector('[data-cond="레트로"]')?.value === ''); ok(Object.keys((await pg.query(`select cond from dz_tags where id = '레트로'`)).rows[0].cond).length === 0, '종류·태그: 이때 앞으로 없음으로');
+await p.fill('#ak input', '포토'); await p.click('#ak button'); await p.waitForSelector('#ok li[data-name="포토"]'); ok(true, '종류·태그: 종류 넣기');
+await p.dragAndDrop('#ok li[data-name="포토"]', '#ok li[data-name="디자인"]', { targetPosition: { x: 40, y: 5 } }); await p.waitForTimeout(600);
+ok((await pg.query(`select name from dz_kinds order by sort`)).rows[0].name === '포토', '종류·태그: 끌어서 순서 바꾸기');
+await p.click('#ok li[data-name="포토"] [data-rm]'); await p.click('dialog button[value=ok]'); await p.waitForFunction(() => !document.querySelector('#ok li[data-name="포토"]')); ok(true, '종류·태그: 안 쓰는 종류 빼기');
+ok(!(await p.$('#ok li[data-name="아트"] [data-rm]')), '종류·태그: 쓰는 종류는 빼기 버튼 없음');
 await p.goto('http://admin.test/#/audit'); await p.waitForSelector('.audit li'); await p.screenshot({ path: `${out}/admin-audit.png` }); ok((await p.textContent('.audit')).includes('테스트 정지'), 'audit shows ban reason');
 
 const m = await page({ width: 390, height: 844 });
@@ -170,6 +208,9 @@ await m.screenshot({ path: `${out}/admin-mobile.png`, fullPage: true });
 await m.goto('http://admin.test/#/usage'); await m.waitForSelector('#aud'); await m.waitForTimeout(300);
 ok(await m.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'phone: 이용 현황도 옆으로 밀리지 않음');
 await m.screenshot({ path: `${out}/admin-mobile-usage.png`, fullPage: true });
+await m.goto('http://admin.test/#/templates/snow-night'); await m.waitForSelector('#tf'); await m.waitForTimeout(300);
+ok(await m.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'phone: 템플릿 상세도 옆으로 밀리지 않음');
+await m.screenshot({ path: `${out}/admin-mobile-template.png`, fullPage: true });
 ok(!errors.length, 'no page errors ' + errors.join(' | '));
 await browser.close();
 console.log(fails ? `\n${fails} failed` : '\nall passed'); process.exit(fails ? 1 : 0);

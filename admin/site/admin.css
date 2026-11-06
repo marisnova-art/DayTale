@@ -235,3 +235,49 @@ tr.off td{ opacity:.45 } td.nowrap{ white-space:nowrap }
 /* 이용권: 방금 만든 코드 */
 .vcodes{ background:var(--raise); border-radius:14px; padding:12px 14px; display:flex; flex-direction:column; gap:8px; align-items:flex-start }
 .vcodes pre{ margin:0; font-size:15px; letter-spacing:.06em; white-space:pre-wrap; user-select:all }
+
+/* ---------- 템플릿 (11-06) ---------- */
+.badge.wait{ background:rgba(232,179,95,.16); color:var(--mustard) }
+.th{ width:44px; height:55px; object-fit:cover; border-radius:9px; display:block; background:var(--raise) }
+.th.xl{ width:96px; height:120px; border-radius:18px } .th.full{ width:100%; height:auto; aspect-ratio:4/5; border-radius:16px }
+.th.none{ background:repeating-linear-gradient(135deg, var(--raise) 0 8px, var(--raise-2) 8px 16px) }
+.bigthumb{ margin:12px 0 10px; max-width:280px }
+td.tcell{ width:60px; padding-right:0 }
+.tag{ display:inline-block; font-size:12px; padding:3px 9px; border-radius:7px; background:rgba(255,255,255,.08); color:var(--text); white-space:nowrap }
+.fsearch{ display:flex; align-items:center; gap:8px; background:var(--box); border:1px solid var(--line-2); border-radius:999px; padding:0 14px; width:280px; max-width:100%; color:var(--text-3) }
+.fsearch input{ border:0; background:transparent; padding:9px 0 }
+.sw{ display:inline-block; width:42px; height:24px; border-radius:99px; background:var(--raise-2); position:relative; vertical-align:middle; border:0; padding:0; cursor:pointer; flex:none }
+.sw i{ position:absolute; left:3px; top:3px; width:18px; height:18px; border-radius:50%; background:var(--text-2); transition:left .2s }
+.sw.on{ background:var(--ok) } .sw.on i{ left:21px; background:#fff } .sw:disabled{ opacity:.35; cursor:not-allowed }
+.dgrid{ display:grid; grid-template-columns:minmax(260px, 360px) minmax(0, 1fr); gap:12px; align-items:start }
+.chk{ list-style:none; margin:12px 0 8px; padding:0; display:flex; flex-direction:column; gap:9px }
+.chk li{ display:flex; gap:8px; align-items:center } .chk li svg{ width:17px; height:17px } .chk .ok svg{ color:var(--ok) } .chk .no{ color:var(--warn) }
+.form > label{ margin-top:16px } .form > label:first-child, .f2 label, .f4 label{ margin-top:0 }
+.form label input, .form label select, .form label textarea{ margin-top:7px } .form label input + input, .form label textarea + textarea{ margin-top:6px }
+.form select, .form textarea, .ord select, .addrow select{ font:inherit; color:var(--text); background:var(--box); border:1px solid var(--line-2); border-radius:14px; padding:12px 14px; width:100%; display:block }
+.form textarea{ resize:vertical } .form :disabled{ opacity:.6 }
+.f2{ display:grid; grid-template-columns:1fr 200px; gap:12px; align-items:end; margin-bottom:2px }
+.f4{ display:grid; grid-template-columns:1fr 100px 110px 110px; gap:12px; align-items:end; margin-top:16px }
+.cks{ display:flex; flex-wrap:wrap; gap:8px; margin-top:9px }
+.ck{ display:inline-flex !important; align-items:center; gap:7px; padding:7px 13px 7px 9px; margin:0 !important; border-radius:999px; border:1px solid var(--line-2); font-size:13px; color:var(--text) !important; cursor:pointer }
+.ck input{ position:absolute; opacity:0; width:0; height:0; margin:0 }
+.ck i{ width:17px; height:17px; border-radius:5px; border:1.5px solid var(--text-3); display:grid; place-items:center } .ck i svg{ width:15px; height:15px; visibility:hidden }
+.ck.on{ background:var(--text); color:var(--ink) !important; border-color:var(--text) } .ck.on i{ border-color:var(--ink) } .ck.on i svg{ visibility:visible }
+.ck:has(input:focus-visible){ outline:2px solid var(--mustard); outline-offset:2px }
+.cnt{ float:right; font:700 12px var(--display) } .cnt.good{ color:var(--ok) } .cnt.bad{ color:var(--warn) }
+.chips{ display:flex; flex-wrap:wrap; gap:6px; margin-top:9px; background:var(--box); border:1px solid var(--line-2); border-radius:14px; padding:10px; min-height:48px }
+.chip{ display:inline-flex; align-items:center; gap:2px; padding:4px 4px 4px 11px; border-radius:999px; background:var(--raise-2); font-size:12.5px }
+.chip button{ border:0; background:transparent; color:var(--text-3); padding:2px; cursor:pointer; display:grid; place-items:center } .chip button svg{ width:13px; height:13px } .chip button:hover{ color:var(--text) }
+.chipin{ border:0 !important; background:transparent !important; padding:4px 6px !important; width:180px !important; flex:1 }
+.tg{ display:flex; align-items:center; justify-content:space-between; background:var(--box); border:1px solid var(--line-2); border-radius:14px; padding:9px 12px; color:var(--text-2); font-size:13px }
+.form details{ margin-top:18px; color:var(--text-2); font-size:13px } .form details summary{ cursor:pointer } .form details textarea{ margin-top:10px }
+.btn:disabled{ opacity:.35; cursor:not-allowed }
+.ord{ list-style:none; margin:12px 0; padding:0; display:flex; flex-direction:column }
+.ord li{ display:flex; align-items:center; gap:12px; padding:8px 0; border-top:1px solid var(--line); min-height:52px; background:var(--box) }
+.ord li[draggable="true"]{ cursor:grab } .ord li.drag{ opacity:.4 } .ord li b{ min-width:70px }
+.gr{ color:var(--text-3); width:20px } .when{ flex:1; font-size:12.5px; color:var(--text-2) } .when select{ padding:7px 12px; font-size:12.5px; max-width:240px }
+.cnt2{ margin-left:auto; white-space:nowrap } .when + .cnt2{ margin-left:0 } .rmgap{ width:32px; flex:none }
+.iconbtn.sm{ width:32px; height:32px } .iconbtn.sm svg{ width:15px; height:15px }
+.addrow{ display:flex; gap:8px; align-items:center; margin-bottom:12px } .addrow input{ padding:9px 14px } .addrow select{ width:auto; padding:9px 12px; font-size:13px } .addrow .btn{ white-space:nowrap; flex:none }
+@media (max-width: 1100px){ .dgrid{ grid-template-columns:1fr } .bigthumb{ max-width:200px } }
+@media (max-width: 720px){ .f2, .f4{ grid-template-columns:1fr 1fr } .addrow{ flex-wrap:wrap } .fsearch{ width:100% } }

@@ -10,6 +10,7 @@ export async function makeDb() {
   // push.sql 은 pg_cron·pg_net 이 있어야 해서, 관리자 집계가 읽는 표만 흉내 내요
   await pg.exec(`create table if not exists public.push_subs (id bigint generated always as identity primary key, user_id uuid references auth.users(id) on delete cascade, endpoint text unique, lang text not null default 'en', last_ok_at timestamptz)`);
   await pg.exec(R('../../supabase/admin.sql')); await pg.exec(R('../../supabase/admin.sql'));
+  for (const f of ['2026-11-06-dz-templates.sql', '2026-11-06-dz-tags.sql']) await pg.exec(R('../../supabase/migrations/' + f));
   return pg;
 }
 
@@ -23,7 +24,16 @@ class Query {
   in(c, a) { this.params.push(a); this.where.push(`${ident(c)} = any($${this.params.length})`); return this; }
   is(c, v) { if (v !== null) throw new Error('is only null'); this.where.push(`${ident(c)} is null`); return this; }
   not(c, op, v) { if (op !== 'is' || v !== null) throw new Error('not only is null'); this.where.push(`${ident(c)} is not null`); return this; }
-  order(c, o = {}) { this.ord = ` order by ${ident(c)} ${o.ascending === false ? 'desc' : 'asc'}`; return this; }
+  order(c, o = {}) { this.ord += `${this.ord ? ',' : ' order by'} ${ident(c)} ${o.ascending === false ? 'desc' : 'asc'}`; return this; }
+  contains(c, a) { this.params.push(a); this.where.push(`${ident(c)} @> $${this.params.length}`); return this; }
+  // PostgREST or: 'name.ilike.*x*,tags.cs.{x}' 정도만
+  or(expr) {
+    const parts = expr.split(',').map(p => { const [c, op, ...v] = p.split('.'); const val = v.join('.');
+      if (op === 'ilike') { this.params.push(val.replace(/\*/g, '%')); return `${ident(c)} ilike $${this.params.length}`; }
+      if (op === 'cs') { this.params.push(val.replace(/^\{|\}$/g, '').split(',')); return `${ident(c)} @> $${this.params.length}`; }
+      throw new Error('or op ' + op); });
+    this.where.push(`(${parts.join(' or ')})`); return this;
+  }
   range(a, b) { this.lim = ` limit ${b - a + 1} offset ${a}`; return this; }
   insert(row) { this.op = 'insert'; this.row = row; return this; }
   update(v) { this.op = 'update'; this.vals = v; return this; }

@@ -65,11 +65,15 @@ export async function refresh() {
   const C = window.APP_CONFIG || {};
   if (!/^https:\/\//.test(C.SUPABASE_URL || '') || !C.SUPABASE_ANON_KEY) return false;
   const rest = tb => q => fetch(`${C.SUPABASE_URL}/rest/v1/${tb}?${q}`, { headers: { apikey: C.SUPABASE_ANON_KEY, authorization: `Bearer ${C.SUPABASE_ANON_KEY}` } }).then(r => r.ok ? r.json() : Promise.reject(r.status));
-  const get = rest('dz_templates'), getK = rest('dz_kinds');
+  const get = rest('dz_templates'), getK = rest('dz_kinds'), getT = rest('dz_tags');
   try {
     try {   // 종류 순서 (작아요). 표가 없으면 그대로
       const ks = await getK('select=name&order=sort.asc');
       if (Array.isArray(ks) && ks.length) { KORDER = ks.map(k => k.name).filter(Boolean); localStorage.setItem(KK, JSON.stringify(KORDER)); }
+    } catch {}
+    try {   // 태그 목록 · 순서 · 이때 앞으로 (작아요). 표가 없으면 그대로
+      const ts = await getT('select=id,cond&order=sort.asc');
+      if (Array.isArray(ts) && ts.length) { TAGS = tagsFrom(ts); localStorage.setItem(TK, JSON.stringify(ts)); }
     } catch {}
     const ids = await get('select=id,updated_at&state=eq.public&limit=5000');
     if (!Array.isArray(ids) || !ids.length) return false;
@@ -104,7 +108,8 @@ export function kinds() {
 export const stripKind = s => { const k = [...KORDER, ...kinds()].find(k => s.startsWith(k + ' ')); return k ? s.slice(k.length + 1) : s; };
 
 // 칩 · 메인 줄 키워드. when = 이때 앞으로 와요 (날씨 · 시간 · 계절)
-export const TAGS = [
+// 11-06: 관리자 '템플릿 > 종류 · 태그'에서 고쳐요 (서버 표 dz_tags: id · cond · sort). 아래는 표가 없거나 못 받을 때 기본값
+export let TAGS = [
   { id: '밤', when: { time: ['evening', 'night'] } },
   { id: '비', when: { wx: ['rain', 'thunder'] } },
   { id: '눈', when: { wx: ['snow'] } },
@@ -115,6 +120,9 @@ export const TAGS = [
   { id: '가을', when: { season: ['autumn'] } },
   { id: '짧은글' }, { id: '감성' },
 ];
+const TK = 'dz.tags.v1';
+const tagsFrom = rows => rows.filter(r => r && r.id).map(r => r.cond && Object.keys(r.cond).length ? { id: r.id, when: r.cond } : { id: r.id });
+try { const t = JSON.parse(localStorage.getItem(TK) || 'null'); if (Array.isArray(t) && t.length) TAGS = tagsFrom(t); } catch {}
 
 export const tpl = id => TEMPLATES.find(t => t.id === id) || KNOWN.get(id);
 // 카드의 템플릿: 저장한 id → (예전 카드) 같은 틀의 첫 템플릿
