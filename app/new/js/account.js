@@ -6,6 +6,7 @@ const subs = new Set();
 
 export const configured = () => /^https:\/\/.+/.test(CFG.SUPABASE_URL || '') && (CFG.SUPABASE_ANON_KEY || '').length > 20;
 export const appleOn = () => !!CFG.APPLE_LOGIN;
+export const mailOn = () => !!CFG.MAIL_LOGIN;   // 메일 코드: 메일 발송 서비스(SMTP)를 붙이면 켜요 (기본 메일로는 코드 템플릿을 못 고쳐요)
 
 function loadScript(src) {
   return new Promise((ok, no) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => no(new Error('load')); document.head.appendChild(s); });

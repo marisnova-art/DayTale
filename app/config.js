@@ -5,6 +5,8 @@ window.APP_CONFIG = {
   SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFvdmNmcHZpdGlmYmJtaXpkcW9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0NTA3MzksImV4cCI6MjEwNzAyNjczOX0.GhbBBj_ENOUiDZ7B_eHtESjX_8cirCNGEQw6HGOK6K8",
   CONTACT: "24story@gmail.com",
   SITE_URL: "",
+  APPLE_LOGIN: false,                   // 새 앱: Apple 로그인 (Apple 개발자 계정 생기면 true)
+  MAIL_LOGIN: true,                     // 새 앱: 메일 6자리 코드 화면 (실제 코드 메일은 메일 발송 서비스(SMTP) 붙인 뒤, 오픈 전 테스트)
   PHOTOS_URL: "",                       // R2 공개 주소 (4단계에서 채움)
   PADDLE: {
     environment: "sandbox",

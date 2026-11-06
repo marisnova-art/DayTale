@@ -3074,7 +3074,7 @@ function loginSheet(back) {
   const bg = document.createElement('div'); bg.className = 'sheet-bg';
   const b = (k, icon, label) => `<button class="lgb" data-k="${k}"><span>${icon}<b>${label}</b></span></button>`;
   bg.innerHTML = `<div class="sheet lgs"><div class="grab"></div><p class="lt">카드를 잃지 않게 저장해 둘까요?<span>다른 기기에서도 그대로 이어서 써요</span></p>
-    ${A.appleOn() ? b('apple', APPL, 'Apple로 계속하기') : ''}${b('google', GOOG, 'Google로 계속하기')}${b('mail', ic('mail'), '메일로 계속하기')}${b('skip', ic('fwd'), '로그인 없이 계속하기')}</div>`;
+    ${A.appleOn() ? b('apple', APPL, 'Apple로 계속하기') : ''}${b('google', GOOG, 'Google로 계속하기')}${A.mailOn() ? b('mail', ic('mail'), '메일로 계속하기') : ''}${b('skip', ic('fwd'), '로그인 없이 계속하기')}</div>`;
   let shut = false;
   const close = () => { if (shut) return; shut = true; bg.classList.add('out'); unlockBg(); setTimeout(() => bg.remove(), 300); };
   bg.addEventListener('click', async e => {
