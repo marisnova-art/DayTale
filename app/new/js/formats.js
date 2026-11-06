@@ -5,11 +5,17 @@ import { rangeAt } from './rich.js';
 import { hydrate } from './stickers.js';
 import { fontOf, fontCssOf, SIZES } from './fonts.js';
 
-const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const px = n => `${(n / 10.8).toFixed(3)}cqw`; // 1080 디자인 px → cqw
+export const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+export const px = n => `${(n / 10.8).toFixed(3)}cqw`; // 1080 디자인 px → cqw
 
 export function rng(s) { return () => { s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 export const newSeed = () => Math.floor(Math.random() * 1e9);
+// 예전 카드(*강조* 글)는 서식 글로 바꿔서 읽어요. 한 덩어리 글(html)로 쓰는 템플릿이 같이 써요
+const toHtml = t => esc(t || '').replace(/\*(.+?)\*/g, '<b>$1</b>');
+export const htmlOf = c => c.html ?? toHtml(c.text);
+const rebusHtmlOf = htmlOf;
+// 쓰는 중 브라우저가 넣는 붙은 칸(&nbsp;)은 보여 줄 때 보통 칸으로 (줄이 자연스럽게 바뀌게)
+export const soft = (h, edit) => edit ? h : h.replace(/&nbsp;/g, ' ');
 
 const WD = ['일', '월', '화', '수', '목', '금', '토'];
 const WDL = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
@@ -31,7 +37,7 @@ export const shape = (el, ar) => { el.dataset.ar = ar; el.classList.toggle('r916
 export const dateOn = c => c.showDate ?? (!!c.datePos && c.datePos !== 'none');
 export const placeOn = c => dateOn(c) && !!(c.place || '').trim() && !c.placeOff;   // 장소는 날짜 줄에 같이 (줄을 끄면 같이 숨어요)
 export const dhOf = c => ({ l: 'left', c: 'center', r: 'right' }[c.dh] || 'left');   // 날짜 줄 좌 · 중 · 우
-export const infoPos = c => c.datePos === 'top' || c.datePos === 'bottom' ? c.datePos : c.fmt === 'rebus' ? 'bottom' : 'top';
+export const infoPos = c => c.datePos === 'top' || c.datePos === 'bottom' ? c.datePos : FORMATS[c.fmt]?.datePos || 'top';
 export const signOf = c => c.sg && (c.signTxt || '').trim() ? c.sg : '';
 // 글자 크기 5단계 · 줄 간격 3단계 · 위아래 5자리
 export const SIZE5 = ['xs', 's', 'm', 'l', 'xl'];
@@ -39,134 +45,6 @@ export const LH = { s: .86, m: 1, l: 1.16 };
 export const V5 = ['t', 'tm', 'm', 'bm', 'b'];
 const DL = { xs: 2.5, s: 2.8, m: 3.4, l: 4.2, xl: 4.8 };   // 날짜 줄 · 서명 크기 (cqw)
 
-// ── 그림 문장 ──────────────────────────────────────────────
-const V = '#6C4BD8', O = '#F2622E', T = '#12A08F', Y = '#FFC21A', R = '#FF9EB5', K = '#2E2D2B', BG = '#F3F1EC';
-const sv = (w, b) => `<svg class="i" viewBox="0 0 ${w} 64">${b}</svg>`;
-const rep = (n, f) => Array.from({ length: n }, (_, i) => f(i)).join('');
-const OBJ = [
-  sv(160, `<rect x="4" y="10" width="152" height="44" fill="${Y}"/><path d="M4 32l12-12 12 12 12-12 12 12 12-12 12 12 12-12 12 12 12-12 12 12 12-12 12 12" fill="none" stroke="${O}" stroke-width="5"/>`),
-  sv(180, `<line x1="4" y1="32" x2="176" y2="32" stroke="${K}" stroke-width="5"/>${rep(4, i => `<circle cx="${32 + i * 40}" cy="32" r="16" fill="${[T, R, T, R][i]}"/><circle cx="${32 + i * 40}" cy="32" r="5" fill="${BG}"/>`)}`),
-  sv(170, `<g fill="none" stroke-width="6">${rep(3, i => `<path d="M4 ${16 + i * 18}q10-10 20 0t20 0 20 0 20 0 20 0 20 0 20 0 20 0" stroke="${[T, V, T][i]}"/>`)}</g>`),
-  sv(140, `<g fill="${V}">${rep(4, i => rep(2, j => `<rect x="${6 + i * 34 + (j ? 17 : 0)}" y="${10 + j * 22}" width="17" height="22"/>`))}</g><rect x="4" y="8" width="134" height="48" fill="none" stroke="${V}" stroke-width="4"/>`),
-  sv(150, `<rect x="4" y="14" width="142" height="36" rx="18" fill="${R}"/><g stroke="${BG}" stroke-width="6">${rep(6, i => `<line x1="${30 + i * 18}" y1="14" x2="${18 + i * 18}" y2="50"/>`)}</g>`),
-  sv(170, `<line x1="4" y1="32" x2="166" y2="32" stroke="${K}" stroke-width="5" stroke-dasharray="10 8"/><path d="M85 10l20 22-20 22-20-22z" fill="${O}"/>`),
-  sv(170, rep(6, i => `<path d="M${6 + i * 27} 54l13-38 13 38z" fill="${i % 2 ? Y : T}"/>`)),
-  sv(130, `<circle cx="34" cy="32" r="26" fill="${O}"/><path d="M72 6a26 26 0 0 1 0 52z" fill="${V}"/><path d="M100 6a26 26 0 0 1 0 52z" fill="${Y}"/>`),
-  sv(150, `<path d="M6 32c14-30 28 30 42 0s28 30 42 0 28 30 42 0" fill="none" stroke="${O}" stroke-width="7" stroke-linecap="round"/><circle cx="142" cy="32" r="6" fill="${V}"/>`),
-  sv(80, `${rep(3, i => `<circle cx="40" cy="32" r="${28 - i * 9}" fill="${[T, BG, O][i]}"/>`)}`),
-  sv(160, `<path d="M4 56h30V40h30V24h30V8h30" fill="none" stroke="${T}" stroke-width="6"/><rect x="128" y="2" width="28" height="28" fill="${R}"/>`),
-  sv(150, `<g stroke="${O}" stroke-width="6" stroke-linecap="round">${rep(6, i => `<path d="M${10 + i * 23} 20l14 24M${24 + i * 23} 20l-14 24"/>`)}</g>`),
-  sv(170, `<path d="M4 44${rep(7, () => 'a12 12 0 0 1 23 0')}" fill="none" stroke="${V}" stroke-width="6"/><line x1="4" y1="56" x2="166" y2="56" stroke="${Y}" stroke-width="6"/>`),
-  sv(130, `<rect x="6" y="10" width="44" height="44" fill="${Y}"/><circle cx="74" cy="32" r="22" fill="${T}"/><path d="M100 54l14-44 14 44z" fill="${O}"/>`),
-  sv(170, rep(6, i => rep(3, j => `<circle cx="${14 + i * 28}" cy="${12 + j * 20}" r="5" fill="${(i + j) % 2 ? V : T}"/>`))),
-  sv(170, `<line x1="4" y1="50" x2="166" y2="50" stroke="${K}" stroke-width="5"/>${rep(5, i => `<path d="M${8 + i * 32} 50a14 14 0 0 1 28 0z" fill="${[O, Y, O, Y, O][i]}"/>`)}`),
-  sv(170, `<path d="M4 46l18-28 18 28 18-28 18 28 18-28 18 28 18-28 18 28 18-28" fill="none" stroke="${T}" stroke-width="7" stroke-linejoin="round"/>`),
-  sv(160, `<line x1="4" y1="24" x2="156" y2="24" stroke="${V}" stroke-width="7" stroke-dasharray="22 10"/><line x1="20" y1="42" x2="156" y2="42" stroke="${R}" stroke-width="7" stroke-dasharray="22 10"/>`),
-  sv(70, `<path d="M35 32m0 0a4 4 0 0 1 8 0a8 8 0 0 1-16 0a12 12 0 0 1 24 0a16 16 0 0 1-32 0a20 20 0 0 1 40 0a24 24 0 0 1-48 0" fill="none" stroke="${O}" stroke-width="5"/>`),
-  sv(170, rep(5, i => `<path d="M${20 + i * 32} 16v32M${4 + i * 32} 32h32" stroke="${i % 2 ? Y : V}" stroke-width="8" stroke-linecap="round"/>`)),
-  sv(140, `<rect x="4" y="10" width="132" height="44" fill="none" stroke="${T}" stroke-width="5"/><g stroke="${T}" stroke-width="4">${rep(9, i => `<line x1="${4 + i * 16}" y1="54" x2="${20 + i * 16}" y2="10"/>`)}</g>`),
-  sv(160, rep(6, i => `<circle cx="${18 + i * 30 - i * i * 1.2}" cy="32" r="${16 - i * 2.2}" fill="${i % 2 ? R : V}"/>`)),
-  sv(170, rep(5, i => `<path d="M${18 + i * 33} 14l16 18-16 18-16-18z" fill="${i % 2 ? 'none' : O}" stroke="${O}" stroke-width="4"/>`)),
-  sv(180, rep(4, i => `<rect x="${4 + i * 44}" y="20" width="38" height="24" rx="12" fill="${[T, Y, V, R][i]}"/>`)),
-  sv(70, rep(4, i => `<rect x="${6 + i * 8}" y="${4 + i * 8}" width="${58 - i * 16}" height="${56 - i * 16}" fill="none" stroke="${i % 2 ? Y : V}" stroke-width="5"/>`)),
-  sv(170, `<path d="M4 26q20-18 40 0t40 0 40 0 40 0v14q-20 18-40 0t-40 0-40 0-40 0z" fill="${T}"/>`),
-  sv(72, `<path d="M4 4h30a30 30 0 0 1-30 30z" fill="${O}"/><path d="M68 4v30a30 30 0 0 1-30-30z" fill="${V}"/><path d="M4 64V34a30 30 0 0 1 30 30z" fill="${Y}"/><path d="M68 64H38a30 30 0 0 1 30-30z" fill="${T}"/>`),
-  sv(150, rep(5, i => `<rect x="${4 + i * 28}" y="${58 - (14 + i * 10)}" width="${18 + i * 2}" height="${14 + i * 10}" fill="${i % 2 ? O : K}"/>`)),
-  sv(170, `<path d="M4 40c10 0 14-24 26-24s8 24 0 24 2-24 14-24 8 24 0 24 2-24 14-24 8 24 0 24 2-24 14-24 8 24 0 24 2-24 14-24 8 24 0 24 12 0 22 0" fill="none" stroke="${V}" stroke-width="5" stroke-linecap="round"/>`),
-];
-
-// 그림마다 제 모양대로 움직여요 (피드 가운데 카드만): sway 물결 · 선이 옆으로 살랑, dash 점선이 흘러감, tw 조각이 하나씩 반짝,
-// spin 제자리에서 천천히 돎, pulse 숨 쉬듯, rise 막대 · 계단이 차례로 차오름. 그림 자리는 그대로
-const MOTION = ['sway', 'tw', 'sway', 'tw', 'sway', 'dash', 'tw', 'tw', 'sway', 'pulse', 'tw', 'tw', 'sway', 'tw', 'tw',
-  'rise', 'sway', 'dash', 'spin', 'tw', 'sway', 'tw', 'tw', 'tw', 'spin', 'sway', 'spin', 'sway', 'rise'];
-
-// 예전 카드(*강조* 글)는 서식 글로 바꿔서 읽어요
-const toHtml = t => esc(t || '').replace(/\*(.+?)\*/g, '<b>$1</b>');
-const rebusHtmlOf = c => c.html ?? toHtml(c.text);
-
-// 그림 자리: 씨앗으로 섞은 순서대로(같은 것이 가까이 붙지 않음), 1~3어절마다 한 번.
-// 단어를 다 쓰고 띄어 쓴 뒤에만 붙고, 앞쪽 그림은 뒤에 글을 더 써도 바뀌지 않아요 (쓰는 동안 글이 흔들리지 않게)
-function objectSpots(text, seed) {
-  const r = rng(seed || 1), order = OBJ.map((_, i) => i);
-  for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
-  const nextGap = () => 1 + Math.floor(r() * 3);
-  let gap = Math.max(2, nextGap()), run = 0, k = 0;
-  const out = [];
-  for (const m of text.matchAll(/\S+/g)) {
-    run++;
-    const end = m.index + m[0].length;
-    if (run >= gap && end < text.length) { out.push([end, order[k++ % order.length]]); run = 0; gap = nextGap(); }
-  }
-  return out;
-}
-const objPos = (root, o) => { const r = document.createRange(); r.selectNodeContents(root); r.setEndBefore(o); return r.toString().length; };
-// 글 사이에 그림을 넣거나 맞춰요. 바뀐 게 없으면 손대지 않아요(커서가 그대로). 바꿨으면 true
-export function placeObjects(root, seed) {
-  const want = objectSpots(root.textContent, seed), have = [...root.querySelectorAll('.o')];
-  if (want.length === have.length && have.every((o, i) => +o.dataset.k === want[i][1] && objPos(root, o) === want[i][0])) return false;
-  have.forEach(o => o.remove()); root.normalize();
-  for (let i = want.length - 1; i >= 0; i--) {
-    const [pos, k] = want[i], s = document.createElement('span');
-    s.className = 'o'; s.contentEditable = 'false'; s.dataset.k = k; s.dataset.m = MOTION[k] || 'tw'; s.innerHTML = OBJ[k];
-    const r = rangeAt(root, pos, pos); r.collapse(true); r.insertNode(s);
-  }
-  return true;
-}
-
-// 쓰는 중 브라우저가 넣는 붙은 칸(&nbsp;)은 보여 줄 때 보통 칸으로 (줄이 자연스럽게 바뀌게)
-const soft = (h, edit) => edit ? h : h.replace(/&nbsp;/g, ' ');
-function rebus(c, { edit = false } = {}) {
-  const el = document.createElement('div');
-  el.className = 'cd rebus' + (edit ? ' edit' : '');
-  const html = soft(rebusHtmlOf(c), edit), empty = !html.replace(/<[^>]+>/g, '').trim();
-  const foot = [dateOn(c) ? `${dateChip(c.date).split(' ')[0]} ${weekday(c.date)}` : '', placeOn(c) ? c.place.trim() : ''].filter(Boolean).map(esc).join(' · ');   // 10.22 목요일 · 장소 (글포맷처럼 날짜 먼저)
-  const a = c.align || {}, ta = `text-align:${{ l: 'left', c: 'center', r: 'right' }[a.h || 'l']};line-height:${(1.34 * (LH[c.lh] || 1)).toFixed(3)}`, sg = signOf(c), fz = { xs: 3.2, s: 3.5, m: 3.889, l: 4.4, xl: 4.8 }[c.size] || 3.889;
-  el.dataset.dp = foot ? infoPos(c) : 'none';
-  el.classList.toggle('hsg', !!sg); el.style.setProperty('--dl', fz + 'cqw');
-  el.innerHTML = `<div class="rb body" data-sz="${RB_SIZES[c.size] || RB_SIZES.m}" data-v="${a.v || 't'}" style="${ta}" ${edit ? 'contenteditable="true" spellcheck="false" autocapitalize="off"' : ''}>${empty && !edit ? '<span class="ph">오늘 있었던 일을 써 보세요.</span>' : html}</div>
-    ${edit ? `<div class="rb exm" style="${ta}">${FORMATS.rebus.sample.html}</div>` : ''}
-    <div class="foot" style="font-size:${fz}cqw;justify-content:${{ left: 'flex-start', center: 'center', right: 'flex-end' }[dhOf(c)]}"><span>${foot}</span></div>${sg ? `<div class="sgn" data-h="${sg}" style="font-size:${fz}cqw">${esc(c.signTxt)}</div>` : ''}`;
-  shape(el, arOf(c));
-  placeObjects(el.querySelector('.rb'), c.seed);
-  el.querySelectorAll('.o').forEach(o => { o.dataset.m = MOTION[o.dataset.k] || 'tw'; });   // 예전에 저장된 그림도 움직임 종류를 붙여요
-  if (edit) placeObjects(el.querySelector('.exm'), FORMATS.rebus.sample.seed);
-  el.classList.toggle('empty', empty);
-  return el;
-}
-
-// 그림 문장 글자 크기: 고른 크기 그대로(큰 140 · 중간 116 · 작은 96, 1080 기준). 저절로 줄이지 않아서 쓰는 동안 줄이 흔들리지 않아요.
-// 넘치면 카드가 아래로 길어지고 저장할 때 장으로 나뉘어요. 한 장에 들어가면 위 · 가운데 · 아래 자리에 놓아요.
-// 쓰는 중(키보드 올라옴)에는 늘 위에서부터: 줄이 늘어도 글이 밀리지 않게. 고른 자리는 키보드를 내리면 적용돼요.
-// 빈 카드에서는 흐린 예시 글이 고른 크기 · 자리를 그대로 따라가요 (누르면 바로 보이게)
-// 카드 높이는 글 높이를 직접 재서 정해요 (아이폰 브라우저는 4:5 상자가 글 따라 늘어나지 않아요)
-const RB_SIZES = { xl: 164, l: 140, m: 116, s: 96, xs: 84 };
-// 9:16 안전 영역 (1080 기준 위 · 아래로 더 비우는 만큼): 위 13% · 아래 22%에서 원래 여백을 뺀 값
-export const SAFE916 = [186, 358];
-// 날짜 줄 · 서명 자리만큼 글 위 · 아래 여백 (1080 기준). 서명은 맨 아래, 날짜 줄이 아래면 서명 위로 한 줄
-export function rbMargins(el) {
-  const dp = el.dataset.dp, sg = el.classList.contains('hsg');
-  let mt = dp === 'top' ? 170 : 72, mb = (dp === 'bottom' ? 170 : 72) + (sg ? (dp === 'bottom' ? 80 : 98) : 0);
-  if (el.classList.contains('r916')) { mt += SAFE916[0]; mb += SAFE916[1]; }   // 9:16: 스토리 · 릴스 위아래 가리는 자리를 비워요
-  return [mt, mb];
-}
-function fitRebus(el) {
-  const p = el.querySelector('.rb'); if (!p) return;
-  const W = el.clientWidth; if (!W) return;
-  const s = W / 1080, H = W * (+el.dataset.ar || 1.25);
-  const [mt, mb] = rbMargins(el);
-  const ex = el.querySelector('.exm'), box = ex && el.classList.contains('empty') ? ex : p;
-  p.style.fontSize = px(+p.dataset.sz || 116); if (ex) ex.style.fontSize = p.style.fontSize;
-  p.style.marginBottom = px(mb);
-  const need = box.offsetHeight + (mt + mb) * s;
-  let top = mt * s;
-  if (need > H + 1) el.style.height = Math.ceil(need) + 'px';
-  else {
-    el.style.height = H + 'px';
-    const v = el.closest('.wr.typ') ? 't' : p.dataset.v || 't';
-    if (v !== 't') top += (H - need) * ({ tm: .25, m: .5, bm: .75, b: 1 }[v] ?? .5);
-  }
-  p.style.marginTop = top + 'px'; if (ex) ex.style.marginTop = top + 'px';
-}
 
 // ── 글포맷 ────────────────────────────────────────────────
 // 장마다 배경 · 글 위치를 따로 둘 수 있어요 (c.pst[i]). 없으면 카드 값 (글꼴 · 크기 · 날짜는 늘 카드 전체)
@@ -224,7 +102,7 @@ function bgLayer(c, page, pages) {
 
 function text(c, { edit = false } = {}) {
   const el = document.createElement('div');
-  el.className = 'cd text' + (c.fmt === 'art' ? ' art' : '') + (edit ? ' edit' : '');
+  el.className = 'cd text' + (FORMATS[c.fmt]?.cls ? ' ' + FORMATS[c.fmt].cls : '') + (edit ? ' edit' : '');
   const fo = fontOf(c.font);
   const pages = (c.pages?.length ? c.pages : ['']).map(h => soft(h, edit));
   const dp = infoPos(c), sg = signOf(c), dl = ((DL[c.size] || DL.m) * fo.k).toFixed(3);
@@ -310,14 +188,8 @@ function fitText(el) {
   });
 }
 
+// 그리는 틀. 기본(글 + 포토)만 앱 안에 있고, 템플릿 틀은 저마다 폴더(app/new/tpl/<틀>/tpl.js)에 있어서 볼 때만 불러와요
 export const FORMATS = {
-  rebus: {
-    id: 'rebus', name: '멤피스 문장', info: '짧은 글 · 사진 없음 · 사계절', paid: true,
-    // 쓰기 화면 도구: style = 서식 줄(글꼴·크기·좌우·위아래), bg = 배경 줄, dp = 날짜 위치. 디자인 포맷은 모양이 정해져 있어 대부분 꺼요
-    tools: { photo: false, emo: false, page: false, shuf: true, style: true, font: false, bg: false, dp: true },
-    sample: { html: '친구랑 통화를 <b>오래</b> 했다. 별일 없는 이야기에 <mark>웃음</mark>이 많은 밤.', seed: 7 },
-    render: rebus, fit: fitRebus,
-  },
   // 기본: 글 + 포토 (10-30 합침). 색 배경은 무료, 내 사진 · 영상은 저장 양에 따라 유료(결제 붙일 때). 필터는 사진 · 영상인 장에서만
   text: {
     id: 'text', name: '기본', info: '모든 길이 · 색 · 내 사진 · 영상', paid: false,
@@ -325,34 +197,53 @@ export const FORMATS = {
     sample: { pages: ['출근길에 버스를 한 대 놓쳤는데 덕분에 하늘을 오래 봤다. 오늘은 그걸로 됐다.'], bg: { id: 'g1', dim: 'dark' } },
     render: text, fit: fitText, rich: true,
   },
-  // 아트 포맷 #1: 앤드류 작품(세로 오로라 빛줄기)을 코드로. 그림이 작품이라 배경은 정해 두고 셔플로 새 그림, 글꼴은 고를 수 있어요
-  art: {
-    id: 'art', name: '오로라 커튼', info: '아트 · 셔플할 때마다 새 그림 · 흐르는 빛', paid: true, rich: true,
-    tools: { photo: false, emo: false, page: true, shuf: true, style: true, font: true, bg: 'art', dp: true },
-    sample: { pages: ['창밖 불빛이 번져 보이는 밤. 오늘 하루도 천천히 흘러갔다.'], bg: { id: 'bands', dim: 'dark', seed: 11 } },
-    render: text, fit: fitText,
-  },
 };
+// 템플릿 틀이 같이 쓰는 공용 그리기 (장으로 쓰는 글 카드)
+export { text as renderText, fitText };
+// 틀 불러오기: 한 번만, 실패하면 이번에는 다시 안 해요 (빈 자리로 보여요)
+const LOAD = {}, BAD = new Set(), FAILS = [];
+export const onFail = f => FAILS.push(f);   // 틀 폴더가 없을 때 (템플릿 목록에서 빼요)
+const css = href => new Promise(ok => { if (document.querySelector(`link[href="${href}"]`)) return ok(); const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = href; l.onload = l.onerror = () => ok(); document.head.appendChild(l); });
+export const failed = f => BAD.has(f);
+export function ensure(f) {
+  if (FORMATS[f]) return Promise.resolve(true);
+  if (!/^[a-z0-9-]{2,40}$/.test(f || '') || BAD.has(f)) return Promise.resolve(false);
+  return LOAD[f] ||= import(`../tpl/${f}/tpl.js`).then(async m => {
+    const d = m.default; if (!d || typeof d.render !== 'function') throw new Error('bad template ' + f);
+    if (d.css) await css(new URL(`../tpl/${f}/tpl.css`, import.meta.url).href);
+    FORMATS[f] = { fit() {}, ...d, id: f }; return true;
+  }).catch(e => { console.warn(e); BAD.add(f); delete LOAD[f]; FAILS.forEach(cb => cb(f)); return false; });
+}
+// 화면에 필요한 틀이 다 있는지 (없는 것 목록, 실패한 건 빼고)
+export const missing = fmts => [...new Set(fmts)].filter(f => f && !FORMATS[f] && !BAD.has(f));
 export const ORDER = ['rebus', 'art', 'text'];
 // 피드 · 쓰기 위에 보이는 '종류 · 템플릿'
 export const LABEL = { text: '기본', rebus: '디자인 · 멤피스 문장', art: '아트 · 오로라 커튼' };
 
 export function blank(fmt, date) {
-  if (fmt === 'art') return { fmt, date, place: '', pages: [''], bg: { id: 'bands', dim: 'dark', seed: newSeed() }, align: { h: 'l', v: 'm' }, datePos: 'none', font: 'sans', size: 'm' };
-  return fmt === 'rebus'
-    ? { fmt, date, place: '', html: '', seed: newSeed(), size: 'm', align: { h: 'l', v: 't' }, datePos: 'bottom' }
-    : { fmt, date, place: '', pages: [''], bg: { id: 'g1', dim: 'dark', seed: newSeed() }, align: { h: 'l', v: 'm' }, datePos: 'none', font: 'serif', size: 'm' };
+  const d = FORMATS[fmt];
+  if (d?.blank) return { fmt, date, place: '', ...d.blank() };
+  return { fmt, date, place: '', pages: [''], bg: { id: 'g1', dim: 'dark', seed: newSeed() }, align: { h: 'l', v: 'm' }, datePos: 'none', font: 'serif', size: 'm' };
 }
-export const sampleCard = (fmt, date) => ({ ...blank(fmt, date), ...structuredClone(FORMATS[fmt].sample), sample: true });
+export const sampleCard = (fmt, date) => ({ ...blank(fmt, date), ...structuredClone(FORMATS[fmt]?.sample || {}), sample: true });
 
-export function renderCard(c, opt) { return FORMATS[c.fmt].render(c, opt || {}); }
-export function fitCard(el, c) { FORMATS[c.fmt].fit(el); }
+// 틀이 아직 없으면(불러오는 중 · 실패) 같은 비율의 빈 자리. 다 불러오면 그 자리에서 카드로 바뀌어요
+function waitCard(c, opt) {
+  const el = shape(document.createElement('div'), arOf(c)); el.className += ' cd wait'; el.style.aspectRatio = `1 / ${arOf(c)}`;
+  ensure(c.fmt).then(ok => { if (!ok || !el.isConnected) return; const n = renderCard(c, opt); el.replaceWith(n); requestAnimationFrame(() => fitCard(n, c)); });
+  return el;
+}
+// 한 덩어리 글로 쓰는 틀: 쓰는 중 낱말 사이 그림 붙이기 · 저장할 때 위아래 여백
+export const placeObjects = (root, seed, fmt) => FORMATS[fmt]?.place?.(root, seed) || false;
+export const rbMargins = (el, fmt) => FORMATS[fmt]?.margins?.(el) || [72, 72];
+export function renderCard(c, opt) { return FORMATS[c.fmt] ? FORMATS[c.fmt].render(c, opt || {}) : waitCard(c, opt); }
+export function fitCard(el, c) { if (!el.classList.contains('wait')) FORMATS[c.fmt]?.fit(el); }
 // 줄(div·h2·h3·li)과 <br>은 줄바꿈으로: 요약 글에서 줄끼리 붙지 않게
 const plain = h => { const d = document.createElement('div'); d.innerHTML = (h || '').replace(/<br\s*\/?>|<\/(div|h2|h3|li|p)>/gi, m => m + '\n'); return d.textContent; };
-export const cardText = c => c.fmt === 'rebus' ? plain(rebusHtmlOf(c)) : (c.pages || []).map(plain).join('\n');
+export const cardText = c => c.pages ? c.pages.map(plain).join('\n') : plain(rebusHtmlOf(c));
 // 피드 바탕에 은은하게 번지는 색: 카드의 대표 색
 export function toneOf(c) {
-  if (c.fmt === 'rebus') return V;
+  const own = FORMATS[c.fmt]?.tone?.(c); if (own) return own;
   if (c.bg?.id === 'hex' && c.bg.hex) return c.bg.hex;
   const b = findBg(c.bg?.id);
   if (b.photo) return c.bg.tone || b.tone;

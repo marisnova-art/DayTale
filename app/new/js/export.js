@@ -1,6 +1,6 @@
 // 카드 → 4:5 장들. 저장할 땐 1080×1350 이미지로, 피드에선 같은 장을 화면 폭으로 그려서 옆으로 넘겨 봐요
 // (쓰는 동안은 한 장의 긴 카드, 나누는 건 여기서만. 줄이 잘리지 않게 줄 단위로 나눠요)
-import { renderCard, fitCard, cardText, rbMargins, lines, starts, shape, arOf, signOf } from './formats.js';
+import { ensure, renderCard, fitCard, cardText, rbMargins, lines, starts, shape, arOf, signOf } from './formats.js';
 import { drawCode } from './bg.js';
 import { ready } from './stickers.js';
 import { fontOf } from './fonts.js';
@@ -51,7 +51,7 @@ async function rebusPages(c, W, ar) {
   const H = Math.round(W * ar), s = W / 1080, h = host(W), el = shape(renderCard(c), ar); h.appendChild(el); fitCard(el, c);
   await document.fonts.ready; fitCard(el, c);
   if (el.offsetHeight <= H + 1) { el.style.height = H + 'px'; return { h, nodes: [el] }; }
-  const [mt, mb] = rbMargins(el);
+  const [mt, mb] = rbMargins(el, c.fmt);
   const p = el.querySelector('.rb'), avail = H - (mt + mb) * s;
   const st = starts(lines(p), avail);
   const nodes = st.map((off, i) => {
@@ -97,9 +97,10 @@ async function textPages(c, W, ratio, ar) {
 
 // 카드를 장들로 (카드의 비율). 돌려받은 h(화면 밖 상자)는 다 쓰고 지워야 해요
 export async function buildPages(c, W, ratio = 1, ar = arOf(c)) {
-  if (c.fmt !== 'rebus') { const d = document.createElement('div'); d.innerHTML = (c.pages || []).join(''); await ready(d); }   // 이모티콘 그림을 먼저 받아 둬요
+  await ensure(c.fmt);   // 템플릿 틀은 볼 때만 불러와요
+  if (c.pages) { const d = document.createElement('div'); d.innerHTML = (c.pages || []).join(''); await ready(d); }   // 이모티콘 그림을 먼저 받아 둬요
   await prep(c);   // 포토 포맷: 필터를 건 사진을 먼저 만들어 둬요 (그래야 저장 이미지에도 필터가)
-  return c.fmt === 'rebus' ? rebusPages(c, W, ar) : textPages(c, W, ratio, ar);
+  return !c.pages ? rebusPages(c, W, ar) : textPages(c, W, ratio, ar);
 }
 
 // 아이폰(WebKit)은 처음 그릴 때 배경 사진을 빼먹곤 해서: 사진을 먼저 풀어 두고, 한 번 미리 그린 뒤, 나온 그림을 확인해요
@@ -132,7 +133,7 @@ export const cardImages = (c, o = {}) => one(async () => {
   await document.fonts.ready;
   const pick = o.pages ? o.pages.filter(i => all[i]) : all.map((_, i) => i);
   try {
-    const fontEmbedCSS = await fontCss(cardText(c) + (c.place || '') + (signOf(c) ? c.signTxt : '') + '0123456789.·/ 일월화수목금토요', c.fmt !== 'rebus' ? c.font || 'serif' : 'sans');
+    const fontEmbedCSS = await fontCss(cardText(c) + (c.place || '') + (signOf(c) ? c.signTxt : '') + '0123456789.·/ 일월화수목금토요', c.pages ? c.font || 'serif' : 'sans');
     const opt = { width: W, height: H, pixelRatio: ar < .6 ? 16 / 9 : 1,   // 16:9는 1920×1080으로 (PC · 유튜브 크기)
       fontEmbedCSS, cacheBust: false };
     const files = [], failed = [];

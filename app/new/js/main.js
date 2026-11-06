@@ -2,7 +2,7 @@
 import { ic } from './icons.js';
 import * as S from './store.js';
 import { exampleText, quoteText } from './prompts.js';
-import { FORMATS, ORDER, LABEL, blank, sampleCard, renderCard, fitCard, cardText, newSeed, placeObjects, dateChip, weekday, toneOf, pageBg, AR, RATIOS, arOf, dateOn, placeOn, infoPos, signOf, SIZE5, V5, dimLv, inkOn, dateLine, DATE_FMT, zoomOf, zoomCss, lines, starts } from './formats.js';
+import { FORMATS, ORDER, LABEL, ensure, missing, blank, sampleCard, renderCard, fitCard, cardText, newSeed, placeObjects, dateChip, weekday, toneOf, pageBg, AR, RATIOS, arOf, dateOn, placeOn, infoPos, signOf, SIZE5, V5, dimLv, inkOn, dateLine, DATE_FMT, zoomOf, zoomCss, lines, starts } from './formats.js';
 import { FREE, KIND, find as findBg, drawCode } from './bg.js';
 import { buildPages, saveImages } from './export.js';
 import { saveCard, pill, pillOff } from './save.js';
@@ -41,6 +41,26 @@ function sheet(head, groups) {
   lockBg(); document.body.appendChild(bg);
 }
 
+// 템플릿 견본 칸 (11-06 템플릿 틀): 정지 그림(t.thumb)이 있으면 그림만, 없으면 진짜 카드. 1,000개가 넘어도 목록이 가볍게.
+// 정지 그림 칸은 화면 가운데 하나만 진짜 카드로 바꿔 움직여요 (liveMid → liveThumb). bare = 글 없이(아트), r45 = 4:5로
+function tplTile(host, t, bare = true, r45 = false) {
+  if (!host || !t) return;
+  host.querySelectorAll(':scope > .cd, :scope > img.tth').forEach(x => x.remove());   // 잠금 표시 등은 그대로
+  if (t.thumb && !host._live) { Object.assign(host.dataset, { th: t.id, bare: bare ? 1 : 0, r45: r45 ? 1 : 0 }); host.insertAdjacentHTML('beforeend', `<img class="tth" src="${esc(t.thumb)}" alt="" loading="lazy" decoding="async">`); return; }
+  const c = T.exCard(t, 0, bare); if (r45 && c.ratio) c.ratio = '45'; mount(host, c);
+}
+let liveTh = null;
+function liveThumb(list) {
+  const H = innerHeight, W = innerWidth; let best = null, bd = 1e9;
+  list.forEach(it => { const h = it.querySelector('[data-th]'); if (!h) return; const r = h.getBoundingClientRect();
+    if (!r.width || r.bottom <= H * .3 || r.top >= H * .6 || r.right <= 0 || r.left >= W) return;
+    const d = Math.abs((r.top + r.bottom) / 2 - H * .45) + Math.abs((r.left + r.right) / 2 - W / 2) * .5; if (d < bd) { bd = d; best = h; } });
+  if (best === liveTh) return;
+  const swap = (h, on) => { const t = T.tpl(h.dataset.th); if (!t) return; h._live = on; tplTile(h, t, h.dataset.bare === '1', h.dataset.r45 === '1'); const it = h.closest('.tt, .fi, .wt'); if (it) it.dataset.kd = ''; };
+  if (liveTh?.isConnected) swap(liveTh, 0);
+  liveTh = best; if (best) swap(best, 1);
+}
+
 // 카드를 넣고 나서 크기에 맞춰 다시 재요 (글꼴이 늦게 와도 한 번 더)
 function mount(host, c, opt) {
   const el = renderCard(c, opt); host.appendChild(el);
@@ -59,12 +79,25 @@ const hueAt = p => {
 };
 
 /* ── 라우터 ─────────────────────────────────────────── */
+// 화면마다 필요한 그리는 틀: 기본 템플릿 · 내 카드 · 쓰다 만 글 · 휴지통 (모든 화면) + 템플릿 화면은 정지 그림이 없는 템플릿 + 쓰기는 그 템플릿
+function fmtsFor(r, a) {
+  const out = [...ORDER, ...S.cards().map(c => c.fmt)];   // 앱 안 기본 템플릿 틀(ORDER)은 늘: 피드 견본 카드에 써요
+  S.drafts().forEach(d => d.card && out.push(d.card.fmt)); S.trash().forEach(c => out.push(c.fmt));
+  if (r === 'tpl' || r === 'pick' || r === 'ti') { T.TEMPLATES.forEach(t => { if (!t.thumb) out.push(t.fmt); }); T.heroes().forEach(h => out.push(h.t?.fmt)); }   // 위 판은 늘 진짜 카드
+  if (r === 'ti' && a) out.push(T.tpl(a)?.fmt);
+  if (r === 'write' && a?.startsWith('t-')) out.push(T.tpl(a.slice(2))?.fmt);
+  else if (r === 'write' && a && !a.startsWith('draft-')) out.push(a);
+  return out;
+}
 let cleanup = null, curHash = null, lastHash = null;   // 뒤로 = 바로 전 화면 (책 → 책장 · 달력)
 function route() {
   cleanup?.(); cleanup = null;
   if (lockN) { lockN = 0; const bs = document.body.style; bs.position = bs.top = bs.left = bs.right = ''; }   // 시트가 열린 채 화면이 바뀌면 고정을 풀어요
-  lastHash = curHash; curHash = location.hash;
   const [r, a] = location.hash.replace(/^#\/?/, '').split('/');
+  // 템플릿 틀은 볼 때만 불러와요: 이 화면에 필요한 틀이 없으면 먼저 받고 다시 그려요 (뒤로 기록은 그대로)
+  const need = missing(fmtsFor(r, a));
+  if (need.length) { const h = location.hash; Promise.all(need.map(ensure)).then(() => { if (location.hash === h) route(); }); return; }
+  lastHash = curHash; curHash = location.hash;
   window.scrollTo(0, 0);
   if (r !== 'write') pickEx = null;   // 포맷 고르기에서 보여 준 예시 글은 바로 이어지는 쓰기에서만
   if (r !== 'edit') editFrom = null;   // 책장 · 달력에서 고치러 간 기록은 고치기 화면 동안만
@@ -425,7 +458,7 @@ function banner(rec) {
 // 글만보기 (2열 ⋯): 포맷과 상관없이 글만, 한 가지 글꼴 · 크기. 바탕은 무료 그라데이션 중 하나 + 살짝 어둡게. 누르면 닫혀요
 function openRead(c) {
   const gs = FREE.filter(b => b.kind === 'g'), b = gs[Math.floor(Math.random() * gs.length)];
-  const parts = c.fmt === 'rebus' ? [cardText(c)] : (c.pages || []).map(h => cardText({ ...c, pages: [h] }));
+  const parts = !c.pages ? [cardText(c)] : (c.pages || []).map(h => cardText({ ...c, pages: [h] }));
   const d = c.date || S.today(), place = (c.place || '').trim();
   const rv = document.createElement('div'); rv.className = 'rv';
   rv.innerHTML = `<div class="rbg" style="background:${b.css}"></div><div class="rin"><p class="dl">${+d.slice(0, 4)}년 ${+d.slice(5, 7)}월 ${+d.slice(8, 10)}일${place ? ' · ' + esc(place) : ''}</p>
@@ -533,7 +566,7 @@ function alarmSheet(c) {
 function infoSheet(c) {
   const t = T.tplOfCard(c), b = pageBg(c, 0);
   const bgName = b?.id === 'photo' ? (b.vd ? '내 영상' : '내 사진') : b?.id === 'hex' ? '직접 색' : b?.id ? `${KIND[findBg(b.id).kind] || ''} ${findBg(b.id).name || ''}`.trim() : '—';
-  const txt = cardText(c), n = c.fmt === 'rebus' ? 1 : (c.pages || []).length || 1;
+  const txt = cardText(c), n = !c.pages ? 1 : (c.pages || []).length || 1;
   const dt = iso => iso ? stamp(iso) : '—';
   const edited = c.updated && c.created && Date.parse(c.updated) - Date.parse(c.created) > 6e4;
   const rows = [['종류', t?.kind || '기본'], ['템플릿', t?.name || '기본'], ['비율', (RATIOS.find(r => r[0] === (c.ratio || '45')) || RATIOS[0])[1]],
@@ -598,7 +631,7 @@ function viewNotes(fromSet) {
       gp.insertAdjacentHTML('beforeend', rowOf(n));
       const b = gp.lastElementChild, v = $('.view', b);
       if (n.k === 'card') { const c = S.card(n.cid); if (c) { v.style.aspectRatio = (1 / arOf(c)).toFixed(4); mount(v, { ...c, pages: c.pages?.slice(0, 1), pst: c.pst?.slice(0, 1) }); } }
-      if (n.k === 'tpl') { const t = T.tpl(n.tid); if (t) { const ec = T.exCard(t, 0); if (ec.ratio) ec.ratio = '45'; mount(v, ec); } }
+      if (n.k === 'tpl') tplTile(v, T.tpl(n.tid), false, true);
     });
     shown = Math.min(list.length, shown + 30);
   };
@@ -1035,7 +1068,7 @@ function liveMid(items, { video = true, art = true, home = false, hold = () => f
   const vidOf = b => { const c = b?._card, cv = c && $$('canvas.bgv', b).find(x => { const r = x.getBoundingClientRect(); return r.width && r.bottom > 0 && r.top < innerHeight; }); if (!cv) return null; const i = +(cv.closest('.pg')?.dataset.i || 0), bg = pageBg(c, i); return bg?.vd ? { cv, b: bg, fid: fidOf(c), onCover: cov => fixCover(c, i, bg, cov) } : null; };
   const lenMs = b => { const v = b && b._card && hasVideo(b._card) && vidOf(b); return v ? V.lenOf(v.b) * 1000 + 300 : MOT; };
   const pick = () => {
-    const list = items(); list.forEach(markKind);
+    const list = items(); liveThumb(list); list.forEach(markKind);
     const now = Date.now(), next = all ? list.slice(0, 1) : chooseMoving(list, home);
     if (next.length !== pair.length || next.some((x, i) => x !== pair[i])) { pair = next; pi = 0; }
     else if (pair.length > 1 && now - since > lenMs(pair[pi])) pi = (pi + 1) % pair.length;
@@ -1660,7 +1693,7 @@ function viewTpl() {
         ${first}${rows.map(r => `<div class="tsec"><b>${esc(r.title)}</b><button data-c="${esc(r.c)}">모두 보기</button></div><div class="trow">${r.l.map(t => tile(t)).join('')}</div><div class="mdots"></div>`).join('')}
         <div class="tsec"><b>모든 템플릿</b></div><div class="tg2">${T.newest().map(t => tile(t)).join('')}</div>`;
       hs.forEach((h, i) => mount($$('.tday .th', body)[i], cardOf(h.t)));
-      $$('.tt', body).forEach(b => mount($('.tc', b), cardOf(T.tpl(b.dataset.t))));
+      $$('.tt', body).forEach(b => tplTile($('.tc', b), T.tpl(b.dataset.t)));
       // 위 판: 옆으로 넘기기 + 5초마다 저절로 (손대면 멈춤)
       const ths = $('.ths', body), dots = $('[data-for=ths]', body), n = hs.length;
       const k = () => Math.round(ths.scrollLeft / Math.max(1, ths.clientWidth));
@@ -1680,7 +1713,7 @@ function viewTpl() {
       l = l.filter(t => T.hit(t, q));
       body.innerHTML = l.length ? `<div class="tg2 solo">${l.map(t => tile(t)).join('')}</div>`
         : `<div class="tempty"><span class="i">${f === 'fav' && !q ? HEART : ic('search')}</span><b>${f === 'fav' && !q ? '하트 누른 템플릿이 여기 모여요' : '맞는 템플릿이 없어요'}</b></div>`;
-      $$('.tt', body).forEach(b => mount($('.tc', b), cardOf(T.tpl(b.dataset.t))));
+      $$('.tt', body).forEach(b => tplTile($('.tc', b), T.tpl(b.dataset.t)));
     }
   };
   const setF = f => { tstate.f = f; paint(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
@@ -1694,7 +1727,7 @@ function viewTpl() {
       tstate.sort = sb.dataset.s; $$('.tbs button').forEach(b => b.classList.toggle('on', b === sb));
       $('.tabs [data-c]').dataset.c = 's:' + tstate.sort;
       const r = $('[data-row=sort]'); r.innerHTML = T.sorted(tstate.sort).slice(0, 8).map(t => tile(t)).join(''); r.scrollLeft = 0;
-      $$('.tt', r).forEach(b => mount($('.tc', b), T.exCard(T.tpl(b.dataset.t), 0, true))); r.dispatchEvent(new Event('scroll')); return;
+      $$('.tt', r).forEach(b => tplTile($('.tc', b), T.tpl(b.dataset.t))); r.dispatchEvent(new Event('scroll')); return;
     }
     const c = e.target.closest('.tsec [data-c]'); if (c) { $(`.tch [data-c="${c.dataset.c}"]`)?.scrollIntoView({ inline: 'center', block: 'nearest' }); return setF(c.dataset.c); }
     const t = e.target.closest('[data-t]'); if (t) go('#/ti/' + t.dataset.t);
@@ -1795,7 +1828,7 @@ function viewPick(sub) {
       <div class="tg2 solo">${L[k].map(t => `<button class="tt" data-t="${t.id}"><div class="tc"></div><div class="nm"><span>${esc(t.name)}</span></div></button>`).join('')}</div></main>${nav('write')}`;
     bindNav();
     const stopMood = paintMood($('.amb'));
-    $$('.tt').forEach(b => mount($('.tc', b), T.exCard(T.tpl(b.dataset.t), 0, true)));
+    $$('.tt').forEach(b => tplTile($('.tc', b), T.tpl(b.dataset.t)));
     $('[data-a=back]').onclick = () => { if (/^#\/pick\/?$/.test(lastHash || '')) history.back(); else location.replace('#/pick'); };
     $('.wall').addEventListener('click', e => { const b = e.target.closest('.tt[data-t]'); if (b) go('#/ti/' + b.dataset.t); });
     cleanup = () => { stopMood(); };
@@ -1818,7 +1851,7 @@ function viewPick(sub) {
   bindNav();
   const stopMood = paintMood($('.amb'));
   const fill = root => {
-    $$('.wt[data-t]', root).forEach(b => mount($('.wc', b), cardFor(T.tpl(b.dataset.t))));
+    $$('.wt[data-t]', root).forEach(b => tplTile($('.wc', b), T.tpl(b.dataset.t), false, true));
     $$('.wt[data-d]', root).forEach(b => { const d = S.draft(b.dataset.d); if (d) mount($('.wc', b), { ...d.card, ratio: '45' }); });
   };
   mount($('[data-k=color] .wc'), { ...blank('text', S.today()), bg: lastColor(), pages: [''], showDate: false });
@@ -2100,7 +2133,7 @@ function viewWrite({ fmt, id, like }) {
       bodies().forEach((b, i) => {
         const want = rich ? card.pages[i] : card.html, at = caretIn(b);
         if (clean(b.innerHTML) !== want) { b.innerHTML = want; hydrate(b); }
-        if (!rich) placeObjects(b, card.seed);
+        if (!rich) placeObjects(b, card.seed, card.fmt);
         if (at && document.activeElement === b) setCaret(b, at);
       });
     } else {
@@ -2151,7 +2184,7 @@ function viewWrite({ fmt, id, like }) {
     else {
       card.html = clean(b.innerHTML);
       const at = caretIn(b);
-      if (placeObjects(b, card.seed) && at) setCaret(b, at);   // 단어를 다 쓰고 띄어 쓰면 그림이 붙어요
+      if (placeObjects(b, card.seed, card.fmt) && at) setCaret(b, at);   // 단어를 다 쓰고 띄어 쓰면 그림이 붙어요
     }
     el.classList.toggle('empty', !hasText());
     fitCard(el, card); count(); tools(); pushLater(); requestAnimationFrame(keepCaret);
@@ -3030,7 +3063,7 @@ function viewSet(sub) {
     ${sgrp(srow('bell', '알림', S.pref('remind', false) ? '켜짐' : '', { go: '#/set/alarm' }), srow('globe', '언어', LANGS[S.pref('lang', 'ko')], { go: '#/set/lang' }))}
     ${sgrp(srow('spark', '서비스 소개', '', { go: '#/set/about' }), srow('help', '도움말', '', { a: 'help' }), srow('bell', '공지사항 · 이벤트', '', { go: '#/set/news' }), srow('clock', '업데이트 소식', UPDATES[0][0], { go: '#/set/updates' }))}
     ${sgrp(srow('doc', '이용약관', '', { a: 'terms' }), srow('shield', '개인정보 처리방침', '', { a: 'privacy' }), srow('lic', '라이선스', '', { a: 'lic' }))}
-    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-06 24차</p>`, { up: '#/me' });
+    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-06 25차</p>`, { up: '#/me' });
   $('[data-a=place]').onclick = e => { const on = !S.pref('autoPlace', false); S.setPref('autoPlace', on); e.currentTarget.querySelector('.tg').classList.toggle('on', on); };
   $('[data-a=terms]').onclick = () => { location.href = '../legal/terms.ko.html'; };
   $('[data-a=privacy]').onclick = () => { location.href = '../legal/privacy.ko.html'; };

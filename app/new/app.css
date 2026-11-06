@@ -30,26 +30,6 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 
 /* 카드 공통: 가로 1080 디자인을 cqw로 */
 .cd { container-type: inline-size; width: 100%; position: relative; border-radius: 14px; overflow: hidden; }
-.cd.rebus { aspect-ratio: 4 / 5; overflow: clip; background: #F3F1EC; color: #2E2D2B; display: flow-root; font-family: 'Pretendard Variable', sans-serif; }
-.cd.rebus .rb { outline: none; margin: 6.667cqw 5.185cqw 15.74cqw 5.926cqw; font-size: 7.778cqw; font-weight: 800; line-height: 1.34; letter-spacing: -.03em; overflow-wrap: break-word; }
-.cd.rebus .rb .ph { color: #B9B5AC; }
-.cd.rebus svg.i { height: .9em; vertical-align: -.1em; margin: 0 .06em; }
-.cd.rebus .rb b, .cd.rebus .rb strong { color: #6C4BD8; font-weight: inherit; }   /* 강조 = 보라 */
-.cd.rebus .rb mark { background: none; color: #F2622E; padding: 0; }                /* 형광펜 = 주황 */
-.cd.rebus .o { display: inline; }
-.cd.rebus .o svg.i { margin: 0 .12em; }
-.cd.rebus .exm { display: none; position: absolute; top: 0; left: 0; right: 0; opacity: .3; pointer-events: none; }
-.cd.rebus.edit.empty .exm { display: block; }
-.cd.rebus.edit .rb { min-height: 1.4em; position: relative; z-index: 1; }
-.cd.rebus.edit .exm { position: absolute; z-index: 0; min-height: 0; }   /* 예시 글은 커서 줄과 같은 자리에 겹쳐요 */
-.cd.rebus .foot { position: absolute; left: 5.926cqw; right: 5.185cqw; bottom: 5.926cqw; display: flex; justify-content: space-between; font-size: 3.889cqw; font-weight: 900; line-height: 1; color: #6C4BD8; }   /* 왼쪽 요일 · 날짜(· 장소), 오른쪽 서명 */
-.cd.rebus.paged { aspect-ratio: auto; }
-.cd.rebus[data-dp=top] .foot { bottom: auto; top: 5.926cqw; }   /* 날짜 위 */
-.cd.rebus.hsg[data-dp=bottom] .foot { bottom: 13.3cqw; }   /* 서명이 있으면 날짜 줄은 서명 한 줄 위 */
-.cd.rebus[data-dp=none] .foot { display: none; }
-.wr .cd.rebus .rb { transition: margin-top .25s ease; }          /* 키보드를 내리면 고른 자리로 부드럽게 */
-.cd.rebus .pgbox { margin: 6.667cqw 5.185cqw 0 5.926cqw; }
-.cd.rebus .pgbox .rb { margin: 0; }
 .cd .clip { overflow: hidden; flex: none; }
 
 .cd.text { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
@@ -84,7 +64,6 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .cd.text.one { display: block; overflow: hidden; border-radius: 0; }
 /* 예시: 아직 아무것도 안 썼을 때 흐린 예시 글 + '예시' 표시 */
 .cd.edit.empty .pg[data-i="0"]::after, .cd.rebus.edit.empty::after { content: '예시'; position: absolute; left: 50%; transform: translateX(-50%); bottom: 2.6cqw; font: 700 2.8cqw/1 var(--ui); padding: 1cqw 2.4cqw; border-radius: 99px; background: rgba(0,0,0,.28); color: #fff; pointer-events: none; }
-.cd.rebus.edit.empty::after { background: rgba(46,45,43,.12); color: #6b6862; bottom: auto; top: 3cqw; left: auto; right: 4cqw; transform: none; }
 
 /* 피드: 위 줄은 같이 스크롤(흐림 없음). 가운데 카드 색이 바탕에 번지고, 그 카드만 움직여요 */
 .amb { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
@@ -150,20 +129,7 @@ body.paused .amb b { animation-play-state: paused; }
 .fi .ours { padding-left: 8px; display: flex; gap: 8px; align-items: center; font-size: var(--fs-s); font-weight: var(--fw); }
 .fi .ours i { font-style: normal; background: #fff; color: var(--bg); font-size: var(--fs-s); padding: 2px 6px; border-radius: 8px; }
 /* 모션: 가운데 카드만. 아트 배경은 JS가 그림 자체를 흘려요(main.js). 그림 문장은 처음 볼 때 그림이 톡톡 나온 뒤, 그림마다 제 모양대로 잔잔히 */
-.fi.intro .cd.rebus .o svg { animation: pop .7s cubic-bezier(.2, 1.5, .4, 1) both; }
-.fi.intro .cd.rebus .o:nth-of-type(2n) svg { animation-delay: .15s; } .fi.intro .cd.rebus .o:nth-of-type(3n) svg { animation-delay: .3s; }
 @keyframes pop { from { transform: scale(.3); opacity: 0; } }
-.cd.rebus .o svg * { transform-box: fill-box; transform-origin: center; }
-:is(.fi, .tt, .rp).play:not(.intro) .cd.rebus .o[data-m=sway] svg > :is(path, g):last-child { animation: sway 3.2s ease-in-out infinite alternate; }
-:is(.fi, .tt, .rp).play:not(.intro) .cd.rebus .o[data-m=dash] svg [stroke-dasharray] { animation: dash 2.4s linear infinite; }
-:is(.fi, .tt, .rp).play:not(.intro) .cd.rebus .o[data-k="17"] svg [stroke-dasharray] { animation-name: dash2; }
-:is(.fi, .tt, .rp).play:not(.intro) .cd.rebus .o[data-m=tw] svg :is(circle, rect, path):not(:only-child) { animation: tw 3.6s ease-in-out infinite; }
-:is(.fi, .tt, .rp).play:not(.intro) .cd.rebus .o[data-m=tw] svg :nth-child(3n+2) { animation-delay: -1.2s; } :is(.fi, .tt, .rp).play:not(.intro) .cd.rebus .o[data-m=tw] svg :nth-child(3n) { animation-delay: -2.4s; }
-:is(.fi, .tt, .rp).play:not(.intro) .cd.rebus .o[data-m=spin] svg { animation: spin 16s linear infinite; }
-:is(.fi, .tt, .rp).play:not(.intro) .cd.rebus .o[data-m=pulse] svg > :is(circle, path) { animation: pulse 3.6s ease-in-out infinite; }
-:is(.fi, .tt, .rp).play:not(.intro) .cd.rebus .o[data-m=pulse] svg > :nth-child(2) { animation-delay: -1.2s; }
-:is(.fi, .tt, .rp).play:not(.intro) .cd.rebus .o[data-m=rise] svg > :is(rect, path) { transform-origin: bottom; animation: rise 3.6s ease-in-out infinite; }
-:is(.fi, .tt, .rp).play:not(.intro) .cd.rebus .o[data-m=rise] svg > :nth-child(2n) { animation-delay: -1.2s; } :is(.fi, .tt, .rp).play:not(.intro) .cd.rebus .o[data-m=rise] svg > :nth-child(3n) { animation-delay: -2.4s; }
 @keyframes sway { from { transform: translateX(-3px); } to { transform: translateX(3px); } }
 @keyframes dash { to { stroke-dashoffset: -36; } } @keyframes dash2 { to { stroke-dashoffset: -64; } }
 @keyframes tw { 50% { opacity: .35; } }
@@ -220,7 +186,6 @@ html:not(.kb-open):not(.pan) .wr.inf.ki { bottom: var(--kbh, 40vh); }   /* 키�
 .wr .cd.text .pg { flex: 0 0 var(--cw); border-radius: 14px; scroll-snap-align: center; }
 .wr .cd .body { -webkit-user-select: text; user-select: text; caret-color: currentColor; }
 .wr .cd .body:empty::before { content: attr(data-ph); opacity: .55; }
-.wr .cd.rebus { width: var(--cw); margin: 0 auto; border-radius: 14px; }
 
 /* 위 가운데 상태(장 · 글자 수). 알림도 여기에 잠깐 (.ntc) */
 .wr .stt { font: var(--fw) var(--fs-s) var(--ui); color: #d8d8dc; white-space: nowrap; max-width: calc(100% - 120px); overflow: hidden; text-overflow: ellipsis; }
@@ -386,8 +351,6 @@ html.pan .wr .panel { display: grid; }
 .cd .sgn { position: absolute; z-index: 2; bottom: 9.63cqw; line-height: 1.2; opacity: .85; white-space: nowrap; letter-spacing: .1em; }
 .cd .sgn[data-h=r] { right: 9.63cqw; } .cd .sgn[data-h=l] { left: 9.63cqw; } .cd .sgn[data-h=c] { left: 50%; transform: translateX(-50%); }
 .cd .pg.hsg .tx { padding-bottom: calc(9.63cqw + 1.2 * var(--dl) + 4.5cqw); }
-.cd.rebus .sgn { bottom: 5.926cqw; font-weight: 900; line-height: 1; color: #6C4BD8; opacity: 1; letter-spacing: 0; }
-.cd.rebus .sgn[data-h=l] { left: 5.926cqw; } .cd.rebus .sgn[data-h=r] { right: 5.185cqw; }
 
 /* 저장 시트: 겉은 아래 시트, 안은 쓰기 도구 칸(7칸) */
 :root { --m-in: .4s cubic-bezier(.22,1,.36,1); --m-out: .3s cubic-bezier(.4,0,.9,.5); --m-tap: .15s ease; }   /* 앱 공통 움직임: 열기 · 닫기 · 누르기 */
@@ -447,8 +410,6 @@ html.pan .wr .panel { display: grid; }
 .cd.r916 .pg:not(.long) .tx[data-v=b]::before { flex-shrink: 1; }
 .cd.r916 .sgn { bottom: 39.1cqw; } .cd.r916 .sgn[data-h=r] { right: 12cqw; }
 .cd.r916 .pg.hsg .tx { padding-bottom: calc(39.1cqw + 1.2 * var(--dl) + 4.5cqw); }
-.cd.rebus.r916 .foot { bottom: 39.1cqw; right: 12cqw; } .cd.rebus.r916[data-dp=top] .foot { top: 23.1cqw; bottom: auto; }
-.cd.rebus.r916.hsg[data-dp=bottom] .foot { bottom: 46.5cqw; }
 .cd.r916 .bgv { aspect-ratio: 9 / 16; }
 /* 1:1 (여백은 4:5와 같아요) */
 .cd.r11 .pg, .cd.rebus.r11 { aspect-ratio: 1; }
@@ -1574,3 +1535,8 @@ html.lite .pill { color: #141416; box-shadow: inset 0 0 0 1px rgba(20,20,22,.08)
 /* 확인 창: 흰 버튼 (지우는 게 아닌 것) · 버튼 하나 */
 .ask button.wht { background: #fff; color: #141416; }
 .ask div.one { grid-template-columns: 1fr; }
+
+/* 템플릿 틀을 불러오는 동안 같은 비율의 빈 자리 (11-06) */
+.cd.wait { background: rgba(127,127,127,.14); border-radius: inherit; }
+/* 템플릿 견본 정지 그림 (목록용, 가운데 하나만 진짜 카드로 바뀌어 움직여요) */
+img.tth { display: block; width: 100%; aspect-ratio: 4 / 5; object-fit: cover; }

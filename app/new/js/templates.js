@@ -6,7 +6,7 @@
 // 카드는 쓴 템플릿 id(card.tpl)를 저장해요. 그리는 틀(fmt)은 앱 안 코드라, 같은 틀로 템플릿을 여러 개 둘 수 있어요.
 // 목록: 앱 안 기본값(아래) → 폰에 저장해 둔 서버 목록 → 앱을 열 때 서버에서 새로 받아요 (인터넷이 없으면 저장해 둔 것)
 import * as S from './store.js';
-import { sampleCard, FORMATS } from './formats.js';
+import { sampleCard, FORMATS, failed, onFail } from './formats.js';
 
 const BUILTIN = [
   { id: 'rebus', fmt: 'rebus', name: '멤피스 문장', kind: '디자인', pop: 2, added: '2026-10-21', motion: true,
@@ -27,7 +27,7 @@ const dummies = base => {
   const TG = [['밤', '감성'], ['비', '짧은글'], ['아침', '감성'], ['겨울', '밤'], ['가을', '짧은글'], ['눈', '감성'], ['봄', '아침'], ['여름', '비']], out = [];
   const two = ['rebus', 'art'].map(id => base.find(t => t.id === id) || BUILTIN.find(t => t.id === id));
   for (let i = 0; i < 16; i++) {
-    const b = two[i % 2], ex = b.fmt === 'art' ? b.ex.map(([t, sd, r]) => [t, (sd + i * 23) % 97, r]) : [...b.ex.slice(i % 3), ...b.ex.slice(0, i % 3)];
+    const b = two[i % 2], ex = Array.isArray(b.ex[0]) ? b.ex.map(([t, sd, r]) => [t, (sd + i * 23) % 97, r]) : [...b.ex.slice(i % 3), ...b.ex.slice(0, i % 3)];
     out.push({ ...b, id: `${b.id}-${i + 1}`, pop: 3 + ((i * 7) % 16), added: `2026-10-${String(20 - i).padStart(2, '0')}`, tags: TG[i % TG.length], ex, dummy: true });
   }
   return out;
@@ -39,12 +39,13 @@ const KNOWN = new Map();   // 지금 안 보여도(숨김 등) 내 카드 이름
 const CK = 'dz.tpl.v1';
 // 서버 한 줄 → 앱 모양. 그리는 틀이 이 앱에 없으면(앱이 더 오래됨) 빼요
 function fromRow(r) {
-  if (!r || !r.id || !FORMATS[r.fmt] || !r.name) return null;
+  if (!r || !r.id || !/^[a-z0-9-]{2,40}$/.test(r.fmt || '') || failed(r.fmt) || !r.name) return null;   // 틀은 볼 때 불러와요 (폴더가 없으면 그때 빼요)
   const arr = (v, d = []) => Array.isArray(v) ? v : d;
   const ex = arr(r.ex); if (!ex.length) return null;
   return { id: r.id, fmt: r.fmt, kind: r.kind, name: r.name, desc: arr(r.descr ?? r.desc), tags: arr(r.tags), words: arr(r.words), ex,
     tools: r.tools && typeof r.tools === 'object' ? r.tools : {}, assets: r.assets || {}, paid: !!r.paid, motion: !!r.motion,
-    pop: r.pop ?? 99, sort: r.sort ?? 0, added: String(r.added || '2026-01-01').slice(0, 10) };
+    pop: r.pop ?? 99, sort: r.sort ?? 0, added: String(r.added || '2026-01-01').slice(0, 10),
+    thumb: typeof r.assets?.thumb === 'string' ? r.assets.thumb : '' };   // 목록용 정지 그림 (공개할 때 자동으로 만들어요)
 }
 function use(list) {
   const base = list.length ? list : BUILTIN;
@@ -52,18 +53,30 @@ function use(list) {
   TEMPLATES.forEach(t => KNOWN.set(t.id, t));
 }
 BUILTIN.forEach(t => KNOWN.set(t.id, t));
+// 이 앱에 그 틀 폴더가 없으면(서버가 앞서 감) 목록에서 빼요
+onFail(f => { const n = TEMPLATES.length; for (let i = TEMPLATES.length - 1; i >= 0; i--) if (TEMPLATES[i].fmt === f) TEMPLATES.splice(i, 1); if (TEMPLATES.length !== n) onUpd?.(); });
 try { const c = JSON.parse(localStorage.getItem(CK) || 'null'); use((c?.rows || []).map(fromRow).filter(Boolean)); } catch { use([]); }
 
-// 서버에서 받아 오기 (공개만, 아주 작은 요청 하나). 표가 아직 없거나 비었으면 앱 안 기본값 그대로
+// 서버에서 받아 오기 (공개만). 1,000개가 넘어도 가볍게: 먼저 id · 고친 때만 받고(작아요), 새로 생기거나 바뀐 것만 내용을 받아요.
+// 서버 목록에 없는 건(숨김 · 지움) 폰 사본에서도 빼요. 표가 아직 없거나 비었으면 앱 안 기본값 그대로
 let onUpd = null;
 export const onUpdate = f => { onUpd = f; };
 export async function refresh() {
   const C = window.APP_CONFIG || {};
   if (!/^https:\/\//.test(C.SUPABASE_URL || '') || !C.SUPABASE_ANON_KEY) return false;
+  const get = q => fetch(`${C.SUPABASE_URL}/rest/v1/dz_templates?${q}`, { headers: { apikey: C.SUPABASE_ANON_KEY, authorization: `Bearer ${C.SUPABASE_ANON_KEY}` } }).then(r => r.ok ? r.json() : Promise.reject(r.status));
   try {
-    const r = await fetch(`${C.SUPABASE_URL}/rest/v1/dz_templates?select=*&state=eq.public&order=sort.asc,added.desc`, { headers: { apikey: C.SUPABASE_ANON_KEY, authorization: `Bearer ${C.SUPABASE_ANON_KEY}` } });
-    if (!r.ok) return false;
-    const rows = await r.json(); if (!Array.isArray(rows) || !rows.length) return false;
+    const ids = await get('select=id,updated_at&state=eq.public&limit=5000');
+    if (!Array.isArray(ids) || !ids.length) return false;
+    let cache = {}; try { cache = JSON.parse(localStorage.getItem(CK) || '{}'); } catch {}
+    const have = new Map((cache.rows || []).map(r => [r.id, r]));
+    const want = ids.filter(x => have.get(x.id)?.updated_at !== x.updated_at).map(x => x.id);
+    for (let i = 0; i < want.length; i += 100) {   // 바뀐 것만 100개씩
+      const part = want.slice(i, i + 100).map(id => `"${id}"`).join(',');
+      (await get(`select=*&state=eq.public&id=in.(${encodeURIComponent(part)})`)).forEach(r => have.set(r.id, r));
+    }
+    const live = new Set(ids.map(x => x.id));
+    const rows = [...have.values()].filter(r => live.has(r.id)).sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0) || String(b.added).localeCompare(String(a.added)));
     const list = rows.map(fromRow).filter(Boolean); if (!list.length) return false;
     const was = JSON.stringify(TEMPLATES.filter(t => !t.dummy));
     try { localStorage.setItem(CK, JSON.stringify({ at: Date.now(), rows })); } catch {}
@@ -143,7 +156,7 @@ export function sorted(k) {
 // 예시 카드 (작은 칸: 아트는 글 없이, 디자인은 글 그대로). i = 몇 번째 예시
 export function exCard(t, i = 0, bare = false) {
   const c = sampleCard(t.fmt, S.today()); const e = t.ex[i % t.ex.length]; c.tpl = t.id;
-  if (t.fmt === 'rebus') { c.html = e; c.seed = 7 + i * 14; return c; }
+  if (typeof e === 'string') { c.html = e; c.seed = 7 + i * 14; return c; }   // 한 덩어리 글 (디자인)
   const [txt, seed, ratio] = e;
   c.pages = [bare ? '' : txt]; c.bg = { ...c.bg, seed }; if (!bare && ratio) c.ratio = ratio;
   return c;
