@@ -17,6 +17,7 @@ import * as V from './video.js';
 import { LOGO } from './logo.js';
 import { paint as paintMood, panelCss, MODES as BG_MODES, mode as bgMode, reset as resetMood, PAGE_G, PAGE_S } from './mood.js';
 import * as T from './templates.js';
+import * as PC from './pc.js';
 const TPL = T;   // 함수 안에서 T를 다른 뜻(달 · 길이)으로 쓰는 곳용
 
 const app = document.getElementById('app');
@@ -739,11 +740,15 @@ function openFocus(it, c, opt = {}) {
       ov.addEventListener('pointerup', e => {
         if (!p0) return; const dx = e.clientX - p0.x, dy = e.clientY - p0.y; p0 = null;
         if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+        ov._step(dx < 0 ? 1 : -1);
+      });
+      ov._step = n => {   // n = 1 다음 카드, -1 앞 카드 (PC ←/→ 도 이걸로)
+        if (focus?.ov !== ov || focus.closing) return; const dx = -n;
         const i = opt.seq.findIndex(m => m.id === focus.c.id), m = opt.seq[i + (dx < 0 ? 1 : -1)];
         if (!m) return pill(dx < 0 ? '마지막 카드예요' : '첫 카드예요');
         box.style.transition = 'transform .18s ease, opacity .18s ease'; box.style.transform = `translateX(${dx < 0 ? -40 : 40}px)`; box.style.opacity = '0';
         setTimeout(() => { swap(m); box.style.transition = 'none'; box.style.transform = `translateX(${dx < 0 ? 40 : -40}px)`; requestAnimationFrame(() => { box.style.transition = 'transform .22s ease, opacity .22s ease'; box.style.transform = ''; box.style.opacity = ''; }); }, 180);
-      });
+      };
     }
   }
 }
@@ -2524,6 +2529,17 @@ function viewWrite({ fmt, id, like }) {
   const picker = document.createElement('input'); picker.type = 'file'; picker.accept = f.tools.filter ? 'image/*,video/*' : 'image/*'; picker.hidden = true; wr.appendChild(picker);   // 포토 포맷은 영상도
   function pickPhoto() { picker.value = ''; picker.click(); }
   picker.onchange = () => usePhoto(picker.files?.[0]);
+  // PC: 사진 파일을 카드 위에 끌어다 놓거나 붙여 넣어도 그 장의 사진으로 (사진을 쓰는 포맷만)
+  if (f.tools.filter || f.tools.photo) {
+    const fileOf = dt => [...(dt?.files || [])].find(x => /^image\//.test(x.type) || (f.tools.filter && (/^video\//.test(x.type) || /\.(mov|mp4|m4v|webm)$/i.test(x.name))));
+    const pgAt = e => { const pg = e.target.closest?.('.pg'); if (pg && el?.contains(pg)) st.pg = +pg.dataset.i || 0; };
+    const hasFile = e => [...(e.dataTransfer?.types || [])].includes('Files');
+    wr.addEventListener('dragover', e => { if (!hasFile(e)) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; stage.classList.add('drop'); });
+    wr.addEventListener('dragleave', e => { if (!wr.contains(e.relatedTarget)) stage.classList.remove('drop'); });
+    wr.addEventListener('drop', e => { stage.classList.remove('drop'); if (!hasFile(e)) return; e.preventDefault(); const fl = fileOf(e.dataTransfer); if (!fl) return pop('사진을 열지 못했어요'); pgAt(e); usePhoto(fl); });
+    const onPaste = e => { if (!wr.isConnected) return removeEventListener('paste', onPaste, true); if (e.target.closest?.('input, textarea')) return; const fl = fileOf(e.clipboardData); if (!fl) return; e.preventDefault(); e.stopImmediatePropagation(); usePhoto(fl); };
+    addEventListener('paste', onPaste, true);
+  }
   async function usePhoto(file) {
     if (!file) return;
     let vid = (/^video\//.test(file.type) || /\.(mov|mp4|m4v|webm|3gp|hevc)$/i.test(file.name)) && !!f.tools.filter;   // 아이폰은 종류(type)가 빈 채로 올 때가 있어요
@@ -3063,7 +3079,7 @@ function viewSet(sub) {
     ${sgrp(srow('bell', '알림', S.pref('remind', false) ? '켜짐' : '', { go: '#/set/alarm' }), srow('globe', '언어', LANGS[S.pref('lang', 'ko')], { go: '#/set/lang' }))}
     ${sgrp(srow('spark', '서비스 소개', '', { go: '#/set/about' }), srow('help', '도움말', '', { a: 'help' }), srow('bell', '공지사항 · 이벤트', '', { go: '#/set/news' }), srow('clock', '업데이트 소식', UPDATES[0][0], { go: '#/set/updates' }))}
     ${sgrp(srow('doc', '이용약관', '', { a: 'terms' }), srow('shield', '개인정보 처리방침', '', { a: 'privacy' }), srow('lic', '라이선스', '', { a: 'lic' }))}
-    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-06 27차</p>`, { up: '#/me' });
+    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-06 28차</p>`, { up: '#/me' });
   $('[data-a=place]').onclick = e => { const on = !S.pref('autoPlace', false); S.setPref('autoPlace', on); e.currentTarget.querySelector('.tg').classList.toggle('on', on); };
   $('[data-a=terms]').onclick = () => { location.href = '../legal/terms.ko.html'; };
   $('[data-a=privacy]').onclick = () => { location.href = '../legal/privacy.ko.html'; };
@@ -3355,4 +3371,5 @@ const oauthBack = /[?&]code=/.test(location.search);
 // 템플릿 목록: 서버에서 새로 받아 바뀌었으면 템플릿 화면만 다시 그려요
 T.onUpdate(() => { if (/^#\/(tpl|pick|ti)\b/.test(location.hash)) route(); });
 T.refresh();
+PC.start();   // PC: 휠 · 끌기 · 단축키
 Promise.all([P.boot(usedPhotos()), A.start()]).then(() => { if (oauthBack && A.user()) afterLogin(); else { route(); if (A.user()) Y.run().catch(() => {}); } }).then(() => document.fonts.ready).then(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))).then(bootEnd, bootEnd);

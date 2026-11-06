@@ -5,6 +5,7 @@ import { drawCode } from './bg.js';
 import { ready } from './stickers.js';
 import { fontOf } from './fonts.js';
 import { prep } from './filters.js';
+import { isPC } from './pc.js';   // PC: 공유 창 없이 바로 내려받기
 
 const cache = new Map();
 const toData = async url => {
@@ -156,7 +157,7 @@ export const cardImages = (c, o = {}) => one(async () => {
   } finally { h.remove(); }
 });
 export async function saveImages(files) {
-  if (navigator.canShare && navigator.canShare({ files })) {
+  if (!isPC && navigator.canShare && navigator.canShare({ files })) {
     try { await navigator.share({ files }); return 'shared'; } catch (e) { if (e.name === 'AbortError') return 'cancel'; if (e.name === 'NotAllowedError') return 'again'; }   // 아이폰: 이미지를 만드는 사이 누른 효과가 끝나면 한 번 더 눌러야 해요
   }
   for (const f of files) {
