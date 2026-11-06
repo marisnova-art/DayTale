@@ -4,6 +4,10 @@ const UA = navigator.userAgent;
 // 아이패드(맥처럼 보여도 터치가 있어요) · 폰은 빼요
 export const isPC = matchMedia('(hover: hover) and (pointer: fine)').matches && !/iPhone|iPad|iPod|Android/i.test(UA) && !(/Macintosh/.test(UA) && navigator.maxTouchPoints > 1);
 
+// 넓은 PC 화면: 앱 기둥이 768px (app.css 의 .pc @media min-width 900px 과 같아요)
+const WIDE = matchMedia('(min-width: 900px)');
+export const wide = () => isPC && WIDE.matches;
+
 // 옆으로 넘어가는 줄 (가장 가까운 것)
 function hRow(el) {
   for (; el && el.nodeType === 1 && el !== document.body; el = el.parentElement) {
@@ -135,8 +139,44 @@ function keys() {
   });
 }
 
+// 가로 줄 ‹ › (11-06 29차): 마우스를 줄 위에 올리면 양 끝에. 한 번 = 한 칸 (판은 한 장). 맨 앞 · 맨 끝에선 그쪽이 숨어요
+const CHEV = d => `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>`;
+function arrows() {
+  const mk = (c, d, lab) => { const b = document.createElement('button'); b.className = 'cb pcar ' + c; b.hidden = true; b.setAttribute('aria-label', lab); b.innerHTML = CHEV(d); document.body.appendChild(b); return b; };
+  const L = mk('l', 'm15 18-6-6 6-6', '앞으로'), R = mk('r', 'm9 18 6-6-6-6', '뒤로 넘기기');
+  let row = null, raf = 0;
+  const ok = r => r && !r.closest('.stage, .brd, .wr, .sheet, .fv') && r.offsetHeight >= 56;
+  const place = () => {
+    raf = 0; if (!row || !row.isConnected) return hide();
+    const b = row.getBoundingClientRect(), max = row.scrollWidth - row.clientWidth;
+    if (!b.width || b.bottom < 0 || b.top > innerHeight) return hide();
+    const y = Math.round(b.top + b.height / 2 - 20), x0 = Math.max(4, b.left + 8), x1 = Math.min(innerWidth - 44, b.right - 48);
+    L.style.cssText = `top:${y}px;left:${x0}px`; R.style.cssText = `top:${y}px;left:${x1}px`;
+    L.hidden = row.scrollLeft <= 1; R.hidden = row.scrollLeft >= max - 1;
+  };
+  const soon = () => { if (!raf) raf = requestAnimationFrame(place); };
+  const hide = () => { L.hidden = R.hidden = true; if (row) row.removeEventListener('scroll', soon); row = null; };
+  const show = r => { if (row === r) return soon(); hide(); row = r; r.addEventListener('scroll', soon, { passive: true }); place(); };
+  addEventListener('pointermove', e => {
+    if (e.pointerType !== 'mouse' || document.documentElement.classList.contains('dragx')) return;
+    if (e.target === L || e.target === R || L.contains(e.target) || R.contains(e.target)) return;
+    const r = hRow(e.target); if (ok(r)) show(r); else if (row) hide();
+  }, { passive: true });
+  addEventListener('scroll', soon, { passive: true }); addEventListener('resize', soon);
+  addEventListener('hashchange', hide);
+  [[L, -1], [R, 1]].forEach(([b, dir]) => {
+    b.addEventListener('pointerdown', e => e.preventDefault());
+    b.addEventListener('click', e => { e.stopPropagation(); if (row) pageTo(row, row.scrollLeft, dir); });
+  });
+}
+
+// 아래 메뉴: 내려서 숨었어도 마우스를 화면 아래쪽에 가져가면 다시 나와요
+function navPeek() {
+  addEventListener('pointermove', e => { if (e.pointerType === 'mouse' && e.clientY > innerHeight - 90) document.querySelector('.nav.out')?.classList.remove('out'); }, { passive: true });
+}
+
 export function start() {
   if (!isPC) return;
   document.documentElement.classList.add('pc');
-  wheel(); drag(); keys();
+  wheel(); drag(); keys(); arrows(); navPeek();
 }

@@ -129,11 +129,11 @@ const goNow = h => { if (location.hash === h) route(); else location.replace(h);
 function nav(on) {
   const T = me => me ? (capA ? '" data-on="1' : ' on" data-on="1') : '';   // 71 (11-06): 아이콘이 켜지는 건 캡슐이 도착한 뒤 (처음 열 때만 바로)
   return `<nav class="nav"><i class="ncap" aria-hidden="true"${capA ? ` style="${capNow()}"` : ' style="opacity:0"'}></i>
-    <button class="nb${T(on === 'home')}" data-n="home" aria-label="홈">${ic('home')}</button>
-    <button class="nb${T(on === 'tpl')}" data-n="tpl" aria-label="템플릿">${ic('layers')}</button>
-    <button class="nb nw${T(on === 'write')}" data-n="write" aria-label="쓰기">${ic('pen')}</button>
-    <button class="nb${T(on === 'shelf')}" data-n="shelf" aria-label="책장">${ic('drawer')}</button>
-    <button class="nb${T(on === 'search')}" data-n="search" aria-label="검색">${ic('search')}</button></nav>`;   // 검색은 검은 바탕이라 맨 오른쪽 (10-31)
+    <button class="nb${T(on === 'home')}" data-n="home" aria-label="홈">${ic('home')}<span class="nl">홈</span></button>
+    <button class="nb${T(on === 'tpl')}" data-n="tpl" aria-label="템플릿">${ic('layers')}<span class="nl">템플릿</span></button>
+    <button class="nb nw${T(on === 'write')}" data-n="write" aria-label="쓰기">${ic('pen')}<span class="nl">쓰기</span></button>
+    <button class="nb${T(on === 'shelf')}" data-n="shelf" aria-label="책장">${ic('drawer')}<span class="nl">책장</span></button>
+    <button class="nb${T(on === 'search')}" data-n="search" aria-label="검색">${ic('search')}<span class="nl">검색</span></button></nav>`;   // 검색은 검은 바탕이라 맨 오른쪽 (10-31)
 }
 function bindNav() {
   const home = () => $('main.feed') ? window.scrollTo({ top: 0, behavior: 'smooth' }) : go('#/');   // 검색 결과 칸도 .feed 모양을 써서 main만
@@ -151,7 +151,7 @@ function bindNav() {
 //   이어서 쓰기 동그라미가 52 → 40px로 줄어 그 안에 들어가요(0.3초). 쓰기에서 나갈 때는 거꾸로
 const CAPD = 600, CAPW = 300, CAPE = 'cubic-bezier(.22,.8,.3,1)';
 let capA = null;   // { from, to, kf, bkf, dur, t0, el, held }
-const capSt = (n, on) => { const nw = on.classList.contains('nw'), w = nw ? 52 : 64, cs = getComputedStyle(n);
+const capSt = (n, on) => { const nw = on.classList.contains('nw'), w = PC.wide() ? on.offsetWidth : nw ? 52 : 64, cs = getComputedStyle(n);
   return { x: on.offsetLeft + (on.offsetWidth - w) / 2, w, nw, bg: cs.getPropertyValue(nw ? '--capw' : '--capbg').trim() }; };
 const capSeen = () => { const c = capA.el; if (c?.isConnected) { const cs = getComputedStyle(c); return { x: new DOMMatrix(cs.transform).m41, w: parseFloat(cs.width), nw: capA.to.nw, bg: cs.backgroundColor }; } return capA.held ? capA.from : capA.to; };
 const capNow = () => { const v = capSeen(); return `transform:translateX(${v.x}px);width:${v.w}px;background-color:${v.bg}`; };   // 메뉴를 새로 그릴 때 캡슐이 지금 보이는 모양 (한 프레임도 튀지 않게)
@@ -1422,7 +1422,8 @@ function viewCal(month) {
   const cnt = new Map(); all.forEach(c => cnt.set(c.date, (cnt.get(c.date) || 0) + 1));
   const days = [...cnt.keys()];   // 최근이 앞
   const first = days.at(-1) || T, last = days[0] > T ? days[0] : T;
-  const weeks = []; for (let w = weekOf(first, ws); w <= last; w = addDays(w, 7)) weeks.push(w);
+  const WK = PC.wide() ? 14 : 7;   // PC(넓은 화면): 띠 한 장 = 2주
+  const weeks = []; for (let w = weekOf(first, ws); w <= last; w = addDays(w, WK)) weeks.push(w);
   const months = []; for (let m = first.slice(0, 7); m <= last.slice(0, 7); m = nextMonth(m)) months.push(m);
   let act = (month && days.find(d => d.startsWith(month))) || (cnt.has(T) ? T : days.find(d => d <= T) || days[0] || T);   // 프로필 달 카드에서 오면 그달
   const cell = (d, wd) => { const n = cnt.get(d) || 0; return `<button data-d="${d}" class="${d === act ? 'on' : ''}" ${n ? '' : 'disabled'}>${wd ? `<i>${WD[dayOf(d).getDay()]}</i>` : ''}<b>${+d.slice(8)}</b><small>${n || ''}</small></button>`; };
@@ -1434,7 +1435,7 @@ function viewCal(month) {
   app.innerHTML = `${MOOD}<div class="shv calv mood">
     <header class="cpn" style="background-image:${panelCss()}">
       <div class="crow"><button class="mon" data-a="ym"><b></b><span><em></em>${ic('back')}</span></button>${capsule('cal')}</div>
-      <div class="wks">${weeks.map(w => `<div class="wk" data-w="${w}">${Array.from({ length: 7 }, (_, i) => cell(addDays(w, i), 1)).join('')}</div>`).join('')}</div>
+      <div class="wks">${weeks.map(w => `<div class="wk" data-w="${w}">${Array.from({ length: WK }, (_, i) => cell(addDays(w, i), 1)).join('')}</div>`).join('')}</div>
       <div class="mow"><div class="mwd">${Array.from({ length: 7 }, (_, i) => `<i>${WD[(ws + i) % 7]}</i>`).join('')}</div><div class="mos">${months.map(monthGrid).join('')}</div></div>
       <button class="grip" aria-label="월간으로 펼치기"></button></header>
     <main class="days"></main></div>${nav('shelf')}`;
@@ -1444,7 +1445,7 @@ function viewCal(month) {
   const label = d => { $('.mon b').textContent = `${+d.slice(5, 7)}월`; $('.mon em').textContent = d.slice(0, 4); };
   let listLock = 0, stripLock = 0;
   const locked = t => performance.now() < t;
-  const toWeek = (d, smooth) => { const i = weeks.indexOf(weekOf(d, ws)); if (i < 0) return; const x = i * wks.clientWidth; if (Math.abs(wks.scrollLeft - x) < 2) return; stripLock = performance.now() + (smooth ? 700 : 120); wks.scrollTo({ left: x, behavior: smooth ? 'smooth' : 'instant' }); };
+  const toWeek = (d, smooth) => { const i = weeks.findIndex(w => d >= w && d <= addDays(w, WK - 1)); if (i < 0) return; const x = i * wks.clientWidth; if (Math.abs(wks.scrollLeft - x) < 2) return; stripLock = performance.now() + (smooth ? 700 : 120); wks.scrollTo({ left: x, behavior: smooth ? 'smooth' : 'instant' }); };
   const toMonth = d => { const i = months.indexOf(d.slice(0, 7)); if (i >= 0) mos.scrollTo({ left: i * mos.clientWidth, behavior: 'instant' }); };
   const mark = d => { act = d; $$('.cpn [data-d].on').forEach(x => x.classList.remove('on')); $$(`.cpn [data-d="${d}"]`).forEach(x => x.classList.add('on')); label(d); };
   // 그날 머리줄로 (패널 바로 아래)
@@ -1463,8 +1464,8 @@ function viewCal(month) {
   wks.addEventListener('scroll', () => {
     clearTimeout(st); if (locked(stripLock)) return;
     st = setTimeout(() => {
-      const w = weeks[Math.round(wks.scrollLeft / wks.clientWidth)]; if (!w || weekOf(act, ws) === w) return;
-      const d = days.find(x => x >= w && x <= addDays(w, 6));
+      const w = weeks[Math.round(wks.scrollLeft / wks.clientWidth)]; if (!w || (act >= w && act <= addDays(w, WK - 1))) return;
+      const d = days.find(x => x >= w && x <= addDays(w, WK - 1));
       if (d) { mark(d); jump(d); } else label(addDays(w, 3));
     }, 140);
   }, { passive: true });
@@ -3079,7 +3080,7 @@ function viewSet(sub) {
     ${sgrp(srow('bell', '알림', S.pref('remind', false) ? '켜짐' : '', { go: '#/set/alarm' }), srow('globe', '언어', LANGS[S.pref('lang', 'ko')], { go: '#/set/lang' }))}
     ${sgrp(srow('spark', '서비스 소개', '', { go: '#/set/about' }), srow('help', '도움말', '', { a: 'help' }), srow('bell', '공지사항 · 이벤트', '', { go: '#/set/news' }), srow('clock', '업데이트 소식', UPDATES[0][0], { go: '#/set/updates' }))}
     ${sgrp(srow('doc', '이용약관', '', { a: 'terms' }), srow('shield', '개인정보 처리방침', '', { a: 'privacy' }), srow('lic', '라이선스', '', { a: 'lic' }))}
-    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-06 28차</p>`, { up: '#/me' });
+    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-06 29차</p>`, { up: '#/me' });
   $('[data-a=place]').onclick = e => { const on = !S.pref('autoPlace', false); S.setPref('autoPlace', on); e.currentTarget.querySelector('.tg').classList.toggle('on', on); };
   $('[data-a=terms]').onclick = () => { location.href = '../legal/terms.ko.html'; };
   $('[data-a=privacy]').onclick = () => { location.href = '../legal/privacy.ko.html'; };
