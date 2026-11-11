@@ -96,7 +96,7 @@ body.paused .amb b { animation-play-state: paused; }
 .fi { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; min-width: 0; }   /* 옆 장들 때문에 넓어지지 않게 */
 .fi .fx { position: relative; cursor: pointer; border-radius: 14px; }
 .fi .fx.tall { aspect-ratio: 4 / 5; overflow: hidden; border-radius: 14px; }
-.fi .fx.tall > .view { width: 70.3125%; margin: 0 auto; }   /* 9:16 = 4:5 카드와 같은 높이 (1.25 / 1.778) */
+.fi .fx.tall > .view { width: 64.6875%; margin: 5% auto 0; }   /* 11-11: 9:16 카드 = 블러 틀 높이의 92%, 위아래 4%씩 띄워요 (5% 넓이 = 4% 높이) */
 .fi .fx.tall > .blr { position: absolute; inset: -8%; display: flex; align-items: center; filter: blur(18px) brightness(.75); transform: translateZ(0); }   /* 양옆: 같은 배경을 흐리고 25% 어둡게 */
 .fi .fx.tall > .blr > .cd { width: 100%; flex: none; border-radius: 0; }
 .fi .fx.tall > .blr .pg ~ .pg { display: none; }
@@ -1605,3 +1605,36 @@ img.tth { display: block; width: 100%; aspect-ratio: 4 / 5; object-fit: cover; }
 .tmv .wq + .thero { margin-top: 20px; }
 /* 검색 첫 화면: 최근 본 카드 */
 .srch .sseen { margin-top: 4px; }
+/* 5 (11-11): 카드 위 알약(모션 · 1/N)은 흐림 바탕. 1열은 한 단계 크게 (숫자 17 · 아이콘 18 · 모서리 12px) */
+.fi .bd, .pc.kp { background: rgba(20,20,22,.45); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+:is(.fi:not(.tile), .days .f1 .fi) .bd { top: 12px; right: 12px; font-size: var(--fs-m); padding: 4px 10px; gap: 5px; }
+:is(.fi:not(.tile), .days .f1 .fi) .bd.bl { right: auto; left: 12px; padding: 5px 8px; }
+:is(.fi:not(.tile), .days .f1 .fi) .bd .ic { width: 18px; height: 18px; }
+
+/* 1 (11-11): 내 기록 = 설정 화면 (뒤로 · 가운데 제목 · 어두운 바탕). 칸은 설정 줄과 같은 회색 */
+.mev.setv .mflat { padding: 0 0 0 var(--gut); }
+.mev.setv .mflat .mmd { margin-top: 4px; }
+.mev.setv .mst > i, .mev.setv .mst::after { display: none; }
+.mev.setv .mst { background: var(--srf); }
+.mev.setv .mst.on { background: #fff; color: var(--bg); }
+.mev.setv .mst.on .mlb { color: rgba(20,20,22,.6); }
+.mev.setv .msg2 { background: var(--srf); }
+/* 2 (11-11): 내리면 위 머리도 숨어요 (아래 메뉴와 같이), 올리면 바로 */
+:is(.tstk, .sbar, .cpn, .stop2, .mkv .shtop) { transition: transform .3s cubic-bezier(.2,.8,.2,1), background .2s; }
+.mkv .shtop { position: sticky; top: 0; z-index: 20; }
+.mkv.sc .shtop { background: var(--navbg, rgba(18,18,20,.5)); -webkit-backdrop-filter: blur(22px) saturate(1.5); backdrop-filter: blur(22px) saturate(1.5); }
+html.hd :is(.tstk, .sbar, .cpn, .stop2, .mkv .shtop) { transform: translateY(calc(-100% - 12px)); }
+/* 4 (11-11): 카드 아래 글 한 줄. 1열 = 끝에 흐린 '더 보기', 누르면 글 전체 + 메모 (다시 누르면 접혀요) */
+.fi .ex.xcap { display: flex; align-items: baseline; gap: 6px; cursor: pointer; }
+.fi .ex.xcap[hidden] { display: none; }
+.fi .ex.xcap .t1 { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fi .ex.xcap .xmore { flex: none; color: var(--mut); font-size: var(--fs-m); }
+.fi .ex.xcap.open { display: block; white-space: normal; }
+.fi .ex.xcap.open .tf { display: block; white-space: pre-line; }
+.fi .ex .xms { display: grid; gap: 10px; margin-top: 14px; }
+.fi .ex .xm1 { display: block; white-space: pre-line; color: rgba(255,255,255,.82); }
+.fi .ex .xm1 small { display: block; font-size: var(--fs-s); color: var(--mut); margin-bottom: 2px; }
+.fi .ex1 { font-size: var(--fs-s); line-height: 18px; color: rgba(255,255,255,.82); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 2px 4px -6px; cursor: pointer; }
+html.lite #app :is(.fi .ex1, .fi .ex .xm1) { color: rgba(20,20,22,.78); }
+/* 3 (11-11): 크게 보기 아래 비슷한 카드 2열 */
+.rel .rmas { padding: 0; }

@@ -100,6 +100,7 @@ function route() {
   const need = missing(fmtsFor(r, a));
   if (need.length) { const h = location.hash; Promise.all(need.map(ensure)).then(() => { if (location.hash === h) route(); }); return; }
   lastHash = curHash; curHash = location.hash;
+  document.documentElement.classList.remove('hd');
   window.scrollTo(0, 0);
   if (r !== 'write') pickEx = null;   // 포맷 고르기에서 보여 준 예시 글은 바로 이어지는 쓰기에서만
   if (r !== 'edit') editFrom = null;   // 책장 · 달력에서 고치러 간 기록은 고치기 화면 동안만
@@ -201,6 +202,15 @@ addEventListener('resize', () => { capA = null; placeCap(); });
     const n = $('.nav'), y = scrollY; if (!n) return;
     const end = y + innerHeight >= document.documentElement.scrollHeight - 40;
     if (y <= 60 || end) n.classList.remove('out'); else if (y - y0 > 6) n.classList.add('out'); else if (y0 - y > 6) n.classList.remove('out');
+    y0 = y;
+  }, { passive: true }); }
+// 2 (11-11): 홈처럼 모든 화면에서 내리면 위 머리(쓰기 검색 · 칩, 검색 칸, 캘린더 판, 책갈피 · 설정 위 줄)가 숨고, 올리면 바로 나와요
+let hdHold = 0;   // 화면이 스스로 스크롤할 때(캘린더 날짜 누르기)는 그대로
+{ let y0 = 0;
+  addEventListener('scroll', () => {
+    const y = scrollY, R = document.documentElement;
+    if (performance.now() < hdHold) { y0 = y; return; }
+    if (y <= 60) R.classList.remove('hd'); else if (y - y0 > 6) R.classList.add('hd'); else if (y0 - y > 6) R.classList.remove('hd');
     y0 = y;
   }, { passive: true }); }
 // 아이폰은 누른 그 순간에만 키보드를 올려 줘요: 화면이 바뀌기 전에 빈 칸에 먼저 커서를 두고, 새 화면의 검색 칸이 이어받아요
@@ -362,10 +372,10 @@ function feedItem(c, tile, x = {}) {
   const it = document.createElement('article'); it.className = 'fi' + (tile ? ' tile' : ''); it._card = c; it.dataset.tone = toneOf(c); if (c.id && !x.recall) it.dataset.id = c.id; it.dataset.k = x.recall ? 'r:' + c.id : x.promo ? 'p:' + c.fmt : c.id || 's:' + c.fmt; it._card = c;
   if (x.promo) it.dataset.promo = 1;
   const f = FORMATS[c.fmt], when = x.recall ? `<i class="rc">${x.recall}년 전 오늘</i>` : ago(c);
-  // 11-04: 1열도 2열과 같은 줄 = 쓴 때 · ⋯ (아이콘 줄 없음). 1/N과 영상 표시는 카드 그림 안 오른쪽 위. 1열 아래 한 줄은 그 카드의 최근 메모 (없으면 비워요)
-  const memoOf = () => !tile && !c.sample && (c.memos || []).at(-1)?.t, memo = memoOf();
+  // 11-11: 카드 아래 = 쓴 때 · ⋯ 줄 + 글 한 줄. 1열은 '더 보기'로 그 자리에서 글 전체와 메모 모두 (인스타처럼), 2열은 글 한 줄만 (누르면 크게 보기)
+  const memo = !c.sample;
   it.innerHTML = `<div class="fx"><div class="view"></div><span class="pc bd"${hasVideo(c) ? '' : ' hidden'}>${hasVideo(c) ? ic('video') : ''}<b></b></span></div>
-      <p class="mt">${c.sample ? `<span><i class="nw">NEW</i>${f.name}</span><button class="cb" data-a="use" aria-label="이 포맷으로 쓰기">${ic('pen')}</button>`
+      ${tile && !c.sample && !x.recall && flat(c) ? '<p class="ex1"></p>' : ''}<p class="mt">${c.sample ? `<span><i class="nw">NEW</i>${f.name}</span><button class="cb" data-a="use" aria-label="이 포맷으로 쓰기">${ic('pen')}</button>`
         : `<span>${when}<span class="fls">${flagsOf(c, tile)}</span></span><button class="cb" data-a="more" aria-label="더 보기">${ic('more')}</button>`}</p>${tile ? '' : `<p class="ex"${memo || x.ex ? '' : ' hidden'}></p>`}`;
   const fx = $('.fx', it), view = $('.view', it), pc = $('.pc', it);
   view.style.aspectRatio = (1 / arOf(c)).toFixed(4);   // 처음부터 카드 비율 칸: 긴 카드가 장으로 나뉘기 전에 길게 보였다 줄어들지 않게 (나뉘지 않는 카드는 나중에 풀어요)
@@ -375,11 +385,25 @@ function feedItem(c, tile, x = {}) {
     const blr = document.createElement('div'); blr.className = 'blr'; blr.setAttribute('aria-hidden', 'true'); fx.prepend(blr);
     mount(blr, { ...c, pages: c.pages ? [''] : c.pages, pst: c.pst ? [c.pst[0]].filter(Boolean) : c.pst, html: c.html != null ? '&nbsp;' : c.html, place: '', showDate: false, datePos: 'none', sg: '', signTxt: '' });
   }
-  const ex = $('.ex', it);
-  const exLine = () => { if (!ex) return; if (x.ex) ex.innerHTML = x.ex(); else { const m = memoOf(), n = c.memos?.length || 0; ex.innerHTML = m ? `<span class="mtx"></span>${n > 1 ? `<small class="mn">+${n - 1}</small>` : ''}` : ''; if (m) $('.mtx', ex).textContent = m; ex.hidden = !m; } };
-  if (ex && !x.ex) { ex.classList.add('mm1'); ex.onclick = () => memoSheet(c); }   // 메모 줄을 누르면 그 카드의 메모 창
-  it._sync = () => { const f = $('.fls', it); if (f) f.innerHTML = flagsOf(c, tile); if (ex && !ex.classList.contains('open')) exLine(); };   // 메모 · 알림 · 책갈피가 바뀌면 바로
-  exLine();   // 1열: 최근 메모 한 줄 (길면 …). 검색에서는 찾은 낱말이 든 곳부터
+  const ex = $('.ex', it), ex1 = $('.ex1', it);
+  if (ex1) { ex1.textContent = flat(c); ex1.onclick = () => fx.click(); }
+  const exOpen = () => {   // 글 전체 + 그 아래 메모 모두 (최근 메모가 위)
+    const ms = [...(c.memos || [])].reverse();
+    ex.innerHTML = `<span class="tf"></span>${ms.length ? `<span class="xms">${ms.map(m => `<span class="xm1"><small>${stamp(m.at)}</small><span></span></span>`).join('')}</span>` : ''}`;
+    $('.tf', ex).textContent = cardText(c).replace(/\n{3,}/g, '\n\n').trim();
+    $$('.xm1 > span', ex).forEach((el, i) => { el.textContent = ms[i].t; });
+  };
+  const exLine = () => {
+    if (!ex) return; if (x.ex) { ex.innerHTML = x.ex(); return; }
+    if (c.sample) { ex.hidden = true; return; }
+    const t = flat(c), n = c.memos?.length || 0;
+    if (ex.classList.contains('open')) { ex.hidden = false; return exOpen(); }
+    ex.innerHTML = '<span class="t1"></span><button class="xmore" hidden>더 보기</button>'; $('.t1', ex).textContent = t; ex.hidden = !t && !n;
+    requestAnimationFrame(() => { const s1 = $('.t1', ex), b = $('.xmore', ex); if (s1 && b) b.hidden = !(n || s1.scrollWidth > s1.clientWidth + 1); });
+  };
+  if (ex && !x.ex) { ex.classList.add('xcap'); ex.onclick = () => { if (ex.classList.contains('open')) { ex.classList.remove('open'); exLine(); } else if ($('.xmore', ex) && !$('.xmore', ex).hidden) { ex.classList.add('open'); exOpen(); } }; }
+  it._sync = () => { const f = $('.fls', it); if (f) f.innerHTML = flagsOf(c, tile); exLine(); };   // 메모 · 알림 · 책갈피가 바뀌면 바로
+  exLine();   // 1열: 글 한 줄 + 더 보기. 검색에서는 찾은 낱말이 든 곳부터
   mount(view, c);
   pageInto(view, c, (i, n) => { if (pc) { pc.hidden = false; $('b', pc).textContent = `${i}/${n}`; } });
   fx.addEventListener('click', () => x.open ? x.open(it, c) : openFocus(it, c));
@@ -661,7 +685,7 @@ function related(c) {
     if (c.bg?.id && m.bg?.id === c.bg.id) sc += 20;
     sc += Math.max(0, 10 - Math.abs(day(m) - t) / 3);
     return { m, sc };
-  }).sort((a, b) => b.sc - a.sc).slice(0, 5).map(x => x.m);
+  }).sort((a, b) => b.sc - a.sc).map(x => x.m);   // 11-11: 수 제한 없이 (점수 → 날짜가 가까운 순)
 }
 function relHtml(list, head = '비슷한 카드', cur, mk = esc) {
   return list.length ? `<h4>${head}</h4><div class="rl">${list.map(m => `<button class="rr${m.id === cur ? ' on' : ''}" data-id="${m.id}"><div class="th"></div><div class="m"><small>${+m.date.slice(0, 4)}년 ${+m.date.slice(5, 7)}월 ${+m.date.slice(8, 10)}일 · ${T.labelOf(m)}</small><p>${mk(cardText(m).replace(/\s+/g, ' ').trim())}</p></div></button>`).join('')}</div>` : '';
@@ -707,8 +731,8 @@ function openFocus(it, c, opt = {}) {
   requestAnimationFrame(() => requestAnimationFrame(() => { box.style.transition = ''; ov.classList.add('in'); box.style.transform = ''; box.style.clipPath = 'inset(0 0 0 0 round 0px)'; }));
   // 11-04: 크게 보기는 모두 왼쪽 위 ‹ 뒤로로만 닫혀요 (내려 읽다 눌러도 안 닫히게)
   const bk = document.createElement('button'); bk.className = 'cb fvx'; bk.setAttribute('aria-label', '뒤로'); bk.innerHTML = ic('back'); ov.appendChild(bk);
-  bk.addEventListener('click', e => { e.stopPropagation(); closeFocus(); });
-  focus = { ov, box, view, from, clip, y: scrollY, c, onClose: opt.onClose };
+  bk.addEventListener('click', e => { e.stopPropagation(); if (focus?.stack?.length) return focus.back(); closeFocus(); });
+  focus = { ov, box, view, from, clip, y: scrollY, c, onClose: opt.onClose, stack: [] };
   // 60 고침 (11-05): 크게 보기는 어디서 열어도 스스로 움직여요 (책 · 달력 · 검색에서 열어도 아트 흐름 · 영상)
   { const me = focus, t0 = performance.now(), still = matchMedia('(prefers-reduced-motion: reduce)').matches; let n = 0;
     const run = now => {
@@ -723,13 +747,28 @@ function openFocus(it, c, opt = {}) {
     const fill = cc => {
       const f = opt.found;
       if (opt.seq) { rel.innerHTML = ''; return; }   // 책에서 열면 비슷한 카드 대신 좌우로 넘기기
-      rel.innerHTML = f ? relHtml(f.list, `${esc(f.q)} 검색 결과 <b>${f.list.findIndex(m => m.id === cc.id) + 1}/${f.list.length}</b>`, cc.id, f.hl) : relHtml(related(cc));
+      if (!f) return fillMas(cc);
+      rel.innerHTML = relHtml(f.list, `${esc(f.q)} 검색 결과 <b>${f.list.findIndex(m => m.id === cc.id) + 1}/${f.list.length}</b>`, cc.id, f.hl);
       $$('.rr', rel).forEach(b => { const m = S.card(b.dataset.id); if (!m) return; const th = $('.th', b); th.style.background = toneOf(m); th.classList.toggle('short', arOf(m) < 1.25); mount(th, m); b.onclick = e => { e.stopPropagation(); swap(m); }; });
     };
-    const swap = m => {
+    // 비슷한 카드 2열: 더 짧은 열에 차례로, 20장씩 (아래 가까이 오면 이어서). 누르면 그 카드가 크게 (지금 카드와 보던 자리는 뒤로를 위해 기억)
+    let mas = [], put = 0, hs = [0, 0];
+    const more = () => {
+      const cols = $$('.rmas .mc', rel); if (!cols.length || put >= mas.length) return;
+      mas.slice(put, put + 20).forEach(m => { const i = hs[1] < hs[0] ? 1 : 0; const t = feedItem(m, true, { open: () => { focus.stack.push({ c: focus.c, y: sc.scrollTop }); swap(m); } }); cols[i].appendChild(t); hs[i] += arOf(m) + .22; });
+      put = Math.min(mas.length, put + 20);
+    };
+    const fillMas = cc => {
+      mas = related(cc); put = 0; hs = [0, 0];
+      rel.innerHTML = mas.length ? '<h4>비슷한 카드</h4><div class="feed two rmas"><div class="mc"></div><div class="mc"></div></div>' : '';
+      more();
+    };
+    sc.addEventListener('scroll', () => { if (sc.scrollTop + sc.clientHeight > sc.scrollHeight - 900) more(); }, { passive: true });
+    focus.back = () => { const p = focus.stack.pop(); if (!p) return; swap(p.c, true); requestAnimationFrame(() => { for (let k = 0; k < 30 && sc.scrollHeight - sc.clientHeight < p.y && put < mas.length; k++) more(); sc.scrollTop = p.y; }); };
+    const swap = (m, keep) => {
       box.innerHTML = ''; const el2 = renderCard(m); box.appendChild(el2); fitCard(el2, m);
       box.style.marginTop = Math.max((innerHeight - box.offsetHeight - 120) / 2, topGap() + 52) + 'px';
-      focus.c = m; focus.swapped = true; fill(m); $('.fmemo', ov).innerHTML = memoHtml(m); sc.scrollTo(0, 0);
+      focus.c = m; focus.swapped = true; fill(m); $('.fmemo', ov).innerHTML = memoHtml(m); if (!keep) sc.scrollTo(0, 0);
     };
     fill(c);
     // 책에서 연 크게 보기: 좌우로 밀면 책 순서대로 앞 · 뒤 카드 (위아래는 그 카드 읽기)
@@ -1470,7 +1509,7 @@ function viewCal(month) {
   const jump = (d, smooth = true) => {
     const el = $(`.dh[data-d="${d}"]`, list); if (!el) return;
     const y = el.getBoundingClientRect().top + scrollY - panel.offsetHeight - 16;   // 패널 아래 16px 띄워서
-    listLock = performance.now() + (smooth ? 900 : 150);
+    listLock = performance.now() + (smooth ? 900 : 150); hdHold = listLock + 100;
     scrollTo({ top: Math.max(0, y), behavior: smooth ? 'smooth' : 'instant' });
   };
   const setAct = (d, smooth = true) => { mark(d); toWeek(d, smooth); jump(d, smooth); };
@@ -2940,25 +2979,19 @@ function viewMe() {
   const axis = v => v >= 1e4 ? `${+(v / 1e4).toFixed(1)}만` : v >= 1000 ? `${+(v / 1000).toFixed(1)}천` : `${v}`;
   let met = { k: MET[S.pref('meGraph', 'n')] ? S.pref('meGraph', 'n') : 'n' };
   let sel = T;
-  app.innerHTML = `${MOOD}<div class="shv mev mood"><i class="stb"></i>
-    <header class="mpn">
-      <div class="mpro"><span class="av"${avStyle()}></span><div class="who"><div class="t24">${esc(me.name || '나')}</div>
-        <div class="t13 id">${me.id ? `<span>@${esc(me.id)}</span>` : ''}<button class="chip" data-a="plan">체험 중</button></div></div>
-        <button class="mset" data-a="set" aria-label="닫기">${ic('close')}</button></div>
-      ${me.bio ? `<button class="t24 mq bio" data-a="bio">${esc(me.bio)}</button>` : `<button class="t24 mq" data-a="q">${ln[0]}</button>`}
+  app.innerHTML = `<div class="shv setv mev"><i class="grn"></i><i class="stb"></i>
+    <header class="stop2"><button class="cb" data-a="set" aria-label="뒤로">${ic('back')}</button><h2>내 기록</h2><span class="sp0"></span></header>
+    <header class="mpn mflat">
       <div class="mmd"><div class="msg2"><button data-v="all">전체</button><button data-v="m">월별</button></div><div class="mmn"><button data-a="pm" aria-label="지난달">${ic('back')}</button><b></b><button data-a="nm" aria-label="다음 달">${ic('next')}</button></div></div>
       <div class="msr">${tileBg.map((t, i) => `<button class="mst${t.lt ? ' lt' : ''}" data-k="${KEYS[i]}"><i${t.attr}></i><b></b><span class="mlb"></span></button>`).join('')}</div>
     </header>
     <section class="mgc"><p class="mgt"></p>
     <div class="mgw"><div class="may"></div><div class="mgr"></div></div><div class="hb2"></div>
     ${all.length ? '' : '<p class="t13 mg0">첫 카드를 쓰면 막대가 자라요</p>'}<div class="mdots" data-for="mgr"></div></section>
-    </div>${nav('')}`;
-  bindNav(); fillThumbs(app);
-  const stopMood = paintMood($('.amb'));
+    </div>`;
+  fillThumbs(app);
+  const stopMood = () => {};   // 11-11: 설정 바탕 (무드 바탕 없음)
   $('[data-a=set]').onclick = () => lastHash ? history.back() : location.replace('#/set');   // 11-11: 내 기록은 설정 안 화면
-  $('[data-a=plan]').onclick = () => go('#/set/plan');
-  const qb = $('[data-a=q]'); if (qb) qb.onclick = () => toast(ln[1]);
-  const bb = $('[data-a=bio]'); if (bb) bb.onclick = () => go('#/set/bio');
   // 막대: 고른 지표로 높이, 고른 달만 선명한 색 + 값 하나. 막대를 누르면 그 달 카드로, 카드를 넘기면 그 달 막대로
   // 막대 색: 쓴 만큼 아래 → 위 그라데이션. 많이 쓴 달일수록 위가 뜨거운 색 (산호 · 주황, 빨강은 지우기에만)
   // 안 쓴 달 = 막대 없이 달 이름만. 처음 쓴 달 전 · 아직 안 온 달 = 이름도 흐리게, 누를 수 없어요
@@ -3120,7 +3153,7 @@ function viewSet(sub) {
     ${sgrp(srow('bell', '알림', S.pref('remind', false) ? '켜짐' : '', { go: '#/set/alarm' }), srow('globe', '언어', LANGS[S.pref('lang', 'ko')], { go: '#/set/lang' }))}
     ${sgrp(srow('spark', '서비스 소개', '', { go: '#/set/about' }), srow('help', '도움말', '', { a: 'help' }), srow('bell', '공지사항 · 이벤트', '', { go: '#/set/news' }), srow('clock', '업데이트 소식', UPDATES[0][0], { go: '#/set/updates' }))}
     ${sgrp(srow('doc', '이용약관', '', { a: 'terms' }), srow('shield', '개인정보 처리방침', '', { a: 'privacy' }), srow('lic', '라이선스', '', { a: 'lic' }))}
-    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-11 32차</p>`, { up: '#/' });
+    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-11 33차</p>`, { up: '#/' });
   $('[data-a=place]').onclick = e => { const on = !S.pref('autoPlace', false); S.setPref('autoPlace', on); e.currentTarget.querySelector('.tg').classList.toggle('on', on); };
   $('[data-a=terms]').onclick = () => { location.href = '../legal/terms.ko.html'; };
   $('[data-a=privacy]').onclick = () => { location.href = '../legal/privacy.ko.html'; };
