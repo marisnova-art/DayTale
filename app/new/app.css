@@ -1686,3 +1686,10 @@ html.lite #app .fi .ex .xms { border-color: rgba(20,20,22,.12); }
 .fvh .fvc[hidden] { display: none; }
 .fvh .fvx:only-child, .fvh .fvx:has(+ .fvc[hidden]) { margin-right: auto; }
 .pc .fvh { padding-left: calc(max(0px, 50% - 320px) + var(--gut)); padding-right: calc(max(0px, 50% - 320px) + var(--gut)); }
+
+/* 24 (11-11): 밝은 바탕 = 판 · 묶음 상자는 거의 흰색 + 옅은 그림자 (바탕과 구분) */
+html.lite #app .cpn { box-shadow: 0 8px 24px rgba(20,20,22,.08), 0 1px 3px rgba(20,20,22,.06); }
+html.lite #app :is(.srch .fld, .srch .sl .grp, .srch .fgrp, .sl .grp, .sgp, .wbx.gls, .ths.gls, .tsf.gls, .msg2) { background: rgba(255,255,255,.72); box-shadow: 0 4px 14px rgba(20,20,22,.07), 0 1px 2px rgba(20,20,22,.05); }
+/* 25 (11-11): 캘린더 탭 켜짐 = 채운 달력 + 윗줄 · 날짜 점은 비워요 (점은 켜졌을 때만) */
+.ic .dt { display: none; }
+.nb.on .ic .dt { display: inline; stroke-width: 2.6; stroke-linecap: round; }

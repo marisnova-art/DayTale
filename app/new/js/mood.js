@@ -94,7 +94,7 @@ export function reset() { chosen = null; }
 // 달력 · 책장 위 판: 지금 바탕과 같은 색으로 한 장
 export function panelCss() {
   const { m, x } = pick(), lt = m !== 'd' && !!x[x.length - 1];
-  if (lt) { const a = m === 'g' ? x[1] : x[1], b = m === 'g' ? x[3] : x[1]; return `linear-gradient(160deg, rgba(255,255,255,.42), rgba(255,255,255,.22)), linear-gradient(160deg, ${a}, ${b})`; }   // 밝은 바탕: 같은 색 한 단계 더 밝게
+  if (lt) { const a = m === 'g' ? x[1] : x[1], b = m === 'g' ? x[3] : x[1]; return `linear-gradient(rgba(255,255,255,.72), rgba(255,255,255,.72)), linear-gradient(160deg, ${a}, ${b})`; }   // 11-11 밝은 바탕: 거의 흰색 판 (+ 옅은 그림자는 css) — 바탕과 구분되게
   if (m === 'g') { const [, deep, mid, light] = x; return `radial-gradient(120% 90% at 85% 0%, ${mix(mid, .7)} 0%, transparent 60%), radial-gradient(90% 80% at 10% 100%, ${mix(light, .45)} 0%, transparent 60%), linear-gradient(160deg, ${deep}, ${mix(mid, .6)})`; }
   if (m === 's') { const l = lift(x[1], .2); return `linear-gradient(160deg, rgba(255,255,255,.06), rgba(0,0,0,.08)), linear-gradient(${l}, ${l})`; }   // 솔리드 = 같은 색 한 단계 밝게 (흰색 20%)
   return 'linear-gradient(#2B2B2F, #2B2B2F)';   // 다크 = 바탕보다 밝은 회색
