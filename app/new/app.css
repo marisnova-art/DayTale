@@ -1045,7 +1045,6 @@ html:has(.setv.plan), html:has(.setv.plan) body { background: #2B2650; }
 .mev .mgc { min-height: 261px; display: flex; flex-direction: column; }
 .mev .mgc .mdots { margin-top: auto; padding-top: 10px; }
 /* 10-31 바탕 솔리드 · 다크: 빛 덩어리 · 카드 번짐 없이 단색 + 고운 노이즈 */
-.amb.flat b, .amb.flat i { display: none !important; }
 .amb.flat s { background: none; }
 /* 10-31 로고 = SVG 손글씨 (시안 1). 글자 로고와 같은 줄 높이 40 안에서 */
 .ftop .logo { display: flex; align-items: center; height: 40px; }
@@ -1698,3 +1697,12 @@ html.lite #app :is(.srch .fld, .srch .sl .grp, .srch .fgrp, .sl .grp, .sgp, .wbx
 html.lite #app :is(.sl .it, .srch .sl .it, .srch .fgrp .fr, .srch .fgrp .fmore, .fgrp .fr, .sgp .srw) { border-color: rgba(20,20,22,.08); }
 /* 28 (11-11): 크게 보기 카드 아래 '쓴 때 · ⋯' 줄 (홈 1열과 같은 모양) */
 .fmemo .fmt { margin: -8px 0 6px; cursor: default; }
+
+/* 29 (11-11): 빛 번짐 · 빛 덩어리 = 화면 폭과 상관없이 정원 (PC에서 옆으로 늘어난 타원이 되지 않게) */
+.amb:not(.old) i, .amb i { left: 50%; right: auto; top: 50%; width: min(170vw, 680px); height: auto; aspect-ratio: 1; transform: translate(-50%, -50%); }
+.amb:not(.old) b:nth-of-type(1) { width: min(80vw, 340px); height: auto; aspect-ratio: 1; }
+.amb:not(.old) b:nth-of-type(2) { width: min(84vw, 360px); height: auto; aspect-ratio: 1; }
+.amb:not(.old) b:nth-of-type(3) { width: min(88vw, 380px); height: auto; aspect-ratio: 1; }
+/* 29: 솔리드 · 다크도 움직여요 (그라데이션보다 은은하게) */
+.amb.flat:not(.old) b { opacity: .38; }
+.amb.flat:not(.old) i.on { opacity: .34; }

@@ -75,7 +75,11 @@ export function paint(amb) {
     const [, deep, mid, light] = x;
     amb.style.setProperty('--mo', `linear-gradient(180deg, ${deep} 0%, ${deep} 16%, ${mix(mid, .72)} 58%, ${mix(light, .62)} 100%)`);
     amb.style.setProperty('--b1', mix(mid, .55)); amb.style.setProperty('--b2', deep); amb.style.setProperty('--b3', mix(light, .5));
-  } else amb.style.setProperty('--mo', x[1]);
+  } else {   // 11-11 솔리드 · 다크: 같은 색 집안의 빛 덩어리 (은은하게)
+    const base = x[1]; amb.style.setProperty('--mo', base);
+    if (lt) { amb.style.setProperty('--b1', lift(base, .45)); amb.style.setProperty('--b2', mix(base, .9)); amb.style.setProperty('--b3', lift(base, .3)); }
+    else { amb.style.setProperty('--b1', lift(base, .2)); amb.style.setProperty('--b2', lift(base, .1)); amb.style.setProperty('--b3', lift(base, .26)); }
+  }
   document.documentElement.style.backgroundColor = top;   // 아이폰 시계 줄도 바탕 위쪽 색으로
   document.querySelector('meta[name=theme-color]')?.setAttribute('content', top);   // 11-11: 아이폰 위 가장자리 색도 같은 색
   document.documentElement.style.setProperty('--navbg', navBg(m, x, lt));   // 하단 메뉴도 바탕 색을 따라가요
