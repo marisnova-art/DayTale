@@ -123,7 +123,6 @@ body.paused .amb b { animation-play-state: paused; }
 .fvs::-webkit-scrollbar { display: none; }
 .fvb { width: min(100%, 480px); margin: 0 auto calc(var(--safe-b) + 24px); transform-origin: 0 0; transition: transform .38s cubic-bezier(.2,.8,.2,1), clip-path .38s cubic-bezier(.2,.8,.2,1); display: block; }
 .fvb .cd { border-radius: 14px; transition: border-radius .38s; }
-.fv.in .fvb .cd { border-radius: 0; }
 .fvb .cd.text { display: block; overflow: visible; }   /* 크게 보기: 새 장까지 위에서 아래로 이어서 */
 .fvb .cd.text .pg + .pg::before { content: ''; position: absolute; z-index: 3; top: 0; left: 7.4cqw; right: 7.4cqw; height: 1px; background: currentColor; opacity: .16; }   /* 장이 바뀌는 자리 (옅게) */
 .fi .ours { padding-left: 8px; display: flex; gap: 8px; align-items: center; font-size: var(--fs-s); font-weight: var(--fw); }
@@ -1656,3 +1655,34 @@ html.hd .cpn { transform: none; }
 /* 15 (11-11): 크게 보기 카드 아래 글 전체 */
 .fmemo .ftx { margin: 0 4px 18px; font-size: var(--fs-m); line-height: 1.65; white-space: pre-line; word-break: break-word; color: rgba(255,255,255,.9); }
 .fmemo .ftx:last-child { margin-bottom: 4px; }
+
+/* 18 (11-11): 설정 · 내 기록 시계 줄 = 화면과 같은 검정 흐림 (앱 바탕색 띠가 떠 보이지 않게) */
+.setv .stb { background: rgba(20,20,22,.78); }
+/* 19 (11-11): 캘린더 날짜 칸: 하이라이트 안쪽 위아래 여백 */
+.cpn .wk [data-d] { height: 68px; padding: 8px 0; gap: 2px; }
+/* 23 (11-11): 크게 보기 카드 = 홈 1열과 같은 폭 · 둥근 모서리. 아래 글 · 메모 · 비슷한 카드도 같은 줄 */
+.fvb { width: min(100% - 2 * var(--fgut), 480px); margin-bottom: 16px; }
+.fvb .cd { border-radius: 14px; overflow: hidden; }
+.rel { padding: 0 var(--fgut); margin-top: 0; }
+.fmemo { margin: 0 auto 28px; }
+.fmemo .ftx { margin: 0 6px 16px; }
+/* 20 (11-11): 메모 = 상자 없이 (인스타 댓글처럼). 글과 메모 사이에 옅은 줄 하나 */
+.fmemo .fms { display: grid; gap: 14px; margin: 0 6px; }
+.fmemo .ftx + .fms { border-top: 1px solid rgba(255,255,255,.1); padding-top: 16px; }
+.fmemo .fm { padding: 0; border: 0; }
+.fi .ex .xms { border-top: 1px solid rgba(255,255,255,.1); padding-top: 12px; gap: 12px; }
+.fi .ex .xm1 small { margin: 2px 0 0; }
+html.lite #app .fi .ex .xms { border-color: rgba(20,20,22,.12); }
+/* 20 · 21 (11-11): 크게 보기 위 줄 (← · ✕). 내리면 숨고 올리면 나와요. 내린 뒤엔 검정 흐림 띠 (시계 줄까지) */
+.fvh { position: fixed; top: 0; left: 0; right: 0; z-index: 4; display: flex; justify-content: space-between; align-items: center; padding: var(--top) var(--gut) 12px; pointer-events: none;
+  opacity: 0; transition: opacity .3s ease .1s, transform .3s cubic-bezier(.2,.8,.2,1), background-color .2s; }
+.fv.in .fvh { opacity: 1; }
+.fvh.sc { background: rgba(12,12,13,.72); -webkit-backdrop-filter: blur(22px) saturate(1.5); backdrop-filter: blur(22px) saturate(1.5); }
+.fvh.up { transform: translateY(-100%); }
+.fvh.out, .fv.fade .fvh, .fv:not(.in) .fvh { opacity: 0; }
+.fvh .cb { pointer-events: auto; }
+.fv .fvh .fvx { position: static; opacity: 1; }
+.fvh .fvc { background: rgba(30,30,33,.72); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+.fvh .fvc[hidden] { display: none; }
+.fvh .fvx:only-child, .fvh .fvx:has(+ .fvc[hidden]) { margin-right: auto; }
+.pc .fvh { padding-left: calc(max(0px, 50% - 320px) + var(--gut)); padding-right: calc(max(0px, 50% - 320px) + var(--gut)); }

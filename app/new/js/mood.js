@@ -77,6 +77,7 @@ export function paint(amb) {
     amb.style.setProperty('--b1', mix(mid, .55)); amb.style.setProperty('--b2', deep); amb.style.setProperty('--b3', mix(light, .5));
   } else amb.style.setProperty('--mo', x[1]);
   document.documentElement.style.backgroundColor = top;   // 아이폰 시계 줄도 바탕 위쪽 색으로
+  document.querySelector('meta[name=theme-color]')?.setAttribute('content', top);   // 11-11: 아이폰 위 가장자리 색도 같은 색
   document.documentElement.style.setProperty('--navbg', navBg(m, x, lt));   // 하단 메뉴도 바탕 색을 따라가요
   { const base = m === 'g' ? x[2] : m === 's' ? x[1] : '#2a2a30', r = document.documentElement.style;   // 프로필 숫자 칸 · 그래프 박스 (11-04): 바탕 색 집안의 솔리드
     if (lt) { r.setProperty('--mtile', rgba(lift(base, .45), 1)); r.setProperty('--mbox', rgba(lift(base, .5), .6)); }
@@ -85,7 +86,7 @@ export function paint(amb) {
   // 마지막 날씨로 바로 시작 (전환 없이) → 새 날씨가 다를 때만 천천히 바뀌어요
   amb.classList.add('now'); tone(cachedWx() || lastWx()); requestAnimationFrame(() => requestAnimationFrame(() => amb.classList.remove('now')));
   weather().then(k => { if (k) tone(k); });
-  return () => { document.documentElement.style.backgroundColor = ''; document.documentElement.classList.remove('lite'); };
+  return () => { document.documentElement.style.backgroundColor = ''; document.querySelector('meta[name=theme-color]')?.setAttribute('content', '#141416'); document.documentElement.classList.remove('lite'); };
 }
 // 설정에서 바꾸면 다음 화면부터 새로 골라요
 export function reset() { chosen = null; }

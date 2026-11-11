@@ -242,10 +242,12 @@ function viewFeed(fresh, quiet) {
   if (rec) list.splice(Math.min(1, list.length), 0, { c: rec.c, x: { recall: rec.n } });
   if (mine.length >= 8) promoFormats(mine).forEach((f, i) => { const at = (i + 1) * 9 - 1; if (at <= list.length) list.splice(at, 0, { c: sampleCard(f, S.today()), x: { promo: true } }); });
   if (mine.length < 6) list.push(...ORDER.map(f => ({ c: sampleCard(f, S.today()) })));
+  // 11-11: 처음엔 칸만, 화면 가까이(위아래 한 화면 반) 오면 그려요. 카드가 많아도 홈이 바로 떠요
+  const lz = new IntersectionObserver(es => es.forEach(e => { if (!e.isIntersecting) return; lz.unobserve(e.target); e.target._draw?.(); }), { rootMargin: '1200px 0px' });
   if (two) {   // 더 짧은 열에 차례로 (높이 = 비율 + 아래 줄)
     const cols = $$('.mc', feed), h = [0, 0];
-    list.forEach(({ c, x }) => { const i = h[1] < h[0] ? 1 : 0; cols[i].appendChild(feedItem(c, true, x)); h[i] += arOf(c) + .16; });
-  } else list.forEach(({ c, x }) => feed.appendChild(feedItem(c, false, x)));
+    list.forEach(({ c, x }) => { const i = h[1] < h[0] ? 1 : 0; cols[i].appendChild(feedItem(c, true, { ...x, lazy: lz })); h[i] += arOf(c) + .16; });
+  } else list.forEach(({ c, x }) => feed.appendChild(feedItem(c, false, { ...x, lazy: lz })));
   // 11-04: 위 배너는 이벤트 · 공지 · 알림 전용 (관리자에서 올린 것만). N년 전 오늘은 피드 두 번째 카드로만
   // 1열 ↔ 2열: 보던 카드가 바뀐 화면에서도 가운데에 오게
   $('[data-a=cols]').onclick = () => {
@@ -312,14 +314,14 @@ function viewFeed(fresh, quiet) {
   };
   if (!still) anim = requestAnimationFrame(tick); else feedTimer = setInterval(() => { pickMid(); feedVideo(); }, 300);
   const live = liveMid(() => $$('.feed .fi'), { video: false, art: false, home: true, overlay: false, hold: () => !!focus });   // 영상 · 아트 그리기는 아래 tick · feedVideo 가 .play 카드로
-  cleanup = () => { live(); clearTimeout(idle); stopMood(); cancelAnimationFrame(anim); clearInterval(feedTimer); V.stop(); removeEventListener('scroll', onScroll); document.removeEventListener('visibilitychange', onVis); closeFocus(true); };
+  cleanup = () => { lz.disconnect(); live(); clearTimeout(idle); stopMood(); cancelAnimationFrame(anim); clearInterval(feedTimer); V.stop(); removeEventListener('scroll', onScroll); document.removeEventListener('visibilitychange', onVis); closeFocus(true); };
   setTimeout(pickMid, 80);
 
   // 방금 쓰거나 고친 카드: 그 자리로 가서 살짝 커지며 나와요. 고치다 뒤로 오면 그 자리로만 (주소는 홈으로 되돌려 둬요)
   if (fresh) {
     history.replaceState(null, '', '#/');
     const it = $(`.feed .fi[data-id="${fresh}"]`);
-    if (it) {
+    if (it) { it._draw?.();
       const put = () => { if (it !== $('.feed .fi')) it.scrollIntoView({ block: 'center' }); };
       put(); setTimeout(put, 400);   // 긴 카드가 장으로 나뉜 뒤 한 번 더
       if (!quiet) { it.classList.add('fresh'); setTimeout(() => it.classList.remove('fresh'), 1200); }
@@ -380,16 +382,16 @@ function feedItem(c, tile, x = {}) {
   const fx = $('.fx', it), view = $('.view', it), pc = $('.pc', it);
   view.style.aspectRatio = (1 / arOf(c)).toFixed(4);   // 처음부터 카드 비율 칸: 긴 카드가 장으로 나뉘기 전에 길게 보였다 줄어들지 않게 (나뉘지 않는 카드는 나중에 풀어요)
   // 9:16은 자르지 않고 4:5 높이에 맞춰 가운데로. 양옆은 같은 카드 배경을 흐리고 조금 어둡게 깔아요 (글 · 날짜 · 서명은 빼고, 1열 피드에서만)
+  let blr = null;
   if (!tile && arOf(c) > 1.5) {
     fx.classList.add('tall');
-    const blr = document.createElement('div'); blr.className = 'blr'; blr.setAttribute('aria-hidden', 'true'); fx.prepend(blr);
-    mount(blr, { ...c, pages: c.pages ? [''] : c.pages, pst: c.pst ? [c.pst[0]].filter(Boolean) : c.pst, html: c.html != null ? '&nbsp;' : c.html, place: '', showDate: false, datePos: 'none', sg: '', signTxt: '' });
+    blr = document.createElement('div'); blr.className = 'blr'; blr.setAttribute('aria-hidden', 'true'); fx.prepend(blr);
   }
   const ex = $('.ex', it), ex1 = $('.ex1', it);
   if (ex1) { ex1.textContent = flat(c); ex1.onclick = () => fx.click(); }
   const exOpen = () => {   // 글 전체 + 그 아래 메모 모두 (최근 메모가 위)
     const ms = [...(c.memos || [])].reverse();
-    ex.innerHTML = `<span class="tf"></span>${ms.length ? `<span class="xms">${ms.map(m => `<span class="xm1"><small>${stamp(m.at)}</small><span></span></span>`).join('')}</span>` : ''}`;
+    ex.innerHTML = `<span class="tf"></span>${ms.length ? `<span class="xms">${ms.map(m => `<span class="xm1"><span></span><small>${stamp(m.at)}</small></span>`).join('')}</span>` : ''}`;
     $('.tf', ex).textContent = cardText(c).replace(/\n{3,}/g, '\n\n').trim();
     $$('.xm1 > span', ex).forEach((el, i) => { el.textContent = ms[i].t; });
   };
@@ -404,8 +406,14 @@ function feedItem(c, tile, x = {}) {
   if (ex && !x.ex) { ex.classList.add('xcap'); ex.onclick = () => { if (ex.classList.contains('open')) { ex.classList.remove('open'); exLine(); } else if ($('.xmore', ex) && !$('.xmore', ex).hidden) { ex.classList.add('open'); exOpen(); } }; }
   it._sync = () => { const f = $('.fls', it); if (f) f.innerHTML = flagsOf(c, tile); exLine(); };   // 메모 · 알림 · 책갈피가 바뀌면 바로
   exLine();   // 1열: 글 한 줄 + 더 보기. 검색에서는 찾은 낱말이 든 곳부터
-  mount(view, c);
-  pageInto(view, c, (i, n) => { if (pc) { pc.hidden = false; $('b', pc).textContent = `${i}/${n}`; } });
+  const draw = () => {   // 11-11: 그리기 (홈은 화면 가까이 왔을 때만)
+    if (it._drawn) return; it._drawn = 1;
+    if (blr) mount(blr, { ...c, pages: c.pages ? [''] : c.pages, pst: c.pst ? [c.pst[0]].filter(Boolean) : c.pst, html: c.html != null ? '&nbsp;' : c.html, place: '', showDate: false, datePos: 'none', sg: '', signTxt: '' });
+    mount(view, c);
+    pageInto(view, c, (i, n) => { if (pc) { pc.hidden = false; $('b', pc).textContent = `${i}/${n}`; } });
+  };
+  it._draw = draw; fx.style.background = toneOf(c);
+  if (x.lazy) x.lazy.observe(it); else draw();
   fx.addEventListener('click', () => x.open ? x.open(it, c) : openFocus(it, c));
   const on = (k, fn) => { const b = $(`[data-a=${k}]`, it); if (b) b.onclick = fn; };
   on('use', () => go(c.tpl && T.tpl(c.tpl) ? `#/write/t-${c.tpl}` : `#/write/${c.fmt}`));
@@ -560,7 +568,7 @@ function memoSheet(c) {
 // 큰 화면: 카드 바로 아래 메모 (최근 것이 위, 쓴 때)
 function memoHtml(c) {   // 11-11: 크게 보기 카드 아래 = 글 전체 + 메모 모두 (펼친 채로)
   const ms = [...(c.memos || [])].reverse(), t = cardText(c).replace(/\n{3,}/g, '\n\n').trim();
-  return (t ? `<p class="ftx">${esc(t)}</p>` : '') + (ms.length ? `<h4>메모</h4><div class="rl">${ms.map(m => `<div class="fm"><p>${esc(m.t)}</p><small>${stamp(m.at)}</small></div>`).join('')}</div>` : '');
+  return (t ? `<p class="ftx">${esc(t)}</p>` : '') + (ms.length ? `<div class="fms">${ms.map(m => `<div class="fm"><p>${esc(m.t)}</p><small>${stamp(m.at)}</small></div>`).join('')}</div>` : '');
 }
 function refreshFocusMemo(c) {
   const box = focus && focus.c.id === c.id && $('.fmemo', focus.ov); if (box) box.innerHTML = memoHtml(c);
@@ -728,10 +736,15 @@ function openFocus(it, c, opt = {}) {
   box.style.transition = 'none'; box.style.transform = from(); box.style.clipPath = clip(); view.style.visibility = 'hidden';
   // 뒤 피드는 그대로(보던 자리 유지)
   ov.addEventListener('wheel', e => { if (sc.scrollHeight <= sc.clientHeight) e.preventDefault(); }, { passive: false });
-  requestAnimationFrame(() => requestAnimationFrame(() => { box.style.transition = ''; ov.classList.add('in'); box.style.transform = ''; box.style.clipPath = 'inset(0 0 0 0 round 0px)'; }));
+  requestAnimationFrame(() => requestAnimationFrame(() => { box.style.transition = ''; ov.classList.add('in'); box.style.transform = ''; box.style.clipPath = 'inset(0 0 0 0 round 14px)'; }));
   // 11-04: 크게 보기는 모두 왼쪽 위 ‹ 뒤로로만 닫혀요 (내려 읽다 눌러도 안 닫히게)
-  const bk = document.createElement('button'); bk.className = 'cb fvx'; bk.setAttribute('aria-label', '뒤로'); bk.innerHTML = ic('back'); ov.appendChild(bk);
+  // 11-11: 위 줄 = ← 뒤로(바로 전 카드) · ✕ 닫기(두 장째부터, 처음 연 화면 그 자리로). 홈처럼 내리면 숨고 올리면 나와요
+  const hd = document.createElement('div'); hd.className = 'fvh';
+  hd.innerHTML = `<button class="cb fvx" aria-label="뒤로">${ic('back')}</button><button class="cb fvc" aria-label="닫기" hidden>${ic('close')}</button>`; ov.appendChild(hd);
+  const bk = $('.fvx', hd), cx = $('.fvc', hd);
   bk.addEventListener('click', e => { e.stopPropagation(); if (focus?.stack?.length) return focus.back(); closeFocus(); });
+  cx.addEventListener('click', e => { e.stopPropagation(); closeFocus(); });
+  { let y0 = 0; sc.addEventListener('scroll', () => { const y = sc.scrollTop, dy = y - y0; y0 = y; hd.classList.toggle('sc', y > 8); if (y <= 8) hd.classList.remove('up'); else if (dy > 6) hd.classList.add('up'); else if (dy < -2) hd.classList.remove('up'); }, { passive: true }); }
   focus = { ov, box, view, from, clip, y: scrollY, c, onClose: opt.onClose, stack: [] };
   // 60 고침 (11-05): 크게 보기는 어디서 열어도 스스로 움직여요 (책 · 달력 · 검색에서 열어도 아트 흐름 · 영상)
   box._card = c; box.dataset.kd = 1;   // 맨 위 카드도 움직일 후보 (표시 알약은 안 붙여요)
@@ -773,6 +786,7 @@ function openFocus(it, c, opt = {}) {
       box.innerHTML = ''; const el2 = renderCard(m); box.appendChild(el2); fitCard(el2, m); box._card = m;
       box.style.marginTop = Math.max((innerHeight - box.offsetHeight - 120) / 2, topGap() + 52) + 'px';
       focus.c = m; focus.swapped = true; fill(m); $('.fmemo', ov).innerHTML = memoHtml(m); if (!keep) sc.scrollTo(0, 0);
+      $('.fvc', ov).hidden = !focus.stack.length; $('.fvh', ov).classList.remove('up');
     };
     fill(c);
     // 책에서 연 크게 보기: 좌우로 밀면 책 순서대로 앞 · 뒤 카드 (위아래는 그 카드 읽기)
@@ -796,7 +810,7 @@ function openFocus(it, c, opt = {}) {
 }
 function closeFocus(now) {
   if (!focus || focus.closing) return;
-  const f = focus; f.closing = true; f.lazy?.disconnect(); f.live?.();
+  const f = focus; f.closing = true; f.lazy?.disconnect(); f.live?.(); f.ov.querySelector('.fvh')?.classList.add('out');
   const done = () => { f.view.style.visibility = ''; f.ov.remove(); if (scrollY !== f.y) scrollTo(0, f.y); focus = null; f.onClose?.(f.c); };
   if (now) return done();
   if (f.swapped) { f.view.style.visibility = ''; f.ov.classList.add('fade'); return setTimeout(done, 300); }   // 다른 카드로 바꿨으면 그냥 사라지고 처음 자리 그대로
@@ -1752,6 +1766,8 @@ function viewTpl() {
   const stopMood = paintMood($('.amb'));
   const inp = $('.tsf input'); inp.value = tstate.q;
   const tile = t => `<button class="tt" data-t="${t.id}"><div class="tc">${lock(t) ? `<span class="lk">${ic('lock')}</span>` : ''}</div><div class="nm"><span>${esc(t.name)}</span>${T.isFav(t.id) ? HEART : ''}</div></button>`;
+  // 11-11: 견본 칸은 화면 가까이(가로 줄 포함) 온 것만 그려요. 쓰기 탭이 바로 떠요
+  const tq = new IntersectionObserver(es => es.forEach(e => { if (!e.isIntersecting) return; tq.unobserve(e.target); const b = e.target; if (b.isConnected && !$('.tc .cd', b)) tplTile($('.tc', b), T.tpl(b.dataset.t)); }), { rootMargin: '600px 400px' });
   let timer = 0;
   const paint = () => {
     clearInterval(timer);
@@ -1775,7 +1791,7 @@ function viewTpl() {
         <div class="tsec"><b>모든 템플릿</b></div><div class="tg2">${T.newest().map(t => tile(t)).join('')}</div>`;
       fillQuick(body);
       hs.forEach((h, i) => mount($$('.tday .th', body)[i], cardOf(h.t)));
-      $$('.tt', body).forEach(b => tplTile($('.tc', b), T.tpl(b.dataset.t)));
+      $$('.tt', body).forEach(b => tq.observe(b));
       // 위 판: 옆으로 넘기기 + 5초마다 저절로 (손대면 멈춤)
       const ths = $('.ths', body), dots = $('[data-for=ths]', body), n = hs.length;
       const k = () => Math.round(ths.scrollLeft / Math.max(1, ths.clientWidth));
@@ -1795,7 +1811,7 @@ function viewTpl() {
       l = l.filter(t => T.hit(t, q));
       body.innerHTML = l.length ? `<div class="tg2 solo">${l.map(t => tile(t)).join('')}</div>`
         : `<div class="tempty"><span class="i">${f === 'fav' && !q ? HEART : ic('search')}</span><b>${f === 'fav' && !q ? '하트 누른 템플릿이 여기 모여요' : '맞는 템플릿이 없어요'}</b></div>`;
-      $$('.tt', body).forEach(b => tplTile($('.tc', b), T.tpl(b.dataset.t)));
+      $$('.tt', body).forEach(b => tq.observe(b));
     }
   };
   const setF = f => { tstate.f = f; paint(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
@@ -1815,7 +1831,7 @@ function viewTpl() {
       tstate.sort = sb.dataset.s; $$('.tbs button').forEach(b => b.classList.toggle('on', b === sb));
       $('.tabs [data-c]').dataset.c = 's:' + tstate.sort;
       const r = $('[data-row=sort]'); r.innerHTML = T.sorted(tstate.sort).slice(0, 8).map(t => tile(t)).join(''); r.scrollLeft = 0;
-      $$('.tt', r).forEach(b => tplTile($('.tc', b), T.tpl(b.dataset.t))); r.dispatchEvent(new Event('scroll')); return;
+      $$('.tt', r).forEach(b => tq.observe(b)); r.dispatchEvent(new Event('scroll')); return;
     }
     const c = e.target.closest('.tsec [data-c]'); if (c) { $(`.tch [data-c="${c.dataset.c}"]`)?.scrollIntoView({ inline: 'center', block: 'nearest' }); return setF(c.dataset.c); }
     const t = e.target.closest('[data-t]'); if (t) go('#/ti/' + t.dataset.t);
@@ -1829,7 +1845,7 @@ function viewTpl() {
   const tick = now => { anim = requestAnimationFrame(tick); if (still) return; const h = $('.thero'); if (!h || h.getBoundingClientRect().bottom < 0) return; $$('canvas.bgc', h).forEach(cv => cv.width && drawCode(cv, +cv.dataset.seed, +cv.dataset.shift || 0, (now - t0) / 1000 + .01)); };
   anim = requestAnimationFrame(tick);
   const live = liveMid(() => $$('.tbody .tt'), { video: false });   // 60: 견본 칸도 가운데 하나만 움직여요
-  cleanup = () => { clearInterval(timer); cancelAnimationFrame(anim); live(); stopMood(); removeEventListener('scroll', keep); };
+  cleanup = () => { tq.disconnect(); clearInterval(timer); cancelAnimationFrame(anim); live(); stopMood(); removeEventListener('scroll', keep); };
 }
 
 // 템플릿 소개: 큰 미리보기(아트는 흐르는 빛이 움직여요). 옆으로 넘기면 같은 템플릿의 다른 예시, X 왼쪽에 '예시 1/3'
@@ -1938,10 +1954,11 @@ function viewPick(sub) {
   </main>${nav('write')}`;
   bindNav();
   const stopMood = paintMood($('.amb'));
-  const fill = root => {
-    $$('.wt[data-t]', root).forEach(b => tplTile($('.wc', b), T.tpl(b.dataset.t), false, true));
-    $$('.wt[data-d]', root).forEach(b => { const d = S.draft(b.dataset.d); if (d) mount($('.wc', b), { ...d.card, ratio: '45' }); });
-  };
+  const tz = new IntersectionObserver(es => es.forEach(e => { if (!e.isIntersecting) return; tz.unobserve(e.target); const b = e.target; if (!b.isConnected) return;
+    if (b.dataset.t) tplTile($('.wc', b), T.tpl(b.dataset.t), false, true);
+    else { const d = S.draft(b.dataset.d); if (d) mount($('.wc', b), { ...d.card, ratio: '45' }); }
+  }), { rootMargin: '600px 600px' });   // 11-11: 화면 가까이 온 칸만 그려요 (가로 줄도)
+  const fill = root => { $$('.wt[data-t], .wt[data-d]', root).forEach(b => tz.observe(b)); };
   mount($('[data-k=color] .wc'), { ...blank('text', S.today()), bg: lastColor(), pages: [''], showDate: false });
   fill(app); $$('.trow').forEach(snapOne);
   if (pickY) { const y = pickY; pickY = 0; requestAnimationFrame(() => scrollTo(0, y)); }
@@ -1961,7 +1978,7 @@ function viewPick(sub) {
     if (e.target.closest('[data-a=more]')) return go('#/tpl');
     const b = e.target.closest('.wt[data-t]'); if (b) { pickY = scrollY; go('#/ti/' + b.dataset.t); }   // 카드 = 자세히 보기 (닫으면 여기로)
   });
-  cleanup = () => { stopMood(); };
+  cleanup = () => { tz.disconnect(); stopMood(); };
 }
 // 이 포맷으로 쓰기: 그 카드의 모습(배경 · 글꼴 · 크기 · 비율 · 날짜 줄 · 서명 자리)을 그대로, 글은 비우고 날짜는 오늘로.
 // 내 사진 · 영상은 그 카드 것이라 빼요 (포토 포맷은 빈 사진 자리로)
@@ -3157,7 +3174,7 @@ function viewSet(sub) {
     ${sgrp(srow('bell', '알림', S.pref('remind', false) ? '켜짐' : '', { go: '#/set/alarm' }), srow('globe', '언어', LANGS[S.pref('lang', 'ko')], { go: '#/set/lang' }))}
     ${sgrp(srow('spark', '서비스 소개', '', { go: '#/set/about' }), srow('help', '도움말', '', { a: 'help' }), srow('bell', '공지사항 · 이벤트', '', { go: '#/set/news' }), srow('clock', '업데이트 소식', UPDATES[0][0], { go: '#/set/updates' }))}
     ${sgrp(srow('doc', '이용약관', '', { a: 'terms' }), srow('shield', '개인정보 처리방침', '', { a: 'privacy' }), srow('lic', '라이선스', '', { a: 'lic' }))}
-    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-11 35차</p>`, { up: '#/' });
+    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-11 36차</p>`, { up: '#/' });
   $('[data-a=place]').onclick = e => { const on = !S.pref('autoPlace', false); S.setPref('autoPlace', on); e.currentTarget.querySelector('.tg').classList.toggle('on', on); };
   $('[data-a=terms]').onclick = () => { location.href = '../legal/terms.ko.html'; };
   $('[data-a=privacy]').onclick = () => { location.href = '../legal/privacy.ko.html'; };
