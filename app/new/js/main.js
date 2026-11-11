@@ -137,7 +137,7 @@ function nav(on) {
     <button class="nb${T(on === 'search')}" data-n="search" aria-label="검색">${ic('search')}<span class="nl">검색</span></button></nav>`;   // 검색은 검은 바탕이라 맨 오른쪽 (10-31)
 }
 function bindNav() {
-  const home = () => $('main.feed') ? window.scrollTo({ top: 0, behavior: 'smooth' }) : go('#/');   // 검색 결과 칸도 .feed 모양을 써서 main만
+  const home = () => $('main.feed:not(.mkf)') ? window.scrollTo({ top: 0, behavior: 'smooth' }) : go('#/');   // 검색 결과 칸도 .feed 모양을 써서 main만
   const find = () => $('.srch') ? ($('.srch .fld input').focus(), window.scrollTo({ top: 0, behavior: 'smooth' })) : (kbNow(), go('#/search'));
   // 11-11: 책장 · 템플릿 탭 대신 캘린더 · 책갈피. 쓰기 = 템플릿 홈 (바로 쓰기가 맨 위)
   const top = (sel, h) => () => $(sel) ? window.scrollTo({ top: 0, behavior: 'smooth' }) : go(h);
@@ -295,14 +295,14 @@ function viewFeed(fresh, quiet) {
     anim = requestAnimationFrame(tick);
     if (document.hidden) return;
     if (++nt % 20 === 0) pickMid();   // 스크롤 없이 카드가 화면에 들어와도 (장 나누기 · 사진이 늦게 오면)
-    if (nt % 2 === 0) $$('.fi.play .view canvas.bgc').forEach(cv => cv.width && drawCode(cv, +cv.dataset.seed, +cv.dataset.shift || 0, (now - t0) / 1000 + .01));   // 초당 30번이면 충분해요
+    if (nt % 2 === 0 && !focus) $$('.fi.play .view canvas.bgc').forEach(cv => cv.width && drawCode(cv, +cv.dataset.seed, +cv.dataset.shift || 0, (now - t0) / 1000 + .01));   // 초당 30번이면 충분해요
     feedVideo();
   };
   // 영상도 화면에 보이는 카드들 (여러 장이면 보이는 장, 가운데에 가까운 순서로 최대 4개). 크게 보기 중에는 그 카드만. 나머지는 커버 장면
   const one = (cv, c) => { const pg = cv.closest('.pg'), i = +(pg?.dataset.i || 0), b = pageBg(c, i); return b?.vd ? { cv, b, fid: fidOf(c), onCover: cov => fixCover(c, i, b, cov) } : null; };
   const feedVideo = () => {
     if (document.hidden) return V.sync([]);
-    if (focus) { const cv = $('canvas.bgv', focus.box); return V.sync(cv ? [one(cv, focus.c)].filter(Boolean) : []); }
+    if (focus) return;   // 11-11: 크게 보기는 스스로 (가운데 하나만)
     const mid = innerHeight * .45, out = [];
     $$('.feed .fi.play').forEach(it => {
       const cv = $$('.view canvas.bgv', it).find(x => { const r = x.getBoundingClientRect(), w = x.closest('.view').getBoundingClientRect(); return r.width && r.bottom > 0 && r.top < innerHeight && r.left > w.left - r.width / 2 && r.left < w.left + r.width / 2; });
@@ -558,9 +558,9 @@ function memoSheet(c) {
   paint();
 }
 // 큰 화면: 카드 바로 아래 메모 (최근 것이 위, 쓴 때)
-function memoHtml(c) {
-  const ms = [...(c.memos || [])].reverse();
-  return ms.length ? `<h4>메모</h4><div class="rl">${ms.map(m => `<div class="fm"><p>${esc(m.t)}</p><small>${stamp(m.at)}</small></div>`).join('')}</div>` : '';
+function memoHtml(c) {   // 11-11: 크게 보기 카드 아래 = 글 전체 + 메모 모두 (펼친 채로)
+  const ms = [...(c.memos || [])].reverse(), t = cardText(c).replace(/\n{3,}/g, '\n\n').trim();
+  return (t ? `<p class="ftx">${esc(t)}</p>` : '') + (ms.length ? `<h4>메모</h4><div class="rl">${ms.map(m => `<div class="fm"><p>${esc(m.t)}</p><small>${stamp(m.at)}</small></div>`).join('')}</div>` : '');
 }
 function refreshFocusMemo(c) {
   const box = focus && focus.c.id === c.id && $('.fmemo', focus.ov); if (box) box.innerHTML = memoHtml(c);
@@ -714,7 +714,7 @@ function openFocus(it, c, opt = {}) {
   if (focus) return;
   const view = $('.view', it), r = view.getBoundingClientRect();
   const ov = document.createElement('div'); ov.className = 'fv';
-  ov.innerHTML = '<div class="fvs"><div class="fi play fvb"></div></div>';
+  ov.innerHTML = '<div class="fvs"><div class="fi fvb"></div></div>';   // .play 은 liveMid 가 (가운데 하나만)
   const sc = $('.fvs', ov), box = $('.fvb', ov);
   document.body.appendChild(ov);
   const el = renderCard(c); box.appendChild(el); fitCard(el, c);
@@ -734,20 +734,15 @@ function openFocus(it, c, opt = {}) {
   bk.addEventListener('click', e => { e.stopPropagation(); if (focus?.stack?.length) return focus.back(); closeFocus(); });
   focus = { ov, box, view, from, clip, y: scrollY, c, onClose: opt.onClose, stack: [] };
   // 60 고침 (11-05): 크게 보기는 어디서 열어도 스스로 움직여요 (책 · 달력 · 검색에서 열어도 아트 흐름 · 영상)
-  { const me = focus, t0 = performance.now(), still = matchMedia('(prefers-reduced-motion: reduce)').matches; let n = 0;
-    const run = now => {
-      if (focus !== me) return; me.raf = requestAnimationFrame(run); if (document.hidden) return; n++;
-      if (!still && n % 2 === 0) $$('canvas.bgc', box).forEach(cv => cv.width && drawCode(cv, +cv.dataset.seed, +cv.dataset.shift || 0, (now - t0) / 1000 + .01));
-      if (n % 15 === 1) { const cc = me.c, cv = $$('canvas.bgv', box).find(x => { const r = x.getBoundingClientRect(); return r.width && r.bottom > 0 && r.top < innerHeight; }); const i = cv ? +(cv.closest('.pg')?.dataset.i || 0) : 0, bg = cv && pageBg(cc, i); V.sync(bg?.vd ? [{ cv, b: bg, fid: fidOf(cc), onCover: cov => fixCover(cc, i, bg, cov) }] : []); }
-    };
-    me.raf = requestAnimationFrame(run); }
+  box._card = c; box.dataset.kd = 1;   // 맨 위 카드도 움직일 후보 (표시 알약은 안 붙여요)
+  focus.live = liveMid(() => [box, ...$$('.rmas .fi:not(.rph)', ov)], { overlay: false });
   if (!c.sample && c.id) { const fm = document.createElement('div'); fm.className = 'rel fmemo'; fm.innerHTML = memoHtml(c); sc.appendChild(fm); }   // 메모: 카드 바로 아래
   if (!c.sample && c.id) {   // 끝에 비슷한 카드: 누르면 그 카드가 이 화면에서 바뀌고, 닫으면 처음 연 카드 자리로
     const rel = document.createElement('div'); rel.className = 'rel'; sc.appendChild(rel);
     const fill = cc => {
       const f = opt.found;
       if (opt.seq) { rel.innerHTML = ''; return; }   // 책에서 열면 비슷한 카드 대신 좌우로 넘기기
-      if (!f) return fillMas(cc);
+      if (!f || !f.rows) return fillMas(cc, f);
       rel.innerHTML = relHtml(f.list, `${esc(f.q)} 검색 결과 <b>${f.list.findIndex(m => m.id === cc.id) + 1}/${f.list.length}</b>`, cc.id, f.hl);
       $$('.rr', rel).forEach(b => { const m = S.card(b.dataset.id); if (!m) return; const th = $('.th', b); th.style.background = toneOf(m); th.classList.toggle('short', arOf(m) < 1.25); mount(th, m); b.onclick = e => { e.stopPropagation(); swap(m); }; });
     };
@@ -766,16 +761,16 @@ function openFocus(it, c, opt = {}) {
       });
       put = Math.min(mas.length, put + 10);
     };
-    const fillMas = cc => {
-      mas = related(cc); put = 0; hs = [0, 0];
-      rel.innerHTML = mas.length ? '<h4>비슷한 카드</h4><div class="feed two rmas"><div class="mc"></div><div class="mc"></div></div>' : '';
+    const fillMas = (cc, f) => {
+      mas = f ? f.list.filter(m => m.id !== cc.id) : related(cc); put = 0; hs = [0, 0];
+      rel.innerHTML = mas.length ? `<h4>${f ? `${esc(f.q)} 검색 결과` : '비슷한 카드'}</h4><div class="feed two rmas"><div class="mc"></div><div class="mc"></div></div>` : '';
       more();
     };
     sc.addEventListener('scroll', () => { if (sc.scrollTop + sc.clientHeight > sc.scrollHeight - 1200) more(); }, { passive: true });
     focus.lazy = lazy;
     focus.back = () => { const p = focus.stack.pop(); if (!p) return; swap(p.c, true); requestAnimationFrame(() => { for (let k = 0; k < 60 && sc.scrollHeight - sc.clientHeight < p.y && put < mas.length; k++) more(); sc.scrollTop = p.y; }); };
     const swap = (m, keep) => {
-      box.innerHTML = ''; const el2 = renderCard(m); box.appendChild(el2); fitCard(el2, m);
+      box.innerHTML = ''; const el2 = renderCard(m); box.appendChild(el2); fitCard(el2, m); box._card = m;
       box.style.marginTop = Math.max((innerHeight - box.offsetHeight - 120) / 2, topGap() + 52) + 'px';
       focus.c = m; focus.swapped = true; fill(m); $('.fmemo', ov).innerHTML = memoHtml(m); if (!keep) sc.scrollTo(0, 0);
     };
@@ -801,7 +796,7 @@ function openFocus(it, c, opt = {}) {
 }
 function closeFocus(now) {
   if (!focus || focus.closing) return;
-  const f = focus; f.closing = true; f.lazy?.disconnect();
+  const f = focus; f.closing = true; f.lazy?.disconnect(); f.live?.();
   const done = () => { f.view.style.visibility = ''; f.ov.remove(); if (scrollY !== f.y) scrollTo(0, f.y); focus = null; f.onClose?.(f.c); };
   if (now) return done();
   if (f.swapped) { f.view.style.visibility = ''; f.ov.classList.add('fade'); return setTimeout(done, 300); }   // 다른 카드로 바꿨으면 그냥 사라지고 처음 자리 그대로
@@ -946,7 +941,7 @@ function viewSearch(fromPick) {
     it.innerHTML = `<div class="fx"><div class="view"></div><span class="pc bd" hidden></span></div><div class="sm"><p>${snip(c)}</p><small>${metaOf(c)}</small></div>`;
     const view = $('.view', it), pc = $('.pc', it);
     mount(view, c); pageInto(view, c, (i, n) => pcNum(pc, `${i}/${n}`));
-    it.onclick = () => { remember(); seen(c); openCard(c); };
+    it.onclick = () => { remember(); seen(c); if (!focus) openFocus(it, c, { found: { q: inp.value.trim() || '최근 본 카드', list: found.slice() } }); };   // 11-11: 홈과 같은 크게 보기
     return it;
   }
 
@@ -985,7 +980,8 @@ function viewSearch(fromPick) {
   const tick = now => {
     anim = requestAnimationFrame(tick);
     if (document.hidden) return V.sync([]);
-    const host = focus?.box || sv; if (!host) return;   // 결과 칸 영상은 liveMid 가 맡아요
+    if (focus) return;   // 크게 보기는 스스로
+    const host = sv; if (!host) return;   // 결과 칸 영상은 liveMid 가 맡아요
     if (!still) $$('.fi.play canvas.bgc', host.closest('.fv, .scv') || host).forEach(cv => cv.width && drawCode(cv, +cv.dataset.seed, +cv.dataset.shift || 0, (now - t0) / 1000 + .01));
     const cv = $$('canvas.bgv', host).find(x => { const r = x.getBoundingClientRect(); return r.width && r.left > -r.width / 2 && r.left < innerWidth - r.width / 2; });
     const cc = focus?.c || sv?.querySelector('.fi')?._card, pg = cv?.closest('.pg'), i = +(pg?.dataset.i || 0), b = cv && cc && pageBg(cc, i);
@@ -3161,7 +3157,7 @@ function viewSet(sub) {
     ${sgrp(srow('bell', '알림', S.pref('remind', false) ? '켜짐' : '', { go: '#/set/alarm' }), srow('globe', '언어', LANGS[S.pref('lang', 'ko')], { go: '#/set/lang' }))}
     ${sgrp(srow('spark', '서비스 소개', '', { go: '#/set/about' }), srow('help', '도움말', '', { a: 'help' }), srow('bell', '공지사항 · 이벤트', '', { go: '#/set/news' }), srow('clock', '업데이트 소식', UPDATES[0][0], { go: '#/set/updates' }))}
     ${sgrp(srow('doc', '이용약관', '', { a: 'terms' }), srow('shield', '개인정보 처리방침', '', { a: 'privacy' }), srow('lic', '라이선스', '', { a: 'lic' }))}
-    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-11 34차</p>`, { up: '#/' });
+    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-11 35차</p>`, { up: '#/' });
   $('[data-a=place]').onclick = e => { const on = !S.pref('autoPlace', false); S.setPref('autoPlace', on); e.currentTarget.querySelector('.tg').classList.toggle('on', on); };
   $('[data-a=terms]').onclick = () => { location.href = '../legal/terms.ko.html'; };
   $('[data-a=privacy]').onclick = () => { location.href = '../legal/privacy.ko.html'; };

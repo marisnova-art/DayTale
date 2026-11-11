@@ -1652,3 +1652,7 @@ html.hd .cpn { transform: none; }
 .feed.two .mc { gap: 10px; }
 /* 10 (11-11): 책갈피 = 홈 1열 */
 .mkf { padding-top: 0; }
+
+/* 15 (11-11): 크게 보기 카드 아래 글 전체 */
+.fmemo .ftx { margin: 0 4px 18px; font-size: var(--fs-m); line-height: 1.65; white-space: pre-line; word-break: break-word; color: rgba(255,255,255,.9); }
+.fmemo .ftx:last-child { margin-bottom: 4px; }
