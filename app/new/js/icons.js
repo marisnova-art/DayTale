@@ -8,6 +8,7 @@ const P = {
   send: '<path d="M12 19V5M6 11l6-6 6 6"/>',
   close: '<path d="M6 6l12 12M18 6 6 18"/>',
   check: '<path d="M20 6 9 17l-5-5"/>',
+  chart: '<path d="M4 20h16"/><path d="M7 16v-5M12 16V6M17 16v-8"/>',
   mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
   fwd: '<path d="M5 12h14M13 6l6 6-6 6"/>',
   fmt: '<path d="M4 7V5h16v2"/><path d="M12 5v14"/><path d="M9 19h6"/>',

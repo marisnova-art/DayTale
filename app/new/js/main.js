@@ -85,7 +85,7 @@ const hueAt = p => {
 function fmtsFor(r, a) {
   const out = [...ORDER, ...S.cards().map(c => c.fmt)];   // 앱 안 기본 템플릿 틀(ORDER)은 늘: 피드 견본 카드에 써요
   S.drafts().forEach(d => d.card && out.push(d.card.fmt)); S.trash().forEach(c => out.push(c.fmt));
-  if (r === 'tpl' || r === 'pick' || r === 'ti') { T.TEMPLATES.forEach(t => { if (!t.thumb) out.push(t.fmt); }); T.heroes().forEach(h => out.push(h.t?.fmt)); }   // 위 판은 늘 진짜 카드
+  if (r === 'tpl' || r === 'pick' || r === 'ti' || r === 'mark') { T.TEMPLATES.forEach(t => { if (!t.thumb) out.push(t.fmt); }); T.heroes().forEach(h => out.push(h.t?.fmt)); }   // 위 판은 늘 진짜 카드
   if (r === 'ti' && a) out.push(T.tpl(a)?.fmt);
   if (r === 'write' && a?.startsWith('t-')) out.push(T.tpl(a.slice(2))?.fmt);
   else if (r === 'write' && a && !a.startsWith('draft-')) out.push(a);
@@ -103,22 +103,22 @@ function route() {
   window.scrollTo(0, 0);
   if (r !== 'write') pickEx = null;   // 포맷 고르기에서 보여 준 예시 글은 바로 이어지는 쓰기에서만
   if (r !== 'edit') editFrom = null;   // 책장 · 달력에서 고치러 간 기록은 고치기 화면 동안만
-  if (r === 'pick') return viewPick(a);
+  if (r === 'pick' && a?.startsWith('all:')) return viewPick(a);
+  if (r === 'pick' || r === 'tpl') return viewTpl();   // 11-11: 쓰기 홈 + 템플릿 홈 = 하나
+  if (r === 'shelf' || r === 'book') return location.replace('#/mark');   // 11-11: 책장은 뺐어요 (책 데이터는 그대로 숨겨 둬요)
+  if (r === 'mark') return viewMarks();
   if (r === 'write') return viewWrite({ fmt: a });
   if (r === 'edit') return viewWrite({ id: a });
   if (r === 'like') return viewWrite({ like: a });
   if (r === 'feed' || r === 'done') return viewFeed(a);
   if (r === 'at') return viewFeed(a, true);
   if (r === 'search') return viewSearch(a === 'pick');
-  if (r === 'shelf') return viewShelf();
   if (r === 'cal') return viewCal(a);
   if (r === 'me') return viewMe();
-  if (r === 'tpl') return viewTpl();
   if (r === 'ti') return viewIntro(a);
   if (r === 'alarm') return viewNotes(false);
   if (r === 'set') return viewSet(a);
   if (r === 'login') return viewLogin(a);
-  if (r === 'book') return viewBook(decodeURIComponent(a || ''));
   return viewFeed();
 }
 window.addEventListener('hashchange', route);
@@ -130,19 +130,19 @@ function nav(on) {
   const T = me => me ? (capA ? '" data-on="1' : ' on" data-on="1') : '';   // 71 (11-06): 아이콘이 켜지는 건 캡슐이 도착한 뒤 (처음 열 때만 바로)
   return `<nav class="nav"><i class="ncap" aria-hidden="true"${capA ? ` style="${capNow()}"` : ' style="opacity:0"'}></i>
     <button class="nb${T(on === 'home')}" data-n="home" aria-label="홈">${ic('home')}<span class="nl">홈</span></button>
-    <button class="nb${T(on === 'tpl')}" data-n="tpl" aria-label="템플릿">${ic('layers')}<span class="nl">템플릿</span></button>
+    <button class="nb${T(on === 'cal')}" data-n="cal" aria-label="캘린더">${ic('cal')}<span class="nl">캘린더</span></button>
     <button class="nb nw${T(on === 'write')}" data-n="write" aria-label="쓰기">${ic('pen')}<span class="nl">쓰기</span></button>
-    <button class="nb${T(on === 'shelf')}" data-n="shelf" aria-label="책장">${ic('drawer')}<span class="nl">책장</span></button>
+    <button class="nb${T(on === 'mark')}" data-n="mark" aria-label="책갈피">${ic('bookmark')}<span class="nl">책갈피</span></button>
     <button class="nb${T(on === 'search')}" data-n="search" aria-label="검색">${ic('search')}<span class="nl">검색</span></button></nav>`;   // 검색은 검은 바탕이라 맨 오른쪽 (10-31)
 }
 function bindNav() {
   const home = () => $('main.feed') ? window.scrollTo({ top: 0, behavior: 'smooth' }) : go('#/');   // 검색 결과 칸도 .feed 모양을 써서 main만
   const find = () => $('.srch') ? ($('.srch .fld input').focus(), window.scrollTo({ top: 0, behavior: 'smooth' })) : (kbNow(), go('#/search'));
-  const shelf = () => $('.shv:not(.bkv):not(.mev):not(.setv)') ? window.scrollTo({ top: 0, behavior: 'smooth' }) : go(S.pref('shelfView') === 'cal' ? '#/cal' : '#/shelf');   // 마지막에 본 쪽 (책장 | 달력)
-  const me = () => $('.mev') ? window.scrollTo({ top: 0, behavior: 'smooth' }) : go('#/me');
-  const tpl = () => $('.tmv') ? window.scrollTo({ top: 0, behavior: 'smooth' }) : go('#/tpl');
-  $$('.nb').forEach(b => b.onclick = () => ({ home, search: find, write: () => go('#/pick'), tpl, shelf }[b.dataset.n] || soon)());
-  $$('[data-a=me]').forEach(b => b.onclick = me);   // 프로필은 홈 위 줄 (알림 옆)
+  // 11-11: 책장 · 템플릿 탭 대신 캘린더 · 책갈피. 쓰기 = 템플릿 홈 (바로 쓰기가 맨 위)
+  const top = (sel, h) => () => $(sel) ? window.scrollTo({ top: 0, behavior: 'smooth' }) : go(h);
+  const cal = top('.calv', '#/cal'), mark = top('.mkv', '#/mark'), write = top('.tmv', '#/pick');
+  $$('.nb').forEach(b => b.onclick = () => ({ home, search: find, write, cal, mark }[b.dataset.n] || soon)());
+  $$('[data-a=me]').forEach(b => b.onclick = () => go('#/set'));   // 11-11: 프로필을 누르면 바로 설정 (내 기록은 설정 안으로)
   requestAnimationFrame(placeCap);
 }
 // 62 (11-06): 켜진 탭 뒤 캡슐. 화면이 바뀌어도 앞 탭 자리에서 출발해 새 탭으로 미끄러져요
@@ -403,7 +403,6 @@ function feedItem(c, tile, x = {}) {
   // ⋯: 책갈피 · 이미지 저장 · 고치기 · 이 포맷으로 쓰기 | 지우기. 위에 날짜 · 종류
   on('more', () => sheet(`${+c.date.slice(5, 7)}월 ${+c.date.slice(8, 10)}일 · ${T.labelOf(c) || ''}`, [[
     { icon: 'bookmark', label: c.mark ? '책갈피 빼기' : '책갈피', on: c.mark, run: mark },
-    { icon: 'spines', label: '책에 담기', run: () => putSheet(c) },
     { icon: 'save', label: '이미지 저장', run: () => saveCard(c) },
     { icon: 'pen', label: '고치기', run: () => go(`#/edit/${c.id}`) },
     { icon: 'grid', label: '이 포맷으로 쓰기', run: () => go(`#/like/${c.id}`) },
@@ -821,9 +820,14 @@ function viewSearch(fromPick) {
   const count = key => { const n = new Map(); mine.forEach(c => { const k = key(c); if (k) n.set(k, (n.get(k) || 0) + 1); }); return [...n].sort((a, b) => b[1] - a[1]); };
   const row = (icn, label, n, extra = '') => `<button class="it" ${extra}>${icn}<span class="tl">${label}</span>${n ? `<span class="n">${n}</span>` : ''}</button>`;
   const group = (head, rows, k) => rows.length ? `<h4>${head}</h4><div class="grp${rows.length > 3 ? ' fold' : ''}" data-g="${k}">${rows.join('')}${rows.length > 3 ? '<button class="it more" data-a="more">더보기</button>' : ''}</div>` : '';
+  // 11-11: 검색에서 열어 본 카드 (최근 6장, 다시 보면 맨 앞으로)
+  const seenIds = () => S.pref('seenCards', []);
+  const seen = c => S.setPref('seenCards', [c.id, ...seenIds().filter(id => id !== c.id)].slice(0, 6));
   function home() {
     const rc = recents(), mk = mine.filter(c => c.mark).length;
+    const byId = new Map(mine.map(c => [c.id, c])), sc = seenIds().map(id => byId.get(id)).filter(Boolean);
     body.innerHTML = `<div class="sl">${rc.length ? `<h4>최근 검색</h4><div class="grp">${rc.map((r, i) => `<div class="it rcn" data-i="${i}">${r.k ? icon(r) : CLK}<span class="tl">${esc(r.q)}</span><button class="x" data-a="rm" aria-label="지우기">${ic('close')}</button></div>`).join('')}</div>` : ''}
+      ${sc.length ? '<h4>최근 본 카드</h4><div class="feed two sres sseen"><div class="mc"></div><div class="mc"></div></div>' : ''}
       ${group('장소', count(c => (c.place || '').trim()).map(([p, n]) => row(PIN, esc(p), n, `data-k="place" data-v="${esc(p)}"`)), 'place')}
       ${group('종류', count(c => c.fmt).filter(([f]) => LABEL[f]).map(([f, n]) => row(icon({ k: 'fmt', v: f }), LABEL[f], n, `data-k="fmt" data-v="${f}"`)), 'fmt')}
       ${mk ? `<div class="grp">${row(ic('bookmark'), '책갈피', mk, 'data-k="mark" data-v="1"')}</div>` : ''}</div>`;
@@ -833,6 +837,7 @@ function viewSearch(fromPick) {
     });
     $$('[data-k]', body).forEach(b => b.onclick = () => setMode({ k: b.dataset.k, v: b.dataset.v }, b.dataset.k === 'fmt' ? LABEL[b.dataset.v] : b.dataset.k === 'mark' ? '책갈피' : b.dataset.v));
     $$('[data-a=more]', body).forEach(b => b.onclick = () => { const g = b.closest('.grp'), open = g.classList.toggle('open'); b.textContent = open ? '접기' : '더보기'; });
+    if (sc.length) { found = sc; words = []; dqNow = null; const cols = $$('.sseen .mc', body), h = [0, 0]; sc.forEach(c => { const i = h[1] < h[0] ? 1 : 0; cols[i].appendChild(tile(c)); h[i] += arOf(c) + .3; }); }
   }
 
   // 찾기
@@ -893,7 +898,7 @@ function viewSearch(fromPick) {
     it.innerHTML = `<div class="fx"><div class="view"></div><span class="pc bd" hidden></span></div><div class="sm"><p>${snip(c)}</p><small>${metaOf(c)}</small></div>`;
     const view = $('.view', it), pc = $('.pc', it);
     mount(view, c); pageInto(view, c, (i, n) => pcNum(pc, `${i}/${n}`));
-    it.onclick = () => { remember(); openCard(c); };
+    it.onclick = () => { remember(); seen(c); openCard(c); };
     return it;
   }
 
@@ -1034,6 +1039,20 @@ function viewShelf() {
   cleanup = () => { stopMood(); closeRun(true); };
 }
 
+// 책갈피 (11-11): 책갈피한 카드만 날짜별 1열. 누르면 크게 보기, ⋯ 에서 책갈피를 빼면 바로 빠져요
+function viewMarks() {
+  const list = byDate(S.cards().filter(c => c.mark));
+  app.innerHTML = `${MOOD}<div class="shv mkv mood"><header class="shtop"><div class="tl"><h1>책갈피</h1></div></header><main class="days"></main></div>${nav('mark')}`;
+  bindNav();
+  const stopMood = paintMood($('.amb')), days = $('.days');
+  let stop = () => {};
+  const open = c => openRun(list, c);
+  if (list.length) { stop = dayList(days, list, open, c => cardMenu(c), 1); settle(list, open); }
+  else days.innerHTML = `<div class="empty"><span class="i">${ic('bookmark')}</span><b>책갈피한 카드가 여기 모여요</b></div>`;
+  const onSc = () => $('.mkv')?.classList.toggle('sc', scrollY > 8);
+  addEventListener('scroll', onSc, { passive: true });
+  cleanup = () => { stop(); stopMood(); closeRun(true); removeEventListener('scroll', onSc); };
+}
 // 날짜별 2열 (책 · 달력 같이): 날짜 머리 + 2열 칸(더 짧은 열에 차례로) + 칸 아래 [시간 · ⋯] (홈 2열과 같은 줄). 칸은 화면 가까이 올 때 그려요
 // 63 (11-06): 영상 카드 = 영상 아이콘, 움직이는 카드(아트 흐름 · 움직이는 아이콘) = 반짝임 둘. 오른쪽 위 쪽수 알약 안 (쪽수가 없어도 아이콘만)
 const motionKind = it => (it._card && hasVideo(it._card)) ? 'video' : (it._card && T.tplOfCard(it._card)?.motion === false) ? '' : it.querySelector('canvas.bgc, .cd.rebus .o[data-m]') ? 'spark2' : '';
@@ -1094,7 +1113,7 @@ function liveMid(items, { video = true, art = true, home = false, hold = () => f
 }
 function dayList(host, list, onOpen, onMore, n = 2) {   // n = 열 수 (달력 3열, 11-04)
   const groups = new Map(); list.forEach(c => { const d = c.date || S.today(); if (!groups.has(d)) groups.set(d, []); groups.get(d).push(c); });
-  host.innerHTML = [...groups].map(([d, cs]) => { const [b, s] = dayHead(d, cs.length); return `<div class="dh" data-d="${d}"><b>${b}</b><span>${s}</span></div><div class="f2${n === 3 ? ' f3' : ''}" data-d="${d}">${'<div class="mc"></div>'.repeat(n)}</div>`; }).join('');
+  host.innerHTML = [...groups].map(([d, cs]) => { const [b, s] = dayHead(d, cs.length); return `<div class="dh" data-d="${d}"><b>${b}</b><span>${s}</span></div><div class="f2${n === 3 ? ' f3' : n === 1 ? ' f1' : ''}" data-d="${d}">${'<div class="mc"></div>'.repeat(n)}</div>`; }).join('');
   const io = new IntersectionObserver(es => es.forEach(e => { if (!e.isIntersecting) return; io.unobserve(e.target); const it = e.target, c = it._card, view = $('.view', it), pc = $('.pc', it); mount(view, c); pageInto(view, c, (i, n) => pcNum(pc, `${i}/${n}`)); }), { rootMargin: '900px 0px' });
   groups.forEach((cs, d) => {
     const cols = $$(`.f2[data-d="${d}"] .mc`, host), h = cols.map(() => 0);
@@ -1120,7 +1139,6 @@ function cardMenu(c, o = {}) {
   const del = async () => { if (!(await ask('이 카드를 지울까요?', '삭제'))) return; S.removeCard(c.id); dropCard(c.id); };
   sheet(`${+c.date.slice(5, 7)}월 ${+c.date.slice(8, 10)}일 · ${T.labelOf(c) || ''}`, [[
     { icon: 'bookmark', label: c.mark ? '책갈피 빼기' : '책갈피', on: c.mark, run: mark },
-    { icon: 'spines', label: '책에 담기', run: () => putSheet(c) },
     { icon: 'save', label: '이미지 저장', run: () => saveCard(c) },
     { icon: 'pen', label: '고치기', run: () => { editFrom = { hash: location.hash, id: c.id }; go(`#/edit/${c.id}`); } },
     { icon: 'grid', label: '이 포맷으로 쓰기', run: () => go(`#/like/${c.id}`) },
@@ -1434,11 +1452,11 @@ function viewCal(month) {
   };
   app.innerHTML = `${MOOD}<div class="shv calv mood">
     <header class="cpn" style="background-image:${panelCss()}">
-      <div class="crow"><button class="mon" data-a="ym"><b></b><span><em></em>${ic('back')}</span></button>${capsule('cal')}</div>
+      <div class="crow"><button class="mon" data-a="ym"><b></b><span><em></em>${ic('back')}</span></button></div>
       <div class="wks">${weeks.map(w => `<div class="wk" data-w="${w}">${Array.from({ length: WK }, (_, i) => cell(addDays(w, i), 1)).join('')}</div>`).join('')}</div>
       <div class="mow"><div class="mwd">${Array.from({ length: 7 }, (_, i) => `<i>${WD[(ws + i) % 7]}</i>`).join('')}</div><div class="mos">${months.map(monthGrid).join('')}</div></div>
       <button class="grip" aria-label="월간으로 펼치기"></button></header>
-    <main class="days"></main></div>${nav('shelf')}`;
+    <main class="days"></main></div>${nav('cal')}`;
   bindNav(); bindCap();
   const stopMood = paintMood($('.amb'));
   const panel = $('.cpn'), wks = $('.wks'), mos = $('.mos'), list = $('.days');
@@ -1519,7 +1537,7 @@ function viewCal(month) {
   let stop = () => {};
   const open = c => openRun(all, c);
   if (all.length) {
-    stop = dayList(list, all, open, c => cardMenu(c));   // 11-05: 2열 (3열은 들쑥날쑥)
+    stop = dayList(list, all, open, c => cardMenu(c), 3);   // 11-11: 캘린더 3열 (앤드류)
     // 내리다 멈추면 가장 가까운 날짜 머리가 위 판 바로 아래에 와요 (11-04). 판 높이가 바뀌면(달 펼치기) 그 높이로
     const cpn = $('.cpn'), setH = () => document.documentElement.style.setProperty('--cph', cpn.offsetHeight + 'px');
     setH(); const ro = new ResizeObserver(setH); ro.observe(cpn);   // 11-05: 날짜에 끌려 붙기(스냅) 없음, 손 뗀 자리 그대로
@@ -1665,14 +1683,28 @@ const tstate = { f: '홈', q: '', sort: 'new' };   // 소개에서 돌아오면 
 const isPaidUser = () => S.pref('plan', 'free') === 'paid';
 const HEART = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>';
 function viewTpl() {
+  pickEx = exampleText();
   const free = T.heroes().find(h => h.k === 'free')?.t, paid = isPaidUser();
   const lock = t => t.paid && !paid && t !== free;   // 테스트 동안은 표시만 (모두 열려 있어요)
   const chips = [['홈', '홈'], ...(T.favs().length ? [['fav', '즐겨찾기']] : []), ...T.kinds().map(k => [k, k]), ...T.tagOrder().map(t => [t, t])];   // 11-04: 즐겨찾기는 홈 옆 칩으로 (비어 있으면 숨겨요)
   app.innerHTML = `<div class="amb"><div class="mo"></div></div><div class="tgr"></div><div class="tmv">
-    <header class="shtop"><div class="tl"><h1>템플릿</h1></div></header>
+    <header class="shtop"><div class="tl"><h1>쓰기</h1></div></header>
     <div class="tstk"><label class="tsf gls">${ic('search')}<input type="search" placeholder="검색" enterkeyhint="search" autocomplete="off"><button class="x" data-a="clr" aria-label="지우기" hidden>${ic('close')}</button></label>
     <div class="tch">${chips.map(([c, n]) => `<button class="gls" data-c="${esc(c)}">${esc(n)}</button>`).join('')}</div></div>
-    <main class="tbody"></main></div>${nav('tpl')}`;
+    <main class="tbody"></main></div>${nav('write')}`;
+  // 바로 쓰기 (11-11): 글쓰기 · 포토쓰기 · 쓰다 만 글. 아이폰은 누른 그 순간에만 사진첩을 열어 줘서 여기서 바로
+  const picker = document.createElement('input'); picker.type = 'file'; picker.accept = 'image/*,video/*'; picker.hidden = true; app.appendChild(picker);
+  picker.onchange = () => { const fl = picker.files?.[0]; if (!fl) return; writeIntent = { photo: fl }; go('#/write/text'); };
+  const quick = () => `<section class="wbx gls wq" data-b="b1"><div class="bxh"><span class="tbs"><button class="on">바로 쓰기</button></span></div><div class="trow b1">
+      <button class="wt wk" data-k="color"><div class="wc"></div><div class="wl">${ic('pen')}글쓰기</div></button>
+      <button class="wt wk" data-k="photo"><div class="wc"><div class="phs"></div></div><div class="wl">${ic('img')}포토쓰기</div></button>
+      ${S.drafts().map(d => `<button class="wt wd" data-d="${d.id}"><div class="wc"></div><span class="pd">${whenOf(d.at)}</span><span class="x" data-x="${d.id}" role="button" aria-label="지우기">${ic('close')}</span></button>`).join('')}</div></section>`;
+  const fillQuick = body => {
+    const q = $('.wq', body); if (!q) return;
+    mount($('[data-k=color] .wc', q), { ...blank('text', S.today()), bg: lastColor(), pages: [''], showDate: false });
+    $$('.wt[data-d]', q).forEach(b => { const d = S.draft(b.dataset.d); if (d) mount($('.wc', b), { ...d.card, ratio: '45' }); });
+    snapOne($('.trow', q));
+  };
   bindNav();
   const stopMood = paintMood($('.amb'));
   const inp = $('.tsf input'); inp.value = tstate.q;
@@ -1695,9 +1727,10 @@ function viewTpl() {
       const SORTS = [['new', '새로 나온'], ['pop', '인기'], ...(Object.keys(T.mineCount()).length ? [['mine', '자주 쓴']] : [])];
       if (!SORTS.some(x => x[0] === tstate.sort)) tstate.sort = 'new';
       const first = `<div class="tsec tabs"><span class="tbs">${SORTS.map(([k, n]) => `<button data-s="${k}" class="${k === tstate.sort ? 'on' : ''}">${n}</button>`).join('')}</span><button data-c="s:${tstate.sort}">모두 보기</button></div><div class="trow" data-row="sort">${T.sorted(tstate.sort).slice(0, 8).map(t => tile(t)).join('')}</div><div class="mdots"></div>`;
-      body.innerHTML = `<div class="thero"><div class="ths gls">${hs.map(h => `<button class="tday" data-t="${h.t.id}"><div class="th"></div><div class="tdx"><em class="gls">${h.label}</em><b>${esc(h.t.name)}</b><p>${esc(T.line(h.t.desc[0]))}</p></div></button>`).join('')}</div><div class="mdots" data-for="ths"></div></div>
+      body.innerHTML = `${quick()}<div class="thero"><div class="ths gls">${hs.map(h => `<button class="tday" data-t="${h.t.id}"><div class="th"></div><div class="tdx"><em class="gls">${h.label}</em><b>${esc(h.t.name)}</b><p>${esc(T.line(h.t.desc[0]))}</p></div></button>`).join('')}</div><div class="mdots" data-for="ths"></div></div>
         ${first}${rows.map(r => `<div class="tsec"><b>${esc(r.title)}</b><button data-c="${esc(r.c)}">모두 보기</button></div><div class="trow">${r.l.map(t => tile(t)).join('')}</div><div class="mdots"></div>`).join('')}
         <div class="tsec"><b>모든 템플릿</b></div><div class="tg2">${T.newest().map(t => tile(t)).join('')}</div>`;
+      fillQuick(body);
       hs.forEach((h, i) => mount($$('.tday .th', body)[i], cardOf(h.t)));
       $$('.tt', body).forEach(b => tplTile($('.tc', b), T.tpl(b.dataset.t)));
       // 위 판: 옆으로 넘기기 + 5초마다 저절로 (손대면 멈춤)
@@ -1709,7 +1742,7 @@ function viewTpl() {
       ths.addEventListener('touchstart', stop, { passive: true }); ths.addEventListener('pointerdown', stop);
       if (n > 1 && !matchMedia('(prefers-reduced-motion: reduce)').matches) timer = setInterval(() => ths.scrollTo({ left: ((k() + 1) % n) * ths.clientWidth, behavior: 'smooth' }), 5000);
       // 줄마다 점 · 대시 (밀어서 볼 쪽 수)
-      $$('.trow', body).forEach(r => { const d = r.nextElementSibling; const p = () => { const m = Math.max(1, Math.ceil(r.scrollWidth / r.clientWidth - .05)); d.innerHTML = dotsHtml(m, Math.round(r.scrollLeft / Math.max(1, r.scrollWidth - r.clientWidth) * (m - 1)) || 0); }; p(); r.addEventListener('scroll', p, { passive: true }); });
+      $$('.trow:not(.b1)', body).forEach(r => { const d = r.nextElementSibling; const p = () => { const m = Math.max(1, Math.ceil(r.scrollWidth / r.clientWidth - .05)); d.innerHTML = dotsHtml(m, Math.round(r.scrollLeft / Math.max(1, r.scrollWidth - r.clientWidth) * (m - 1)) || 0); }; p(); r.addEventListener('scroll', p, { passive: true }); });
     } else {   // 칩 · 즐겨찾기 · 검색: 2열 전부
       let l = T.newest();
       if (f === 'fav') { const fv = T.favs(); l = fv.map(T.tpl).filter(Boolean); }
@@ -1728,6 +1761,12 @@ function viewTpl() {
   inp.oninput = () => { tstate.q = inp.value; paint(); };
   inp.onkeydown = e => { if (e.key === 'Enter') inp.blur(); };
   $('.tbody').onclick = e => {
+    const k = e.target.closest('.wq [data-k]')?.dataset.k;
+    if (k === 'color') { writeIntent = { color: true }; return go('#/write/text'); }
+    if (k === 'photo') { picker.value = ''; return picker.click(); }
+    const x = e.target.closest('.wq [data-x]');
+    if (x) { e.stopPropagation(); return ask('쓰다 만 글을 지울까요?', '지우기').then(ok => { if (!ok) return; S.clearDraft(x.dataset.x); x.closest('.wt').remove(); pill('지웠어요', 'check'); }); }
+    const dr = e.target.closest('.wq .wt[data-d]'); if (dr) return go('#/write/draft-' + dr.dataset.d);
     const sb = e.target.closest('.tbs [data-s]');
     if (sb) {   // 탭: 그 줄만 다시 (위 판 · 다른 줄은 그대로)
       tstate.sort = sb.dataset.s; $$('.tbs button').forEach(b => b.classList.toggle('on', b === sb));
@@ -1752,7 +1791,7 @@ function viewTpl() {
 
 // 템플릿 소개: 큰 미리보기(아트는 흐르는 빛이 움직여요). 옆으로 넘기면 같은 템플릿의 다른 예시, X 왼쪽에 '예시 1/3'
 function viewIntro(id) {
-  const t = T.tpl(id); if (!t) return location.replace('#/tpl');
+  const t = T.tpl(id); if (!t) return location.replace('#/pick');
   const free = T.heroes().find(h => h.k === 'free')?.t, paid = isPaidUser();
   const sub = [t.kind, t === free ? (paid ? '오늘 추천' : '오늘 무료') : ''].filter(Boolean).join(' · ');
   const cards = t.ex.map((_, i) => T.exCard(t, i));
@@ -1774,7 +1813,7 @@ function viewIntro(id) {
   $$('.tnum button').forEach(b => b.onclick = () => pg.scrollTo({ left: +b.dataset.i * pg.clientWidth, behavior: 'smooth' }));
   const hb = $('[data-a=heart]'); hb.classList.toggle('on', T.isFav(t.id));
   hb.onclick = () => { const on = T.toggleFav(t.id); hb.classList.toggle('on', on); toast(on ? '즐겨찾기에 담았어요' : '즐겨찾기에서 뺐어요'); };
-  $('[data-a=x]').onclick = () => lastHash ? history.back() : location.replace('#/tpl');
+  $('[data-a=x]').onclick = () => lastHash ? history.back() : location.replace('#/pick');
   $('[data-a=go]').onclick = () => go('#/write/t-' + t.id);   // 유료 · 오늘 무료 확인은 결제를 붙일 때
   // 지금 보이는 예시의 아트 그림만 움직여요
   let anim = 0; const t0 = performance.now(), still = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1906,7 +1945,7 @@ function viewWrite({ fmt, id, like }) {
   else if (like) card = likeCard(S.card(like));
   else {   // 새 카드는 마지막에 쓴 글꼴 · 날짜 줄 · 비율 · 서명 자리로
     const tp = fmt?.startsWith('t-') ? T.tpl(fmt.slice(2)) : null;   // 템플릿으로 쓰기: #/write/t-<템플릿 id>
-    if (fmt?.startsWith('t-') && !tp) return go('#/tpl');
+    if (fmt?.startsWith('t-') && !tp) return go('#/pick');
     card = blank(tp ? tp.fmt : fmt, S.today());
     if (tp) card.tpl = tp.id;   // 카드에 템플릿 이름표
     if (card.fmt === 'text') { card.font = fontOf(S.pref('font', card.font)).id; const dp = S.pref('datePos', ''); if (dp === 'top' || dp === 'bottom') card.datePos = dp; const dh = S.pref('dh', ''); if (dh) card.dh = dh; }
@@ -2905,7 +2944,7 @@ function viewMe() {
     <header class="mpn">
       <div class="mpro"><span class="av"${avStyle()}></span><div class="who"><div class="t24">${esc(me.name || '나')}</div>
         <div class="t13 id">${me.id ? `<span>@${esc(me.id)}</span>` : ''}<button class="chip" data-a="plan">체험 중</button></div></div>
-        <button class="mset" data-a="set" aria-label="설정">${ic('slide')}</button></div>
+        <button class="mset" data-a="set" aria-label="닫기">${ic('close')}</button></div>
       ${me.bio ? `<button class="t24 mq bio" data-a="bio">${esc(me.bio)}</button>` : `<button class="t24 mq" data-a="q">${ln[0]}</button>`}
       <div class="mmd"><div class="msg2"><button data-v="all">전체</button><button data-v="m">월별</button></div><div class="mmn"><button data-a="pm" aria-label="지난달">${ic('back')}</button><b></b><button data-a="nm" aria-label="다음 달">${ic('next')}</button></div></div>
       <div class="msr">${tileBg.map((t, i) => `<button class="mst${t.lt ? ' lt' : ''}" data-k="${KEYS[i]}"><i${t.attr}></i><b></b><span class="mlb"></span></button>`).join('')}</div>
@@ -2916,7 +2955,7 @@ function viewMe() {
     </div>${nav('')}`;
   bindNav(); fillThumbs(app);
   const stopMood = paintMood($('.amb'));
-  $('[data-a=set]').onclick = () => go('#/set');
+  $('[data-a=set]').onclick = () => lastHash ? history.back() : location.replace('#/set');   // 11-11: 내 기록은 설정 안 화면
   $('[data-a=plan]').onclick = () => go('#/set/plan');
   const qb = $('[data-a=q]'); if (qb) qb.onclick = () => toast(ln[1]);
   const bb = $('[data-a=bio]'); if (bb) bb.onclick = () => go('#/set/bio');
@@ -3073,6 +3112,7 @@ function viewSet(sub) {
   const me = meOf(), n = S.trash().length;
   const u = A.user();   // 11-06: 로그인 전이면 계정 줄 오른쪽에 흰 '로그인' (누르면 로그인 시트)
   setShell('설정', `${sgrp(`<button class="srw acc" data-go="#/set/account"><span class="av"${avStyle()}></span><span class="t"><b>${esc(me.name || '나')}</b><small>${u ? esc(u.email || '') : '로그인 전'}</small></span>${u ? `<span class="v">${ic('next')}</span>` : '<span class="lbtn" data-a="login">로그인</span>'}</button>`)}
+    ${sgrp(srow('chart', '내 기록', S.cards().length ? `카드 ${S.cards().length}` : '', { go: '#/me' }))}
     <div class="sgp plan">${srow('star', '구독', '체험 중', { go: '#/set/plan' })}${srow('ticket', '이용권 코드 넣기', '', { a: 'code' })}</div>
     ${sgrp(srow('img', '바탕', BG_MODES.find(x => x[0] === bgMode())[1] + (bgMode() !== 'd' ? ' · ' + esc(bgPickOf(bgMode()) || '랜덤') : ''), { go: '#/set/bg' }))}
     ${sgrp(srow('pin', '장소 자동', '', { tg: S.pref('autoPlace', false), a: 'place' }), srow('sign', '서명', esc(S.pref('sign', '')) || '없음', { go: '#/set/sign' }), srow('date', '날짜 표시', dateLine(S.today()), { go: '#/set/date' }), srow('week', '한 주의 시작', weekStart() ? '월요일' : '일요일', { go: '#/set/week' }))}
@@ -3080,7 +3120,7 @@ function viewSet(sub) {
     ${sgrp(srow('bell', '알림', S.pref('remind', false) ? '켜짐' : '', { go: '#/set/alarm' }), srow('globe', '언어', LANGS[S.pref('lang', 'ko')], { go: '#/set/lang' }))}
     ${sgrp(srow('spark', '서비스 소개', '', { go: '#/set/about' }), srow('help', '도움말', '', { a: 'help' }), srow('bell', '공지사항 · 이벤트', '', { go: '#/set/news' }), srow('clock', '업데이트 소식', UPDATES[0][0], { go: '#/set/updates' }))}
     ${sgrp(srow('doc', '이용약관', '', { a: 'terms' }), srow('shield', '개인정보 처리방침', '', { a: 'privacy' }), srow('lic', '라이선스', '', { a: 'lic' }))}
-    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-06 31차</p>`, { up: '#/me' });
+    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-11 32차</p>`, { up: '#/' });
   $('[data-a=place]').onclick = e => { const on = !S.pref('autoPlace', false); S.setPref('autoPlace', on); e.currentTarget.querySelector('.tg').classList.toggle('on', on); };
   $('[data-a=terms]').onclick = () => { location.href = '../legal/terms.ko.html'; };
   $('[data-a=privacy]').onclick = () => { location.href = '../legal/privacy.ko.html'; };

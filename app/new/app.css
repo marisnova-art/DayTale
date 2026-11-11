@@ -1594,3 +1594,14 @@ img.tth { display: block; width: 100%; aspect-ratio: 4 / 5; object-fit: cover; }
   /* 30차: 1열 카드는 화면 높이의 65%까지만 (다음 카드가 아래에 조금 보이게) */
   .pc .feed:not(.two) > .fi { width: min(100%, calc(65vh * .8)); margin-left: auto; margin-right: auto; }
 }
+
+/* ── 모바일 구조 정리 (11-11) ── */
+/* 책갈피 탭: 1열 */
+.days .f1 { grid-template-columns: minmax(0, 1fr); padding: 0 var(--gut); }
+.days .f1 .mc { gap: 18px; }
+.mkv { position: relative; z-index: 1; min-height: 100vh; padding-bottom: calc(120px + var(--safe-b)); }
+/* 쓰기 홈 맨 위 바로 쓰기 (칩 줄 아래) */
+.tmv .wq { margin-top: 20px; }
+.tmv .wq + .thero { margin-top: 20px; }
+/* 검색 첫 화면: 최근 본 카드 */
+.srch .sseen { margin-top: 4px; }
