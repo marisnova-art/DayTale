@@ -93,7 +93,7 @@ const P = {
   size: '<path d="M3 6h11M8.5 6v13"/><path d="M14 12h7M17.5 12v7"/>',
   drawer: '<rect x="3" y="4" width="18" height="16" rx="2.5"/><path class="hd" d="M3 12h18M10 8h4M10 16h4"/>',   // 메뉴 책장: 모아 두는 서랍 (켜지면 칸 · 손잡이만 비어요)
   spines: '<rect x="3.5" y="3.5" width="17" height="5" rx="1"/><rect x="3.5" y="9.5" width="17" height="5" rx="1"/><rect x="3.5" y="15.5" width="17" height="5" rx="1"/>',   // 가로로 쌓은 책 (책장 보기)
-  cal: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M9 3v4M15 3v4"/><path class="hd" d="M4 10h16"/><path class="hd dt" d="M8.5 14.5h.01M12 14.5h.01"/>',   // 켜지면 윗줄 · 날짜 점은 비워요
+  cal: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M9 3v4M15 3v4"/><path class="hd" d="M4 10h16"/>',   // 켜지면 윗줄만 비워요
   plus: '<path d="M12 5v14M5 12h14"/>',
   out: '<rect x="5" y="5" width="14" height="14" rx="3"/><path d="M9 12h6"/>',
   pin: '<path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',

@@ -566,6 +566,7 @@ function memoSheet(c) {
   paint();
 }
 // 큰 화면: 카드 바로 아래 메모 (최근 것이 위, 쓴 때)
+const focusRow = c => `<div class="fi fmt"><p class="mt"><span>${ago(c)}<span class="fls">${flagsOf(c, false)}</span></span><button class="cb" data-a="more" aria-label="더 보기">${ic('more')}</button></p></div>`;
 function memoHtml(c) {   // 11-11: 크게 보기 카드 아래 = 글 전체 + 메모 모두 (펼친 채로)
   const ms = [...(c.memos || [])].reverse(), t = cardText(c).replace(/\n{3,}/g, '\n\n').trim();
   return (t ? `<p class="ftx">${esc(t)}</p>` : '') + (ms.length ? `<div class="fms">${ms.map(m => `<div class="fm"><p>${esc(m.t)}</p><small>${stamp(m.at)}</small></div>`).join('')}</div>` : '');
@@ -749,7 +750,8 @@ function openFocus(it, c, opt = {}) {
   // 60 고침 (11-05): 크게 보기는 어디서 열어도 스스로 움직여요 (책 · 달력 · 검색에서 열어도 아트 흐름 · 영상)
   box._card = c; box.dataset.kd = 1;   // 맨 위 카드도 움직일 후보 (표시 알약은 안 붙여요)
   focus.live = liveMid(() => [box, ...$$('.rmas .fi:not(.rph)', ov)], { overlay: false });
-  if (!c.sample && c.id) { const fm = document.createElement('div'); fm.className = 'rel fmemo'; fm.innerHTML = memoHtml(c); sc.appendChild(fm); }   // 메모: 카드 바로 아래
+  if (!c.sample && c.id) { const fm = document.createElement('div'); fm.className = 'rel fmemo'; fm.innerHTML = focusRow(c) + memoHtml(c); sc.appendChild(fm);
+    fm.addEventListener('click', e => { if (!e.target.closest('[data-a=more]')) return; e.stopPropagation(); focusMenu(); }); }   // 메모: 카드 바로 아래
   if (!c.sample && c.id) {   // 끝에 비슷한 카드: 누르면 그 카드가 이 화면에서 바뀌고, 닫으면 처음 연 카드 자리로
     const rel = document.createElement('div'); rel.className = 'rel'; sc.appendChild(rel);
     const fill = cc => {
@@ -785,7 +787,7 @@ function openFocus(it, c, opt = {}) {
     const swap = (m, keep) => {
       box.innerHTML = ''; const el2 = renderCard(m); box.appendChild(el2); fitCard(el2, m); box._card = m;
       box.style.marginTop = Math.max((innerHeight - box.offsetHeight - 120) / 2, topGap() + 52) + 'px';
-      focus.c = m; focus.swapped = true; fill(m); $('.fmemo', ov).innerHTML = memoHtml(m); if (!keep) sc.scrollTo(0, 0);
+      focus.c = m; focus.swapped = true; fill(m); $('.fmemo', ov).innerHTML = focusRow(m) + memoHtml(m); if (!keep) sc.scrollTo(0, 0);
       $('.fvc', ov).hidden = !focus.stack.length; $('.fvh', ov).classList.remove('up');
     };
     fill(c);
@@ -807,6 +809,21 @@ function openFocus(it, c, opt = {}) {
       };
     }
   }
+}
+function focusMenu() {
+  const c = focus?.c; if (!c) return;
+  const redraw = () => { const fm = focus && $('.fmemo', focus.ov); if (fm) fm.innerHTML = focusRow(focus.c) + memoHtml(focus.c); };
+  const mark = () => { c.mark = !c.mark; S.saveCard(c, false); syncCard(c); redraw(); toast(c.mark ? '책갈피에 넣었어요' : '책갈피에서 뺐어요'); };
+  const del = async () => {
+    if (!(await ask('이 카드를 지울까요?', '삭제'))) return;
+    S.removeCard(c.id); closeFocus(true); $$(`.fi[data-k="${c.id}"], .fi[data-k="r:${c.id}"], .fi[data-id="${c.id}"]`).forEach(x => x.remove());
+  };
+  sheet(`${+c.date.slice(5, 7)}월 ${+c.date.slice(8, 10)}일 · ${T.labelOf(c) || ''}`, [[
+    { icon: 'bookmark', label: c.mark ? '책갈피 빼기' : '책갈피', on: c.mark, run: mark },
+    { icon: 'save', label: '이미지 저장', run: () => saveCard(c) },
+    { icon: 'pen', label: '고치기', run: () => go(`#/edit/${c.id}`) },
+    { icon: 'grid', label: '이 포맷으로 쓰기', run: () => go(`#/like/${c.id}`) },
+  ], cardExtra(c), [{ icon: 'trash', label: '지우기', red: true, run: del }]]);
 }
 function closeFocus(now) {
   if (!focus || focus.closing) return;
@@ -3174,7 +3191,7 @@ function viewSet(sub) {
     ${sgrp(srow('bell', '알림', S.pref('remind', false) ? '켜짐' : '', { go: '#/set/alarm' }), srow('globe', '언어', LANGS[S.pref('lang', 'ko')], { go: '#/set/lang' }))}
     ${sgrp(srow('spark', '서비스 소개', '', { go: '#/set/about' }), srow('help', '도움말', '', { a: 'help' }), srow('bell', '공지사항 · 이벤트', '', { go: '#/set/news' }), srow('clock', '업데이트 소식', UPDATES[0][0], { go: '#/set/updates' }))}
     ${sgrp(srow('doc', '이용약관', '', { a: 'terms' }), srow('shield', '개인정보 처리방침', '', { a: 'privacy' }), srow('lic', '라이선스', '', { a: 'lic' }))}
-    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-11 37차</p>`, { up: '#/' });
+    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-11 38차</p>`, { up: '#/' });
   $('[data-a=place]').onclick = e => { const on = !S.pref('autoPlace', false); S.setPref('autoPlace', on); e.currentTarget.querySelector('.tg').classList.toggle('on', on); };
   $('[data-a=terms]').onclick = () => { location.href = '../legal/terms.ko.html'; };
   $('[data-a=privacy]').onclick = () => { location.href = '../legal/privacy.ko.html'; };

@@ -1693,3 +1693,8 @@ html.lite #app :is(.srch .fld, .srch .sl .grp, .srch .fgrp, .sl .grp, .sgp, .wbx
 /* 25 (11-11): 캘린더 탭 켜짐 = 채운 달력 + 윗줄 · 날짜 점은 비워요 (점은 켜졌을 때만) */
 .ic .dt { display: none; }
 .nb.on .ic .dt { display: inline; stroke-width: 2.6; stroke-linecap: round; }
+
+/* 27 (11-11): 밝은 바탕 묶음 상자 안 구분선 = 옅은 검정 */
+html.lite #app :is(.sl .it, .srch .sl .it, .srch .fgrp .fr, .srch .fgrp .fmore, .fgrp .fr, .sgp .srw) { border-color: rgba(20,20,22,.08); }
+/* 28 (11-11): 크게 보기 카드 아래 '쓴 때 · ⋯' 줄 (홈 1열과 같은 모양) */
+.fmemo .fmt { margin: -8px 0 6px; cursor: default; }
