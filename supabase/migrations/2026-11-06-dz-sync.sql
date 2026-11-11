@@ -37,7 +37,9 @@ begin
   else
     new.user_id := old.user_id;
   end if;
-  if tg_table_name = 'dz_items' and new.deleted then new.data := null; end if;
+  if tg_table_name = 'dz_items' then
+    if new.deleted then new.data := null; end if;   -- 11-11 fix: dz_prefs has no 'deleted' column
+  end if;
   new.server_at := clock_timestamp();
   return new;
 end $$;
