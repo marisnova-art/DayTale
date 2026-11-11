@@ -753,18 +753,27 @@ function openFocus(it, c, opt = {}) {
     };
     // 비슷한 카드 2열: 더 짧은 열에 차례로, 20장씩 (아래 가까이 오면 이어서). 누르면 그 카드가 크게 (지금 카드와 보던 자리는 뒤로를 위해 기억)
     let mas = [], put = 0, hs = [0, 0];
+    const lazy = new IntersectionObserver(es => es.forEach(e => {
+      if (!e.isIntersecting) return; lazy.unobserve(e.target); const ph = e.target, m = ph._card; if (!ph.isConnected) return;
+      const t = feedItem(m, true, { open: () => { focus.stack.push({ c: focus.c, y: sc.scrollTop }); swap(m); } }); ph.replaceWith(t);
+    }), { root: sc, rootMargin: '600px 0px' });
     const more = () => {
       const cols = $$('.rmas .mc', rel); if (!cols.length || put >= mas.length) return;
-      mas.slice(put, put + 20).forEach(m => { const i = hs[1] < hs[0] ? 1 : 0; const t = feedItem(m, true, { open: () => { focus.stack.push({ c: focus.c, y: sc.scrollTop }); swap(m); } }); cols[i].appendChild(t); hs[i] += arOf(m) + .22; });
-      put = Math.min(mas.length, put + 20);
+      mas.slice(put, put + 10).forEach(m => {   // 자리만: 카드 비율 칸 + 아래 줄 높이 (그리는 건 보일 때)
+        const i = hs[1] < hs[0] ? 1 : 0, ph = document.createElement('div'); ph.className = 'fi tile rph'; ph._card = m;
+        ph.innerHTML = `<div class="fx" style="aspect-ratio:${(1 / arOf(m)).toFixed(4)};background:${toneOf(m)}"></div><p class="mt"></p>`;
+        cols[i].appendChild(ph); lazy.observe(ph); hs[i] += arOf(m) + .22;
+      });
+      put = Math.min(mas.length, put + 10);
     };
     const fillMas = cc => {
       mas = related(cc); put = 0; hs = [0, 0];
       rel.innerHTML = mas.length ? '<h4>비슷한 카드</h4><div class="feed two rmas"><div class="mc"></div><div class="mc"></div></div>' : '';
       more();
     };
-    sc.addEventListener('scroll', () => { if (sc.scrollTop + sc.clientHeight > sc.scrollHeight - 900) more(); }, { passive: true });
-    focus.back = () => { const p = focus.stack.pop(); if (!p) return; swap(p.c, true); requestAnimationFrame(() => { for (let k = 0; k < 30 && sc.scrollHeight - sc.clientHeight < p.y && put < mas.length; k++) more(); sc.scrollTop = p.y; }); };
+    sc.addEventListener('scroll', () => { if (sc.scrollTop + sc.clientHeight > sc.scrollHeight - 1200) more(); }, { passive: true });
+    focus.lazy = lazy;
+    focus.back = () => { const p = focus.stack.pop(); if (!p) return; swap(p.c, true); requestAnimationFrame(() => { for (let k = 0; k < 60 && sc.scrollHeight - sc.clientHeight < p.y && put < mas.length; k++) more(); sc.scrollTop = p.y; }); };
     const swap = (m, keep) => {
       box.innerHTML = ''; const el2 = renderCard(m); box.appendChild(el2); fitCard(el2, m);
       box.style.marginTop = Math.max((innerHeight - box.offsetHeight - 120) / 2, topGap() + 52) + 'px';
@@ -792,7 +801,7 @@ function openFocus(it, c, opt = {}) {
 }
 function closeFocus(now) {
   if (!focus || focus.closing) return;
-  const f = focus; f.closing = true;
+  const f = focus; f.closing = true; f.lazy?.disconnect();
   const done = () => { f.view.style.visibility = ''; f.ov.remove(); if (scrollY !== f.y) scrollTo(0, f.y); focus = null; f.onClose?.(f.c); };
   if (now) return done();
   if (f.swapped) { f.view.style.visibility = ''; f.ov.classList.add('fade'); return setTimeout(done, 300); }   // 다른 카드로 바꿨으면 그냥 사라지고 처음 자리 그대로
@@ -1081,16 +1090,15 @@ function viewShelf() {
 // 책갈피 (11-11): 책갈피한 카드만 날짜별 1열. 누르면 크게 보기, ⋯ 에서 책갈피를 빼면 바로 빠져요
 function viewMarks() {
   const list = byDate(S.cards().filter(c => c.mark));
-  app.innerHTML = `${MOOD}<div class="shv mkv mood"><header class="shtop"><div class="tl"><h1>책갈피</h1></div></header><main class="days"></main></div>${nav('mark')}`;
+  app.innerHTML = `${MOOD}<div class="shv mkv mood"><header class="shtop"><div class="tl"><h1>책갈피</h1></div></header><main class="feed mkf"></main></div>${nav('mark')}`;
   bindNav();
-  const stopMood = paintMood($('.amb')), days = $('.days');
+  const stopMood = paintMood($('.amb')), feed = $('.mkf');
   let stop = () => {};
-  const open = c => openRun(list, c);
-  if (list.length) { stop = dayList(days, list, open, c => cardMenu(c), 1); settle(list, open); }
-  else days.innerHTML = `<div class="empty"><span class="i">${ic('bookmark')}</span><b>책갈피한 카드가 여기 모여요</b></div>`;
+  if (list.length) { list.forEach(c => feed.appendChild(feedItem(c, false))); stop = liveMid(() => $$('.mkf .fi')); if (keepY != null) { const y = keepY; keepY = null; requestAnimationFrame(() => scrollTo(0, y)); } }
+  else feed.innerHTML = `<div class="empty"><span class="i">${ic('bookmark')}</span><b>책갈피한 카드가 여기 모여요</b></div>`;
   const onSc = () => $('.mkv')?.classList.toggle('sc', scrollY > 8);
   addEventListener('scroll', onSc, { passive: true });
-  cleanup = () => { stop(); stopMood(); closeRun(true); removeEventListener('scroll', onSc); };
+  cleanup = () => { stop(); stopMood(); closeFocus(true); removeEventListener('scroll', onSc); };
 }
 // 날짜별 2열 (책 · 달력 같이): 날짜 머리 + 2열 칸(더 짧은 열에 차례로) + 칸 아래 [시간 · ⋯] (홈 2열과 같은 줄). 칸은 화면 가까이 올 때 그려요
 // 63 (11-06): 영상 카드 = 영상 아이콘, 움직이는 카드(아트 흐름 · 움직이는 아이콘) = 반짝임 둘. 오른쪽 위 쪽수 알약 안 (쪽수가 없어도 아이콘만)
@@ -1574,9 +1582,9 @@ function viewCal(month) {
   };
   label(act);
   let stop = () => {};
-  const open = c => openRun(all, c);
+  const open = (c, it) => { it = it || $(`.days .fi.dt[data-id="${c.id}"]`); if (it) openFocus(it, c); };   // 11-11: 홈과 같은 크게 보기
   if (all.length) {
-    stop = dayList(list, all, open, c => cardMenu(c), 3);   // 11-11: 캘린더 3열 (앤드류)
+    stop = dayList(list, all, open, c => cardMenu(c), 2);   // 11-11: 캘린더 2열로 되돌림 (앤드류)
     // 내리다 멈추면 가장 가까운 날짜 머리가 위 판 바로 아래에 와요 (11-04). 판 높이가 바뀌면(달 펼치기) 그 높이로
     const cpn = $('.cpn'), setH = () => document.documentElement.style.setProperty('--cph', cpn.offsetHeight + 'px');
     setH(); const ro = new ResizeObserver(setH); ro.observe(cpn);   // 11-05: 날짜에 끌려 붙기(스냅) 없음, 손 뗀 자리 그대로
@@ -1584,7 +1592,7 @@ function viewCal(month) {
     list.insertAdjacentHTML('beforeend', `<p class="firstd">처음 쓴 날 · ${ymd(first)}</p>`);
     requestAnimationFrame(() => { toWeek(act, false); if (!settle(all, open)) jump(act, false); });
   } else { list.innerHTML = `<div class="empty"><span class="i">${ic('cal')}</span><b>아직 쓴 카드가 없어요</b></div>`; requestAnimationFrame(() => toWeek(T, false)); }
-  cleanup = () => { stop(); stopMood(); closeRun(true); removeEventListener('scroll', onScroll); clearTimeout(st); cancelAnimationFrame(raf); };
+  cleanup = () => { stop(); stopMood(); closeRun(true); closeFocus(true); removeEventListener('scroll', onScroll); clearTimeout(st); cancelAnimationFrame(raf); };
 }
 
 // 우리 시트 틀 (목록 시트와 같은 모양 · 움직임). 바깥을 누르면 닫혀요. 키보드가 오르면 시트도 그 위로
@@ -3153,7 +3161,7 @@ function viewSet(sub) {
     ${sgrp(srow('bell', '알림', S.pref('remind', false) ? '켜짐' : '', { go: '#/set/alarm' }), srow('globe', '언어', LANGS[S.pref('lang', 'ko')], { go: '#/set/lang' }))}
     ${sgrp(srow('spark', '서비스 소개', '', { go: '#/set/about' }), srow('help', '도움말', '', { a: 'help' }), srow('bell', '공지사항 · 이벤트', '', { go: '#/set/news' }), srow('clock', '업데이트 소식', UPDATES[0][0], { go: '#/set/updates' }))}
     ${sgrp(srow('doc', '이용약관', '', { a: 'terms' }), srow('shield', '개인정보 처리방침', '', { a: 'privacy' }), srow('lic', '라이선스', '', { a: 'lic' }))}
-    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-11 33차</p>`, { up: '#/' });
+    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-11 34차</p>`, { up: '#/' });
   $('[data-a=place]').onclick = e => { const on = !S.pref('autoPlace', false); S.setPref('autoPlace', on); e.currentTarget.querySelector('.tg').classList.toggle('on', on); };
   $('[data-a=terms]').onclick = () => { location.href = '../legal/terms.ko.html'; };
   $('[data-a=privacy]').onclick = () => { location.href = '../legal/privacy.ko.html'; };

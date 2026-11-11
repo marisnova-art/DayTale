@@ -549,7 +549,7 @@ html.pan .wr .panel { display: grid; }
 .fi.tile .sm small { display: block; font-size: var(--fs-s); color: var(--mut); font-weight: var(--fw); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 mark { background: rgba(255,255,255,.32); color: #fff; border-radius: 0; padding: 0; font-weight: inherit; }   /* 찾은 낱말: 드래그한 것처럼 */
 /* 빈 화면 (지금 앱 틀): 옅은 동그라미 속 그 화면 아이콘 + 굵은 한 줄 */
-.srch .empty { min-height: 46vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 40px 24px; text-align: center; color: rgba(255,255,255,.62); font-size: var(--fs-s); }
+.srch .empty:not(.cd) { min-height: 46vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 40px 24px; text-align: center; color: rgba(255,255,255,.62); font-size: var(--fs-s); }
 .srch .empty > .i { width: 56px; height: 56px; padding: 14px; border-radius: 50%; background: rgba(255,255,255,.1); color: rgba(255,255,255,.8); margin-bottom: 6px; display: grid; place-items: center; }
 .srch .empty > .i .ic { width: 28px; height: 28px; }
 .srch .empty b { font-size: var(--fs-m); font-weight: var(--fw); color: #fff; }
@@ -580,10 +580,10 @@ mark { background: rgba(255,255,255,.32); color: #fff; border-radius: 0; padding
 .shv .stb { position: fixed; top: 0; left: 0; right: 0; height: var(--safe-t); z-index: 25; background: var(--navbg, rgba(18,18,20,.5)); -webkit-backdrop-filter: blur(22px) saturate(1.5); backdrop-filter: blur(22px) saturate(1.5); pointer-events: none; }   /* 시계 줄 흐림 */
 .bkv .stb { opacity: 0; transition: opacity .2s; }   /* 책 색 블록이 시계 줄까지, 내리면 흐림 */
 .bkv.sc .stb { opacity: 1; }
-.shv .empty { min-height: 40vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 40px 24px; text-align: center; color: rgba(255,255,255,.62); }
+.shv .empty:not(.cd) { min-height: 40vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 40px 24px; text-align: center; color: rgba(255,255,255,.62); }
 .shv .empty > .i { width: 56px; height: 56px; border-radius: 50%; background: rgba(255,255,255,.1); color: rgba(255,255,255,.8); margin-bottom: 6px; display: grid; place-items: center; }
 .shv .empty > .i .ic { width: 28px; height: 28px; }
-.shv .empty b { font-size: var(--fs-m); font-weight: var(--fw); color: #fff; }
+.shv .empty:not(.cd) b { font-size: var(--fs-m); font-weight: var(--fw); color: #fff; }
 /* 위 줄 (책장 · 달력 같은 높이): 왼쪽 제목 · 버튼, 오른쪽 캡슐 */
 .shtop { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: var(--top) var(--gut) 24px; }
 .shtop .tl { display: flex; align-items: center; gap: 6px; min-width: 0; }
@@ -959,9 +959,6 @@ html.blk, html.blk body { background: #000; }
 .mev .mst { height: 92px; gap: 6px; }
 .mev .mst > b { font-size: var(--fs-l); font-weight: var(--fw); line-height: 30px; letter-spacing: -.02em; -webkit-line-clamp: 1; }
 /* 10-31 설정: 구독 묶음만 단색으로 눈에 띄게 */
-.sgp.plan { background: #2B2650; }
-.sgp.plan .srw { border-color: rgba(255,255,255,.12); }
-.sgp.plan .srw > .ic, .sgp.plan .srw .v, .sgp.plan .srw .v .ic { color: rgba(255,255,255,.8); }
 .sgp.upd { padding: 16px; }
 .upd .uh { display: flex; align-items: baseline; justify-content: space-between; font-size: var(--fs-m); }
 .upd .uh b { font-weight: var(--fw); } .upd .uh span { font-size: var(--fs-s); color: var(--mut); }
@@ -1623,7 +1620,7 @@ img.tth { display: block; width: 100%; aspect-ratio: 4 / 5; object-fit: cover; }
 :is(.tstk, .sbar, .cpn, .stop2, .mkv .shtop) { transition: transform .3s cubic-bezier(.2,.8,.2,1), background .2s; }
 .mkv .shtop { position: sticky; top: 0; z-index: 20; }
 .mkv.sc .shtop { background: var(--navbg, rgba(18,18,20,.5)); -webkit-backdrop-filter: blur(22px) saturate(1.5); backdrop-filter: blur(22px) saturate(1.5); }
-html.hd :is(.tstk, .sbar, .cpn, .stop2, .mkv .shtop) { transform: translateY(calc(-100% - 12px)); }
+html.hd :is(.tstk, .sbar, .stop2, .mkv .shtop) { transform: translateY(calc(-100% - 12px)); }
 /* 4 (11-11): 카드 아래 글 한 줄. 1열 = 끝에 흐린 '더 보기', 누르면 글 전체 + 메모 (다시 누르면 접혀요) */
 .fi .ex.xcap { display: flex; align-items: baseline; gap: 6px; cursor: pointer; }
 .fi .ex.xcap[hidden] { display: none; }
@@ -1638,3 +1635,20 @@ html.hd :is(.tstk, .sbar, .cpn, .stop2, .mkv .shtop) { transform: translateY(cal
 html.lite #app :is(.fi .ex1, .fi .ex .xm1) { color: rgba(20,20,22,.78); }
 /* 3 (11-11): 크게 보기 아래 비슷한 카드 2열 */
 .rel .rmas { padding: 0; }
+
+/* 8 (11-11): 캘린더 위 판 = 늘 붙어 있어요 (내려도 안 숨어요) · 높이 약 30px 낮게 */
+html.hd .cpn { transform: none; }
+.cpn { padding-bottom: 10px; }
+.cpn .wks { margin-top: 10px; }
+.cpn .wk [data-d] { height: 60px; gap: 2px; }
+.cpn .grip { height: 32px; }
+/* 7 (11-11): 비슷한 카드 자리 (그리기 전) */
+.rph .fx { border-radius: 14px; }
+.rph .mt { height: 26px; }
+/* 13 (11-11): 2열 카드 간격: 카드 → 글 6px, 시간 글자 → 다음 카드 약 14px */
+.fi.tile .ex1 { margin: 6px 4px 0; }
+.fi.tile .mt { height: 26px; }
+.fi.tile .mt .cb { height: 26px; }
+.feed.two .mc { gap: 10px; }
+/* 10 (11-11): 책갈피 = 홈 1열 */
+.mkf { padding-top: 0; }
