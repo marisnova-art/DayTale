@@ -66,6 +66,12 @@ async function decode(file) {
   return new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = URL.createObjectURL(file); });
 }
 
+// 11-11 동기화: 이 기기에 있으면 주소를 만들어 두고 true (받은 카드가 이 기기에 이미 있는 사진을 쓸 때)
+export async function ensure(id) {
+  if (urls.has(id)) return true;
+  const b = await tx('readonly', s => s.get(id)).catch(() => null);
+  if (!b) return false; urls.set(id, URL.createObjectURL(b)); return true;
+}
 // 백업: 사진 하나를 꺼내거나(Blob) 같은 번호로 다시 넣어요
 export const blob = id => tx('readonly', s => s.get(id)).catch(() => null);
 export async function put(id, b) {

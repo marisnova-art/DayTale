@@ -2,6 +2,7 @@
 // 바뀐 것만 표시해 두었다가 올리고(push), 다른 기기에서 바뀐 것을 받아요(pull). 같은 카드를 양쪽에서 고쳤으면 나중에 고친 쪽이 이겨요
 import * as S from './store.js';
 import * as A from './account.js';
+import * as M from './media.js';
 
 const K = 'dz.sync.v1';
 const load = () => { try { return JSON.parse(localStorage.getItem(K)) || {}; } catch { return {}; } };
@@ -14,7 +15,7 @@ S.onChange((kind, id, del) => {
   if (kind === 'pref') st.pref = 1; else (st.dirty ||= {})[key(kind, id)] = del ? 1 : 0;
   keep(st); if (A.user()) soon();
 });
-export const pending = () => Object.keys(st.dirty || {}).length + (st.pref ? 1 : 0);
+export const pending = () => Object.keys(st.dirty || {}).length + (st.pref ? 1 : 0) + M.pending();
 export const lastAt = () => st.at || '';
 export const whenPulled = f => { onPulled = f; };
 const soon = (ms = 1500) => { clearTimeout(timer); timer = setTimeout(() => run().catch(() => {}), ms); };
@@ -84,8 +85,10 @@ export async function run(prog) {
     if (st.uid !== u.id) { st = { uid: u.id }; markAll(); keep(st); }   // 이 계정과 처음: 이 기기 것을 모두 올려요
     const got = await pull(c);
     const sent = await push(c, prog);
+    let med = { sent: 0, got: 0 };   // 11-11: 사진 · 영상 (막혀도 카드 동기화는 그대로)
+    try { med = await M.run(c, u.id); } catch (e) { console.warn('media', e); }
     st.at = new Date().toISOString(); keep(st);
-    if (got) onPulled?.();
+    if (got || med.got) onPulled?.();
     return sent;
   })();
   try { return await running; } finally { running = null; if (again) { again = false; soon(300); } }
@@ -93,7 +96,7 @@ export async function run(prog) {
 export const firstTime = () => !!A.user() && st.uid !== A.user().id;
 
 // 로그아웃 · 탈퇴: 기록을 비우고 동기화 표시도 지워요
-export function forget() { st = {}; try { localStorage.removeItem(K); } catch {} }
+export function forget() { M.forget(); st = {}; try { localStorage.removeItem(K); } catch {} }
 
 // 앱으로 돌아오거나 인터넷이 다시 되면 맞춰요
 addEventListener('online', () => soon(500));
