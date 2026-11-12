@@ -34,7 +34,7 @@ const soon = () => toast('다음 단계에서 열려요');
 
 // 목록 시트 (10-23 UI 키트): 위에 흐린 제목, 묶음마다 둥근 카드, 지우기는 빨간색으로 따로. 바깥을 누르면 닫혀요
 let lockN = 0, lockY = 0;
-// 11-12 72차: 시트가 열린 동안 뒤 화면 멈추기. 예전처럼 body를 고정(position:fixed)하면 페이지가 '스크롤 없는 화면'이 되고,
+// 11-12 73차: 시트가 열린 동안 뒤 화면 멈추기. 예전처럼 body를 고정(position:fixed)하면 페이지가 '스크롤 없는 화면'이 되고,
 // 아이폰 홈 화면 앱은 그때 화면 바닥을 시계 줄 높이만큼 위로 잡아요(시트 아래 틈). 그래서 페이지는 그대로 두고 손가락 · 휠 스크롤만 막아요
 const canScroll = (el, stop) => { for (; el && el !== stop; el = el.parentElement) { const o = getComputedStyle(el).overflowY; if ((o === 'auto' || o === 'scroll') && el.scrollHeight > el.clientHeight + 1) return true; } return false; };
 const noScroll = e => { if (e.touches && e.touches.length > 1) return; if (!canScroll(e.target, document.body)) e.preventDefault(); };
@@ -769,7 +769,7 @@ function openFocus(it, c, opt = {}) {
   document.body.appendChild(ov);
   const el = renderCard(c); box.appendChild(el); fitCard(el, c);
   const T = box.clientWidth, H = box.offsetHeight;
-  // 11-12 72차: 인스타처럼 길이와 상관없이 늘 ← 줄 바로 아래부터 (짧은 카드를 가운데 두던 것 뺌)
+  // 11-12 73차: 인스타처럼 길이와 상관없이 늘 ← 줄 바로 아래부터 (짧은 카드를 가운데 두던 것 뺌)
   const top = topGap() + 52;
   box.style.marginTop = top + 'px';
   // 피드 칸 크기로 줄이면서 칸 밖(긴 카드의 아래쪽)은 같은 움직임으로 잘라요: 위 · 아래가 함께 들어가요
@@ -790,7 +790,7 @@ function openFocus(it, c, opt = {}) {
   focus = { ov, box, view, from, clip, y: scrollY, c, onClose: opt.onClose, stack: [] };
   // 60 고침 (11-05): 크게 보기는 어디서 열어도 스스로 움직여요 (책 · 달력 · 검색에서 열어도 아트 흐름 · 영상)
   box._card = c; box.dataset.kd = 1;   // 맨 위 카드도 움직일 후보 (표시 알약은 안 붙여요)
-  focus.live = liveMid(() => [box, ...$$('.rmas .fi:not(.rph)', ov)], { overlay: false });
+  focus.live = liveMid(() => [box, ...$$('.rmas .fi:not(.rph)', ov)], { overlay: false, keep: true });
   if (!c.sample && c.id) { const fm = document.createElement('div'); fm.className = 'rel fmemo'; fm.innerHTML = focusRow(c) + memoHtml(c); sc.appendChild(fm);
     fm.addEventListener('click', e => { if (!e.target.closest('[data-a=more]')) return; e.stopPropagation(); focusMenu(); }); }   // 메모: 카드 바로 아래
   if (!c.sample && c.id) {   // 끝에 비슷한 카드: 누르면 그 카드가 이 화면에서 바뀌고, 닫으면 처음 연 카드 자리로
@@ -1201,7 +1201,7 @@ function chooseMoving(list, home) {
   const side = cand.filter(x => x === lead || (Math.abs(x.r.left - lead.r.left) > 20 && Math.min(x.r.bottom, lead.r.bottom) - Math.max(x.r.top, lead.r.top) > .5 * Math.min(x.r.height, lead.r.height)));
   return side.sort((a, b) => a.r.left - b.r.left).slice(0, 2).map(x => x.it);
 }
-function liveMid(items, { video = true, art = true, home = false, hold = () => false, overlay = true, all = false } = {}) {
+function liveMid(items, { video = true, art = true, home = false, hold = () => false, overlay = true, all = false, keep = false } = {}) {
   let anim = 0, n = 0, best = null, pair = [], pi = 0, since = 0; const t0 = performance.now(), still = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const covered = () => overlay && (runv || focus || document.querySelector('.scv, .brd'));
   const set = b => { if (b === best) return; best?.classList.remove('play'); best = b; best?.classList.add('play'); since = Date.now(); };
@@ -1220,8 +1220,9 @@ function liveMid(items, { video = true, art = true, home = false, hold = () => f
     anim = requestAnimationFrame(tick);
     if (document.hidden) return;
     if (covered()) { set(null); pair = []; return; }   // 위 창이 영상을 맡아요 (여기서 멈추게 하면 그 창 영상까지 꺼져요)
-    if (++n % 10 === 1) { const t = Date.now(); if (hold() || t - lastScroll < SETTLE || t - lastTouch > IDLE) rest(); else pick(); }
-    if (art && !still && best && n % 2 === 0) $$('canvas.bgc', best).forEach(cv => cv.width && drawCode(cv, +cv.dataset.seed, +cv.dataset.shift || 0, (now - t0) / 1000 + .01));
+    const moving = Date.now() - lastScroll < SETTLE;
+    if (++n % 10 === 1) { const t = Date.now(); if (keep && moving && !hold()) { /* 73차: 크게 보기는 내리는 동안 영상을 끄고 켜지 않아요 (매번 처음으로 감기 = 버벅임) */ } else if (hold() || moving || t - lastTouch > IDLE) rest(); else pick(); }
+    if (art && !still && best && !moving && n % 2 === 0) $$('canvas.bgc', best).forEach(cv => cv.width && drawCode(cv, +cv.dataset.seed, +cv.dataset.shift || 0, (now - t0) / 1000 + .01));
   };
   anim = requestAnimationFrame(tick);
   return () => { cancelAnimationFrame(anim); set(null); if (video && !covered()) V.sync([]); };
@@ -3078,7 +3079,7 @@ function viewMe() {
   const axis = v => v >= 1e4 ? `${+(v / 1e4).toFixed(1)}만` : v >= 1000 ? `${+(v / 1000).toFixed(1)}천` : `${v}`;
   let met = { k: MET[S.pref('meGraph', 'n')] ? S.pref('meGraph', 'n') : 'n' };
   let sel = T;
-  // 11-12 72차 (시안): 8칸을 눌러 그래프 하나를 바꾸던 것 → 8개를 모두 펼쳐요. 덩어리 = 제목 · 큰 값 + 그래프, 아래로 스크롤
+  // 11-12 73차 (시안): 8칸을 눌러 그래프 하나를 바꾸던 것 → 8개를 모두 펼쳐요. 덩어리 = 제목 · 큰 값 + 그래프, 아래로 스크롤
   const LBL = ['쓴 날', '카드', '한 장 평균 글자', '자주 쓴 템플릿', '자주 쓴 배경', '자주 쓴 곳', '자주 쓴 때', '자주 쓴 요일'];
   app.innerHTML = `<div class="shv setv mev mev2"><i class="grn"></i><i class="stb"></i>
     <header class="stop2"><button class="cb" data-a="set" aria-label="뒤로">${ic('back')}</button><h2>내 기록</h2><span class="sp0"></span></header>
@@ -3420,7 +3421,7 @@ function viewSet(sub) {
     ${sgrp(srow('bell', '알림', S.pref('remind', false) ? '켜짐' : '', { go: '#/set/alarm' }), srow('globe', '언어', LANGS[S.pref('lang', 'ko')], { go: '#/set/lang' }))}
     ${sgrp(srow('spark', '서비스 소개', '', { go: '#/set/about' }), srow('help', '도움말', '', { a: 'help' }), srow('bell', '공지사항 · 이벤트', '', { go: '#/set/news' }), srow('clock', '업데이트 소식', UPDATES[0][0], { go: '#/set/updates' }))}
     ${sgrp(srow('doc', '이용약관', '', { a: 'terms' }), srow('shield', '개인정보 처리방침', '', { a: 'privacy' }), srow('lic', '라이선스', '', { a: 'lic' }))}
-    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-12 72차</p>`, { up: '#/', tab: true });
+    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-12 73차</p>`, { up: '#/', tab: true });
   $('[data-a=place]').onclick = e => { const on = !S.pref('autoPlace', false); S.setPref('autoPlace', on); e.currentTarget.querySelector('.tg').classList.toggle('on', on); };
   $('[data-a=terms]').onclick = () => { location.href = '../legal/terms.ko.html'; };
   $('[data-a=privacy]').onclick = () => { location.href = '../legal/privacy.ko.html'; };
