@@ -21,6 +21,7 @@ import * as PC from './pc.js';
 const TPL = T;   // 함수 안에서 T를 다른 뜻(달 · 길이)으로 쓰는 곳용
 
 const app = document.getElementById('app');
+const stillBg = () => document.documentElement.classList.toggle('still', S.pref('bgMotion', true) === false); stillBg();
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const clone = o => JSON.parse(JSON.stringify(o));
@@ -152,7 +153,7 @@ function bindNav() {
   const find = () => $('.srch') ? ($('.srch .fld input').focus(), window.scrollTo({ top: 0, behavior: 'smooth' })) : (kbNow(), go('#/search'));
   // 11-11: 책장 · 템플릿 탭 대신 캘린더 · 책갈피. 쓰기 = 템플릿 홈 (바로 쓰기가 맨 위)
   const top = (sel, h) => () => $(sel) ? window.scrollTo({ top: 0, behavior: 'smooth' }) : go(h);
-  const mark = top('.mkv', '#/mark'), write = top('.tmv', '#/pick'), me = () => go('#/set');
+  const mark = top('.mkv', '#/mark'), write = top('.tmv', '#/pick'), me = top('.setv.stab', '#/set');
   $$('.nb').forEach(b => b.onclick = () => ({ home, search: find, write, mark, me }[b.dataset.n] || soon)());
   $$('[data-a=me]').forEach(b => b.onclick = () => go('#/set'));   // 11-11: 프로필을 누르면 바로 설정 (내 기록은 설정 안으로)
   requestAnimationFrame(placeCap);
@@ -261,6 +262,7 @@ function viewFeed(fresh, quiet) {
   } else list.forEach(({ c, x }) => feed.appendChild(feedItem(c, false, { ...x, lazy: lz })));
   // 11-04: 위 배너는 이벤트 · 공지 · 알림 전용 (관리자에서 올린 것만). N년 전 오늘은 피드 두 번째 카드로만
   // 1열 ↔ 2열: 보던 카드가 바뀐 화면에서도 가운데에 오게
+  if (homeAt) { const id = homeAt; homeAt = null; const it = $(`.feed .fi[data-k="${id}"]`); if (it && it !== $('.feed .fi')) { const put = () => it.scrollIntoView({ block: 'center' }); put(); setTimeout(put, 400); } }
   $('[data-a=view]').onclick = () => {
     const k = scrollY > 40 ? cur?.dataset.k : null; nextView(two ? 2 : 1);   // 맨 위에서 바꾸면 맨 위 그대로
     if (homeView() === 'cal') { cleanup?.(); cleanup = null; return viewCal(); }
@@ -273,7 +275,7 @@ function viewFeed(fresh, quiet) {
   // 오로라: 화면 가운데에 고정된 둥근 번짐. 두 겹을 번갈아 켜서 색이 천천히 바뀌어요 (아이폰도 모서리 없이)
   const amb = $('.amb'), gl = $$('i', amb); let gi = 0, gc = '';
   const stopMood = paintMood(amb);
-  const glow = t => { if (!t || t === gc) return; gc = t; gi ^= 1; gl[gi].style.background = `radial-gradient(closest-side, ${t}, transparent)`; gl[gi].classList.add('on'); gl[gi ^ 1].classList.remove('on'); };
+  const glow = t => { if (!t || t === gc) return; gc = t; gi ^= 1; gl[gi].style.background = `radial-gradient(circle 110vmax at 50% 45%, ${t}, transparent)`; gl[gi].classList.add('on'); gl[gi ^ 1].classList.remove('on'); };
   let raf = 0, cur = null;
   // 11-04 폰 발열: 움직이는 건 화면 가운데에 가장 가까운 카드 하나만 (1열 · 2열 같음). 2열에서 좌우가 똑같이 가까우면 10초마다 번갈아
   const pickMid = () => {
@@ -443,13 +445,13 @@ function feedItem(c, tile, x = {}) {
     ex.classList.toggle('open', open); if (open) ex.textContent = cardText(c).replace(/\n{3,}/g, '\n\n').trim(); else exLine();
     $('[data-a=read]', it).classList.toggle('on', open);
   });
-  on('mark', mark); on('del', del); on('like', () => go(`#/like/${c.id}`));
+  on('mark', mark); on('del', del); on('like', () => goLike(c));
   // ⋯: 책갈피 · 이미지 저장 · 고치기 · 이 포맷으로 쓰기 | 지우기. 위에 날짜 · 종류
   on('more', () => sheet(`${+c.date.slice(5, 7)}월 ${+c.date.slice(8, 10)}일 · ${T.labelOf(c) || ''}`, () => [[
     { icon: 'bookmark', label: c.mark ? '책갈피 빼기' : '책갈피', on: c.mark, run: mark },
     { icon: 'save', label: '이미지 저장', run: () => saveCard(c) },
     { icon: 'pen', label: '고치기', run: () => go(`#/edit/${c.id}`) },
-    { icon: 'grid', label: '이 포맷으로 쓰기', run: () => go(`#/like/${c.id}`) },
+    { icon: 'grid', label: '이 포맷으로 쓰기', run: () => goLike(c) },
   ], cardExtra(c), [{ icon: 'trash', label: '지우기', red: true, run: del }]]));
   return it;
 }
@@ -623,7 +625,7 @@ function infoSheet(c) {
     <div class="grp"><button class="it" data-a="read">${ic('read')}글만보기</button></div>
     <button class="okp" data-a="like">이 포맷으로 쓰기</button>`, 'ish');
   $('[data-a=read]', sh.el).onclick = () => { sh.close(); openRead(c); };
-  $('[data-a=like]', sh.el).onclick = () => { sh.close(); closeFocus(true); go(`#/like/${c.id}`); };
+  $('[data-a=like]', sh.el).onclick = () => { sh.close(); closeFocus(true); goLike(c); };
 }
 
 /* ── 알림 목록 ───────────────────────────────────────── */
@@ -834,7 +836,7 @@ function focusMenu() {
     { icon: 'bookmark', label: c.mark ? '책갈피 빼기' : '책갈피', on: c.mark, run: mark },
     { icon: 'save', label: '이미지 저장', run: () => saveCard(c) },
     { icon: 'pen', label: '고치기', run: () => go(`#/edit/${c.id}`) },
-    { icon: 'grid', label: '이 포맷으로 쓰기', run: () => go(`#/like/${c.id}`) },
+    { icon: 'grid', label: '이 포맷으로 쓰기', run: () => goLike(c) },
   ], cardExtra(c), [{ icon: 'trash', label: '지우기', red: true, run: del }]]);
 }
 function closeFocus(now) {
@@ -1218,7 +1220,8 @@ function dayList(host, list, onOpen, onMore, n = 2) {   // n = 열 수 (달력 3
 }
 
 // 카드 ⋯ (책장 · 달력 · 큰 화면 공통): 홈과 같은 목록. 내 책 안에서 열면 '이 책에서 빼기'도
-let editFrom = null, reopen = null, keepY = null;   // 책장 · 달력에서 고치러 가면, 끝나고 그 화면의 그 카드로 (큰 화면도 다시)
+let editFrom = null, reopen = null, keepY = null, likeBack = null, homeAt = null;   // 11-12: 이 포맷으로 쓰기에서 뒤로 = 누른 화면의 그 카드 자리
+const goLike = c => { likeBack = { y: lockN ? lockY : scrollY, id: c.id, from: location.hash }; go(`#/like/${c.id}`); };   // 책장 · 달력에서 고치러 가면, 끝나고 그 화면의 그 카드로 (큰 화면도 다시)
 function cardMenu(c, o = {}) {
   const mark = () => { c.mark = !c.mark; S.saveCard(c, false); syncCard(c); toast(c.mark ? '책갈피에 넣었어요' : '책갈피에서 뺐어요'); };
   const out = () => { const bk = S.book(o.book.id); if (!bk) return; bk.ids = bk.ids.filter(id => id !== c.id); S.saveBook(bk); toast('이 책에서 뺐어요'); dropCard(c.id); };
@@ -1227,7 +1230,7 @@ function cardMenu(c, o = {}) {
     { icon: 'bookmark', label: c.mark ? '책갈피 빼기' : '책갈피', on: c.mark, run: mark },
     { icon: 'save', label: '이미지 저장', run: () => saveCard(c) },
     { icon: 'pen', label: '고치기', run: () => { editFrom = { hash: location.hash, id: c.id }; go(`#/edit/${c.id}`); } },
-    { icon: 'grid', label: '이 포맷으로 쓰기', run: () => go(`#/like/${c.id}`) },
+    { icon: 'grid', label: '이 포맷으로 쓰기', run: () => goLike(c) },
   ], cardExtra(c), ...(o.book?.mine ? [[{ icon: 'out', label: '이 책에서 빼기', run: out }]] : []), [{ icon: 'trash', label: '지우기', red: true, run: del }]]);
 }
 // 지우거나 책에서 뺀 카드: 큰 화면이 열려 있으면 그 카드만 접히며 빠지고(다음 카드가 올라와요), 닫을 때 아래 화면을 보던 자리 그대로 다시 그려요
@@ -1642,7 +1645,8 @@ function panelSheet(html, cls = '') {
   bg.innerHTML = `<div class="sheet bks ${cls}">${html}</div>`;
   const el = $('.sheet', bg), vv = window.visualViewport;
   const back = sheetBack; sheetBack = null;
-  if (back && $('.sh', el)) { const b = document.createElement('button'); b.className = 'cb shb'; b.setAttribute('aria-label', '뒤로'); b.innerHTML = ic('back'); el.prepend(b); b.onclick = () => { close(); setTimeout(back, 120); }; }
+  if (back && $('.sh', el)) { const b = document.createElement('button'); b.className = 'cb shb'; b.setAttribute('aria-label', '뒤로'); b.innerHTML = ic('back'); el.prepend(b); b.onclick = () => { close(); setTimeout(back, 120); };
+    requestAnimationFrame(() => { const nx = $('.sh', el)?.nextElementSibling; if (!nx) return; const t = nx.offsetTop - 12 - b.offsetHeight; b.style.top = Math.max(4, t) + 'px'; if (t < 4) nx.style.marginTop = (parseFloat(getComputedStyle(nx).marginTop) + 4 - t) + 'px'; }); }   // 공간이 모자라면 아래 상자를 조금 내려요
   const fit = () => { if (!vv) return; bg.style.top = vv.offsetTop + 'px'; bg.style.height = vv.height + 'px'; bg.style.bottom = 'auto'; };
   vv?.addEventListener('resize', fit); vv?.addEventListener('scroll', fit);
   let shut = false;
@@ -2910,6 +2914,12 @@ function viewWrite({ fmt, id, like }) {
     else if (hasText()) S.saveCard(card);
     if (from) return backTo();
     if (isNew && /^#\/ti\//.test(came || '')) return history.back();
+    if (like && likeBack && came === likeBack.from) {   // 이 포맷으로 쓰기: 누른 화면으로 (홈 피드는 그 카드가 가운데, 다른 화면은 보던 자리)
+      const lb = likeBack; likeBack = null;
+      const feedish = /^(#\/?)?$/.test(came) ? homeView() !== 'cal' : /^#\/(feed|at|done)/.test(came);
+      if (feedish) homeAt = lb.id; else keepY = lb.y;
+      return history.back();
+    }
     go(isNew ? '#/pick' : `#/at/${card.id}`);   // 바로 앞 화면으로: 새로 쓰기는 포맷 고르기, 고치기는 피드의 그 카드
   };
   $('[data-a=ok]').onclick = () => {   // 11-04: 글 없이 배경 · 날짜만 있는 카드도 올릴 수 있어요
@@ -3145,9 +3155,10 @@ const TIMES = [['08:00', '아침 8:00'], ['12:00', '낮 12:00'], ['18:00', '저�
 
 // 설정 화면 틀: 뒤로 · 가운데 이름 (+ 오른쪽 버튼). 바탕 = 어두운 색 + 고운 노이즈 (책장과 같음)
 function setShell(title, body, o = {}) {
-  app.innerHTML = `<div class="shv setv${o.cls ? ' ' + o.cls : ''}"><i class="grn"></i><i class="stb"></i>
-    <header class="stop2"><button class="cb" data-a="back" aria-label="뒤로">${ic('back')}</button><h2>${title}</h2>${o.right || '<span class="sp0"></span>'}</header>${body}</div>`;
-  $('[data-a=back]').onclick = () => lastHash ? history.back() : location.replace(o.up || '#/set');
+  app.innerHTML = `<div class="shv setv${o.cls ? ' ' + o.cls : ''}${o.tab ? ' stab' : ''}"><i class="grn"></i><i class="stb"></i>
+    <header class="stop2">${o.tab ? '<span class="sp0"></span>' : `<button class="cb" data-a="back" aria-label="뒤로">${ic('back')}</button>`}<h2>${title}</h2>${o.right || '<span class="sp0"></span>'}</header>${body}</div>${o.tab ? nav('me') : ''}`;
+  if (o.tab) bindNav();
+  else $('[data-a=back]').onclick = () => lastHash ? history.back() : location.replace(o.up || '#/set');
   $$('[data-go]').forEach(b => b.onclick = () => go(b.dataset.go));
 }
 // 하나만 고르는 화면 (한 주의 시작 · 날짜 표시 · 언어 · 알림 시간): 누르면 바로 바뀌고 위에 1초 알림
@@ -3164,7 +3175,9 @@ function setPick(title, opts, cur, put) {
 const bgPickOf = m => (S.pref('bgPick', {}) || {})[m] || '';
 function setBg() {
   const m = bgMode(), v = k => `<span>${esc(bgPickOf(k) || '랜덤')}</span>${m === k ? `<i class="vck">${ic('check')}</i>` : ''}`;   // 11-05: ✓ 는 값 뒤 오른쪽에 크게
-  setShell('바탕', sgrp(srow('', '그라데이션', v('g'), { go: '#/set/bgg' }), srow('', '솔리드', v('s'), { go: '#/set/bgs' }), srow('', '다크', '', { ck: m === 'd', a: 'dk' })), { cls: 'sbg' });
+  setShell('바탕', sgrp(srow('', '그라데이션', v('g'), { go: '#/set/bgg' }), srow('', '솔리드', v('s'), { go: '#/set/bgs' }), srow('', '다크', '', { ck: m === 'd', a: 'dk' }))
+    + sgrp(srow('', '배경 움직임', '', { tg: S.pref('bgMotion', true) !== false, a: 'mot' })), { cls: 'sbg' });
+  $('[data-a=mot]').onclick = e => { const on = S.pref('bgMotion', true) === false; S.setPref('bgMotion', on); stillBg(); e.currentTarget.querySelector('.tg').classList.toggle('on', on); };
   $('[data-a=dk]').onclick = () => { S.setPref('bgMode', 'd'); resetMood(); pill('다크', 'check'); setBg(); };
 }
 function setBgPick(k) {
@@ -3208,7 +3221,7 @@ function viewSet(sub) {
     ${sgrp(srow('bell', '알림', S.pref('remind', false) ? '켜짐' : '', { go: '#/set/alarm' }), srow('globe', '언어', LANGS[S.pref('lang', 'ko')], { go: '#/set/lang' }))}
     ${sgrp(srow('spark', '서비스 소개', '', { go: '#/set/about' }), srow('help', '도움말', '', { a: 'help' }), srow('bell', '공지사항 · 이벤트', '', { go: '#/set/news' }), srow('clock', '업데이트 소식', UPDATES[0][0], { go: '#/set/updates' }))}
     ${sgrp(srow('doc', '이용약관', '', { a: 'terms' }), srow('shield', '개인정보 처리방침', '', { a: 'privacy' }), srow('lic', '라이선스', '', { a: 'lic' }))}
-    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-12 41차</p>`, { up: '#/' });
+    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-12 42차</p>`, { up: '#/', tab: true });
   $('[data-a=place]').onclick = e => { const on = !S.pref('autoPlace', false); S.setPref('autoPlace', on); e.currentTarget.querySelector('.tg').classList.toggle('on', on); };
   $('[data-a=terms]').onclick = () => { location.href = '../legal/terms.ko.html'; };
   $('[data-a=privacy]').onclick = () => { location.href = '../legal/privacy.ko.html'; };
