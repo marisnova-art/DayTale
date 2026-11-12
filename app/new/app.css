@@ -1978,3 +1978,5 @@ html:not(.wmode) body { min-height: calc(100% + 1px); }
 .mev2 .mrk2 .mbr i { position: relative; height: 8px; border-radius: 999px; background: rgba(255,255,255,.3); transform-origin: left; animation: mline .5s cubic-bezier(.2,.8,.2,1) both; }
 .mev2 .mrk2 li { grid-template-columns: 28px 1fr 120px 48px; }
 .mev2 .mrk2 .mbr u { background: linear-gradient(90deg, var(--h1), var(--h2)); }
+/* 64차 (11-12): 큰 제목(쓰기 · 검색 · 책갈피 · 설정) = 24px 가운데 */
+.shtop:not(.cpn) > .tl:not(:has(button)) h1, .setv.stab .stop2 h2 { font-size: var(--fs-l); }
