@@ -1911,3 +1911,43 @@ html:not(.wmode) body { min-height: calc(100% + 1px); }
 .mev2 .mpb i { width: 100%; border-radius: 999px; transform-origin: bottom; animation: pgrow .45s cubic-bezier(.2,.8,.2,1) both; }
 .mev2 .mpb b { font-weight: var(--fw); font-size: var(--fs-s); color: var(--mut); }
 .mev2 .mpb .hk b { color: #fff; }
+/* 61차 (11-12): 내 기록 그래프 고침 + 모션 (화면에 들어올 때 자라고, 하이라이트는 다 자란 뒤 물들어요) */
+.mev2 .ms2:not(.in) .mbd *, .mev2 .ms2:not(.in) .mbd { animation-play-state: paused !important; }
+.mev2 .mbd u { position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(to top, #6F7BF7, #FF7A45); opacity: 0; animation: mfade .45s ease-out forwards; }
+.mev2 .mbd em { animation: mup .35s ease-out both; }
+@keyframes mfade { to { opacity: 1; } }
+@keyframes mup { from { opacity: 0; transform: translateY(6px); } }
+.mev2 .mpc { display: grid; touch-action: pan-y; }
+.mev2 .mpc button { display: grid; justify-items: center; gap: 6px; background: none; border: 0; padding: 0; color: inherit; font: inherit; }
+.mev2 .mpc em { position: absolute; left: 50%; bottom: calc(100% + 6px); translate: -50% 0; font-style: normal; font-size: var(--fs-s); line-height: 16px; white-space: nowrap; }
+.mev2 .mpc { padding-top: 22px; }
+.mev2 .mpc span { height: 100px; display: flex; align-items: flex-end; }
+.mev2 .mpc i, .mev2 .mpb i { position: relative; width: 100%; border-radius: 999px; background: rgba(255,255,255,.3); transform-origin: bottom; animation: pgrow .45s cubic-bezier(.2,.8,.2,1) both; }
+.mev2 .mpc i.z, .mev2 .mpb i.z, .mev2 .mwk i.z { background: rgba(255,255,255,.12); }
+.mev2 .mpc b { font-weight: var(--fw); font-size: var(--fs-s); color: var(--mut); }
+.mev2 .mpc .on b { color: #fff; }
+.mev2 .mpc button[disabled] { opacity: .35; }
+.mev2 .mpb span { width: 22px; }
+.mev2 .mwk i { position: relative; background: rgba(255,255,255,.3); animation: mpop .4s cubic-bezier(.2,.8,.2,1.2) both; }
+@keyframes mpop { from { transform: scale(0); } }
+.mev2 .mlg { position: relative; height: 120px; touch-action: pan-y; }
+.mev2 .mlg .cols { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(7, 1fr); }
+.mev2 .mlg .cols.one { grid-template-columns: 1fr; }
+.mev2 .mlg .col { display: flex; align-items: flex-end; justify-content: center; gap: 2px; padding: 0 4px; }
+.mev2 .mlg .col i { flex: 1; max-width: 5px; min-width: 1px; border-radius: 999px; background: rgba(255,255,255,.2); transform-origin: bottom; animation: pgrow .45s cubic-bezier(.2,.8,.2,1) both; }
+.mev2 .mlg .cols.one .col i { max-width: 6px; }
+.mev2 .mlg .col.on i { animation-name: pgrow, mhot; animation-duration: .45s, .4s; animation-fill-mode: both, forwards; animation-timing-function: cubic-bezier(.2,.8,.2,1), ease-out; }
+@keyframes mhot { to { background: #FF7A45; } }
+.mev2 .mcv { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; animation: mdraw .7s ease-out both; }
+.mev2 .mcv path { fill: none; stroke: #fff; stroke-width: 2; vector-effect: non-scaling-stroke; }
+@keyframes mdraw { from { clip-path: inset(-10px 100% -10px 0); } to { clip-path: inset(-10px 0 -10px 0); } }
+.mev2 .mlg .mlk { animation: mpop .35s ease-out both; }
+.mev2 .mav { position: absolute; left: 0; right: 0; margin: 0; border: 0; border-top: 2px dashed #FF7A45; transform-origin: left; animation: mline .5s ease-out both; }
+@keyframes mline { from { transform: scaleX(0); } }
+.mev2 .mlk2 { position: absolute; right: 0; transform: translateY(-50%); font-weight: var(--fw); font-size: var(--fs-s); background: #fff; color: #141416; border-radius: 999px; padding: 1px 8px; animation: mup .35s ease-out both; }
+.mev2 .mpx.two { grid-template-columns: 1fr 1fr; }
+.mev2 .mpx.two span:first-child { text-align: left; }
+.mev2 .mpx.two span:last-child { text-align: right; }
+.mev2 .mlg { width: 100%; }
+.mev2 .mlg .cols { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.mev2 .mlg .cols.one { grid-template-columns: minmax(0, 1fr); }

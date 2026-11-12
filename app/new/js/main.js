@@ -34,7 +34,7 @@ const soon = () => toast('다음 단계에서 열려요');
 
 // 목록 시트 (10-23 UI 키트): 위에 흐린 제목, 묶음마다 둥근 카드, 지우기는 빨간색으로 따로. 바깥을 누르면 닫혀요
 let lockN = 0, lockY = 0;
-// 11-12 60차: 시트가 열린 동안 뒤 화면 멈추기. 예전처럼 body를 고정(position:fixed)하면 페이지가 '스크롤 없는 화면'이 되고,
+// 11-12 61차: 시트가 열린 동안 뒤 화면 멈추기. 예전처럼 body를 고정(position:fixed)하면 페이지가 '스크롤 없는 화면'이 되고,
 // 아이폰 홈 화면 앱은 그때 화면 바닥을 시계 줄 높이만큼 위로 잡아요(시트 아래 틈). 그래서 페이지는 그대로 두고 손가락 · 휠 스크롤만 막아요
 const canScroll = (el, stop) => { for (; el && el !== stop; el = el.parentElement) { const o = getComputedStyle(el).overflowY; if ((o === 'auto' || o === 'scroll') && el.scrollHeight > el.clientHeight + 1) return true; } return false; };
 const noScroll = e => { if (e.touches && e.touches.length > 1) return; if (!canScroll(e.target, document.body)) e.preventDefault(); };
@@ -769,7 +769,7 @@ function openFocus(it, c, opt = {}) {
   document.body.appendChild(ov);
   const el = renderCard(c); box.appendChild(el); fitCard(el, c);
   const T = box.clientWidth, H = box.offsetHeight;
-  // 11-12 60차: 인스타처럼 길이와 상관없이 늘 ← 줄 바로 아래부터 (짧은 카드를 가운데 두던 것 뺌)
+  // 11-12 61차: 인스타처럼 길이와 상관없이 늘 ← 줄 바로 아래부터 (짧은 카드를 가운데 두던 것 뺌)
   const top = topGap() + 52;
   box.style.marginTop = top + 'px';
   // 피드 칸 크기로 줄이면서 칸 밖(긴 카드의 아래쪽)은 같은 움직임으로 잘라요: 위 · 아래가 함께 들어가요
@@ -3078,7 +3078,7 @@ function viewMe() {
   const axis = v => v >= 1e4 ? `${+(v / 1e4).toFixed(1)}만` : v >= 1000 ? `${+(v / 1000).toFixed(1)}천` : `${v}`;
   let met = { k: MET[S.pref('meGraph', 'n')] ? S.pref('meGraph', 'n') : 'n' };
   let sel = T;
-  // 11-12 60차 (시안): 8칸을 눌러 그래프 하나를 바꾸던 것 → 8개를 모두 펼쳐요. 덩어리 = 제목 · 큰 값 + 그래프, 아래로 스크롤
+  // 11-12 61차 (시안): 8칸을 눌러 그래프 하나를 바꾸던 것 → 8개를 모두 펼쳐요. 덩어리 = 제목 · 큰 값 + 그래프, 아래로 스크롤
   const LBL = ['쓴 날', '카드', '한 장 평균 글자', '자주 쓴 템플릿', '자주 쓴 색', '자주 쓴 곳', '자주 쓴 때', '자주 쓴 요일'];
   app.innerHTML = `<div class="shv setv mev mev2"><i class="grn"></i><i class="stb"></i>
     <header class="stop2"><button class="cb" data-a="set" aria-label="뒤로">${ic('back')}</button><h2>내 기록</h2><span class="sp0"></span></header>
@@ -3252,7 +3252,61 @@ function viewMe() {
     body(sec, `<div class="mpb${k === 'wd' ? ' w7' : ''}">${names.map((n, i) => { const v = vs[i], top = i === ti;
       return `<div class="${top ? 'hk' : ''}"><em>${top ? v + '장' : ''}</em><span><i style="height:${v ? Math.max(10, Math.round(v / mx * 100)) : 6}%;background:${top ? `linear-gradient(to top, #6F7BF7, ${ACC})` : v ? 'rgba(255,255,255,.3)' : DIM}"></i></span><b>${k === 'wd' ? n[0] : n}</b></div>`; }).join('')}</div>`);
   };
-  const DRAW = { days: drawDays2, n: drawCards2, chars: drawLen2, kind: drawList2, col: drawColors2, place: drawList2, when: drawPills, wd: drawPills };
+
+  // ── 61차 (11-12): 카드 = 전체 달 막대 / 월별 주 막대 (굵게), 평균 글자 = 달 칸 안 카드 막대(많으면 묶음) + 곡선, 요일 = 동그라미 ──
+  // 모션: 덩어리가 화면에 들어올 때 막대가 차례로 자라고, 다 자라면 하이라이트 칸만 보라→산호로 물들어요
+  const pillCols = (items, wide) => { const mx = Math.max(1, ...items.map(t => t.v)), n = items.length, st = Math.min(40, 360 / n), end = n * st + 450;
+    return `<div class="mpc" style="grid-template-columns:repeat(${n},1fr)">${items.map((t, i) => `<button${t.m ? ` data-m="${t.m}"` : ''}${t.off ? ' disabled' : ''} class="${t.on ? 'on' : ''}"><span style="width:${wide}px"><i class="${t.v ? '' : 'z'}" style="height:${t.v ? Math.max(8, Math.round(t.v / mx * 100)) : 4}%;animation-delay:${Math.round(i * st)}ms">${t.on && t.v ? `<u style="animation-delay:${end}ms"></u><em style="animation-delay:${end}ms">${t.lab2}</em>` : ''}</i></span><b>${t.label}</b></button>`).join('')}</div>`; };
+  const drawCards3 = sec => {
+    if (mode === 'm') { const [y, mo] = sel.split('-').map(Number), last = new Date(y, mo, 0).getDate(), off = (new Date(y, mo - 1, 1).getDay() + 6) % 7, nW = Math.ceil((last + off) / 7), v = Array(nW).fill(0);
+      (by.get(sel) || []).forEach(c => { v[Math.floor((+c.date.slice(8) - 1 + off) / 7)]++; });
+      const top = Math.max(...v), ti = v.indexOf(top);
+      return body(sec, pillCols(v.map((x, i) => ({ label: `${i + 1}주`, v: x, on: top > 0 && i === ti, lab2: x + '장' })), 30)); }
+    const p = pgs.n, ms7 = winOf(p);
+    body(sec, pillCols(ms7.map(m => { const off = m > T || m < first, x = off ? 0 : (by.get(m) || []).length; return { m, label: `${+m.slice(5)}월`, v: x, off, on: m === T, lab2: x + '장' }; }), 22) + `<div class="mdots">${dotsHtml(1 - pMin, p - pMin)}</div>`);
+    $$('.mpc button:not([disabled])', sec).forEach(b => b.onclick = () => { sel = b.dataset.m; mode = 'm'; paint(); });
+    swipe($('.mpc', sec), 'n', () => drawCards3(sec));
+  };
+  const lenOf = c => cardText(c).replace(/\s/g, '').length;
+  const ordC = l => [...l].sort((a, b) => (a.created || a.date) < (b.created || b.date) ? -1 : 1);
+  const avgOf = l => l.length ? Math.round(l.reduce((t, c) => t + lenOf(c), 0) / l.length) : null;
+  const chunks = (l, max) => { const k = Math.ceil(l.length / max) || 1, out = []; for (let i = 0; i < l.length; i += k) out.push(avgOf(l.slice(i, i + k))); return out; };
+  const mdLab = c => `${+c.date.slice(5, 7)}월 ${+c.date.slice(8)}일`;
+  const drawLen3 = sec => {
+    if (mode === 'm') { const l = ordC(by.get(sel) || []); if (!l.length) return body(sec, EMPTY);
+      const bars = chunks(l, 60), avg = avgOf(l), mx = Math.max(10, ...bars) * 1.15, st = Math.min(30, 420 / bars.length), end = Math.round(bars.length * st + 450), yb = (avg / mx * 100).toFixed(1);
+      return body(sec, `<div class="mlg"><div class="cols one"><div class="col">${bars.map((v, i) => `<i style="height:${Math.max(4, v / mx * 100).toFixed(1)}%;animation-delay:${Math.round(i * st)}ms"></i>`).join('')}</div></div><hr class="mav" style="bottom:${yb}%;animation-delay:${end}ms"><b class="mlk2" style="bottom:${yb}%;animation-delay:${end + 150}ms">평균 ${avg}자</b></div><div class="mpx two"><span>${mdLab(l[0])}</span><span>${mdLab(l.at(-1))}</span></div>`); }
+    const p = pgs.chars, ms7 = winOf(p), H = 120;
+    const per = ms7.map(m => m > T || m < first ? [] : ordC(by.get(m) || [])), bars = per.map(l => chunks(l, 12)), avgs = per.map(avgOf);
+    const mx = Math.max(10, ...bars.flat()) * 1.15, nb = Math.max(1, bars.flat().length), st = Math.min(20, 520 / nb), end = Math.round(nb * st + 450);
+    const pts = avgs.map((v, i) => v == null ? null : [(i + .5) / 7 * 700, H - v / mx * H]).filter(Boolean);
+    const curve = pts.length < 2 ? '' : pts.reduce((d, q, i) => { if (!i) return `M${q[0].toFixed(1)},${q[1].toFixed(1)}`; const p0 = pts[i - 1], cx = (p0[0] + q[0]) / 2; return d + `C${cx.toFixed(1)},${p0[1].toFixed(1)} ${cx.toFixed(1)},${q[1].toFixed(1)} ${q[0].toFixed(1)},${q[1].toFixed(1)}`; }, '');
+    let li = ms7.indexOf(T); if (li < 0 || avgs[li] == null) li = avgs.reduce((b, v, i) => v != null ? i : b, -1);
+    let n = 0;
+    body(sec, `<div class="mlg"><div class="cols">${bars.map((b, i) => `<div class="col${i === li ? ' on' : ''}">${b.map(v => `<i style="height:${Math.max(4, v / mx * 100).toFixed(1)}%;animation-delay:${Math.round((n++) * st)}ms${i === li ? `, ${end}ms` : ''}"></i>`).join('')}</div>`).join('')}</div>
+      ${curve ? `<svg class="mcv" viewBox="0 0 700 ${H}" preserveAspectRatio="none" style="animation-delay:${end - 250}ms"><path d="${curve}"/></svg>` : ''}
+      ${li >= 0 ? `<b class="mlk" style="left:${((li + .5) / 7 * 100).toFixed(2)}%;top:${((1 - avgs[li] / mx) * 100).toFixed(2)}%;animation-delay:${end + 300}ms"><em>${avgs[li]}자</em></b>` : ''}</div>
+      <div class="mpx">${ms7.map(m => `<span class="${m === T ? 'on' : ''}${m > T || m < first ? ' off' : ''}" data-m="${m}">${+m.slice(5)}월</span>`).join('')}</div><div class="mdots">${dotsHtml(1 - pMin, p - pMin)}</div>`);
+    $$('.mpx span:not(.off)', sec).forEach(b => b.onclick = () => { sel = b.dataset.m; mode = 'm'; paint(); });
+    swipe($('.mlg', sec), 'chars', () => drawLen3(sec));
+  };
+  // 하이라이트 하나만: 큰 값(머리말)과 같은 칸, 동률이면 그 칸
+  const topIdx = (sec, names, vs) => { const hv = sec.querySelector('.mv').textContent, mx = Math.max(...vs); return names.includes(hv) && vs[names.indexOf(hv)] === mx ? names.indexOf(hv) : vs.indexOf(mx); };
+  const drawPills3 = (sec, k) => {
+    const names = ['새벽', '아침', '오후', '저녁', '밤'], cnt = new Map(counts(k)), vs = names.map(n => cnt.get(n) || 0), mx = Math.max(0, ...vs);
+    if (!mx) return body(sec, EMPTY);
+    const ti = topIdx(sec, names, vs), end = 5 * 40 + 450;
+    body(sec, `<div class="mpb">${names.map((n, i) => { const v = vs[i], top = i === ti;
+      return `<div class="${top ? 'hk' : ''}"><em style="animation-delay:${end}ms">${top ? v + '장' : ''}</em><span><i class="${v ? '' : 'z'}" style="height:${v ? Math.max(10, Math.round(v / mx * 100)) : 6}%;animation-delay:${i * 40}ms">${top ? `<u style="animation-delay:${end}ms"></u>` : ''}</i></span><b>${n}</b></div>`; }).join('')}</div>`);
+  };
+  const drawWeek3 = (sec, k) => {
+    const names = [...WD].map(d => d + '요일'), cnt = new Map(counts(k)), vs = names.map(n => cnt.get(n) || 0), mx = Math.max(0, ...vs);
+    if (!mx) return body(sec, EMPTY);
+    const ti = topIdx(sec, names, vs), end = 7 * 40 + 400;
+    body(sec, `<div class="mwk">${[...WD].map((d, i) => { const t = vs[i] / mx, sz = vs[i] ? Math.round(14 + 26 * t) : 6, top = i === ti;
+      return `<div${top ? ' class="hk"' : ''}><em style="animation-delay:${end}ms">${top ? vs[i] + '장' : ''}</em><span><i class="${vs[i] ? '' : 'z'}" style="width:${sz}px;height:${sz}px;animation-delay:${i * 40}ms">${top ? `<u style="animation-delay:${end}ms"></u>` : ''}</i></span><b>${d}</b></div>`; }).join('')}</div>`);
+  };
+  const DRAW = { days: drawDays2, n: drawCards3, chars: drawLen3, kind: drawList2, col: drawColors2, place: drawList2, when: drawPills3, wd: drawWeek3 };
   const paint = () => {
     $$('.msg2 button').forEach(b => b.classList.toggle('on', b.dataset.v === mode));
     $('.mmn').classList.toggle('off', mode !== 'm');
@@ -3265,6 +3319,7 @@ function viewMe() {
   $$('.msg2 button').forEach(b => b.onclick = () => { mode = b.dataset.v; if (mode === 'm' && !by.has(sel) && months.length) sel = months.at(-1); paint(); });
   $('[data-a=pm]').onclick = () => stepM(-1); $('[data-a=nm]').onclick = () => stepM(1);
   for (const k in pgs) pgs[k] = pageOf(sel);
+  { const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold: .3 }); $$('.ms2').forEach(x => io.observe(x)); }
   paint();
   const onSc = () => $('.mev')?.classList.toggle('sc', scrollY > 8);
   addEventListener('scroll', onSc, { passive: true });
@@ -3348,7 +3403,7 @@ function viewSet(sub) {
     ${sgrp(srow('bell', '알림', S.pref('remind', false) ? '켜짐' : '', { go: '#/set/alarm' }), srow('globe', '언어', LANGS[S.pref('lang', 'ko')], { go: '#/set/lang' }))}
     ${sgrp(srow('spark', '서비스 소개', '', { go: '#/set/about' }), srow('help', '도움말', '', { a: 'help' }), srow('bell', '공지사항 · 이벤트', '', { go: '#/set/news' }), srow('clock', '업데이트 소식', UPDATES[0][0], { go: '#/set/updates' }))}
     ${sgrp(srow('doc', '이용약관', '', { a: 'terms' }), srow('shield', '개인정보 처리방침', '', { a: 'privacy' }), srow('lic', '라이선스', '', { a: 'lic' }))}
-    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-12 60차</p>`, { up: '#/', tab: true });
+    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-12 61차</p>`, { up: '#/', tab: true });
   $('[data-a=place]').onclick = e => { const on = !S.pref('autoPlace', false); S.setPref('autoPlace', on); e.currentTarget.querySelector('.tg').classList.toggle('on', on); };
   $('[data-a=terms]').onclick = () => { location.href = '../legal/terms.ko.html'; };
   $('[data-a=privacy]').onclick = () => { location.href = '../legal/privacy.ko.html'; };
