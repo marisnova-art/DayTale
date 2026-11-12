@@ -34,7 +34,7 @@ const soon = () => toast('다음 단계에서 열려요');
 
 // 목록 시트 (10-23 UI 키트): 위에 흐린 제목, 묶음마다 둥근 카드, 지우기는 빨간색으로 따로. 바깥을 누르면 닫혀요
 let lockN = 0, lockY = 0;
-// 11-12 57차: 시트가 열린 동안 뒤 화면 멈추기. 예전처럼 body를 고정(position:fixed)하면 페이지가 '스크롤 없는 화면'이 되고,
+// 11-12 58차: 시트가 열린 동안 뒤 화면 멈추기. 예전처럼 body를 고정(position:fixed)하면 페이지가 '스크롤 없는 화면'이 되고,
 // 아이폰 홈 화면 앱은 그때 화면 바닥을 시계 줄 높이만큼 위로 잡아요(시트 아래 틈). 그래서 페이지는 그대로 두고 손가락 · 휠 스크롤만 막아요
 const canScroll = (el, stop) => { for (; el && el !== stop; el = el.parentElement) { const o = getComputedStyle(el).overflowY; if ((o === 'auto' || o === 'scroll') && el.scrollHeight > el.clientHeight + 1) return true; } return false; };
 const noScroll = e => { if (e.touches && e.touches.length > 1) return; if (!canScroll(e.target, document.body)) e.preventDefault(); };
@@ -769,7 +769,7 @@ function openFocus(it, c, opt = {}) {
   document.body.appendChild(ov);
   const el = renderCard(c); box.appendChild(el); fitCard(el, c);
   const T = box.clientWidth, H = box.offsetHeight;
-  // 11-12 57차: 인스타처럼 길이와 상관없이 늘 ← 줄 바로 아래부터 (짧은 카드를 가운데 두던 것 뺌)
+  // 11-12 58차: 인스타처럼 길이와 상관없이 늘 ← 줄 바로 아래부터 (짧은 카드를 가운데 두던 것 뺌)
   const top = topGap() + 52;
   box.style.marginTop = top + 'px';
   // 피드 칸 크기로 줄이면서 칸 밖(긴 카드의 아래쪽)은 같은 움직임으로 잘라요: 위 · 아래가 함께 들어가요
@@ -3078,103 +3078,61 @@ function viewMe() {
   const axis = v => v >= 1e4 ? `${+(v / 1e4).toFixed(1)}만` : v >= 1000 ? `${+(v / 1000).toFixed(1)}천` : `${v}`;
   let met = { k: MET[S.pref('meGraph', 'n')] ? S.pref('meGraph', 'n') : 'n' };
   let sel = T;
-  app.innerHTML = `<div class="shv setv mev"><i class="grn"></i><i class="stb"></i>
+  // 11-12 58차 (시안): 8칸을 눌러 그래프 하나를 바꾸던 것 → 8개를 모두 펼쳐요. 덩어리 = 제목 · 큰 값 + 그래프, 아래로 스크롤
+  const LBL = ['쓴 날', '카드', '한 장 평균 글자', '자주 쓴 템플릿', '자주 쓴 색', '자주 쓴 곳', '자주 쓴 때', '자주 쓴 요일'];
+  app.innerHTML = `<div class="shv setv mev mev2"><i class="grn"></i><i class="stb"></i>
     <header class="stop2"><button class="cb" data-a="set" aria-label="뒤로">${ic('back')}</button><h2>내 기록</h2><span class="sp0"></span></header>
     <header class="mpn mflat">
       <div class="mmd"><div class="msg2"><button data-v="all">전체</button><button data-v="m">월별</button></div><div class="mmn"><button data-a="pm" aria-label="지난달">${ic('back')}</button><b></b><button data-a="nm" aria-label="다음 달">${ic('next')}</button></div></div>
-      <div class="msr">${tileBg.map((t, i) => `<button class="mst${t.lt ? ' lt' : ''}" data-k="${KEYS[i]}"><i${t.attr}></i><b></b><span class="mlb"></span></button>`).join('')}</div>
     </header>
-    <section class="mgc"><p class="mgt"></p>
-    <div class="mgw"><div class="may"></div><div class="mgr"></div></div><div class="hb2"></div>
-    ${all.length ? '' : '<p class="t13 mg0">첫 카드를 쓰면 막대가 자라요</p>'}<div class="mdots" data-for="mgr"></div></section>
+    ${KEYS.map((k, i) => `<section class="mgc ms2" data-k="${k}"><div class="mh"><p class="mgt">${LBL[i]}</p><b class="mv"></b></div><div class="mbd"></div></section>`).join('')}
+    <p class="t13 mend">${months.length ? `처음 쓴 달 ${first.slice(0, 4)}년 ${+first.slice(5)}월` : '첫 카드를 쓰면 여기가 채워져요'}</p>
     </div>`;
   fillThumbs(app);
-  const stopMood = () => {};   // 11-11: 설정 바탕 (무드 바탕 없음)
-  $('[data-a=set]').onclick = () => lastHash ? history.back() : location.replace('#/set');   // 11-11: 내 기록은 설정 안 화면
-  // 막대: 고른 지표로 높이, 고른 달만 선명한 색 + 값 하나. 막대를 누르면 그 달 카드로, 카드를 넘기면 그 달 막대로
-  // 막대 색: 쓴 만큼 아래 → 위 그라데이션. 많이 쓴 달일수록 위가 뜨거운 색 (산호 · 주황, 빨강은 지우기에만)
-  // 안 쓴 달 = 막대 없이 달 이름만. 처음 쓴 달 전 · 아직 안 온 달 = 이름도 흐리게, 누를 수 없어요
+  const stopMood = () => {};
+  $('[data-a=set]').onclick = () => lastHash ? history.back() : location.replace('#/set');
   const mix = (a, b, t) => '#' + [1, 3, 5].map(i => Math.round(parseInt(a.slice(i, i + 2), 16) * (1 - t) + parseInt(b.slice(i, i + 2), 16) * t).toString(16).padStart(2, '0')).join('');
   const heat = t => t < .5 ? mix('#6F7BF7', '#C86AD8', t * 2) : mix('#C86AD8', '#FF7A45', (t - .5) * 2);
-  const gr = $('.mgr'), H = 96;
-  const paintGraph = () => {
-    $$('.msr .mst').forEach(b => b.classList.toggle('on', b.dataset.k === met.k));
-    $('.mgc').classList.toggle('all', mode === 'all');
-    if (mode === 'all') return paintAll();
-    const fmt = fmtOf(met), top = topOf(met);
-    $('.mgt').textContent = titleOf(met);
-    $('.may').innerHTML = [3, 2, 1, 0].map(k => `<span>${axis(Math.round(top * k / 3))}</span>`).join('');
-    $$('[data-m]', gr).forEach(b => { const m = b.dataset.m, v = valOf(met, m), on = m === sel, t = Math.min(1, v / top), bar = b.querySelector('i');
-      bar.style.height = v ? Math.max(6, Math.round(t * H)) + 'px' : '0px';
-      bar.style.background = !v ? '' : (on ? 'repeating-linear-gradient(135deg, rgba(255,255,255,.22) 0 2px, transparent 2px 7px), ' : '') + `linear-gradient(to top, #3A3F7A, ${heat(t)})`;   // 고른 달 = 선명 + 빗금
-      b.classList.toggle('on', on); b.querySelector('em').textContent = on ? fmt(v) : ''; });
-  };
-  // 7달 막대를 새로 그려요 (넘길 때마다). 처음 · 넘길 때는 막대가 아래에서 차올라요
-  const drawBars = () => {
-    gr.innerHTML = win().map(m => { const off = m > T || m < first; return `<button data-m="${m}"${off ? ' disabled' : ''}${m === T ? ' class="now"' : ''}><em></em><i></i><span>${+m.slice(5)}월</span></button>`; }).join('');
-    $$('[data-m]:not([disabled])', gr).forEach(b => b.onclick = () => { sel = b.dataset.m; mode = 'm'; paintGraph(); paintTiles(); });   // 막대 = 그달 숫자로
-    $$('i', gr).forEach(i => i.style.height = '0px');
-    $('[data-for=mgr]').innerHTML = dotsHtml(1 - pMin, pg - pMin);
-    requestAnimationFrame(() => requestAnimationFrame(paintGraph));
-  };
-  // 전체 (10-31): 달로 나누지 않고 고른 칸의 모든 항목을 많은 순 가로 막대로. 쓴 날 = 점 달력, 카드 = 종류마다, 한 장 평균 = 글 길이 3단
-  const LEN = [['짧은 글', 0, 50], ['보통', 50, 150], ['긴 글', 150, 1e9]];
-  const paintAll = () => {
-    const k = met.k, len = c => cardText(c).replace(/\s/g, '').length; let rows, unit = '장', title;
-    if (k === 'days') return paintYear();
-    if (k === 'n') {
-      rows = ['기본', ...TPL.kinds()].map(f => [f, all.filter(c => (TPL.labelOf(c) || '').split(' · ')[0] === f).length]); title = '카드 · 종류마다';
-    } else if (k === 'chars') {
-      rows = LEN.map(([n, a, b]) => [n, all.filter(c => len(c) >= a && len(c) < b).length]); title = '글 길이 · 전체';
-    } else {
-      const cnt = new Map(); all.forEach(c => { const v = CAT[k](c); if (v) cnt.set(v, (cnt.get(v) || 0) + 1); });
-      rows = [...cnt].sort((a, b) => b[1] - a[1]).slice(0, 7).map(([v, n]) => [k === 'kind' ? v.replace(/^(디자인|아트) /, '') : v, n, v]);
-      title = ({ kind: '자주 쓴 템플릿', col: '자주 쓴 색', place: '자주 쓴 곳', when: '자주 쓴 때', wd: '자주 쓴 요일' })[k] + ' · 전체';
-    }
-    $('.mgt').textContent = title;
-    const mx = Math.max(1, ...rows.map(r => r[1])), hi = Math.max(...rows.map(r => r[1]));
-    $('.hb2').innerHTML = rows.length ? rows.map(([n, v]) => `<div class="hbr${v === hi && v ? ' hk' : ''}"><span>${esc(n)}</span><i data-w="${v ? Math.max(4, v / mx * 100) : 0}"></i><b>${v}${unit}</b></div>`).join('') : '<p class="t13 mg0">첫 카드를 쓰면 막대가 자라요</p>';
-    // 막대는 0에서 자라요 (위 줄부터 조금씩 늦게)
-    requestAnimationFrame(() => requestAnimationFrame(() => $$('.hb2 .hbr i').forEach((i, n) => { i.style.transitionDelay = n * 60 + 'ms'; i.style.width = i.dataset.w + '%'; })));
-  };
-  // 쓴 날 · 전체 (10-31): 올해 점 달력. 한 줄 = 한 달, 점 하나 = 하루, 쓴 날만 밝게. 1월부터 차례로 켜져요
-  const paintYear = () => {
-    const y = S.today().slice(0, 4), today = S.today(), days = new Set(all.filter(c => c.date?.startsWith(y)).map(c => c.date));
-    $('.mgt').textContent = `쓴 날 · ${y}년 ${days.size}일`;
-    let n = 0;
-    $('.hb2').innerHTML = `<div class="ydot">${Array.from({ length: 12 }, (_, m) => { const dim = new Date(+y, m + 1, 0).getDate();
-      return `<span>${m + 1}</span>${Array.from({ length: 31 }, (_, d) => { const ds = `${y}-${p2(m + 1)}-${p2(d + 1)}`;
-        return d >= dim ? '<i class="x"></i>' : days.has(ds) ? `<i class="w" style="animation-delay:${(n++) * 40}ms"></i>` : `<i${ds > today ? ' class="f"' : ds === today ? ' class="t"' : ''}></i>`; }).join('')}`; }).join('')}</div>`;
-  };
-  const showSel = () => { const p = pageOf(sel); if (p !== pg) { pg = p; drawBars(); } else paintGraph(); };
-  // 칸 누르기: 값이 없는 칸(없어요)은 그대로
-  $$('.msr .mst').forEach((b, i) => b.onclick = () => {
-    const k = KEYS[i], v = raw(mode === 'm' ? ms(sel) : st)[i];
-    if (CAT[k] && !v) return;
-    met = CAT[k] ? { k, v } : { k }; if (!CAT[k]) S.setPref('meGraph', k); paintGraph();
-  });
-  // 그래프를 옆으로 밀면 7달씩 (오른쪽으로 밀면 그 전 7달)
-  let sx = null;
-  gr.addEventListener('pointerdown', e => { sx = e.clientX; });
-  gr.addEventListener('pointerup', e => { if (sx == null) return; const dx = e.clientX - sx; sx = null;
-    if (Math.abs(dx) < 40) return; const n = Math.min(0, Math.max(pMin, pg + (dx > 0 ? -1 : 1))); if (n !== pg) { pg = n; drawBars(); } });
-  if (months.length && !by.has(T)) sel = months.at(-1);
-  pg = pageOf(sel); drawBars();
-
-  // 8칸: 전체 = 처음부터, 월별 = 고른 달 (‹ › 로 쓴 달만 오가요, 그래프 막대도 같이)
+  const H = 96, pgs = { days: 0, n: 0, chars: 0 };
   let mode = 'all';
-  const paintTiles = () => {
+  if (months.length && !by.has(T)) sel = months.at(-1);
+  const scope = () => mode === 'm' ? (by.get(sel) || []) : all;
+  // 달마다 막대 (쓴 날 · 카드 · 한 장 평균): 덩어리마다 옆으로 밀면 7달씩
+  const winOf = p => Array.from({ length: 7 }, (_, i) => addM(T, p * 7 - 3 + i));
+  const drawBars = (sec, k) => {
+    const g = { k }, top = topOf(g), fmt = fmtOf(g), p = pgs[k];
+    sec.querySelector('.mbd').innerHTML = `<div class="mgw"><div class="may">${[3, 2, 1, 0].map(n => `<span>${axis(Math.round(top * n / 3))}</span>`).join('')}</div><div class="mgr">${winOf(p).map(m => { const off = m > T || m < first; return `<button data-m="${m}"${off ? ' disabled' : ''}${m === T ? ' class="now"' : ''}><em></em><i></i><span>${+m.slice(5)}월</span></button>`; }).join('')}</div></div><div class="mdots">${dotsHtml(1 - pMin, p - pMin)}</div>`;
+    const gr = sec.querySelector('.mgr');
+    $$('[data-m]', gr).forEach(b => { const m = b.dataset.m, v = valOf(g, m), on = mode === 'm' && m === sel, t = Math.min(1, v / top), bar = b.querySelector('i');
+      bar.style.height = '0px';
+      requestAnimationFrame(() => requestAnimationFrame(() => { bar.style.height = v ? Math.max(6, Math.round(t * H)) + 'px' : '0px'; }));
+      bar.style.background = !v ? '' : (on ? 'repeating-linear-gradient(135deg, rgba(255,255,255,.22) 0 2px, transparent 2px 7px), ' : '') + `linear-gradient(to top, #3A3F7A, ${heat(t)})`;
+      b.classList.toggle('on', on); b.querySelector('em').textContent = on ? fmt(v) : '';
+      if (!b.disabled) b.onclick = () => { sel = m; mode = 'm'; paint(); }; });
+    let sx = null;
+    gr.onpointerdown = e => { sx = e.clientX; };
+    gr.onpointerup = e => { if (sx == null) return; const dx = e.clientX - sx; sx = null; if (Math.abs(dx) < 40) return; const n = Math.min(0, Math.max(pMin, pgs[k] + (dx > 0 ? -1 : 1))); if (n !== pgs[k]) { pgs[k] = n; drawBars(sec, k); } };
+  };
+  // 자주 쓴 것 (템플릿 · 색 · 곳 · 때 · 요일): 많은 순 가로 막대 5줄 (전체 = 처음부터, 월별 = 고른 달)
+  const drawTop = (sec, k) => {
+    const cnt = new Map(); scope().forEach(c => { const v = CAT[k](c); if (v) cnt.set(v, (cnt.get(v) || 0) + 1); });
+    const rows = [...cnt].sort((a, b) => b[1] - a[1]).slice(0, 5), mx = Math.max(1, ...rows.map(r => r[1]));
+    sec.querySelector('.mbd').innerHTML = rows.length ? `<div class="hb2">${rows.map(([v, n], i) => `<div class="hbr${i ? '' : ' hk'}"><span>${esc(k === 'kind' ? v.replace(/^(디자인|아트) /, '') : v)}</span><i data-w="${Math.max(4, n / mx * 100)}"></i><b>${n}장</b></div>`).join('')}</div>` : '<p class="t13 mg0">아직 없어요</p>';
+    requestAnimationFrame(() => requestAnimationFrame(() => $$('.hbr i', sec).forEach((i, n) => { i.style.transitionDelay = n * 60 + 'ms'; i.style.width = i.dataset.w + '%'; })));
+  };
+  const paint = () => {
     $$('.msg2 button').forEach(b => b.classList.toggle('on', b.dataset.v === mode));
     $('.mmn').classList.toggle('off', mode !== 'm');
     $('.mmn b').textContent = `${+sel.slice(0, 4)}년 ${+sel.slice(5)}월`;
-    const i = months.indexOf(sel); $('[data-a=pm]').disabled = i <= 0; $('[data-a=nm]').disabled = i < 0 || i >= months.length - 1;
+    const mi = months.indexOf(sel); $('[data-a=pm]').disabled = mi <= 0; $('[data-a=nm]').disabled = mi < 0 || mi >= months.length - 1;
     const v = vals(mode === 'm' ? ms(sel) : st);
-    $$('.msr .mst').forEach((el, k) => { el.querySelector('b').textContent = v[k][0]; el.querySelector('.mlb').textContent = v[k][1]; });
+    $$('.ms2').forEach((sec, i) => { const k = sec.dataset.k; sec.querySelector('.mv').textContent = v[i][0]; CAT[k] ? drawTop(sec, k) : drawBars(sec, k); });
   };
-  const stepM = d => { const i = months.indexOf(sel) + d; if (i < 0 || i >= months.length) return; sel = months[i]; showSel(); paintTiles(); };
-  $$('.msg2 button').forEach(b => b.onclick = () => { mode = b.dataset.v; if (mode === 'm' && !by.has(sel) && months.length) { sel = months.at(-1); showSel(); } paintTiles(); paintGraph(); });
+  const stepM = d => { const i = months.indexOf(sel) + d; if (i < 0 || i >= months.length) return; sel = months[i]; for (const k in pgs) pgs[k] = pageOf(sel); paint(); };
+  $$('.msg2 button').forEach(b => b.onclick = () => { mode = b.dataset.v; if (mode === 'm' && !by.has(sel) && months.length) sel = months.at(-1); paint(); });
   $('[data-a=pm]').onclick = () => stepM(-1); $('[data-a=nm]').onclick = () => stepM(1);
-  paintTiles();
+  for (const k in pgs) pgs[k] = pageOf(sel);
+  paint();
   const onSc = () => $('.mev')?.classList.toggle('sc', scrollY > 8);
   addEventListener('scroll', onSc, { passive: true });
   cleanup = () => { stopMood(); removeEventListener('scroll', onSc); };
@@ -3257,7 +3215,7 @@ function viewSet(sub) {
     ${sgrp(srow('bell', '알림', S.pref('remind', false) ? '켜짐' : '', { go: '#/set/alarm' }), srow('globe', '언어', LANGS[S.pref('lang', 'ko')], { go: '#/set/lang' }))}
     ${sgrp(srow('spark', '서비스 소개', '', { go: '#/set/about' }), srow('help', '도움말', '', { a: 'help' }), srow('bell', '공지사항 · 이벤트', '', { go: '#/set/news' }), srow('clock', '업데이트 소식', UPDATES[0][0], { go: '#/set/updates' }))}
     ${sgrp(srow('doc', '이용약관', '', { a: 'terms' }), srow('shield', '개인정보 처리방침', '', { a: 'privacy' }), srow('lic', '라이선스', '', { a: 'lic' }))}
-    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-12 57차</p>`, { up: '#/', tab: true });
+    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-12 58차</p>`, { up: '#/', tab: true });
   $('[data-a=place]').onclick = e => { const on = !S.pref('autoPlace', false); S.setPref('autoPlace', on); e.currentTarget.querySelector('.tg').classList.toggle('on', on); };
   $('[data-a=terms]').onclick = () => { location.href = '../legal/terms.ko.html'; };
   $('[data-a=privacy]').onclick = () => { location.href = '../legal/privacy.ko.html'; };

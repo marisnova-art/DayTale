@@ -1805,3 +1805,10 @@ html:not(.wmode) body { min-height: calc(100% + 1px); }
 .shtop:not(.cpn) > .tl:not(:has(button)) h1 { margin-right: 0; }
 .setv.stab .stop2 > .sp0 { display: none; }
 .setv.stab .stop2 h2 { text-align: center; }
+/* 58차 시안 (11-12): 내 기록 = 8개 덩어리를 펼쳐서 (제목 · 큰 값 + 그래프) */
+.mev2 .ms2 { margin-top: 12px; }
+.mev2 .ms2 .mh { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.mev2 .ms2 .mgt { margin: 0; }
+.mev2 .ms2 .mv { font-size: var(--fs-m); font-weight: var(--fw); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60%; }
+.mev2 .ms2 .hb2 { margin-top: 12px; }
+.mev2 .mend { text-align: center; margin: 24px 0 0; color: var(--mut); }
