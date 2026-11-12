@@ -34,7 +34,7 @@ const soon = () => toast('다음 단계에서 열려요');
 
 // 목록 시트 (10-23 UI 키트): 위에 흐린 제목, 묶음마다 둥근 카드, 지우기는 빨간색으로 따로. 바깥을 누르면 닫혀요
 let lockN = 0, lockY = 0;
-// 11-12 56차: 시트가 열린 동안 뒤 화면 멈추기. 예전처럼 body를 고정(position:fixed)하면 페이지가 '스크롤 없는 화면'이 되고,
+// 11-12 57차: 시트가 열린 동안 뒤 화면 멈추기. 예전처럼 body를 고정(position:fixed)하면 페이지가 '스크롤 없는 화면'이 되고,
 // 아이폰 홈 화면 앱은 그때 화면 바닥을 시계 줄 높이만큼 위로 잡아요(시트 아래 틈). 그래서 페이지는 그대로 두고 손가락 · 휠 스크롤만 막아요
 const canScroll = (el, stop) => { for (; el && el !== stop; el = el.parentElement) { const o = getComputedStyle(el).overflowY; if ((o === 'auto' || o === 'scroll') && el.scrollHeight > el.clientHeight + 1) return true; } return false; };
 const noScroll = e => { if (e.touches && e.touches.length > 1) return; if (!canScroll(e.target, document.body)) e.preventDefault(); };
@@ -769,7 +769,7 @@ function openFocus(it, c, opt = {}) {
   document.body.appendChild(ov);
   const el = renderCard(c); box.appendChild(el); fitCard(el, c);
   const T = box.clientWidth, H = box.offsetHeight;
-  // 11-12 56차: 인스타처럼 길이와 상관없이 늘 ← 줄 바로 아래부터 (짧은 카드를 가운데 두던 것 뺌)
+  // 11-12 57차: 인스타처럼 길이와 상관없이 늘 ← 줄 바로 아래부터 (짧은 카드를 가운데 두던 것 뺌)
   const top = topGap() + 52;
   box.style.marginTop = top + 'px';
   // 피드 칸 크기로 줄이면서 칸 밖(긴 카드의 아래쪽)은 같은 움직임으로 잘라요: 위 · 아래가 함께 들어가요
@@ -3257,7 +3257,7 @@ function viewSet(sub) {
     ${sgrp(srow('bell', '알림', S.pref('remind', false) ? '켜짐' : '', { go: '#/set/alarm' }), srow('globe', '언어', LANGS[S.pref('lang', 'ko')], { go: '#/set/lang' }))}
     ${sgrp(srow('spark', '서비스 소개', '', { go: '#/set/about' }), srow('help', '도움말', '', { a: 'help' }), srow('bell', '공지사항 · 이벤트', '', { go: '#/set/news' }), srow('clock', '업데이트 소식', UPDATES[0][0], { go: '#/set/updates' }))}
     ${sgrp(srow('doc', '이용약관', '', { a: 'terms' }), srow('shield', '개인정보 처리방침', '', { a: 'privacy' }), srow('lic', '라이선스', '', { a: 'lic' }))}
-    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-12 56차</p>`, { up: '#/', tab: true });
+    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-12 57차</p>`, { up: '#/', tab: true });
   $('[data-a=place]').onclick = e => { const on = !S.pref('autoPlace', false); S.setPref('autoPlace', on); e.currentTarget.querySelector('.tg').classList.toggle('on', on); };
   $('[data-a=terms]').onclick = () => { location.href = '../legal/terms.ko.html'; };
   $('[data-a=privacy]').onclick = () => { location.href = '../legal/privacy.ko.html'; };

@@ -1800,3 +1800,8 @@ html:not(.wmode) body { min-height: calc(100% + 1px); }
 .tiv.short .tlow { bottom: 8px; }
 /* 54차 (11-12): 검색 칸도 캘린더처럼 = 붙었을 때 아이폰 시계 줄 그늘(~84pt) 아래 (8 → 44px) */
 .srch.ttl .sbar { padding-top: calc(var(--safe-t) + 44px); margin-top: calc(-1 * (var(--safe-t) + 44px)); }
+/* 57차 (11-12): 큰 제목(쓰기 · 검색 · 책갈피 · 설정)을 가운데로 시험 (← 있는 안쪽 화면 · 책장 제외) */
+.shtop:not(.cpn) > .tl:not(:has(button)) { flex: 1; justify-content: center; }
+.shtop:not(.cpn) > .tl:not(:has(button)) h1 { margin-right: 0; }
+.setv.stab .stop2 > .sp0 { display: none; }
+.setv.stab .stop2 h2 { text-align: center; }
