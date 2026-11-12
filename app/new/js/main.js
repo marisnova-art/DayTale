@@ -34,7 +34,7 @@ const soon = () => toast('다음 단계에서 열려요');
 
 // 목록 시트 (10-23 UI 키트): 위에 흐린 제목, 묶음마다 둥근 카드, 지우기는 빨간색으로 따로. 바깥을 누르면 닫혀요
 let lockN = 0, lockY = 0;
-// 11-12 70차: 시트가 열린 동안 뒤 화면 멈추기. 예전처럼 body를 고정(position:fixed)하면 페이지가 '스크롤 없는 화면'이 되고,
+// 11-12 71차: 시트가 열린 동안 뒤 화면 멈추기. 예전처럼 body를 고정(position:fixed)하면 페이지가 '스크롤 없는 화면'이 되고,
 // 아이폰 홈 화면 앱은 그때 화면 바닥을 시계 줄 높이만큼 위로 잡아요(시트 아래 틈). 그래서 페이지는 그대로 두고 손가락 · 휠 스크롤만 막아요
 const canScroll = (el, stop) => { for (; el && el !== stop; el = el.parentElement) { const o = getComputedStyle(el).overflowY; if ((o === 'auto' || o === 'scroll') && el.scrollHeight > el.clientHeight + 1) return true; } return false; };
 const noScroll = e => { if (e.touches && e.touches.length > 1) return; if (!canScroll(e.target, document.body)) e.preventDefault(); };
@@ -769,7 +769,7 @@ function openFocus(it, c, opt = {}) {
   document.body.appendChild(ov);
   const el = renderCard(c); box.appendChild(el); fitCard(el, c);
   const T = box.clientWidth, H = box.offsetHeight;
-  // 11-12 70차: 인스타처럼 길이와 상관없이 늘 ← 줄 바로 아래부터 (짧은 카드를 가운데 두던 것 뺌)
+  // 11-12 71차: 인스타처럼 길이와 상관없이 늘 ← 줄 바로 아래부터 (짧은 카드를 가운데 두던 것 뺌)
   const top = topGap() + 52;
   box.style.marginTop = top + 'px';
   // 피드 칸 크기로 줄이면서 칸 밖(긴 카드의 아래쪽)은 같은 움직임으로 잘라요: 위 · 아래가 함께 들어가요
@@ -3078,7 +3078,7 @@ function viewMe() {
   const axis = v => v >= 1e4 ? `${+(v / 1e4).toFixed(1)}만` : v >= 1000 ? `${+(v / 1000).toFixed(1)}천` : `${v}`;
   let met = { k: MET[S.pref('meGraph', 'n')] ? S.pref('meGraph', 'n') : 'n' };
   let sel = T;
-  // 11-12 70차 (시안): 8칸을 눌러 그래프 하나를 바꾸던 것 → 8개를 모두 펼쳐요. 덩어리 = 제목 · 큰 값 + 그래프, 아래로 스크롤
+  // 11-12 71차 (시안): 8칸을 눌러 그래프 하나를 바꾸던 것 → 8개를 모두 펼쳐요. 덩어리 = 제목 · 큰 값 + 그래프, 아래로 스크롤
   const LBL = ['쓴 날', '카드', '한 장 평균 글자', '자주 쓴 템플릿', '자주 쓴 배경', '자주 쓴 곳', '자주 쓴 때', '자주 쓴 요일'];
   app.innerHTML = `<div class="shv setv mev mev2"><i class="grn"></i><i class="stb"></i>
     <header class="stop2"><button class="cb" data-a="set" aria-label="뒤로">${ic('back')}</button><h2>내 기록</h2><span class="sp0"></span></header>
@@ -3272,21 +3272,27 @@ function viewMe() {
   const avgOf = l => l.length ? Math.round(l.reduce((t, c) => t + lenOf(c), 0) / l.length) : null;
   const chunks = (l, max) => { const k = Math.ceil(l.length / max) || 1, out = []; for (let i = 0; i < l.length; i += k) out.push(avgOf(l.slice(i, i + k))); return out; };
   const mdLab = c => `${+c.date.slice(5, 7)}월 ${+c.date.slice(8)}일`;
+  // 71차: 최고 · 평균 · 최저 선 (평균 진하게, 최고 · 최저 흐리게), 말풍선이 겹치면 20px씩 비켜요
+  const refLines = (l, mx, end) => { const ls = l.map(lenOf), hi = Math.max(...ls), lo = Math.min(...ls), av = avgOf(l), H = 120;
+    const rows = (l.length > 1 && hi !== lo ? [['최고', hi, 'hi'], ['평균', av, ''], ['최저', lo, 'hi']] : [['평균', av, '']]).map(r => [...r, r[1] / mx * H]);
+    for (let i = 1; i < rows.length; i++) if (rows[i - 1][3] - rows[i][3] < 20) rows[i][3] = rows[i - 1][3] - 20;
+    const dn = Math.min(0, rows.at(-1)[3]); rows.forEach(r => { r[3] -= dn; });
+    return rows.map(([t, v, c, py], i) => `<hr class="mav ${c}" style="bottom:${(v / mx * 100).toFixed(1)}%;animation-delay:${end + i * 80}ms"><b class="mlk2 ${c}" style="bottom:${py.toFixed(1)}px;animation-delay:${end + 150 + i * 80}ms">${t} ${v}자</b>`).join(''); };
   const drawLen3 = sec => {
     if (mode === 'm') { const l = by.get(sel) || []; if (!l.length) return body(sec, EMPTY);   // 68차: 월별 = 그 달 날짜마다 (그날 평균)
       const [y, mo] = sel.split('-').map(Number), last = new Date(y, mo, 0).getDate(), dv = Array.from({ length: last }, (_, d) => avgOf(l.filter(c => +c.date.slice(8) === d + 1)));
-      const avg = avgOf(l), mx = Math.max(10, ...dv.filter(v => v != null)) * 1.15, end = last * 14 + 450, yb = (avg / mx * 100).toFixed(1);
-      return body(sec, `<div class="mlg"><div class="cols day" style="grid-template-columns:repeat(${last},minmax(0,1fr))">${dv.map((v, d) => `<div class="col">${v == null ? '' : `<i style="height:${Math.max(4, v / mx * 100).toFixed(1)}%;animation-delay:${d * 14}ms"><u></u></i>`}</div>`).join('')}</div><hr class="mav" style="bottom:${yb}%;animation-delay:${end}ms"><b class="mlk2" style="bottom:${yb}%;animation-delay:${end + 150}ms">평균 ${avg}자</b></div><div class="mpx mdl" style="grid-template-columns:repeat(${last},minmax(0,1fr))">${dv.map((v, d) => `<span>${[0, 7, 14, 21, 28].includes(d) ? `${d + 1}일` : ''}</span>`).join('')}</div>`); }
+      const mx = Math.max(10, ...l.map(lenOf)) * 1.15, end = last * 14 + 450;
+      return body(sec, `<div class="mlg"><div class="cols day" style="grid-template-columns:repeat(${last},minmax(0,1fr))">${dv.map((v, d) => `<div class="col">${v == null ? '' : `<i style="height:${Math.max(4, v / mx * 100).toFixed(1)}%;animation-delay:${d * 14}ms"><u></u></i>`}</div>`).join('')}</div>${refLines(l, mx, end)}</div><div class="mpx mdl" style="grid-template-columns:repeat(${last},minmax(0,1fr))">${dv.map((v, d) => `<span>${[0, 7, 14, 21, 28].includes(d) ? `${d + 1}일` : ''}</span>`).join('')}</div>`); }
     const p = pgs.chars, ms7 = winOf(p), H = 120;
     const per = ms7.map(m => m > T || m < first ? [] : ordC(by.get(m) || [])), bars = per.map(l => chunks(l, 12)), avgs = per.map(avgOf);
-    const mx = Math.max(10, ...bars.flat()) * 1.15, nb = Math.max(1, bars.flat().length), st = Math.min(20, 520 / nb), end = Math.round(nb * st + 450);
+    const all7 = per.flat(), mx = Math.max(10, ...bars.flat(), ...all7.map(lenOf)) * 1.15, nb = Math.max(1, bars.flat().length), st = Math.min(20, 520 / nb), end = Math.round(nb * st + 450);
     const pts = avgs.map((v, i) => v == null ? null : [(i + .5) / 7 * 700, H - v / mx * H]).filter(Boolean);
     const curve = pts.length < 2 ? '' : pts.reduce((d, q, i) => { if (!i) return `M${q[0].toFixed(1)},${q[1].toFixed(1)}`; const p0 = pts[i - 1], cx = (p0[0] + q[0]) / 2; return d + `C${cx.toFixed(1)},${p0[1].toFixed(1)} ${cx.toFixed(1)},${q[1].toFixed(1)} ${q[0].toFixed(1)},${q[1].toFixed(1)}`; }, '');
     let li = ms7.indexOf(T); if (li < 0 || avgs[li] == null) li = avgs.reduce((b, v, i) => v != null ? i : b, -1);
     let n = 0;
     body(sec, `<div class="mlg"><div class="cols">${bars.map((b, i) => `<div class="col${i === li ? ' on' : ''}">${b.map(v => `<i style="height:${Math.max(4, v / mx * 100).toFixed(1)}%;animation-delay:${Math.round((n++) * st)}ms"><u></u></i>`).join('')}</div>`).join('')}</div>
       ${curve ? `<svg class="mcv" viewBox="0 0 700 ${H}" preserveAspectRatio="none" style="animation-delay:${end - 250}ms"><path d="${curve}"/></svg>` : ''}
-</div>
+      ${all7.length ? refLines(all7, mx, end + 300) : ''}</div>
       <div class="mpx mpv">${avgs.map(v => `<span style="animation-delay:${end}ms">${v == null ? '' : v + '자'}</span>`).join('')}</div><div class="mpx">${ms7.map(m => `<span class="${m === T ? 'on' : ''}${m > T || m < first ? ' off' : ''}" data-m="${m}">${+m.slice(5)}월</span>`).join('')}</div><div class="mdots">${dotsHtml(1 - pMin, p - pMin)}</div>`);
     swipe($('.mlg', sec), 'chars', () => drawLen3(sec));
   };
@@ -3414,7 +3420,7 @@ function viewSet(sub) {
     ${sgrp(srow('bell', '알림', S.pref('remind', false) ? '켜짐' : '', { go: '#/set/alarm' }), srow('globe', '언어', LANGS[S.pref('lang', 'ko')], { go: '#/set/lang' }))}
     ${sgrp(srow('spark', '서비스 소개', '', { go: '#/set/about' }), srow('help', '도움말', '', { a: 'help' }), srow('bell', '공지사항 · 이벤트', '', { go: '#/set/news' }), srow('clock', '업데이트 소식', UPDATES[0][0], { go: '#/set/updates' }))}
     ${sgrp(srow('doc', '이용약관', '', { a: 'terms' }), srow('shield', '개인정보 처리방침', '', { a: 'privacy' }), srow('lic', '라이선스', '', { a: 'lic' }))}
-    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-12 70차</p>`, { up: '#/', tab: true });
+    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-12 71차</p>`, { up: '#/', tab: true });
   $('[data-a=place]').onclick = e => { const on = !S.pref('autoPlace', false); S.setPref('autoPlace', on); e.currentTarget.querySelector('.tg').classList.toggle('on', on); };
   $('[data-a=terms]').onclick = () => { location.href = '../legal/terms.ko.html'; };
   $('[data-a=privacy]').onclick = () => { location.href = '../legal/privacy.ko.html'; };

@@ -2010,3 +2010,7 @@ html:not(.wmode) body { min-height: calc(100% + 1px); }
 .mev2 .mlg .cols.day .col { padding: 0 1px; }
 .mev2 .mlg .cols.day .col i { max-width: 6px; }
 .mev2 .mpx.mdl span { text-align: left; white-space: nowrap; overflow: visible; width: 0; }
+/* 71차: 평균 글자 최고 · 최저 선 */
+.mev2 .mlk2 { transform: translateY(50%); }
+.mev2 .mav.hi { opacity: .45; }
+.mev2 .mlk2.hi { background: rgba(255,255,255,.16); color: #fff; }
