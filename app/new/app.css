@@ -1982,3 +1982,6 @@ html:not(.wmode) body { min-height: calc(100% + 1px); }
 .shtop:not(.cpn) > .tl:not(:has(button)) h1, .setv.stab .stop2 h2 { font-size: var(--fs-l); }
 /* 65차 (11-12): 제목 ~ 첫 내용 = 16px (쓰기 · 검색 · 책갈피 · 설정 같게) */
 .srch.ttl > .shtop, .mkv > .shtop { padding-bottom: 16px; }
+/* 66차 (11-12): 쓰기 검색 칸도 붙었을 때 아이폰 시계 줄 그늘 아래로 (검색 화면 54차와 같게, 8 → 44px) */
+.tstk.sc { padding-top: calc(var(--safe-t) + 44px); margin-top: calc(-1 * (var(--safe-t) + 36px)); }
+.tstk.sc .tsf { margin-top: 0; }
