@@ -33,13 +33,15 @@ const soon = () => toast('다음 단계에서 열려요');
 let lockN = 0, lockY = 0;
 function lockBg() { if (lockN++) return; lockY = scrollY; const b = document.body.style; b.position = 'fixed'; b.top = -lockY + 'px'; b.left = b.right = '0'; }
 function unlockBg() { if (!lockN || --lockN) return; const b = document.body.style; b.position = b.top = b.left = b.right = ''; scrollTo(0, lockY); }
-function sheet(head, groups) {
+let sheetBack = null;   // 11-12: 목록 시트에서 연 다음 시트가 돌아갈 곳
+function sheet(head, groups0) {
+  const mk = typeof groups0 === 'function' ? groups0 : () => groups0, groups = mk();   // 함수로 주면 돌아올 때 새 값(메모 수 등)으로 다시 그려요
   const bg = document.createElement('div'); bg.className = 'sheet-bg';
   const all = groups.flat();
   bg.innerHTML = `<div class="sheet"><div class="grab"></div>${head ? `<p class="sh">${esc(head)}</p>` : ''}${groups.map(g => `<div class="grp">${g.map(it => `<button class="it${it.red ? ' red' : ''}${it.on ? ' on' : ''}" data-i="${all.indexOf(it)}">${ic(it.icon, 'i-' + it.icon)}${it.label}</button>`).join('')}</div>`).join('')}</div>`;
   let shut = false;
   const close = () => { if (shut) return; shut = true; bg.classList.add('out'); unlockBg(); setTimeout(() => bg.remove(), 300); };
-  bg.addEventListener('click', e => { const b = e.target.closest('.it'); if (!b && e.target.closest('.sheet')) return; close(); if (b) all[+b.dataset.i].run(); });
+  bg.addEventListener('click', e => { const b = e.target.closest('.it'); if (!b && e.target.closest('.sheet')) return; close(); if (b) { sheetBack = () => sheet(head, mk); try { all[+b.dataset.i].run(); } finally { setTimeout(() => { sheetBack = null; }, 0); } } });
   lockBg(); document.body.appendChild(bg);
 }
 
@@ -115,6 +117,7 @@ function route() {
   if (r === 'at') return viewFeed(a, true);
   if (r === 'search') return viewSearch(a === 'pick');
   if (r === 'cal') return viewCal(a);
+  if (!r && homeView() === 'cal') return viewCal();
   if (r === 'me') return viewMe();
   if (r === 'ti') return viewIntro(a);
   if (r === 'alarm') return viewNotes(false);
@@ -127,22 +130,30 @@ const go = h => { location.hash = h; };
 const goNow = h => { if (location.hash === h) route(); else location.replace(h); };   // 같은 주소면 다시 그리기만
 
 /* ── 피드 ───────────────────────────────────────────── */
+// 11-12: 홈 보기 세 가지. 'cal' 이면 캘린더, 아니면 cols(1 · 2)
+const homeView = () => S.pref('homeCal', false) ? 'cal' : S.pref('cols', 2) === 2 ? 2 : 1;
+const viewBtn = (v = homeView()) => { return `<button class="cb" data-a="view" aria-label="${v === 'cal' ? '캘린더 보기' : v + '열 보기'}">${ic(v === 'cal' ? 'cal' : v === 2 ? 'col2' : 'col1')}</button>`; };
+function nextView(v = homeView()) {   // 1열 → 2열 → 캘린더 → 1열 (완료 뒤 피드처럼 지금 화면이 다르면 그 화면에서)
+  if (v === 1) { S.setPref('cols', 2); S.setPref('homeCal', false); }
+  else if (v === 2) S.setPref('homeCal', true);
+  else { S.setPref('homeCal', false); S.setPref('cols', 1); }
+}
 function nav(on) {
   const T = me => me ? (capA ? '" data-on="1' : ' on" data-on="1') : '';   // 71 (11-06): 아이콘이 켜지는 건 캡슐이 도착한 뒤 (처음 열 때만 바로)
   return `<nav class="nav"><i class="ncap" aria-hidden="true"${capA ? ` style="${capNow()}"` : ' style="opacity:0"'}></i>
     <button class="nb${T(on === 'home')}" data-n="home" aria-label="홈">${ic('home')}<span class="nl">홈</span></button>
-    <button class="nb${T(on === 'cal')}" data-n="cal" aria-label="캘린더">${ic('cal')}<span class="nl">캘린더</span></button>
+    <button class="nb${T(on === 'search')}" data-n="search" aria-label="검색">${ic('search')}<span class="nl">검색</span></button>
     <button class="nb nw${T(on === 'write')}" data-n="write" aria-label="쓰기">${ic('pen')}<span class="nl">쓰기</span></button>
     <button class="nb${T(on === 'mark')}" data-n="mark" aria-label="책갈피">${ic('bookmark')}<span class="nl">책갈피</span></button>
-    <button class="nb${T(on === 'search')}" data-n="search" aria-label="검색">${ic('search')}<span class="nl">검색</span></button></nav>`;   // 검색은 검은 바탕이라 맨 오른쪽 (10-31)
+    <button class="nb${T(on === 'me')}" data-n="me" aria-label="프로필"><span class="av"${avStyle()}></span><span class="nl">프로필</span></button></nav>`;   // 11-12: 인스타처럼 프로필은 맨 오른쪽 탭
 }
 function bindNav() {
-  const home = () => $('main.feed:not(.mkf)') ? window.scrollTo({ top: 0, behavior: 'smooth' }) : go('#/');   // 검색 결과 칸도 .feed 모양을 써서 main만
+  const home = () => ($('main.feed:not(.mkf)') || $('.calv.hm')) ? window.scrollTo({ top: 0, behavior: 'smooth' }) : go('#/');   // 검색 결과 칸도 .feed 모양을 써서 main만
   const find = () => $('.srch') ? ($('.srch .fld input').focus(), window.scrollTo({ top: 0, behavior: 'smooth' })) : (kbNow(), go('#/search'));
   // 11-11: 책장 · 템플릿 탭 대신 캘린더 · 책갈피. 쓰기 = 템플릿 홈 (바로 쓰기가 맨 위)
   const top = (sel, h) => () => $(sel) ? window.scrollTo({ top: 0, behavior: 'smooth' }) : go(h);
-  const cal = top('.calv', '#/cal'), mark = top('.mkv', '#/mark'), write = top('.tmv', '#/pick');
-  $$('.nb').forEach(b => b.onclick = () => ({ home, search: find, write, cal, mark }[b.dataset.n] || soon)());
+  const mark = top('.mkv', '#/mark'), write = top('.tmv', '#/pick'), me = () => go('#/set');
+  $$('.nb').forEach(b => b.onclick = () => ({ home, search: find, write, mark, me }[b.dataset.n] || soon)());
   $$('[data-a=me]').forEach(b => b.onclick = () => go('#/set'));   // 11-11: 프로필을 누르면 바로 설정 (내 기록은 설정 안으로)
   requestAnimationFrame(placeCap);
 }
@@ -231,7 +242,7 @@ function fixCover(c, i, b, cov) {
 // 1열(카드 크게 · 아이콘 줄 · 글 한 줄)과 2열(핀터레스트처럼 카드마다 제 비율, 아래는 쓴 때 · ⋯만). 로고 줄 알림 왼쪽 버튼으로 바꾸고, 고른 걸 기억해요 (처음은 2열)
 function viewFeed(fresh, quiet) {
   const mine = S.cards(), two = S.pref('cols', 2) === 2;
-  app.innerHTML = `<div class="amb"><div class="mo"></div><b></b><b></b><b></b><i></i><i></i><s></s></div><header class="ftop"><button class="logo" data-a="top" aria-label="맨 위로">${LOGO}</button><div class="rt"><button class="cb" data-a="cols" aria-label="${two ? '1열로 보기' : '2열로 보기'}">${ic(two ? 'col1' : 'col2')}</button><button class="cb" data-a="bell" aria-label="알림">${ic('bell')}</button><button class="cb me" data-a="me" aria-label="프로필"><span class="av"${avStyle()}></span></button></div></header><div class="bn${two ? ' two' : ''}" hidden></div>
+  app.innerHTML = `<div class="amb"><div class="mo"></div><b></b><b></b><b></b><i></i><i></i><s></s></div><header class="ftop"><button class="logo" data-a="top" aria-label="맨 위로">${LOGO}</button><div class="rt">${viewBtn(two ? 2 : 1)}<button class="cb" data-a="bell" aria-label="알림">${ic('bell')}</button></div></header><div class="bn${two ? ' two' : ''}" hidden></div>
     <main class="feed${two ? ' two' : ''}">${two ? '<div class="mc"></div><div class="mc"></div>' : ''}</main>${nav('home')}`;
   bindNav(); { const bl = $('[data-a=bell]'); bl.onclick = () => go('#/alarm'); bl.classList.toggle('dot', unread()); }
   $('[data-a=top]').onclick = () => window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -250,8 +261,9 @@ function viewFeed(fresh, quiet) {
   } else list.forEach(({ c, x }) => feed.appendChild(feedItem(c, false, { ...x, lazy: lz })));
   // 11-04: 위 배너는 이벤트 · 공지 · 알림 전용 (관리자에서 올린 것만). N년 전 오늘은 피드 두 번째 카드로만
   // 1열 ↔ 2열: 보던 카드가 바뀐 화면에서도 가운데에 오게
-  $('[data-a=cols]').onclick = () => {
-    const k = scrollY > 40 ? cur?.dataset.k : null; S.setPref('cols', two ? 1 : 2);   // 맨 위에서 바꾸면 맨 위 그대로
+  $('[data-a=view]').onclick = () => {
+    const k = scrollY > 40 ? cur?.dataset.k : null; nextView(two ? 2 : 1);   // 맨 위에서 바꾸면 맨 위 그대로
+    if (homeView() === 'cal') { cleanup?.(); cleanup = null; return viewCal(); }
     cleanup?.(); cleanup = null; viewFeed(null); scrollTo(0, 0);
     const it = k && $(`.feed .fi[data-k="${k}"]`);   // 첫 카드면 맨 위 그대로
     if (it && it !== $('.feed .fi')) { const put = () => it.scrollIntoView({ block: 'center' }); put(); setTimeout(put, 400); }
@@ -433,7 +445,7 @@ function feedItem(c, tile, x = {}) {
   });
   on('mark', mark); on('del', del); on('like', () => go(`#/like/${c.id}`));
   // ⋯: 책갈피 · 이미지 저장 · 고치기 · 이 포맷으로 쓰기 | 지우기. 위에 날짜 · 종류
-  on('more', () => sheet(`${+c.date.slice(5, 7)}월 ${+c.date.slice(8, 10)}일 · ${T.labelOf(c) || ''}`, [[
+  on('more', () => sheet(`${+c.date.slice(5, 7)}월 ${+c.date.slice(8, 10)}일 · ${T.labelOf(c) || ''}`, () => [[
     { icon: 'bookmark', label: c.mark ? '책갈피 빼기' : '책갈피', on: c.mark, run: mark },
     { icon: 'save', label: '이미지 저장', run: () => saveCard(c) },
     { icon: 'pen', label: '고치기', run: () => go(`#/edit/${c.id}`) },
@@ -818,7 +830,7 @@ function focusMenu() {
     if (!(await ask('이 카드를 지울까요?', '삭제'))) return;
     S.removeCard(c.id); closeFocus(true); $$(`.fi[data-k="${c.id}"], .fi[data-k="r:${c.id}"], .fi[data-id="${c.id}"]`).forEach(x => x.remove());
   };
-  sheet(`${+c.date.slice(5, 7)}월 ${+c.date.slice(8, 10)}일 · ${T.labelOf(c) || ''}`, [[
+  sheet(`${+c.date.slice(5, 7)}월 ${+c.date.slice(8, 10)}일 · ${T.labelOf(c) || ''}`, () => [[
     { icon: 'bookmark', label: c.mark ? '책갈피 빼기' : '책갈피', on: c.mark, run: mark },
     { icon: 'save', label: '이미지 저장', run: () => saveCard(c) },
     { icon: 'pen', label: '고치기', run: () => go(`#/edit/${c.id}`) },
@@ -1211,7 +1223,7 @@ function cardMenu(c, o = {}) {
   const mark = () => { c.mark = !c.mark; S.saveCard(c, false); syncCard(c); toast(c.mark ? '책갈피에 넣었어요' : '책갈피에서 뺐어요'); };
   const out = () => { const bk = S.book(o.book.id); if (!bk) return; bk.ids = bk.ids.filter(id => id !== c.id); S.saveBook(bk); toast('이 책에서 뺐어요'); dropCard(c.id); };
   const del = async () => { if (!(await ask('이 카드를 지울까요?', '삭제'))) return; S.removeCard(c.id); dropCard(c.id); };
-  sheet(`${+c.date.slice(5, 7)}월 ${+c.date.slice(8, 10)}일 · ${T.labelOf(c) || ''}`, [[
+  sheet(`${+c.date.slice(5, 7)}월 ${+c.date.slice(8, 10)}일 · ${T.labelOf(c) || ''}`, () => [[
     { icon: 'bookmark', label: c.mark ? '책갈피 빼기' : '책갈피', on: c.mark, run: mark },
     { icon: 'save', label: '이미지 저장', run: () => saveCard(c) },
     { icon: 'pen', label: '고치기', run: () => { editFrom = { hash: location.hash, id: c.id }; go(`#/edit/${c.id}`); } },
@@ -1524,14 +1536,16 @@ function viewCal(month) {
     for (let d = start; d < end; d = addDays(d, 1)) h += d.startsWith(m) ? cell(d) : '<span></span>';
     return `<div class="mo1" data-m="${m}"><div class="mg2">${h}</div></div>`;
   };
-  app.innerHTML = `${MOOD}<div class="shv calv mood">
+  app.innerHTML = `${MOOD}<div class="shv calv hm mood">
     <header class="cpn" style="background-image:${panelCss()}">
-      <div class="crow"><button class="mon" data-a="ym"><b></b><span><em></em>${ic('back')}</span></button></div>
+      <div class="crow"><button class="mon" data-a="ym"><b></b><span><em></em>${ic('back')}</span></button><div class="rt">${viewBtn('cal')}<button class="cb" data-a="bell" aria-label="알림">${ic('bell')}</button></div></div>
       <div class="wks">${weeks.map(w => `<div class="wk" data-w="${w}">${Array.from({ length: WK }, (_, i) => cell(addDays(w, i), 1)).join('')}</div>`).join('')}</div>
       <div class="mow"><div class="mwd">${Array.from({ length: 7 }, (_, i) => `<i>${WD[(ws + i) % 7]}</i>`).join('')}</div><div class="mos">${months.map(monthGrid).join('')}</div></div>
       <button class="grip" aria-label="월간으로 펼치기"></button></header>
-    <main class="days"></main></div>${nav('cal')}`;
+    <main class="days"></main></div>${nav('home')}`;
   bindNav(); bindCap();
+  { const bl = $('.crow [data-a=bell]'); bl.onclick = () => go('#/alarm'); bl.classList.toggle('dot', unread()); }
+  $('.crow [data-a=view]').onclick = () => { nextView('cal'); if (location.hash.replace(/^#\/?/, '')) go('#/'); else { cleanup?.(); cleanup = null; viewFeed(); scrollTo(0, 0); } };
   const stopMood = paintMood($('.amb'));
   const panel = $('.cpn'), wks = $('.wks'), mos = $('.mos'), list = $('.days');
   const label = d => { $('.mon b').textContent = `${+d.slice(5, 7)}월`; $('.mon em').textContent = d.slice(0, 4); };
@@ -1627,6 +1641,8 @@ function panelSheet(html, cls = '') {
   const bg = document.createElement('div'); bg.className = 'sheet-bg';
   bg.innerHTML = `<div class="sheet bks ${cls}">${html}</div>`;
   const el = $('.sheet', bg), vv = window.visualViewport;
+  const back = sheetBack; sheetBack = null;
+  if (back && $('.sh', el)) { const b = document.createElement('button'); b.className = 'cb shb'; b.setAttribute('aria-label', '뒤로'); b.innerHTML = ic('back'); el.prepend(b); b.onclick = () => { close(); setTimeout(back, 120); }; }
   const fit = () => { if (!vv) return; bg.style.top = vv.offsetTop + 'px'; bg.style.height = vv.height + 'px'; bg.style.bottom = 'auto'; };
   vv?.addEventListener('resize', fit); vv?.addEventListener('scroll', fit);
   let shut = false;
@@ -2001,7 +2017,8 @@ function viewPick(sub) {
 // 내 사진 · 영상은 그 카드 것이라 빼요 (포토 포맷은 빈 사진 자리로)
 function likeCard(src) {
   if (!src || !FORMATS[src.fmt]) return null;
-  const c = blank(src.fmt, S.today()); if (src.tpl) c.tpl = src.tpl, noPh = b => b?.id === 'photo' ? { id: 'photo', dim: b.dim || 'dark' } : clone(b);
+  const c = blank(src.fmt, S.today()); if (src.tpl) c.tpl = src.tpl;
+  const noPh = b => b?.id === 'photo' ? { id: 'photo', dim: b.dim || 'dark' } : clone(b);
   ['font', 'size', 'ratio', 'lh', 'bold', 'ink', 'inkPos', 'align', 'datePos', 'dh', 'showDate', 'placeOff', 'sg', 'filter', 'leak'].forEach(k => { if (src[k] !== undefined) c[k] = clone(src[k]); });
   c.signTxt = S.pref('sign', src.signTxt || '');
   if (src.bg && c.pages) c.bg = noPh(src.bg);   // 아트 그림도 같은 씨앗 그대로
@@ -3191,7 +3208,7 @@ function viewSet(sub) {
     ${sgrp(srow('bell', '알림', S.pref('remind', false) ? '켜짐' : '', { go: '#/set/alarm' }), srow('globe', '언어', LANGS[S.pref('lang', 'ko')], { go: '#/set/lang' }))}
     ${sgrp(srow('spark', '서비스 소개', '', { go: '#/set/about' }), srow('help', '도움말', '', { a: 'help' }), srow('bell', '공지사항 · 이벤트', '', { go: '#/set/news' }), srow('clock', '업데이트 소식', UPDATES[0][0], { go: '#/set/updates' }))}
     ${sgrp(srow('doc', '이용약관', '', { a: 'terms' }), srow('shield', '개인정보 처리방침', '', { a: 'privacy' }), srow('lic', '라이선스', '', { a: 'lic' }))}
-    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-11 40차</p>`, { up: '#/' });
+    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-12 41차</p>`, { up: '#/' });
   $('[data-a=place]').onclick = e => { const on = !S.pref('autoPlace', false); S.setPref('autoPlace', on); e.currentTarget.querySelector('.tg').classList.toggle('on', on); };
   $('[data-a=terms]').onclick = () => { location.href = '../legal/terms.ko.html'; };
   $('[data-a=privacy]').onclick = () => { location.href = '../legal/privacy.ko.html'; };

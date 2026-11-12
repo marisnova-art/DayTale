@@ -1706,3 +1706,14 @@ html.lite #app :is(.sl .it, .srch .sl .it, .srch .fgrp .fr, .srch .fgrp .fmore, 
 /* 29: 솔리드 · 다크도 움직여요 (그라데이션보다 은은하게) */
 .amb.flat:not(.old) b { opacity: .38; }
 .amb.flat:not(.old) i.on { opacity: .34; }
+
+/* 31 (11-12): 한 단계 더 들어간 시트의 ← 뒤로 (처음 목록으로) */
+.sheet { position: relative; }
+.sheet .shb { position: absolute; top: 14px; left: 14px; z-index: 2; width: 36px; height: 36px; background: rgba(255,255,255,.08); }
+.sheet .shb .ic { width: 20px; height: 20px; }
+
+/* 32 (11-12): 캘린더 = 홈 보기 하나. 위 오른쪽 보기 · 알림 (피드 위 줄과 같은 자리) */
+.cpn .crow .rt { display: flex; gap: 8px; margin-right: -6px; }
+.nav .nb .av { width: 28px; height: 28px; }
+.cpn .crow .rt .cb, html.lite #app .cpn .crow .rt .cb { background: none; }   /* 피드 위 줄 버튼과 같은 모양 */
+.cpn .crow .rt .cb .ic { width: 28px; height: 28px; stroke-width: 2.2; }
