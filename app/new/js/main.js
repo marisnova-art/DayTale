@@ -34,7 +34,15 @@ const soon = () => toast('다음 단계에서 열려요');
 
 // 목록 시트 (10-23 UI 키트): 위에 흐린 제목, 묶음마다 둥근 카드, 지우기는 빨간색으로 따로. 바깥을 누르면 닫혀요
 let lockN = 0, lockY = 0;
-function lockBg() { if (lockN++) return; lockY = scrollY; const b = document.body.style; b.position = 'fixed'; b.top = -lockY + 'px'; b.left = b.right = '0'; }
+// 11-12 47차: 아이폰 홈 화면 앱에서 '바닥에 붙는' 틀이 화면 맨 아래보다 짧게 끝나는 일(시계 줄 높이만큼). 진짜 바닥까지 얼마나 모자란지 직접 재서 --vgap으로 내려요
+const vgap = () => {
+  const R = document.documentElement, st = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
+  let g = 0;
+  if (st && innerHeight > innerWidth) { const p = document.createElement('i'); p.style.cssText = 'position:fixed;left:0;bottom:0;width:1px;height:1px;pointer-events:none;visibility:hidden'; document.body.appendChild(p); g = Math.round(screen.height - p.getBoundingClientRect().bottom); p.remove(); }
+  g = g > 0 && g < 90 ? g : 0; R.style.setProperty('--vgap', g + 'px'); R.dataset.vgap = g;
+};
+addEventListener('resize', () => requestAnimationFrame(vgap)); addEventListener('pageshow', vgap); document.addEventListener('visibilitychange', () => document.hidden || vgap());
+function lockBg() { vgap(); if (lockN++) return; lockY = scrollY; const b = document.body.style; b.position = 'fixed'; b.top = -lockY + 'px'; b.left = b.right = '0'; }
 function unlockBg() { if (!lockN || --lockN) return; const b = document.body.style; b.position = b.top = b.left = b.right = ''; hdHold = performance.now() + 120; scrollTo(0, lockY); }
 let sheetBack = null;   // 11-12: 목록 시트에서 연 다음 시트가 돌아갈 곳
 function sheet(head, groups0) {
@@ -98,6 +106,7 @@ function fmtsFor(r, a) {
 }
 let cleanup = null, curHash = null, lastHash = null;   // 뒤로 = 바로 전 화면 (책 → 책장 · 달력)
 function route() {
+  vgap();
   cleanup?.(); cleanup = null;
   if (lockN) { lockN = 0; const bs = document.body.style; bs.position = bs.top = bs.left = bs.right = ''; }   // 시트가 열린 채 화면이 바뀌면 고정을 풀어요
   const [r, a] = location.hash.replace(/^#\/?/, '').split('/');
@@ -3243,7 +3252,7 @@ function viewSet(sub) {
     ${sgrp(srow('bell', '알림', S.pref('remind', false) ? '켜짐' : '', { go: '#/set/alarm' }), srow('globe', '언어', LANGS[S.pref('lang', 'ko')], { go: '#/set/lang' }))}
     ${sgrp(srow('spark', '서비스 소개', '', { go: '#/set/about' }), srow('help', '도움말', '', { a: 'help' }), srow('bell', '공지사항 · 이벤트', '', { go: '#/set/news' }), srow('clock', '업데이트 소식', UPDATES[0][0], { go: '#/set/updates' }))}
     ${sgrp(srow('doc', '이용약관', '', { a: 'terms' }), srow('shield', '개인정보 처리방침', '', { a: 'privacy' }), srow('lic', '라이선스', '', { a: 'lic' }))}
-    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-12 47차</p>`, { up: '#/', tab: true });
+    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-12 47차${+document.documentElement.dataset.vgap ? ' · ' + document.documentElement.dataset.vgap : ''}</p>`, { up: '#/', tab: true });
   $('[data-a=place]').onclick = e => { const on = !S.pref('autoPlace', false); S.setPref('autoPlace', on); e.currentTarget.querySelector('.tg').classList.toggle('on', on); };
   $('[data-a=terms]').onclick = () => { location.href = '../legal/terms.ko.html'; };
   $('[data-a=privacy]').onclick = () => { location.href = '../legal/privacy.ko.html'; };
