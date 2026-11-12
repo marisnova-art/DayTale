@@ -1649,7 +1649,8 @@ function panelSheet(html, cls = '') {
   const back = sheetBack; sheetBack = null;
   if (back && $('.sh', el)) { const b = document.createElement('button'); b.className = 'cb shb'; b.setAttribute('aria-label', '뒤로'); b.innerHTML = ic('back'); el.prepend(b); b.onclick = () => { close(); setTimeout(back, 120); };
     el.classList.add('hasb'); requestAnimationFrame(() => { const t = $('.sh', el); if (t) b.style.top = t.offsetTop + 'px'; }); }   // 자리만 맞춰요 (높이는 그대로)
-  const fit = () => { if (!vv) return; bg.style.top = vv.offsetTop + 'px'; bg.style.height = vv.height + 'px'; bg.style.bottom = 'auto'; };
+  const fit = () => { if (!vv) return; if (innerHeight - vv.height < 120) { bg.style.top = bg.style.height = bg.style.bottom = ''; return; }   // 11-12: 키보드가 떴을 때만 맞춰요 (아이폰 홈 화면 앱에서 아래 틈이 생기지 않게)
+    bg.style.top = vv.offsetTop + 'px'; bg.style.height = vv.height + 'px'; bg.style.bottom = 'auto'; };
   vv?.addEventListener('resize', fit); vv?.addEventListener('scroll', fit);
   let shut = false;
   const close = () => { if (shut) return; shut = true; vv?.removeEventListener('resize', fit); vv?.removeEventListener('scroll', fit); document.activeElement?.blur?.(); bg.classList.add('out'); unlockBg(); setTimeout(() => bg.remove(), 300); };
@@ -3224,7 +3225,7 @@ function viewSet(sub) {
     ${sgrp(srow('bell', '알림', S.pref('remind', false) ? '켜짐' : '', { go: '#/set/alarm' }), srow('globe', '언어', LANGS[S.pref('lang', 'ko')], { go: '#/set/lang' }))}
     ${sgrp(srow('spark', '서비스 소개', '', { go: '#/set/about' }), srow('help', '도움말', '', { a: 'help' }), srow('bell', '공지사항 · 이벤트', '', { go: '#/set/news' }), srow('clock', '업데이트 소식', UPDATES[0][0], { go: '#/set/updates' }))}
     ${sgrp(srow('doc', '이용약관', '', { a: 'terms' }), srow('shield', '개인정보 처리방침', '', { a: 'privacy' }), srow('lic', '라이선스', '', { a: 'lic' }))}
-    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-12 43차</p>`, { up: '#/', tab: true });
+    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-12 44차</p>`, { up: '#/', tab: true });
   $('[data-a=place]').onclick = e => { const on = !S.pref('autoPlace', false); S.setPref('autoPlace', on); e.currentTarget.querySelector('.tg').classList.toggle('on', on); };
   $('[data-a=terms]').onclick = () => { location.href = '../legal/terms.ko.html'; };
   $('[data-a=privacy]').onclick = () => { location.href = '../legal/privacy.ko.html'; };

@@ -1736,3 +1736,4 @@ html.still .amb i { display: none; }
 .sbg .srw .bsw.lg ~ .ck { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); }
 .sbg .srw .ck { margin-left: auto; }
 .sheet.hasb .sh { margin-bottom: 2px; }   /* 시트 간격 10 + 2 = 12 */
+.sheet-bg .sheet { box-shadow: 0 160px 0 #1A1A1D; }   /* 11-12: 시트 아래로 틈이 보여도 같은 색으로 (아이폰) */
