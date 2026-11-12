@@ -1737,3 +1737,38 @@ html.still .amb i { display: none; }
 .sbg .srw .ck { margin-left: auto; }
 .sheet.hasb .sh { margin-bottom: 2px; }   /* 시트 간격 10 + 2 = 12 */
 .sheet-bg .sheet { box-shadow: 0 160px 0 #1A1A1D; }   /* 11-12: 시트 아래로 틈이 보여도 같은 색으로 (아이폰) */
+
+/* 40 (11-12): 화이트 바탕 = 흰색만 (빛 · 색 덩어리 · 어둡게 덮는 층 없이) */
+.amb.wh b, .amb.wh i { display: none !important; }
+.amb.wh s { background: none; }
+
+/* 캘린더 보기 (11-12 시안 → 45차): 위 줄 = 홈과 같은 로고 · 보기 · 알림, 그 아래 떠 있는 달력 상자 (네 모서리 20) */
+.calv .ctop { z-index: 22; padding-bottom: 12px; }
+.calv .ctop::before { display: none; }
+html.hd .calv .ctop { transform: translateY(-100%); }
+.calv .cpn { top: calc(var(--top) + 52px); margin: 0 var(--fgut); border-radius: 20px; padding: 10px 14px 0; transition: transform .3s cubic-bezier(.2,.8,.2,1), clip-path .3s cubic-bezier(.2,.8,.2,1); clip-path: inset(0 round 20px); }
+.calv .cpn .crow { height: 32px; }
+.calv .cpn .mon b { font-size: var(--fs-m); line-height: 32px; letter-spacing: 0; }
+.calv .cpn .mon em { display: none; }
+.calv .cpn .wks { margin: 6px -14px 0; }
+.calv .cpn .wk { padding: 0 14px; }
+.calv .cpn .wk [data-d] { height: 56px; gap: 2px; border-radius: 12px; }
+.calv .cpn .mos { margin: 0 -14px; } .calv .cpn .mo1 { padding: 0 14px; }
+.calv .cpn .mow { margin-top: 8px; }
+.calv .cpn .mg2 [data-d] { height: 40px; border-radius: 12px; }
+.calv .cpn .grip { height: 28px; margin: 0 -14px; width: calc(100% + 28px); }
+/* 내리면: 위 줄 · 달 줄은 위로 숨고 주 띠만 (상자 모양 그대로) */
+html.hd .calv .cpn { transform: translateY(calc(var(--safe-t) - var(--top) - 84px)); clip-path: inset(40px 0 0 round 20px); }
+html.hd .calv .cpn .crow { opacity: 0; transition: opacity .2s; }
+/* 날짜 머리줄: 상자, 지금 보는 날은 주 띠의 켜진 칸과 같은 색 */
+.calv .days .dh { margin: 28px var(--fgut) 8px; padding: 8px 12px; border-radius: 12px; background: rgba(255,255,255,.1); transition: background-color .22s ease; }
+.calv .days .dh.act { background: #fff; }
+.calv .days .dh.act b { color: #141416; } .calv .days .dh.act span { color: rgba(20,20,22,.6) !important; }
+html.lite #app .calv .days .dh { background: rgba(255,255,255,.6); }
+html.lite #app .calv .days .dh.act { background: #141416; } html.lite #app .calv .days .dh.act b { color: #fff; } html.lite #app .calv .days .dh.act span { color: rgba(255,255,255,.7) !important; }
+html.lite #app .calv .ctop .logo .lgo { color: #141416; }
+html.wh #app .calv .days .dh:not(.act) { background: #F2F2F4; }
+html.wh #app .cpn { box-shadow: none; }
+/* 주 칸: 줄 높이를 글자 크기로 줄여서, 칸은 낮게(62) 하이라이트 안 위아래 여백은 그대로 (요일 · 숫자가 붙지 않게) */
+.calv .cpn .wk [data-d] { height: 62px; gap: 3px; }
+.calv .cpn .wk [data-d] :is(i, b, small) { line-height: 1; height: auto; }

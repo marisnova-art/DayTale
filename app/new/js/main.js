@@ -35,7 +35,7 @@ const soon = () => toast('다음 단계에서 열려요');
 // 목록 시트 (10-23 UI 키트): 위에 흐린 제목, 묶음마다 둥근 카드, 지우기는 빨간색으로 따로. 바깥을 누르면 닫혀요
 let lockN = 0, lockY = 0;
 function lockBg() { if (lockN++) return; lockY = scrollY; const b = document.body.style; b.position = 'fixed'; b.top = -lockY + 'px'; b.left = b.right = '0'; }
-function unlockBg() { if (!lockN || --lockN) return; const b = document.body.style; b.position = b.top = b.left = b.right = ''; scrollTo(0, lockY); }
+function unlockBg() { if (!lockN || --lockN) return; const b = document.body.style; b.position = b.top = b.left = b.right = ''; hdHold = performance.now() + 120; scrollTo(0, lockY); }
 let sheetBack = null;   // 11-12: 목록 시트에서 연 다음 시트가 돌아갈 곳
 function sheet(head, groups0) {
   const mk = typeof groups0 === 'function' ? groups0 : () => groups0, groups = mk();   // 함수로 주면 돌아올 때 새 값(메모 수 등)으로 다시 그려요
@@ -214,6 +214,7 @@ addEventListener('resize', () => { capA = null; placeCap(); });
 { let y0 = 0;
   addEventListener('scroll', () => {
     const n = $('.nav'), y = scrollY; if (!n) return;
+    if (lockN || performance.now() < hdHold) { y0 = lockN ? lockY : y; return; }   // 시트가 열린 동안은 그대로
     const end = y + innerHeight >= document.documentElement.scrollHeight - 40;
     if (y <= 60 || end) n.classList.remove('out'); else if (y - y0 > 6) n.classList.add('out'); else if (y0 - y > 6) n.classList.remove('out');
     y0 = y;
@@ -223,7 +224,7 @@ let hdHold = 0;   // 화면이 스스로 스크롤할 때(캘린더 날짜 누�
 { let y0 = 0;
   addEventListener('scroll', () => {
     const y = scrollY, R = document.documentElement;
-    if (performance.now() < hdHold) { y0 = y; return; }
+    if (lockN || performance.now() < hdHold) { y0 = lockN ? lockY : y; return; }   // 11-12: 시트가 열려 뒤 화면을 고정한 동안은 그대로 (책갈피 머리가 다시 나오던 것)
     if (y <= 60) R.classList.remove('hd'); else if (y - y0 > 6) R.classList.add('hd'); else if (y0 - y > 6) R.classList.remove('hd');
     y0 = y;
   }, { passive: true }); }
@@ -1541,28 +1542,31 @@ function viewCal(month) {
     for (let d = start; d < end; d = addDays(d, 1)) h += d.startsWith(m) ? cell(d) : '<span></span>';
     return `<div class="mo1" data-m="${m}"><div class="mg2">${h}</div></div>`;
   };
-  app.innerHTML = `${MOOD}<div class="shv calv hm mood">
+  app.innerHTML = `${MOOD}<div class="shv calv hm mood"><i class="stb"></i>
+    <header class="ftop ctop"><button class="logo" data-a="top" aria-label="맨 위로">${LOGO}</button><div class="rt">${viewBtn('cal')}<button class="cb" data-a="bell" aria-label="알림">${ic('bell')}</button></div></header>
     <header class="cpn" style="background-image:${panelCss()}">
-      <div class="crow"><button class="mon" data-a="ym"><b></b><span><em></em>${ic('back')}</span></button><div class="rt">${viewBtn('cal')}<button class="cb" data-a="bell" aria-label="알림">${ic('bell')}</button></div></div>
+      <div class="crow"><button class="mon" data-a="ym"><b></b><span><em></em>${ic('back')}</span></button></div>
       <div class="wks">${weeks.map(w => `<div class="wk" data-w="${w}">${Array.from({ length: WK }, (_, i) => cell(addDays(w, i), 1)).join('')}</div>`).join('')}</div>
       <div class="mow"><div class="mwd">${Array.from({ length: 7 }, (_, i) => `<i>${WD[(ws + i) % 7]}</i>`).join('')}</div><div class="mos">${months.map(monthGrid).join('')}</div></div>
       <button class="grip" aria-label="월간으로 펼치기"></button></header>
     <main class="days"></main></div>${nav('home')}`;
   bindNav(); bindCap();
-  { const bl = $('.crow [data-a=bell]'); bl.onclick = () => go('#/alarm'); bl.classList.toggle('dot', unread()); }
-  $('.crow [data-a=view]').onclick = () => { nextView('cal'); if (location.hash.replace(/^#\/?/, '')) go('#/'); else { cleanup?.(); cleanup = null; viewFeed(); scrollTo(0, 0); } };
+  $('.ctop [data-a=top]').onclick = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+  { const bl = $('.ctop [data-a=bell]'); bl.onclick = () => go('#/alarm'); bl.classList.toggle('dot', unread()); }
+  $('.ctop [data-a=view]').onclick = () => { nextView('cal'); if (location.hash.replace(/^#\/?/, '')) go('#/'); else { cleanup?.(); cleanup = null; viewFeed(); scrollTo(0, 0); } };
   const stopMood = paintMood($('.amb'));
   const panel = $('.cpn'), wks = $('.wks'), mos = $('.mos'), list = $('.days');
-  const label = d => { $('.mon b').textContent = `${+d.slice(5, 7)}월`; $('.mon em').textContent = d.slice(0, 4); };
+  const label = d => { $('.mon b').textContent = `${d.slice(0, 4)}년 ${+d.slice(5, 7)}월`; };
   let listLock = 0, stripLock = 0;
   const locked = t => performance.now() < t;
   const toWeek = (d, smooth) => { const i = weeks.findIndex(w => d >= w && d <= addDays(w, WK - 1)); if (i < 0) return; const x = i * wks.clientWidth; if (Math.abs(wks.scrollLeft - x) < 2) return; stripLock = performance.now() + (smooth ? 700 : 120); wks.scrollTo({ left: x, behavior: smooth ? 'smooth' : 'instant' }); };
   const toMonth = d => { const i = months.indexOf(d.slice(0, 7)); if (i >= 0) mos.scrollTo({ left: i * mos.clientWidth, behavior: 'instant' }); };
-  const mark = d => { act = d; $$('.cpn [data-d].on').forEach(x => x.classList.remove('on')); $$(`.cpn [data-d="${d}"]`).forEach(x => x.classList.add('on')); label(d); };
+  const mark = d => { act = d; $$('.cpn [data-d].on').forEach(x => x.classList.remove('on')); $$(`.cpn [data-d="${d}"]`).forEach(x => x.classList.add('on')); label(d);
+    $$('.days .dh.act').forEach(x => x.classList.remove('act')); $(`.days .dh[data-d="${d}"]`)?.classList.add('act'); };
   // 그날 머리줄로 (패널 바로 아래)
   const jump = (d, smooth = true) => {
     const el = $(`.dh[data-d="${d}"]`, list); if (!el) return;
-    const y = el.getBoundingClientRect().top + scrollY - panel.offsetHeight - 16;   // 패널 아래 16px 띄워서
+    const y = el.getBoundingClientRect().top + scrollY - (parseFloat(getComputedStyle(panel).top) || 0) - panel.offsetHeight - 16;   // 패널 아래 16px 띄워서 (11-12: 판이 위 줄 아래에 붙어요)
     listLock = performance.now() + (smooth ? 900 : 150); hdHold = listLock + 100;
     scrollTo({ top: Math.max(0, y), behavior: smooth ? 'smooth' : 'instant' });
   };
@@ -1636,7 +1640,7 @@ function viewCal(month) {
     setH(); const ro = new ResizeObserver(setH); ro.observe(cpn);   // 11-05: 날짜에 끌려 붙기(스냅) 없음, 손 뗀 자리 그대로
     const stopList = stop; stop = () => { stopList(); ro.disconnect(); document.documentElement.classList.toggle('csnap', false); };
     list.insertAdjacentHTML('beforeend', `<p class="firstd">처음 쓴 날 · ${ymd(first)}</p>`);
-    requestAnimationFrame(() => { toWeek(act, false); if (!settle(all, open)) jump(act, false); });
+    requestAnimationFrame(() => { toWeek(act, false); mark(act); if (!settle(all, open)) jump(act, false); });
   } else { list.innerHTML = `<div class="empty"><span class="i">${ic('cal')}</span><b>아직 쓴 카드가 없어요</b></div>`; requestAnimationFrame(() => toWeek(T, false)); }
   cleanup = () => { stop(); stopMood(); closeRun(true); closeFocus(true); removeEventListener('scroll', onScroll); clearTimeout(st); cancelAnimationFrame(raf); };
 }
@@ -3178,10 +3182,11 @@ function setPick(title, opts, cur, put) {
 const bgPickOf = m => (S.pref('bgPick', {}) || {})[m] || '';
 function setBg() {
   const m = bgMode(), v = k => `<span>${esc(bgPickOf(k) || '랜덤')}</span>${m === k ? `<i class="vck">${ic('check')}</i>` : ''}`;   // 11-05: ✓ 는 값 뒤 오른쪽에 크게
-  setShell('바탕', sgrp(srow('', '그라데이션', v('g'), { go: '#/set/bgg' }), srow('', '솔리드', v('s'), { go: '#/set/bgs' }), srow('', '다크', '', { ck: m === 'd', a: 'dk' }))
+  setShell('바탕', sgrp(srow('', '그라데이션', v('g'), { go: '#/set/bgg' }), srow('', '솔리드', v('s'), { go: '#/set/bgs' }), srow('', '다크', '', { ck: m === 'd', a: 'dk' }), srow('', '화이트', '', { ck: m === 'w', a: 'wh' }))
     + sgrp(srow('', '배경 움직임', '', { tg: S.pref('bgMotion', true) !== false, a: 'mot' })), { cls: 'sbg' });
   $('[data-a=mot]').onclick = e => { const on = S.pref('bgMotion', true) === false; S.setPref('bgMotion', on); stillBg(); e.currentTarget.querySelector('.tg').classList.toggle('on', on); };
   $('[data-a=dk]').onclick = () => { S.setPref('bgMode', 'd'); resetMood(); pill('다크', 'check'); setBg(); };
+  $('[data-a=wh]').onclick = () => { S.setPref('bgMode', 'w'); resetMood(); pill('화이트', 'check'); setBg(); };
 }
 function setBgPick(k) {
   const list = k === 'g' ? PAGE_G : PAGE_S, on = bgMode() === k, cur = on ? bgPickOf(k) : null;
@@ -3219,13 +3224,13 @@ function viewSet(sub) {
   setShell('설정', `${sgrp(`<button class="srw acc" data-go="#/set/account"><span class="av"${avStyle()}></span><span class="t"><b>${esc(me.name || '나')}</b><small>${u ? esc(u.email || '') : '로그인 전'}</small></span>${u ? `<span class="v">${ic('next')}</span>` : '<span class="lbtn" data-a="login">로그인</span>'}</button>`)}
     ${sgrp(srow('chart', '내 기록', S.cards().length ? `카드 ${S.cards().length}` : '', { go: '#/me' }))}
     <div class="sgp plan">${srow('star', '구독', '체험 중', { go: '#/set/plan' })}${srow('ticket', '이용권 코드 넣기', '', { a: 'code' })}</div>
-    ${sgrp(srow('img', '바탕', BG_MODES.find(x => x[0] === bgMode())[1] + (bgMode() !== 'd' ? ' · ' + esc(bgPickOf(bgMode()) || '랜덤') : ''), { go: '#/set/bg' }), srow('home', '홈 첫 화면', HOME_START.find(x => x[0] === S.pref('homeStart', 'last'))[1], { go: '#/set/home' }))}
+    ${sgrp(srow('img', '바탕', BG_MODES.find(x => x[0] === bgMode())[1] + (!'dw'.includes(bgMode()) ? ' · ' + esc(bgPickOf(bgMode()) || '랜덤') : ''), { go: '#/set/bg' }), srow('home', '홈 첫 화면', HOME_START.find(x => x[0] === S.pref('homeStart', 'last'))[1], { go: '#/set/home' }))}
     ${sgrp(srow('pin', '장소 자동', '', { tg: S.pref('autoPlace', false), a: 'place' }), srow('sign', '서명', esc(S.pref('sign', '')) || '없음', { go: '#/set/sign' }), srow('date', '날짜 표시', dateLine(S.today()), { go: '#/set/date' }), srow('week', '한 주의 시작', weekStart() ? '월요일' : '일요일', { go: '#/set/week' }))}
     ${sgrp(srow('backup', '백업', '', { go: '#/set/backup' }), srow('trash', '휴지통', n || '', { go: '#/set/trash' }))}
     ${sgrp(srow('bell', '알림', S.pref('remind', false) ? '켜짐' : '', { go: '#/set/alarm' }), srow('globe', '언어', LANGS[S.pref('lang', 'ko')], { go: '#/set/lang' }))}
     ${sgrp(srow('spark', '서비스 소개', '', { go: '#/set/about' }), srow('help', '도움말', '', { a: 'help' }), srow('bell', '공지사항 · 이벤트', '', { go: '#/set/news' }), srow('clock', '업데이트 소식', UPDATES[0][0], { go: '#/set/updates' }))}
     ${sgrp(srow('doc', '이용약관', '', { a: 'terms' }), srow('shield', '개인정보 처리방침', '', { a: 'privacy' }), srow('lic', '라이선스', '', { a: 'lic' }))}
-    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-12 44차</p>`, { up: '#/', tab: true });
+    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-12 45차</p>`, { up: '#/', tab: true });
   $('[data-a=place]').onclick = e => { const on = !S.pref('autoPlace', false); S.setPref('autoPlace', on); e.currentTarget.querySelector('.tg').classList.toggle('on', on); };
   $('[data-a=terms]').onclick = () => { location.href = '../legal/terms.ko.html'; };
   $('[data-a=privacy]').onclick = () => { location.href = '../legal/privacy.ko.html'; };
