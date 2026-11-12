@@ -34,16 +34,22 @@ const soon = () => toast('다음 단계에서 열려요');
 
 // 목록 시트 (10-23 UI 키트): 위에 흐린 제목, 묶음마다 둥근 카드, 지우기는 빨간색으로 따로. 바깥을 누르면 닫혀요
 let lockN = 0, lockY = 0;
-// 11-12 47차: 아이폰 홈 화면 앱에서 '바닥에 붙는' 틀이 화면 맨 아래보다 짧게 끝나는 일(시계 줄 높이만큼). 진짜 바닥까지 얼마나 모자란지 직접 재서 --vgap으로 내려요
-const vgap = () => {
-  const R = document.documentElement, st = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
-  let g = 0;
-  if (st && innerHeight > innerWidth) { const p = document.createElement('i'); p.style.cssText = 'position:fixed;left:0;bottom:0;width:1px;height:1px;pointer-events:none;visibility:hidden'; document.body.appendChild(p); g = Math.round(screen.height - p.getBoundingClientRect().bottom); p.remove(); }
-  g = g > 0 && g < 90 ? g : 0; R.dataset.vgap = g; R.classList.toggle('vg', g > 0);   // 48차 보강: 그 아래는 아이폰 자리(그릴 수 없음). 대신 홈 막대 여백을 빼서 버튼 · 메뉴가 앱 바닥에 붙어요
-};
-addEventListener('resize', () => requestAnimationFrame(vgap)); addEventListener('pageshow', vgap); document.addEventListener('visibilitychange', () => document.hidden || vgap());
-function lockBg() { vgap(); if (lockN++) return; { const R = document.documentElement; if (R.classList.contains('vg')) { R.dataset.bgw = R.style.backgroundColor; R.style.backgroundColor = '#1C1C1F'; } } lockY = scrollY; const b = document.body.style; b.position = 'fixed'; b.top = -lockY + 'px'; b.left = b.right = '0'; }
-function unlockBg() { if (!lockN || --lockN) return; { const R = document.documentElement; if (R.dataset.bgw != null) { if (R.style.backgroundColor === 'rgb(28, 28, 31)') R.style.backgroundColor = R.dataset.bgw; delete R.dataset.bgw; } /* 시트에서 바탕을 바꿨으면 새 색 그대로 */ } const b = document.body.style; b.position = b.top = b.left = b.right = ''; hdHold = performance.now() + 120; scrollTo(0, lockY); }
+// 11-12 50차: 화면 높이 확인 장치. 설정 맨 아래 버전 줄을 누르면 켜지고 꺼져요 (위에 작은 숫자 상자)
+let diagT = 0;
+const diagOn = () => { try { return localStorage.getItem('dz.diag') === '1'; } catch { return false; } };
+function diagDraw() {
+  let box = document.getElementById('dg');
+  if (!diagOn()) { box?.remove(); clearInterval(diagT); diagT = 0; return; }
+  if (!box) { box = document.createElement('div'); box.id = 'dg'; box.style.cssText = 'position:fixed;left:8px;top:calc(env(safe-area-inset-top,0px) + 4px);z-index:99999;background:rgba(0,0,0,.8);color:#fff;font:500 13px/1.35 system-ui;padding:6px 8px;border-radius:8px;pointer-events:none;white-space:pre'; document.documentElement.appendChild(box); }
+  const mk = css => { const p = document.createElement('i'); p.style.cssText = 'position:fixed;left:0;top:0;width:1px;visibility:hidden;pointer-events:none;' + css; document.documentElement.appendChild(p); const r = p.getBoundingClientRect(), c = getComputedStyle(p), cs = { paddingTop: c.paddingTop, paddingBottom: c.paddingBottom }; p.remove(); return [r, cs]; };
+  const [fx] = mk('top:auto;bottom:0;height:1px'), [lv] = mk('height:100lvh'), [dv] = mk('height:100dvh'), [sv] = mk('height:100svh'), [, sb] = mk('height:0;padding-bottom:env(safe-area-inset-bottom,0px);padding-top:env(safe-area-inset-top,0px)');
+  const vv = window.visualViewport, sh = $('.sheet-bg .sheet'), tv = $('.tiv'), nv = $('.nav');
+  const r = x => x ? Math.round(x.getBoundingClientRect().bottom) : '-';
+  box.textContent = `scr ${screen.height} · iH ${innerHeight} · cH ${document.documentElement.clientHeight}\nvv ${vv ? Math.round(vv.height) + '+' + Math.round(vv.offsetTop) : '-'} · fix바닥 ${Math.round(fx.bottom)}\nlvh ${Math.round(lv.height)} dvh ${Math.round(dv.height)} svh ${Math.round(sv.height)}\n안전 위 ${sb.paddingTop} 아래 ${sb.paddingBottom}\n시트 ${r(sh)} · 템플릿 ${r(tv)} · 메뉴 ${r(nv)} · body ${document.body.style.position || '-'}`;
+  if (!diagT) diagT = setInterval(diagDraw, 400);
+}
+function lockBg() { if (lockN++) return; lockY = scrollY; const b = document.body.style; b.position = 'fixed'; b.top = -lockY + 'px'; b.left = b.right = '0'; }
+function unlockBg() { if (!lockN || --lockN) return; const b = document.body.style; b.position = b.top = b.left = b.right = ''; hdHold = performance.now() + 120; scrollTo(0, lockY); }
 let sheetBack = null;   // 11-12: 목록 시트에서 연 다음 시트가 돌아갈 곳
 function sheet(head, groups0) {
   const mk = typeof groups0 === 'function' ? groups0 : () => groups0, groups = mk();   // 함수로 주면 돌아올 때 새 값(메모 수 등)으로 다시 그려요
@@ -106,7 +112,7 @@ function fmtsFor(r, a) {
 }
 let cleanup = null, curHash = null, lastHash = null;   // 뒤로 = 바로 전 화면 (책 → 책장 · 달력)
 function route() {
-  vgap();
+  if (diagOn()) setTimeout(diagDraw, 50);
   cleanup?.(); cleanup = null;
   if (lockN) { lockN = 0; const bs = document.body.style; bs.position = bs.top = bs.left = bs.right = ''; }   // 시트가 열린 채 화면이 바뀌면 고정을 풀어요
   const [r, a] = location.hash.replace(/^#\/?/, '').split('/');
@@ -3252,7 +3258,8 @@ function viewSet(sub) {
     ${sgrp(srow('bell', '알림', S.pref('remind', false) ? '켜짐' : '', { go: '#/set/alarm' }), srow('globe', '언어', LANGS[S.pref('lang', 'ko')], { go: '#/set/lang' }))}
     ${sgrp(srow('spark', '서비스 소개', '', { go: '#/set/about' }), srow('help', '도움말', '', { a: 'help' }), srow('bell', '공지사항 · 이벤트', '', { go: '#/set/news' }), srow('clock', '업데이트 소식', UPDATES[0][0], { go: '#/set/updates' }))}
     ${sgrp(srow('doc', '이용약관', '', { a: 'terms' }), srow('shield', '개인정보 처리방침', '', { a: 'privacy' }), srow('lic', '라이선스', '', { a: 'lic' }))}
-    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-12 49차${+document.documentElement.dataset.vgap ? ' · ' + document.documentElement.dataset.vgap : ''}</p>`, { up: '#/', tab: true });
+    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver" data-a="diag">dayzine 1.0.0 · 테스트 · 11-12 50차</p>`, { up: '#/', tab: true });
+  $('[data-a=diag]').onclick = () => { try { localStorage.setItem('dz.diag', diagOn() ? '0' : '1'); } catch {} diagDraw(); };
   $('[data-a=place]').onclick = e => { const on = !S.pref('autoPlace', false); S.setPref('autoPlace', on); e.currentTarget.querySelector('.tg').classList.toggle('on', on); };
   $('[data-a=terms]').onclick = () => { location.href = '../legal/terms.ko.html'; };
   $('[data-a=privacy]').onclick = () => { location.href = '../legal/privacy.ko.html'; };
