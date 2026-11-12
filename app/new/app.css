@@ -1980,3 +1980,5 @@ html:not(.wmode) body { min-height: calc(100% + 1px); }
 .mev2 .mrk2 .mbr u { background: linear-gradient(90deg, var(--h1), var(--h2)); }
 /* 64차 (11-12): 큰 제목(쓰기 · 검색 · 책갈피 · 설정) = 24px 가운데 */
 .shtop:not(.cpn) > .tl:not(:has(button)) h1, .setv.stab .stop2 h2 { font-size: var(--fs-l); }
+/* 65차 (11-12): 제목 ~ 첫 내용 = 16px (쓰기 · 검색 · 책갈피 · 설정 같게) */
+.srch.ttl > .shtop, .mkv > .shtop { padding-bottom: 16px; }
