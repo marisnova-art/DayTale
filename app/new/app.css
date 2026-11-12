@@ -1793,7 +1793,7 @@ html.hd .calv .cpn .ctop, html.hd .calv .cpn .crow { opacity: 0; }
    글쓰기 화면 밖에서는 페이지가 늘 1px이라도 스크롤되게 해서 그 상태를 피해요 */
 html:not(.wmode) body { min-height: calc(100% + 1px); }
 /* 51차 (11-12): 설정 첫 화면 제목 = 쓰기 · 책갈피처럼 왼쪽 위 큰 글씨 (안쪽 화면은 ← · 가운데 제목 그대로) */
-.setv.stab .stop2 { justify-content: flex-start; padding-bottom: 24px; }
+.setv.stab .stop2 { justify-content: flex-start; padding-bottom: 4px; }   /* 55차: 제목 ~ 첫 박스 16px = 쓰기와 같게 */
 .setv.stab .stop2 > .sp0:first-child { display: none; }
 .setv.stab .stop2 h2 { position: static; text-align: left; font-size: var(--fs-xl); line-height: 40px; letter-spacing: -.02em; pointer-events: auto; flex: 1; }
 /* 52차: 템플릿 상세 틀이 아이폰에서 짧게 끝날 때 = 버튼을 틀 바닥 8px 위로 (홈 막대는 틀 밖 아이폰 자리에 있어요) */
