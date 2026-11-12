@@ -1867,7 +1867,7 @@ html:not(.wmode) body { min-height: calc(100% + 1px); }
 .mev2 .mds .pile { height: 76px; width: 100%; display: flex; flex-wrap: wrap-reverse; align-content: flex-start; justify-content: center; gap: 3px; padding: 0 2px; }
 .mev2 .mds .pile i { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,.62); opacity: 0; animation: mdon .3s ease-out forwards; }
 @keyframes mdon { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: none; } }
-.mev2 .mds button.on .pile i { background: #FF7A45; }
+.mev2 .mds button.on .pile i { background: var(--h2); }
 .mev2 .mds b { font-weight: var(--fw); font-size: var(--fs-s); line-height: 16px; }
 .mev2 .mds span { font-size: var(--fs-s); color: var(--mut); line-height: 16px; }
 .mev2 .mds button.on b, .mev2 .mds button.on span { color: #fff; }
@@ -1883,9 +1883,9 @@ html:not(.wmode) body { min-height: calc(100% + 1px); }
 .mev2 .mlw { position: relative; touch-action: pan-y; }
 .mev2 .mln2 { display: block; width: 100%; height: 120px; overflow: visible; }
 .mev2 .mln2 line { stroke: rgba(255,255,255,.18); stroke-width: 3; stroke-linecap: round; vector-effect: non-scaling-stroke; }
-.mev2 .mln2 line.on { stroke: rgba(255,122,69,.55); }
+.mev2 .mln2 line.on { stroke: var(--h2); }
 .mev2 .mln2 .cv { fill: none; stroke: #fff; stroke-width: 2; vector-effect: non-scaling-stroke; }
-.mev2 .mlk { position: absolute; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: #FF7A45; box-shadow: 0 0 0 3px var(--srf); }
+.mev2 .mlk { position: absolute; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: var(--h2); box-shadow: 0 0 0 3px var(--srf); }
 .mev2 .mlk em { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); font-style: normal; font-size: var(--fs-s); white-space: nowrap; background: #fff; color: #141416; border-radius: 999px; padding: 1px 8px; }
 .mev2 .mpx.abs { margin-top: -16px; }
 .mev2 .mcb { position: relative; padding-top: 26px; }
@@ -1897,12 +1897,12 @@ html:not(.wmode) body { min-height: calc(100% + 1px); }
 .mev2 .mrk2 li { display: grid; grid-template-columns: 28px 1fr 72px 48px; align-items: center; gap: 8px; height: 44px; border-bottom: 1px solid rgba(255,255,255,.06); }
 .mev2 .mrk2 li:last-child { border-bottom: 0; }
 .mev2 .mrk2 b { font-size: var(--fs-m); font-weight: var(--fw); color: var(--mut); }
-.mev2 .mrk2 li.hk b { color: #FF7A45; }
+.mev2 .mrk2 li.hk b { color: var(--h2); }
 .mev2 .mrk2 span { font-size: var(--fs-m); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mev2 .mrk2 em { font-style: normal; font-size: var(--fs-s); color: var(--mut); text-align: right; }
 .mev2 .msk { width: 72px; height: 24px; overflow: visible; }
 .mev2 .msk polyline { fill: none; stroke: rgba(255,255,255,.45); stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
-.mev2 .mrk2 li.hk .msk polyline { stroke: #FF7A45; }
+.mev2 .mrk2 li.hk .msk polyline { stroke: var(--h2); }
 .mev2 .mpb { display: grid; grid-template-columns: repeat(5, 1fr); }
 .mev2 .mpb.w7 { grid-template-columns: repeat(7, 1fr); }
 .mev2 .mpb > div { display: grid; justify-items: center; gap: 6px; }
@@ -1913,7 +1913,7 @@ html:not(.wmode) body { min-height: calc(100% + 1px); }
 .mev2 .mpb .hk b { color: #fff; }
 /* 61차 (11-12): 내 기록 그래프 고침 + 모션 (화면에 들어올 때 자라고, 하이라이트는 다 자란 뒤 물들어요) */
 .mev2 .ms2:not(.in) .mbd *, .mev2 .ms2:not(.in) .mbd { animation-play-state: paused !important; }
-.mev2 .mbd u { position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(to top, #6F7BF7, #FF7A45); opacity: 0; animation: mfade .45s ease-out forwards; }
+.mev2 .mbd u { position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(to top, var(--h1), var(--h2)); opacity: 0; animation: mfade .45s ease-out forwards; }
 .mev2 .mbd em { animation: mup .35s ease-out both; }
 @keyframes mfade { to { opacity: 1; } }
 @keyframes mup { from { opacity: 0; transform: translateY(6px); } }
@@ -1937,12 +1937,12 @@ html:not(.wmode) body { min-height: calc(100% + 1px); }
 .mev2 .mlg .col i { flex: 1; max-width: 5px; min-width: 1px; border-radius: 999px; background: rgba(255,255,255,.2); transform-origin: bottom; animation: pgrow .45s cubic-bezier(.2,.8,.2,1) both; }
 .mev2 .mlg .cols.one .col i { max-width: 6px; }
 .mev2 .mlg .col.on i { animation-name: pgrow, mhot; animation-duration: .45s, .4s; animation-fill-mode: both, forwards; animation-timing-function: cubic-bezier(.2,.8,.2,1), ease-out; }
-@keyframes mhot { to { background: #FF7A45; } }
+@keyframes mhot { to { background: var(--h2); } }
 .mev2 .mcv { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; animation: mdraw .7s ease-out both; }
 .mev2 .mcv path { fill: none; stroke: #fff; stroke-width: 2; vector-effect: non-scaling-stroke; }
 @keyframes mdraw { from { clip-path: inset(-10px 100% -10px 0); } to { clip-path: inset(-10px 0 -10px 0); } }
 .mev2 .mlg .mlk { animation: mpop .35s ease-out both; }
-.mev2 .mav { position: absolute; left: 0; right: 0; margin: 0; border: 0; border-top: 2px dashed #FF7A45; transform-origin: left; animation: mline .5s ease-out both; }
+.mev2 .mav { position: absolute; left: 0; right: 0; margin: 0; border: 0; border-top: 2px dashed var(--h2); transform-origin: left; animation: mline .5s ease-out both; }
 @keyframes mline { from { transform: scaleX(0); } }
 .mev2 .mlk2 { position: absolute; right: 0; transform: translateY(-50%); font-weight: var(--fw); font-size: var(--fs-s); background: #fff; color: #141416; border-radius: 999px; padding: 1px 8px; animation: mup .35s ease-out both; }
 .mev2 .mpx.two { grid-template-columns: 1fr 1fr; }
@@ -1951,3 +1951,25 @@ html:not(.wmode) body { min-height: calc(100% + 1px); }
 .mev2 .mlg { width: 100%; }
 .mev2 .mlg .cols { grid-template-columns: repeat(7, minmax(0, 1fr)); }
 .mev2 .mlg .cols.one { grid-template-columns: minmax(0, 1fr); }
+/* 62차 (11-12): 때 = 도넛, 하이라이트 색을 모두 같은 보라→산호 그라데이션으로 */
+.mev2 .mlg .col i { position: relative; }
+.mev2 .mlg .col.on i { animation-name: pgrow; animation-duration: .45s; animation-fill-mode: both; }
+.mev2 .mck .ring { transform-origin: 70px 70px; animation: mpop .5s cubic-bezier(.2,.8,.2,1) both; }
+.mev2 .mck .hot { opacity: 0; animation: mfade .45s ease-out .55s forwards; }
+.mev2 .mck li i { position: relative; background: rgba(255,255,255,.3); }
+.mev2 .mck li i.z { background: rgba(255,255,255,.12); }
+.mev2 .mck li u { animation-delay: .55s; }
+.mev2 .mrk2 li.hk b { background: linear-gradient(90deg, var(--h1), var(--h2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.mev2 .mrk2 li.hk .msk polyline { stroke: var(--g); }
+.mev2 .mlk { background: linear-gradient(45deg, var(--h1), var(--h2)); }
+.mev2 .mav { border-top: 0; height: 2px; background: linear-gradient(90deg, var(--h1), var(--h2)); -webkit-mask: repeating-linear-gradient(90deg, #000 0 6px, transparent 6px 10px); mask: repeating-linear-gradient(90deg, #000 0 6px, transparent 6px 10px); }
+
+/* 62차: 덩어리마다 하이라이트 색이 달라요 (아래 → 위 그라데이션) */
+.mev2 .ms2[data-k=days] { --h1: #2EC4B6; --h2: #8EF5D0; }
+.mev2 .ms2[data-k=n] { --h1: #3D6BFF; --h2: #7FD3FF; }
+.mev2 .ms2[data-k=chars] { --h1: #7B5CF5; --h2: #D58CF0; }
+.mev2 .ms2[data-k=kind] { --h1: #E0457F; --h2: #FF9EC4; }
+.mev2 .ms2[data-k=col] { --h1: #FFFFFF; --h2: #FFFFFF; }
+.mev2 .ms2[data-k=place] { --h1: #FF5A36; --h2: #FFA866; }
+.mev2 .ms2[data-k=when] { --h1: #F0A020; --h2: #FFE27A; }
+.mev2 .ms2[data-k=wd] { --h1: #2FA866; --h2: #C2F27C; }
