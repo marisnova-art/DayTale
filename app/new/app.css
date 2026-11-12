@@ -2014,3 +2014,5 @@ html:not(.wmode) body { min-height: calc(100% + 1px); }
 .mev2 .mlk2 { transform: translateY(50%); }
 .mev2 .mav.hi { opacity: .45; }
 .mev2 .mlk2.hi { background: rgba(255,255,255,.16); color: #fff; }
+/* 74차 (11-12): 설정 화면에서는 위 상태 알림도 아래 메뉴처럼 늘 같은 어두운 색 (배경색 따라가지 않게) */
+body:has(.setv) .pill { --navbg: rgba(18,18,20,.5); background: rgba(18,18,20,.5); color: #fff; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
