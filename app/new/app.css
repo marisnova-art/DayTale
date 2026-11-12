@@ -1788,7 +1788,5 @@ html.hd .calv .cpn .ctop, html.hd .calv .cpn .crow { opacity: 0; }
 .setv ~ .nav { --navbg: rgba(18,18,20,.5); }
 .nav .nfade { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 0; }
 
-/* 47차 (11-12): 아이폰 홈 화면 앱에서 바닥 틀이 짧게 끝날 때(--vgap = 모자란 만큼, 보통 0) 진짜 바닥까지 */
-.sheet-bg, .tiv { bottom: calc(-1 * var(--vgap, 0px)); }
-.sv { bottom: calc(-1 * var(--vgap, 0px)); }
-.nav { bottom: calc(6px + var(--safe-b) - var(--vgap, 0px)); }
+/* 49차 (11-12): 아이폰 홈 화면 앱이 바닥 47pt를 앱 밖(아이폰 자리)으로 잡을 때(html.vg): 홈 막대는 그 자리 안에 있으니 우리 쪽 홈 막대 여백은 0 */
+html.vg { --safe-b: 0px; }

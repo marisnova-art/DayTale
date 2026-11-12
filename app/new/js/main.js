@@ -39,11 +39,11 @@ const vgap = () => {
   const R = document.documentElement, st = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
   let g = 0;
   if (st && innerHeight > innerWidth) { const p = document.createElement('i'); p.style.cssText = 'position:fixed;left:0;bottom:0;width:1px;height:1px;pointer-events:none;visibility:hidden'; document.body.appendChild(p); g = Math.round(screen.height - p.getBoundingClientRect().bottom); p.remove(); }
-  g = g > 0 && g < 90 ? g : 0; R.style.setProperty('--vgap', g + 'px'); R.dataset.vgap = g;
+  g = g > 0 && g < 90 ? g : 0; R.dataset.vgap = g; R.classList.toggle('vg', g > 0);   // 48차 보강: 그 아래는 아이폰 자리(그릴 수 없음). 대신 홈 막대 여백을 빼서 버튼 · 메뉴가 앱 바닥에 붙어요
 };
 addEventListener('resize', () => requestAnimationFrame(vgap)); addEventListener('pageshow', vgap); document.addEventListener('visibilitychange', () => document.hidden || vgap());
-function lockBg() { vgap(); if (lockN++) return; lockY = scrollY; const b = document.body.style; b.position = 'fixed'; b.top = -lockY + 'px'; b.left = b.right = '0'; }
-function unlockBg() { if (!lockN || --lockN) return; const b = document.body.style; b.position = b.top = b.left = b.right = ''; hdHold = performance.now() + 120; scrollTo(0, lockY); }
+function lockBg() { vgap(); if (lockN++) return; { const R = document.documentElement; if (R.classList.contains('vg')) { R.dataset.bgw = R.style.backgroundColor; R.style.backgroundColor = '#1C1C1F'; } } lockY = scrollY; const b = document.body.style; b.position = 'fixed'; b.top = -lockY + 'px'; b.left = b.right = '0'; }
+function unlockBg() { if (!lockN || --lockN) return; { const R = document.documentElement; if (R.dataset.bgw != null) { if (R.style.backgroundColor === 'rgb(28, 28, 31)') R.style.backgroundColor = R.dataset.bgw; delete R.dataset.bgw; } /* 시트에서 바탕을 바꿨으면 새 색 그대로 */ } const b = document.body.style; b.position = b.top = b.left = b.right = ''; hdHold = performance.now() + 120; scrollTo(0, lockY); }
 let sheetBack = null;   // 11-12: 목록 시트에서 연 다음 시트가 돌아갈 곳
 function sheet(head, groups0) {
   const mk = typeof groups0 === 'function' ? groups0 : () => groups0, groups = mk();   // 함수로 주면 돌아올 때 새 값(메모 수 등)으로 다시 그려요
@@ -3252,7 +3252,7 @@ function viewSet(sub) {
     ${sgrp(srow('bell', '알림', S.pref('remind', false) ? '켜짐' : '', { go: '#/set/alarm' }), srow('globe', '언어', LANGS[S.pref('lang', 'ko')], { go: '#/set/lang' }))}
     ${sgrp(srow('spark', '서비스 소개', '', { go: '#/set/about' }), srow('help', '도움말', '', { a: 'help' }), srow('bell', '공지사항 · 이벤트', '', { go: '#/set/news' }), srow('clock', '업데이트 소식', UPDATES[0][0], { go: '#/set/updates' }))}
     ${sgrp(srow('doc', '이용약관', '', { a: 'terms' }), srow('shield', '개인정보 처리방침', '', { a: 'privacy' }), srow('lic', '라이선스', '', { a: 'lic' }))}
-    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-12 48차${+document.documentElement.dataset.vgap ? ' · ' + document.documentElement.dataset.vgap : ''}</p>`, { up: '#/', tab: true });
+    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-12 49차${+document.documentElement.dataset.vgap ? ' · ' + document.documentElement.dataset.vgap : ''}</p>`, { up: '#/', tab: true });
   $('[data-a=place]').onclick = e => { const on = !S.pref('autoPlace', false); S.setPref('autoPlace', on); e.currentTarget.querySelector('.tg').classList.toggle('on', on); };
   $('[data-a=terms]').onclick = () => { location.href = '../legal/terms.ko.html'; };
   $('[data-a=privacy]').onclick = () => { location.href = '../legal/privacy.ko.html'; };
