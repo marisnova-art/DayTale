@@ -150,6 +150,17 @@ function nav(on) {
     <button class="nb${T(on === 'mark')}" data-n="mark" aria-label="책갈피">${ic('bookmark')}<span class="nl">책갈피</span></button>
     <button class="nb${T(on === 'me')}" data-n="me" aria-label="프로필"><span class="av"${avStyle()}></span><span class="nl">프로필</span></button></nav>`;   // 11-12: 인스타처럼 프로필은 맨 오른쪽 탭
 }
+let navWas = null;   // 바로 전 화면의 메뉴 바탕 (바뀌면 천천히 넘어가요)
+function navFade() {
+  requestAnimationFrame(() => {   // 화면 색(무드)이 칠해진 뒤에 재요
+    const n = $('.nav'); if (!n) return;
+    const cs = getComputedStyle(n), now = cs.backgroundImage + '|' + cs.backgroundColor, was = navWas; navWas = now;
+    if (!was || was === now) return;
+    const [bi, bc] = was.split('|'), f = document.createElement('i'); f.className = 'nfade';
+    f.style.backgroundImage = bi === 'none' ? '' : bi; f.style.backgroundColor = bc; n.prepend(f);
+    f.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 480, easing: 'ease' }).onfinish = () => f.remove();
+  });
+}
 function bindNav() {
   const home = () => ($('main.feed:not(.mkf)') || $('.calv.hm')) ? window.scrollTo({ top: 0, behavior: 'smooth' }) : go('#/');   // 검색 결과 칸도 .feed 모양을 써서 main만
   const find = () => $('.srch') ? ($('.srch .fld input').focus(), window.scrollTo({ top: 0, behavior: 'smooth' })) : (kbNow(), go('#/search'));
@@ -158,7 +169,7 @@ function bindNav() {
   const mark = top('.mkv', '#/mark'), write = top('.tmv', '#/pick'), me = top('.setv.stab', '#/set');
   $$('.nb').forEach(b => b.onclick = () => ({ home, search: find, write, mark, me }[b.dataset.n] || soon)());
   $$('[data-a=me]').forEach(b => b.onclick = () => go('#/set'));   // 11-11: 프로필을 누르면 바로 설정 (내 기록은 설정 안으로)
-  requestAnimationFrame(placeCap);
+  requestAnimationFrame(placeCap); navFade();
 }
 // 62 (11-06): 켜진 탭 뒤 캡슐. 화면이 바뀌어도 앞 탭 자리에서 출발해 새 탭으로 미끄러져요
 // 65 (11-06): 0.8초. 브라우저 애니메이션으로 돌려서 무거운 화면이 그려지는 동안에도 끊기지 않고, 메뉴가 새로 그려져도(홈은 한 번 더) 그 자리부터 이어 가요
@@ -211,21 +222,23 @@ function placeCap() {
 }
 addEventListener('resize', () => { capA = null; placeCap(); });
 // 하단 메뉴 (61, 11-06): 아래로 내리면 아래로 사라지고, 조금만 올려도 바로 다시 (맨 위 · 맨 아래에서는 늘 보여요). 크기는 그대로
-{ let y0 = 0;
+const REV = 80, FLICK = 28;   // 11-12: 인스타처럼. 위로 모아 80px, 또는 한 번에 28px 넘게(휙)
+const upper = () => { let acc = 0; return dy => { if (dy > 0) { acc = 0; return false; } acc -= dy; return acc > REV || -dy > FLICK; }; };
+{ let y0 = 0; const up = upper();
   addEventListener('scroll', () => {
     const n = $('.nav'), y = scrollY; if (!n) return;
     if (lockN || performance.now() < hdHold) { y0 = lockN ? lockY : y; return; }   // 시트가 열린 동안은 그대로
     const end = y + innerHeight >= document.documentElement.scrollHeight - 40;
-    if (y <= 60 || end) n.classList.remove('out'); else if (y - y0 > 6) n.classList.add('out'); else if (y0 - y > 6) n.classList.remove('out');
+    if (y <= 60 || end) n.classList.remove('out'); else if (y - y0 > 6) { n.classList.add('out'); up(1); } else if (up(y - y0)) n.classList.remove('out');
     y0 = y;
   }, { passive: true }); }
 // 2 (11-11): 홈처럼 모든 화면에서 내리면 위 머리(쓰기 검색 · 칩, 검색 칸, 캘린더 판, 책갈피 · 설정 위 줄)가 숨고, 올리면 바로 나와요
 let hdHold = 0;   // 화면이 스스로 스크롤할 때(캘린더 날짜 누르기)는 그대로
-{ let y0 = 0;
+{ let y0 = 0; const up = upper();
   addEventListener('scroll', () => {
     const y = scrollY, R = document.documentElement;
     if (lockN || performance.now() < hdHold) { y0 = lockN ? lockY : y; return; }   // 11-12: 시트가 열려 뒤 화면을 고정한 동안은 그대로 (책갈피 머리가 다시 나오던 것)
-    if (y <= 60) R.classList.remove('hd'); else if (y - y0 > 6) R.classList.add('hd'); else if (y0 - y > 6) R.classList.remove('hd');
+    if (y <= 60) R.classList.remove('hd'); else if (y - y0 > 6) { R.classList.add('hd'); up(1); } else if (up(y - y0)) R.classList.remove('hd');
     y0 = y;
   }, { passive: true }); }
 // 아이폰은 누른 그 순간에만 키보드를 올려 줘요: 화면이 바뀌기 전에 빈 칸에 먼저 커서를 두고, 새 화면의 검색 칸이 이어받아요
@@ -294,12 +307,12 @@ function viewFeed(fresh, quiet) {
     cur = best; if (cur) glow(cur.dataset.tone);
   };
   // 로고 줄: 내리면 숨고, 올리면 바로 다시 (맨 위에선 늘 보여요)
-  const head = $('.ftop'); let lastY = scrollY;
+  const head = $('.ftop'), hup = upper(); let lastY = scrollY;
   const onHead = () => {
     const y = scrollY, dy = y - lastY; lastY = y;
     if (focus) return;
     head.classList.toggle('stuck', y > 8);
-    if (y <= 8) head.classList.remove('up'); else if (dy > 6) head.classList.add('up'); else if (dy < -2) head.classList.remove('up');
+    if (y <= 8) head.classList.remove('up'); else if (dy > 6) { head.classList.add('up'); hup(1); } else if (hup(dy)) head.classList.remove('up');
   };
   let idle = 0; const wake = () => { amb.classList.remove('idle'); clearTimeout(idle); idle = setTimeout(() => amb.classList.add('idle'), 4000); };   // 손을 멈추고 4초 뒤 바탕 빛도 멈춰요
   const onScroll = () => { onHead(); wake(); if (!raf) raf = requestAnimationFrame(pickMid); };
@@ -1181,7 +1194,7 @@ function liveMid(items, { video = true, art = true, home = false, hold = () => f
   let anim = 0, n = 0, best = null, pair = [], pi = 0, since = 0; const t0 = performance.now(), still = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const covered = () => overlay && (runv || focus || document.querySelector('.scv, .brd'));
   const set = b => { if (b === best) return; best?.classList.remove('play'); best = b; best?.classList.add('play'); since = Date.now(); };
-  const vidOf = b => { const c = b?._card, cv = c && $$('canvas.bgv', b).find(x => { const r = x.getBoundingClientRect(); return r.width && r.bottom > 0 && r.top < innerHeight; }); if (!cv) return null; const i = +(cv.closest('.pg')?.dataset.i || 0), bg = pageBg(c, i); return bg?.vd ? { cv, b: bg, fid: fidOf(c), onCover: cov => fixCover(c, i, bg, cov) } : null; };
+  const vidOf = b => { const c = b?._card, cv = c && ($('.view', b) ? $$('.view canvas.bgv', b) : $$('canvas.bgv', b)).find(x => { const r = x.getBoundingClientRect(), w = (x.closest('.view') || b).getBoundingClientRect(); return r.width && r.bottom > 0 && r.top < innerHeight && r.left > w.left - r.width / 2 && r.left < w.left + r.width / 2; }); /* 11-12: 홈과 같게 = 카드 안(.view) 지금 보이는 장의 영상만 (책갈피 영상이 안 돌던 것) */ if (!cv) return null; const i = +(cv.closest('.pg')?.dataset.i || 0), bg = pageBg(c, i); return bg?.vd ? { cv, b: bg, fid: fidOf(c), onCover: cov => fixCover(c, i, bg, cov) } : null; };
   const lenMs = b => { const v = b && b._card && hasVideo(b._card) && vidOf(b); return v ? V.lenOf(v.b) * 1000 + 300 : MOT; };
   const pick = () => {
     const list = items(); liveThumb(list); list.forEach(markKind);
@@ -1542,9 +1555,9 @@ function viewCal(month) {
     for (let d = start; d < end; d = addDays(d, 1)) h += d.startsWith(m) ? cell(d) : '<span></span>';
     return `<div class="mo1" data-m="${m}"><div class="mg2">${h}</div></div>`;
   };
-  app.innerHTML = `${MOOD}<div class="shv calv hm mood"><i class="stb"></i>
-    <header class="ftop ctop"><button class="logo" data-a="top" aria-label="맨 위로">${LOGO}</button><div class="rt">${viewBtn('cal')}<button class="cb" data-a="bell" aria-label="알림">${ic('bell')}</button></div></header>
+  app.innerHTML = `${MOOD}<div class="shv calv hm mood">
     <header class="cpn" style="background-image:${panelCss()}">
+      <div class="ftop ctop"><button class="logo" data-a="top" aria-label="맨 위로">${LOGO}</button><div class="rt">${viewBtn('cal')}<button class="cb" data-a="bell" aria-label="알림">${ic('bell')}</button></div></div>
       <div class="crow"><button class="mon" data-a="ym"><b></b><span><em></em>${ic('back')}</span></button></div>
       <div class="wks">${weeks.map(w => `<div class="wk" data-w="${w}">${Array.from({ length: WK }, (_, i) => cell(addDays(w, i), 1)).join('')}</div>`).join('')}</div>
       <div class="mow"><div class="mwd">${Array.from({ length: 7 }, (_, i) => `<i>${WD[(ws + i) % 7]}</i>`).join('')}</div><div class="mos">${months.map(monthGrid).join('')}</div></div>
@@ -3230,7 +3243,7 @@ function viewSet(sub) {
     ${sgrp(srow('bell', '알림', S.pref('remind', false) ? '켜짐' : '', { go: '#/set/alarm' }), srow('globe', '언어', LANGS[S.pref('lang', 'ko')], { go: '#/set/lang' }))}
     ${sgrp(srow('spark', '서비스 소개', '', { go: '#/set/about' }), srow('help', '도움말', '', { a: 'help' }), srow('bell', '공지사항 · 이벤트', '', { go: '#/set/news' }), srow('clock', '업데이트 소식', UPDATES[0][0], { go: '#/set/updates' }))}
     ${sgrp(srow('doc', '이용약관', '', { a: 'terms' }), srow('shield', '개인정보 처리방침', '', { a: 'privacy' }), srow('lic', '라이선스', '', { a: 'lic' }))}
-    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-12 45차</p>`, { up: '#/', tab: true });
+    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-12 46차</p>`, { up: '#/', tab: true });
   $('[data-a=place]').onclick = e => { const on = !S.pref('autoPlace', false); S.setPref('autoPlace', on); e.currentTarget.querySelector('.tg').classList.toggle('on', on); };
   $('[data-a=terms]').onclick = () => { location.href = '../legal/terms.ko.html'; };
   $('[data-a=privacy]').onclick = () => { location.href = '../legal/privacy.ko.html'; };
