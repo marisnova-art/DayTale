@@ -81,7 +81,7 @@ export function paint(amb) {
     else { amb.style.setProperty('--b1', lift(base, .2)); amb.style.setProperty('--b2', lift(base, .1)); amb.style.setProperty('--b3', lift(base, .26)); }
   }
   document.documentElement.style.backgroundColor = top;   // 아이폰 시계 줄도 바탕 위쪽 색으로
-  document.querySelector('meta[name=theme-color]')?.setAttribute('content', top);   // 11-11: 아이폰 위 가장자리 색도 같은 색
+  // 11-12 47차: theme-color는 #141416 고정 (바꾸면 아이폰 홈 화면 앱에서 화면이 시계 줄만큼 짧아지는 것 같아서 되돌려요)
   document.documentElement.style.setProperty('--navbg', navBg(m, x, lt));   // 하단 메뉴도 바탕 색을 따라가요
   { const base = m === 'g' ? x[2] : m === 's' ? x[1] : m === 'w' ? '#E4E4E8' : '#2a2a30', r = document.documentElement.style;   // 프로필 숫자 칸 · 그래프 박스 (11-04): 바탕 색 집안의 솔리드
     if (lt) { r.setProperty('--mtile', rgba(lift(base, .45), 1)); r.setProperty('--mbox', rgba(lift(base, .5), .6)); }

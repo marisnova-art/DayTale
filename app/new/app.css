@@ -1782,7 +1782,7 @@ html.wh #app .cpn { box-shadow: none; }
 .calv .cpn .mos { margin: 0 calc(-1 * var(--gut)); } .calv .cpn .mo1 { padding: 0 var(--gut); }
 .calv .cpn .grip { margin: 0 calc(-1 * var(--gut)); width: calc(100% + 2 * var(--gut)); }
 /* 내리면: 로고 줄 · 달 줄은 위로, 주 띠는 시계 줄보다 12px 아래에서 멈춰요 (판 색은 시계 줄 뒤까지) */
-html.hd .calv .cpn { transform: translateY(-106px); clip-path: none; }
+html.hd .calv .cpn { transform: translateY(-70px); clip-path: none; }   /* 47차: 아이폰 시계 줄 그늘(~84pt) 아래로 36px 더 */
 html.hd .calv .cpn .ctop, html.hd .calv .cpn .crow { opacity: 0; }
 /* 43 (11-12): 설정(늘 어두운 화면)의 아래 메뉴 = 다크 색 */
 .setv ~ .nav { --navbg: rgba(18,18,20,.5); }
