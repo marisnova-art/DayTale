@@ -21,6 +21,8 @@ import * as PC from './pc.js';
 const TPL = T;   // 함수 안에서 T를 다른 뜻(달 · 길이)으로 쓰는 곳용
 
 const app = document.getElementById('app');
+const HOME_START = [['last', '마지막에 본 보기'], ['1', '1열'], ['2', '2열'], ['cal', '캘린더']];
+{ const h = S.pref('homeStart', 'last'), put = (k, v) => S.pref(k) !== v && S.setPref(k, v); if (h === 'cal') put('homeCal', true); else if (h === '1' || h === '2') { put('homeCal', false); put('cols', +h); } }   // 11-12: 앱을 열 때만
 const stillBg = () => document.documentElement.classList.toggle('still', S.pref('bgMotion', true) === false); stillBg();
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -1646,7 +1648,7 @@ function panelSheet(html, cls = '') {
   const el = $('.sheet', bg), vv = window.visualViewport;
   const back = sheetBack; sheetBack = null;
   if (back && $('.sh', el)) { const b = document.createElement('button'); b.className = 'cb shb'; b.setAttribute('aria-label', '뒤로'); b.innerHTML = ic('back'); el.prepend(b); b.onclick = () => { close(); setTimeout(back, 120); };
-    requestAnimationFrame(() => { const nx = $('.sh', el)?.nextElementSibling; if (!nx) return; const t = nx.offsetTop - 12 - b.offsetHeight; b.style.top = Math.max(4, t) + 'px'; if (t < 4) nx.style.marginTop = (parseFloat(getComputedStyle(nx).marginTop) + 4 - t) + 'px'; }); }   // 공간이 모자라면 아래 상자를 조금 내려요
+    el.classList.add('hasb'); requestAnimationFrame(() => { const t = $('.sh', el); if (t) b.style.top = t.offsetTop + 'px'; }); }   // 자리만 맞춰요 (높이는 그대로)
   const fit = () => { if (!vv) return; bg.style.top = vv.offsetTop + 'px'; bg.style.height = vv.height + 'px'; bg.style.bottom = 'auto'; };
   vv?.addEventListener('resize', fit); vv?.addEventListener('scroll', fit);
   let shut = false;
@@ -3184,7 +3186,7 @@ function setBgPick(k) {
   const list = k === 'g' ? PAGE_G : PAGE_S, on = bgMode() === k, cur = on ? bgPickOf(k) : null;
   const sw = x => k === 'g' ? x[4] : x[2];   // 쓰기 화면 컬러칩과 같은 모양
   const opts = [['', '랜덤'], ...list.map(x => [x[0], x[0]])];
-  setShell(k === 'g' ? '그라데이션' : '솔리드', sgrp(...opts.map(([val, label], i) => srow('', `${i ? `<i class="bsw" style="background:${sw(list[i - 1])}"></i>` : `<i class="bsw rnd">${ic('shuf')}</i>`}${esc(label)}`, '', { ck: cur === val, a: 'v' }).replace('data-a="v"', `data-v="${esc(val)}"`))), { up: '#/set/bg', cls: 'sbg' });
+  setShell(k === 'g' ? '그라데이션' : '솔리드', sgrp(...opts.map(([val, label], i) => srow('', esc(label), '', { end: (i ? `<i class="bsw lg" style="background:${sw(list[i - 1])}"></i>` : '') + (cur === val ? `<span class="ck">${ic('check')}</span>` : ''), a: 'v' }).replace('data-a="v"', `data-v="${esc(val)}"`))), { up: '#/set/bg', cls: 'sbg' });
   $$('[data-v]').forEach(b => b.onclick = () => {
     const val = b.dataset.v, pk = { ...(S.pref('bgPick', {}) || {}) }; pk[k] = val;
     S.setPref('bgPick', pk); S.setPref('bgMode', k); resetMood();
@@ -3200,6 +3202,7 @@ function viewSet(sub) {
   if (sub === 'date') return setPick('날짜 표시', DATE_FMT.map(f => [f, dateLine(S.today(), f)]), S.pref('dateFmt', 'dot'), v => S.setPref('dateFmt', v));
   if (sub === 'bg') return setBg();
   if (sub === 'bgg' || sub === 'bgs') return setBgPick(sub.slice(2));
+  if (sub === 'home') return setPick('홈 첫 화면', HOME_START, S.pref('homeStart', 'last'), v => S.setPref('homeStart', v));
   if (sub === 'week') return setPick('한 주의 시작', [[0, '일요일'], [1, '월요일']], weekStart(), v => S.setPref('weekStart', v));
   if (sub === 'lang') return setPick('언어', Object.entries(LANGS), S.pref('lang', 'ko'), v => S.setPref('lang', v));
   if (sub === 'alarmtime') return setPick('알림 시간', TIMES, S.pref('remindAt', '21:00'), v => S.setPref('remindAt', v));
@@ -3215,13 +3218,13 @@ function viewSet(sub) {
   setShell('설정', `${sgrp(`<button class="srw acc" data-go="#/set/account"><span class="av"${avStyle()}></span><span class="t"><b>${esc(me.name || '나')}</b><small>${u ? esc(u.email || '') : '로그인 전'}</small></span>${u ? `<span class="v">${ic('next')}</span>` : '<span class="lbtn" data-a="login">로그인</span>'}</button>`)}
     ${sgrp(srow('chart', '내 기록', S.cards().length ? `카드 ${S.cards().length}` : '', { go: '#/me' }))}
     <div class="sgp plan">${srow('star', '구독', '체험 중', { go: '#/set/plan' })}${srow('ticket', '이용권 코드 넣기', '', { a: 'code' })}</div>
-    ${sgrp(srow('img', '바탕', BG_MODES.find(x => x[0] === bgMode())[1] + (bgMode() !== 'd' ? ' · ' + esc(bgPickOf(bgMode()) || '랜덤') : ''), { go: '#/set/bg' }))}
+    ${sgrp(srow('img', '바탕', BG_MODES.find(x => x[0] === bgMode())[1] + (bgMode() !== 'd' ? ' · ' + esc(bgPickOf(bgMode()) || '랜덤') : ''), { go: '#/set/bg' }), srow('home', '홈 첫 화면', HOME_START.find(x => x[0] === S.pref('homeStart', 'last'))[1], { go: '#/set/home' }))}
     ${sgrp(srow('pin', '장소 자동', '', { tg: S.pref('autoPlace', false), a: 'place' }), srow('sign', '서명', esc(S.pref('sign', '')) || '없음', { go: '#/set/sign' }), srow('date', '날짜 표시', dateLine(S.today()), { go: '#/set/date' }), srow('week', '한 주의 시작', weekStart() ? '월요일' : '일요일', { go: '#/set/week' }))}
     ${sgrp(srow('backup', '백업', '', { go: '#/set/backup' }), srow('trash', '휴지통', n || '', { go: '#/set/trash' }))}
     ${sgrp(srow('bell', '알림', S.pref('remind', false) ? '켜짐' : '', { go: '#/set/alarm' }), srow('globe', '언어', LANGS[S.pref('lang', 'ko')], { go: '#/set/lang' }))}
     ${sgrp(srow('spark', '서비스 소개', '', { go: '#/set/about' }), srow('help', '도움말', '', { a: 'help' }), srow('bell', '공지사항 · 이벤트', '', { go: '#/set/news' }), srow('clock', '업데이트 소식', UPDATES[0][0], { go: '#/set/updates' }))}
     ${sgrp(srow('doc', '이용약관', '', { a: 'terms' }), srow('shield', '개인정보 처리방침', '', { a: 'privacy' }), srow('lic', '라이선스', '', { a: 'lic' }))}
-    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-12 42차</p>`, { up: '#/', tab: true });
+    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-12 43차</p>`, { up: '#/', tab: true });
   $('[data-a=place]').onclick = e => { const on = !S.pref('autoPlace', false); S.setPref('autoPlace', on); e.currentTarget.querySelector('.tg').classList.toggle('on', on); };
   $('[data-a=terms]').onclick = () => { location.href = '../legal/terms.ko.html'; };
   $('[data-a=privacy]').onclick = () => { location.href = '../legal/privacy.ko.html'; };

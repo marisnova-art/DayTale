@@ -1726,3 +1726,13 @@ html.lite #app :is(.sl .it, .srch .sl .it, .srch .fgrp .fr, .srch .fgrp .fmore, 
 .amb.flat:not(.old) i.on { opacity: .24; }
 html.still .amb b { animation: none !important; }
 html.still .amb i { display: none; }
+
+/* 37 (11-12): ← 있는 시트 = 제목 줄을 ← 높이(36)로, ← 는 그 한가운데. 아래 상자와는 시트 간격 12 */
+.sheet.hasb .sh { height: 36px; line-height: 36px; margin-top: -8px; }
+.sheet.hasb .shb { top: 19px; }
+/* 38 (11-12): 바탕 고르기 = 이름 · 긴 칩 · ✓ */
+.sbg .srw { position: relative; }
+.sbg .srw .bsw.lg { margin: 0 34px 0 auto; width: min(160px, 42vw); height: 32px; }
+.sbg .srw .bsw.lg ~ .ck { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); }
+.sbg .srw .ck { margin-left: auto; }
+.sheet.hasb .sh { margin-bottom: 2px; }   /* 시트 간격 10 + 2 = 12 */
