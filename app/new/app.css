@@ -1812,3 +1812,51 @@ html:not(.wmode) body { min-height: calc(100% + 1px); }
 .mev2 .ms2 .mv { font-size: var(--fs-m); font-weight: var(--fw); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60%; }
 .mev2 .ms2 .hb2 { margin-top: 12px; }
 .mev2 .mend { text-align: center; margin: 24px 0 0; color: var(--mut); }
+/* 59차 시안: 덩어리마다 맞는 그래프 */
+.mev2 .ms2 .mbd { margin-top: 12px; }
+.mev2 .ms2 .mgw { margin-top: 0; }
+.mev2 .ms2 .ydot { grid-auto-rows: 11px; gap: 3px 2px; }
+.mev2 .mln { display: block; width: 100%; height: 110px; overflow: visible; }
+.mev2 .mln .bl { stroke: rgba(255,255,255,.12); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.mev2 .mln .ln { fill: none; stroke: #C86AD8; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.mev2 .mlp { position: relative; height: 0; }
+.mev2 .ms2 .mbd:has(.mln) { position: relative; }
+.mev2 .mlp { position: absolute; left: 0; right: 0; top: 0; height: 110px; touch-action: pan-y; }
+.mev2 .mlp button { position: absolute; top: 0; bottom: -4px; width: 40px; margin-left: -20px; }
+.mev2 .mlp button i { position: absolute; left: 50%; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%; background: #C86AD8; box-shadow: 0 0 0 2px var(--srf); }
+.mev2 .mlp button i.on { width: 10px; height: 10px; margin: -5px 0 0 -5px; background: #FF7A45; }
+.mev2 .mlp button em { position: absolute; left: 50%; transform: translate(-50%, -26px); font-style: normal; font-size: var(--fs-s); white-space: nowrap; }
+.mev2 .mlp button span { position: absolute; bottom: 0; left: 0; right: 0; text-align: center; font-size: var(--fs-s); color: var(--mut); }
+.mev2 .mlp button[disabled] span { opacity: .4; }
+.mev2 .mcs { display: flex; gap: 2px; height: 28px; border-radius: 8px; overflow: hidden; }
+.mev2 .mcs i { min-width: 6px; }
+.mev2 .mcl { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: 12px; font-size: var(--fs-s); color: rgba(255,255,255,.75); }
+.mev2 .mcl span { display: inline-flex; align-items: center; gap: 6px; }
+.mev2 .mcl i { width: 12px; height: 12px; border-radius: 4px; }
+.mev2 .mcl b { font-weight: var(--fw); color: var(--mut); }
+.mev2 .mrk { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.mev2 .mrk li { display: grid; grid-template-columns: 34px 1fr auto; align-items: center; height: 40px; border-bottom: 1px solid rgba(255,255,255,.06); }
+.mev2 .mrk li:last-child { border-bottom: 0; }
+.mev2 .mrk b { font-size: var(--fs-l); font-weight: var(--fw); color: var(--mut); line-height: 1; }
+.mev2 .mrk li.hk b { color: #FF7A45; }
+.mev2 .mrk span { font-size: var(--fs-m); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mev2 .mrk em { font-style: normal; font-size: var(--fs-s); color: var(--mut); }
+.mev2 .mck { display: flex; align-items: center; gap: 18px; }
+.mev2 .mck svg { width: 140px; height: 140px; flex: none; }
+.mev2 .mck text { text-anchor: middle; fill: #fff; font-family: var(--ui); }
+.mev2 .mck .c1 { font-size: 17px; } .mev2 .mck .c2 { font-size: 13px; fill: rgba(255,255,255,.6); }
+.mev2 .mck ul { list-style: none; margin: 0; padding: 0; flex: 1; display: grid; gap: 6px; font-size: var(--fs-s); color: rgba(255,255,255,.75); }
+.mev2 .mck li { display: grid; grid-template-columns: 12px 1fr auto; align-items: center; gap: 8px; }
+.mev2 .mck li i { width: 10px; height: 10px; border-radius: 50%; }
+.mev2 .mck li b { font-weight: var(--fw); color: var(--mut); }
+.mev2 .mck li.hk { color: #fff; }
+.mev2 .mwk { display: grid; grid-template-columns: repeat(7, 1fr); }
+.mev2 .mwk > div { display: grid; justify-items: center; gap: 6px; }
+.mev2 .mwk em { font-style: normal; font-size: var(--fs-s); height: 16px; line-height: 16px; }
+.mev2 .mwk span { height: 44px; display: grid; place-items: center; }
+.mev2 .mwk i { border-radius: 50%; transition: width .4s, height .4s; }
+.mev2 .mwk b { font-weight: var(--fw); font-size: var(--fs-s); color: var(--mut); }
+.mev2 .mwk .hk b { color: #fff; }
+.mev2 .ms2 { min-height: 0; }
+.mev2 .ms2 .hb2 { display: grid; gap: 8px; padding: 2px 2px 4px; margin-top: 0; }
+.mev2 .ms2 .mgc .mgw, .mev2 .ms2 .mgw { margin-bottom: 0; }

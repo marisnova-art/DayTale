@@ -3059,7 +3059,7 @@ function viewMe() {
   const T = S.today().slice(0, 7);
   const addM = (m, k) => { const [y, mo] = m.split('-').map(Number), t = y * 12 + mo - 1 + k; return `${Math.floor(t / 12)}-${p2(t % 12 + 1)}`; };
   const diffM = (a, b) => { const [y1, m1] = a.split('-').map(Number), [y2, m2] = b.split('-').map(Number); return (y1 - y2) * 12 + m1 - m2; };
-  const first = months[0] || T, pageOf = m => Math.round(diffM(m, T) / 7) || 0, pMin = pageOf(first);
+  const first = months[0] || T, pageOf = m => Math.ceil(diffM(m, T) / 7) || 0, pMin = pageOf(first);
   let pg = 0;
   const win = () => Array.from({ length: 7 }, (_, i) => addM(T, pg * 7 - 3 + i));
   const ms = m => statsOf(by.get(m) || []);
@@ -3098,7 +3098,7 @@ function viewMe() {
   if (months.length && !by.has(T)) sel = months.at(-1);
   const scope = () => mode === 'm' ? (by.get(sel) || []) : all;
   // 달마다 막대 (쓴 날 · 카드 · 한 장 평균): 덩어리마다 옆으로 밀면 7달씩
-  const winOf = p => Array.from({ length: 7 }, (_, i) => addM(T, p * 7 - 3 + i));
+  const winOf = p => Array.from({ length: 7 }, (_, i) => addM(T, p * 7 - 6 + i));   // 이번 달이 맨 오른쪽 (아직 안 온 달은 안 보여요)
   const drawBars = (sec, k) => {
     const g = { k }, top = topOf(g), fmt = fmtOf(g), p = pgs[k];
     sec.querySelector('.mbd').innerHTML = `<div class="mgw"><div class="may">${[3, 2, 1, 0].map(n => `<span>${axis(Math.round(top * n / 3))}</span>`).join('')}</div><div class="mgr">${winOf(p).map(m => { const off = m > T || m < first; return `<button data-m="${m}"${off ? ' disabled' : ''}${m === T ? ' class="now"' : ''}><em></em><i></i><span>${+m.slice(5)}월</span></button>`; }).join('')}</div></div><div class="mdots">${dotsHtml(1 - pMin, p - pMin)}</div>`;
@@ -3120,13 +3120,73 @@ function viewMe() {
     sec.querySelector('.mbd').innerHTML = rows.length ? `<div class="hb2">${rows.map(([v, n], i) => `<div class="hbr${i ? '' : ' hk'}"><span>${esc(k === 'kind' ? v.replace(/^(디자인|아트) /, '') : v)}</span><i data-w="${Math.max(4, n / mx * 100)}"></i><b>${n}장</b></div>`).join('')}</div>` : '<p class="t13 mg0">아직 없어요</p>';
     requestAnimationFrame(() => requestAnimationFrame(() => $$('.hbr i', sec).forEach((i, n) => { i.style.transitionDelay = n * 60 + 'ms'; i.style.width = i.dataset.w + '%'; })));
   };
+  const body = (sec, html) => { sec.querySelector('.mbd').innerHTML = html; };
+  const counts = (k, list = scope()) => { const cnt = new Map(); list.forEach(c => { const v = CAT[k](c); if (v) cnt.set(v, (cnt.get(v) || 0) + 1); }); return [...cnt].sort((a, b) => b[1] - a[1]); };
+  const EMPTY = '<p class="t13 mg0">아직 없어요</p>';
+  // 1 쓴 날 = 점 달력 (한 줄 = 한 달, 점 = 하루). 월별이면 그 달 줄만 또렷하게
+  const drawDays = sec => {
+    const y = (mode === 'm' ? sel : S.today()).slice(0, 4), today = S.today(), days = new Set(all.filter(c => c.date?.startsWith(y)).map(c => c.date));
+    let n = 0;
+    body(sec, `<div class="ydot">${Array.from({ length: 12 }, (_, m) => { const dim = new Date(+y, m + 1, 0).getDate(), mm = `${y}-${p2(m + 1)}`, off = mode === 'm' && mm !== sel ? ' style="opacity:.28"' : '';
+      return `<span${off}>${m + 1}</span>${Array.from({ length: 31 }, (_, d) => { const ds = `${mm}-${p2(d + 1)}`;
+        return d >= dim ? '<i class="x"></i>' : days.has(ds) ? `<i class="w"${off ? off.replace('"opacity', '"animation-delay:' + (n++) * 30 + 'ms;opacity') : ` style="animation-delay:${(n++) * 30}ms"`}></i>` : `<i${ds > today ? ' class="f"' : ds === today ? ' class="t"' : ''}${off}></i>`; }).join('')}`; }).join('')}</div>`);
+  };
+  // 3 한 장 평균 글자 = 꺾은선 (흐름). 7달, 옆으로 밀면 지난 7달
+  const drawLine = (sec, k) => {
+    const g = { k }, p = pgs[k], ms7 = winOf(p), W = 300, Hh = 110, pad = 12, top = Math.max(10, ...ms7.map(m => m > T || m < first ? 0 : valOf(g, m))) * 1.15;   // 선은 그 7달 안에서 크게 (흐름이 보이게)
+    const pts = ms7.map((m, i) => { const off = m > T || m < first, v = off ? null : valOf(g, m); return { m, v, x: pad + i * (W - 2 * pad) / 6, y: v == null ? null : Hh - 18 - (Math.min(v, top) / top) * (Hh - 36) }; });
+    const live = pts.filter(q => q.v != null && q.v > 0), path = live.map((q, i) => `${i ? 'L' : 'M'}${q.x.toFixed(1)},${q.y.toFixed(1)}`).join(''), area = live.length > 1 ? `${path}L${live.at(-1).x.toFixed(1)},${Hh - 18}L${live[0].x.toFixed(1)},${Hh - 18}Z` : '';
+    const hiQ = live.reduce((b, q) => !b || q.v > b.v ? q : b, null), lab = (mode === 'm' && live.find(q => q.m === sel)) || hiQ;
+    body(sec, `<svg class="mln" viewBox="0 0 ${W} ${Hh}" preserveAspectRatio="none"><defs><linearGradient id="mlg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#C86AD8" stop-opacity=".35"/><stop offset="1" stop-color="#C86AD8" stop-opacity="0"/></linearGradient></defs>
+      <line x1="0" x2="${W}" y1="${Hh - 18}" y2="${Hh - 18}" class="bl"/>${area ? `<path d="${area}" fill="url(#mlg)"/>` : ''}${path ? `<path d="${path}" class="ln"/>` : ''}</svg>
+      <div class="mlp">${pts.map(q => `<button data-m="${q.m}" style="left:${(q.x / W * 100).toFixed(2)}%"${q.v == null ? ' disabled' : ''}>${q.v ? `<i style="top:${(q.y / Hh * 100).toFixed(2)}%" class="${q === lab ? 'on' : ''}"></i>${q === lab ? `<em style="top:${(q.y / Hh * 100).toFixed(2)}%">${q.v}자</em>` : ''}` : ''}<span>${+q.m.slice(5)}월</span></button>`).join('')}</div><div class="mdots">${dotsHtml(1 - pMin, p - pMin)}</div>`);
+    $$('.mlp button:not([disabled])', sec).forEach(b => b.onclick = () => { sel = b.dataset.m; mode = 'm'; paint(); });
+    const pl = $('.mlp', sec); let sx = null;
+    pl.onpointerdown = e => { sx = e.clientX; };
+    pl.onpointerup = e => { if (sx == null) return; const dx = e.clientX - sx; sx = null; if (Math.abs(dx) < 40) return; const n = Math.min(0, Math.max(pMin, pgs[k] + (dx > 0 ? -1 : 1))); if (n !== pgs[k]) { pgs[k] = n; drawLine(sec, k); } };
+  };
+  // 5 자주 쓴 색 = 그 색들로 나눈 띠 하나 + 아래 색 이름
+  const cssOfName = {}; all.forEach(c => { const n = bgName(c); if (n && !cssOfName[n] && c.bg?.id && c.bg.id !== 'photo' && c.bg.id !== 'hex') { const f = findBg(c.bg.id); if (f?.css) cssOfName[n] = f.css; } });
+  const drawColors = (sec, k) => {
+    const rows = counts(k).slice(0, 6), sum = rows.reduce((t, r) => t + r[1], 0);
+    if (!rows.length) return body(sec, EMPTY);
+    const bgOf = n => cssOfName[n] || 'linear-gradient(135deg,#55555c,#2c2c30)';
+    body(sec, `<div class="mcs">${rows.map(([n, v]) => `<i style="flex:${v} 1 0;background:${bgOf(n)}"></i>`).join('')}</div>
+      <div class="mcl">${rows.map(([n, v]) => `<span><i style="background:${bgOf(n)}"></i>${esc(n)} <b>${Math.round(v / sum * 100)}%</b></span>`).join('')}</div>`);
+  };
+  // 6 자주 쓴 곳 = 큰 순위 숫자 리스트
+  const drawRank = (sec, k) => {
+    const rows = counts(k).slice(0, 5);
+    body(sec, rows.length ? `<ol class="mrk">${rows.map(([v, n], i) => `<li${i ? '' : ' class="hk"'}><b>${i + 1}</b><span>${esc(v)}</span><em>${n}장</em></li>`).join('')}</ol>` : EMPTY);
+  };
+  // 7 자주 쓴 때 = 동그란 시계 (새벽 · 아침 · 오후 · 저녁 · 밤 조각). 가장 많은 때가 진하게, 가운데 이름
+  const SLOTS = ['새벽', '아침', '오후', '저녁', '밤'];
+  const drawClock = (sec, k) => {
+    const cnt = new Map(counts(k)), vs = SLOTS.map(n => cnt.get(n) || 0), sum = vs.reduce((a, b) => a + b, 0);
+    if (!sum) return body(sec, EMPTY);
+    const mx = Math.max(...vs), R = 54, r = 34, C = 70; let a0 = -90;
+    const arc = (a1, a2) => { const rad = d => d * Math.PI / 180, p = (rr, d) => `${(C + rr * Math.cos(rad(d))).toFixed(2)},${(C + rr * Math.sin(rad(d))).toFixed(2)}`, big = a2 - a1 > 180 ? 1 : 0;
+      return `M${p(R, a1)}A${R},${R} 0 ${big} 1 ${p(R, a2)}L${p(r, a2)}A${r},${r} 0 ${big} 0 ${p(r, a1)}Z`; };
+    const segs = vs.map((v, i) => { if (!v) return ''; const sw = v / sum * 360, gap = sum === v ? 0 : 1.2, d = arc(a0 + gap, a0 + sw - gap); a0 += sw; return `<path d="${d}" fill="${v === mx ? heat(1) : heat(.15 + .6 * v / mx)}" opacity="${v === mx ? 1 : .75}"><title>${SLOTS[i]} ${v}장</title></path>`; }).join('');
+    const pick = (mode === 'm' ? ms(sel) : st).when, top = vs[SLOTS.indexOf(pick)] === mx ? pick : SLOTS[vs.indexOf(mx)];   // 위 큰 값과 같은 때 (같은 수면 그쪽)
+    body(sec, `<div class="mck"><svg viewBox="0 0 140 140">${segs}<text x="70" y="68" class="c1">${top}</text><text x="70" y="88" class="c2">${Math.round(mx / sum * 100)}%</text></svg>
+      <ul>${SLOTS.map((n, i) => `<li${vs[i] === mx ? ' class="hk"' : ''}><i style="background:${vs[i] === mx ? heat(1) : vs[i] ? heat(.15 + .6 * vs[i] / mx) : 'rgba(255,255,255,.12)'}"></i>${n}<b>${vs[i]}장</b></li>`).join('')}</ul></div>`);
+  };
+  // 8 자주 쓴 요일 = 일~토 동그라미 7개 (많을수록 크고 진하게)
+  const drawWeek = (sec, k) => {
+    const cnt = new Map(counts(k)), vs = [...WD].map(d => cnt.get(d + '요일') || 0), mx = Math.max(0, ...vs);
+    if (!mx) return body(sec, EMPTY);
+    body(sec, `<div class="mwk">${[...WD].map((d, i) => { const t = vs[i] / mx, sz = vs[i] ? Math.round(14 + 26 * t) : 6;
+      return `<div${vs[i] === mx ? ' class="hk"' : ''}><em>${vs[i] === mx ? vs[i] + '장' : ''}</em><span><i style="width:${sz}px;height:${sz}px;background:${vs[i] ? heat(t) : 'rgba(255,255,255,.12)'}"></i></span><b>${d}</b></div>`; }).join('')}</div>`);
+  };
+  const DRAW = { days: drawDays, n: drawBars, chars: drawLine, kind: drawTop, col: drawColors, place: drawRank, when: drawClock, wd: drawWeek };
   const paint = () => {
     $$('.msg2 button').forEach(b => b.classList.toggle('on', b.dataset.v === mode));
     $('.mmn').classList.toggle('off', mode !== 'm');
     $('.mmn b').textContent = `${+sel.slice(0, 4)}년 ${+sel.slice(5)}월`;
     const mi = months.indexOf(sel); $('[data-a=pm]').disabled = mi <= 0; $('[data-a=nm]').disabled = mi < 0 || mi >= months.length - 1;
     const v = vals(mode === 'm' ? ms(sel) : st);
-    $$('.ms2').forEach((sec, i) => { const k = sec.dataset.k; sec.querySelector('.mv').textContent = v[i][0]; CAT[k] ? drawTop(sec, k) : drawBars(sec, k); });
+    $$('.ms2').forEach((sec, i) => { const k = sec.dataset.k; sec.querySelector('.mv').textContent = v[i][0]; DRAW[k](sec, k); });
   };
   const stepM = d => { const i = months.indexOf(sel) + d; if (i < 0 || i >= months.length) return; sel = months[i]; for (const k in pgs) pgs[k] = pageOf(sel); paint(); };
   $$('.msg2 button').forEach(b => b.onclick = () => { mode = b.dataset.v; if (mode === 'm' && !by.has(sel) && months.length) sel = months.at(-1); paint(); });
