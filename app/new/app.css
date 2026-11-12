@@ -1985,3 +1985,28 @@ html:not(.wmode) body { min-height: calc(100% + 1px); }
 /* 66차 (11-12): 쓰기 검색 칸도 붙었을 때 아이폰 시계 줄 그늘 아래로 (검색 화면 54차와 같게, 8 → 44px) */
 .tstk.sc { padding-top: calc(var(--safe-t) + 44px); margin-top: calc(-1 * (var(--safe-t) + 36px)); }
 .tstk.sc .tsf { margin-top: 0; }
+/* 67차 (11-12): 내 기록 = 누르기 없이 다 보이게, 모든 칸에 색 (항목 그래프는 칸마다 다른 색) */
+.mev2 .mds button, .mev2 .mpc button { pointer-events: none; }
+.mev2 .mpc u, .mev2 .mwk u, .mev2 .mlg .col u { opacity: 1; animation: none; }
+.mev2 .mpc .on b, .mev2 .mds button.on b, .mev2 .mds button.on span { color: #fff; }
+.mev2 .mpv { margin-top: 8px; }
+.mev2 .mpv span { color: #fff; animation: mup .35s ease-out both; }
+.mev2 .mpv + .mpx { margin-top: 2px; }
+.mev2 .mck .ring path { opacity: 1; }
+.mev2 .mrk2 li.hk b { color: var(--mut); background: none; -webkit-background-clip: initial; background-clip: initial; }
+/* 68차 (11-12): 월별 쓴 날 = 달력, 덩어리 위아래 간격 통일 (제목 → 그래프 16, 그래프 → 아래 20) */
+.mev2 .mcal { display: grid; grid-template-columns: repeat(7, 1fr); row-gap: 6px; justify-items: center; }
+.mev2 .mcal > b { font-weight: var(--fw); font-size: var(--fs-s); color: var(--mut); line-height: 16px; margin-bottom: 2px; }
+.mev2 .mcal i { position: relative; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,.08); animation: mpop .35s cubic-bezier(.2,.8,.2,1.2) both; }
+.mev2 .mcal i.f { background: none; }
+.mev2 .mcal i u { opacity: 1; animation: none; border-radius: 50%; }
+.mev2 .mcal em { position: relative; font-style: normal; font-size: var(--fs-s); color: var(--mut); animation: none; }
+.mev2 .mcal i.w em { color: #141416; }
+.mev2 .mcal i.f em { opacity: .4; }
+.mev2 .ms2 { padding-bottom: 20px; }
+.mev2 .ms2 > .mbd { margin-top: 16px; }
+.mev2 .ms2 > .mbd > :first-child { margin-top: 0; }
+.mev2 .mpc.mday b { white-space: nowrap; overflow: visible; width: 0; display: flex; justify-content: flex-start; }
+.mev2 .mlg .cols.day .col { padding: 0 1px; }
+.mev2 .mlg .cols.day .col i { max-width: 6px; }
+.mev2 .mpx.mdl span { text-align: left; white-space: nowrap; overflow: visible; width: 0; }
