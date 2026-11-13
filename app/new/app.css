@@ -2087,10 +2087,10 @@ html.hd .calv .days .dh { top: calc(var(--cpb, 160px) - 70px + 8px); }   /* 내�
 .tmv .tday .th { width: calc((100% + 16px) / 3); border-radius: 14px; }
 .tmv .tday .tdx b { font-size: var(--fs-m); margin: 10px 0 4px; }
 .tmv .tday .tdx p { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.tmv .tstk { position: sticky; top: 0; z-index: 20; margin-top: 32px; padding: 16px 0 12px; border-top: 1px solid rgba(255,255,255,.08); border-bottom: 1px solid transparent; transition: background-color .2s, border-color .2s; }
-.tmv .tstk.sc { padding-top: calc(var(--safe-t) + 12px); background: var(--navbg, rgba(18,18,20,.55)); -webkit-backdrop-filter: blur(22px) saturate(1.5); backdrop-filter: blur(22px) saturate(1.5); border-top-color: transparent; border-bottom-color: rgba(255,255,255,.08); }
+.tmv .tstk { position: sticky; top: var(--safe-t); z-index: 20; margin-top: 32px; padding: 16px 0 12px; border-top: 1px solid rgba(255,255,255,.08); border-bottom: 1px solid transparent; transition: background-color .2s, border-color .2s; }
+.tmv .tstk.sc { background: var(--navbg, rgba(18,18,20,.55)); -webkit-backdrop-filter: blur(22px) saturate(1.5); backdrop-filter: blur(22px) saturate(1.5); border-top-color: transparent; border-bottom-color: rgba(255,255,255,.08); }
 .tmv .tch { gap: 4px; margin-top: 0; }
-.tmv .tch button { height: 28px; padding: 0 12px; border-radius: 8px; background: rgba(255,255,255,.08); box-shadow: inset 0 0 0 1px rgba(255,255,255,.18); }
+.tmv .tch button { height: 32px; padding: 0 14px; border-radius: 8px; background: rgba(255,255,255,.08); box-shadow: inset 0 0 0 1px rgba(255,255,255,.18); }
 .tmv .tch button.on { background: #fff; color: var(--bg); box-shadow: none; }
 .tmv .tlist { min-height: calc(100vh - 60px); }
 .tmv .tlist > .tsec:first-child { margin-top: 12px; }
@@ -2102,3 +2102,8 @@ html.lite #app .tmv .tch button { background: rgba(255,255,255,.6); box-shadow: 
 html.lite #app .tmv .tch button.on { background: #141416; color: #fff; box-shadow: none; }
 html.lite #app .tmv .wq { box-shadow: 0 8px 24px rgba(20,20,22,.12); }
 html.hd .tmv .tstk:not(.sc) { transform: none; }   /* 77차: 칩 줄은 위에 붙었을 때만 내릴 때 숨어요 (붙기 전엔 제자리) */
+/* 78차: 칩 줄은 위 선에서부터 붙고 시계 줄과 칩 사이에 여유(30) · 시계 줄 자리는 따로 덮어요 (여백이 안 바뀌어 목록이 안 튀어요) · 칩 32 */
+.tmv .tstk { padding-top: 30px; }
+#boot .bver { position: absolute; left: 0; right: 0; top: calc(50% + 64px); text-align: center; font-size: var(--fs-s); color: rgba(255,255,255,.55); pointer-events: none; }
+.tmv .stb { position: fixed; top: 0; left: 0; right: 0; height: var(--safe-t); z-index: 21; background: var(--navbg, rgba(18,18,20,.5)); -webkit-backdrop-filter: blur(22px) saturate(1.5); backdrop-filter: blur(22px) saturate(1.5); opacity: 0; transition: opacity .2s; pointer-events: none; }
+.tmv.scd .stb { opacity: 1; }

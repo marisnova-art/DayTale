@@ -1816,7 +1816,7 @@ function viewTpl() {
   const lock = t => t.paid && !paid && t !== free;   // 테스트 동안은 표시만 (모두 열려 있어요)
   const chips = [['홈', '전체'], ...(T.favs().length ? [['fav', '즐겨찾기']] : []), ...T.kinds().map(k => [k, k]), ...T.tagOrder().map(t => [t, t])];   // 11-04: 즐겨찾기는 홈 옆 칩으로 (비어 있으면 숨겨요)
   app.innerHTML = `<div class="amb"><div class="mo"></div></div><div class="tgr"></div><div class="tmv">
-    <main class="tbody"><div class="ttop"></div>
+    <div class="stb"></div><main class="tbody"><div class="ttop"></div>
     <div class="tstk"><div class="tch">${chips.map(([c, n]) => `<button data-c="${esc(c)}">${esc(n)}</button>`).join('')}</div></div>
     <div class="tlist"></div></main></div>${nav('write')}`;   // 11-13 v4: 제목 · 검색 없음. 위 = 바로 쓰기 · 오늘의 무료 (늘 그대로), 칩부터 아래 = 목록
   // 바로 쓰기 (11-11): 글쓰기 · 포토쓰기 · 쓰다 만 글. 아이폰은 누른 그 순간에만 사진첩을 열어 줘서 여기서 바로
@@ -1890,7 +1890,7 @@ function viewTpl() {
     }
   };
   // 칩을 누르면 목록만 바뀌고, 칩이 맨 위에 붙는 자리로 가요 ('전체'는 이미 아래에 있을 때만)
-  const setF = f => { tstate.f = f; paint(); const y = $('.tstk').getBoundingClientRect().top + scrollY; if (f !== '홈' || scrollY > y) { hdHold = performance.now() + 900; document.documentElement.classList.remove('hd'); window.scrollTo({ top: y, behavior: 'smooth' }); } };   // 스스로 내려갈 땐 칩을 숨기지 않아요
+  const setF = f => { tstate.f = f; paint(); const st = $('.tstk'), y = st.getBoundingClientRect().top + scrollY - (parseFloat(getComputedStyle(st).top) || 0); if (f !== '홈' || scrollY > y) { hdHold = performance.now() + 900; document.documentElement.classList.remove('hd'); window.scrollTo({ top: y, behavior: 'smooth' }); } };   // 스스로 내려갈 땐 칩을 숨기지 않아요
   $('.tch').onclick = e => { const b = e.target.closest('[data-c]'); if (b) setF(b.dataset.c); };
   $('.tbody').onclick = e => {
     const k = e.target.closest('.wq [data-k]')?.dataset.k;
@@ -1911,7 +1911,7 @@ function viewTpl() {
   };
   top(); paint();
   const y = tstate.y || 0; if (y) requestAnimationFrame(() => window.scrollTo(0, y));
-  const stk = $('.tstk'), keep = () => { tstate.y = scrollY; stk.classList.toggle('sc', stk.getBoundingClientRect().top <= 1 && scrollY > 8); };   // 붙어 있을 때만 뒤 흐림
+  const stk = $('.tstk'), keep = () => { tstate.y = scrollY; const sc = stk.getBoundingClientRect().top <= (parseFloat(getComputedStyle(stk).top) || 0) + 1 && scrollY > 8; stk.classList.toggle('sc', sc); $('.tmv')?.classList.toggle('scd', sc); };   // 붙어 있을 때만 뒤 흐림
   addEventListener('scroll', keep, { passive: true });
   // 위 판의 아트 미리보기는 빛이 천천히 흘러요 (화면에 보일 때만)
   let anim = 0; const t0 = performance.now(), still = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1968,6 +1968,14 @@ const REC_T = { 밤: '밤에 쓰기 좋은', 비: '비 오는 날엔', 눈: '눈
 // 11-13 쓰기 탭 위 작은 줄: 날짜 · 날씨 (날씨는 3시간 안에 받은 것만)
 const WXK = { sun: '맑음', suncloud: '구름 조금', cloud: '흐림', rain: '비', snow: '눈', thunder: '천둥', fog: '안개' };
 const dayLine = (now = new Date()) => { let w = ''; try { const x = JSON.parse(localStorage.getItem('daytale.wx') || 'null'); if (x && Date.now() - x.at < 3 * 3600e3 && WXK[x.kind]) w = ` · ${WXK[x.kind]}${x.temp != null ? ` ${x.temp}°` : ''}`; } catch {} return `${now.getMonth() + 1}월 ${now.getDate()}일 ${'일월화수목금토'[now.getDay()]}요일${w}`; };
+// 78차: 새 버전 확인. 앱으로 돌아올 때(다른 앱 갔다 오기) version.txt가 지금과 다르면 저절로 새로 고쳐요. 쓰는 중엔 안 해요
+const BUILD = '78', BUILD_TAG = '11-13 78차';
+let verAt = 0;
+const checkVer = () => {
+  if (document.hidden || Date.now() - verAt < 20e3) return; verAt = Date.now();
+  fetch('./version.txt', { cache: 'no-store' }).then(r => r.ok ? r.text() : '').then(v => { v = v.trim(); if (v && v !== BUILD && !/^#\/(write|like)/.test(location.hash)) location.reload(); }).catch(() => {});
+};
+document.addEventListener('visibilitychange', checkVer); addEventListener('focus', checkVer);
 const whenOf = iso => { const d = iso.slice(0, 10), t = S.today(); if (d === t) return '오늘'; const y = new Date(t + 'T00:00:00'); y.setDate(y.getDate() - 1); return d === `${y.getFullYear()}-${p2(y.getMonth() + 1)}-${p2(y.getDate())}` ? '어제' : `${+d.slice(5, 7)}.${d.slice(8, 10)}`; };
 // 가로 줄: 짧게 한 번 밀어도 한 장씩 착 (CSS 스냅만으론 반 넘게 밀어야 넘어가서 2~3번 밀게 돼요)
 function snapOne(r) {
@@ -3428,7 +3436,7 @@ function viewSet(sub) {
     ${sgrp(srow('bell', '알림', S.pref('remind', false) ? '켜짐' : '', { go: '#/set/alarm' }), srow('globe', '언어', LANGS[S.pref('lang', 'ko')], { go: '#/set/lang' }))}
     ${sgrp(srow('spark', '서비스 소개', '', { go: '#/set/about' }), srow('help', '도움말', '', { a: 'help' }), srow('bell', '공지사항 · 이벤트', '', { go: '#/set/news' }), srow('clock', '업데이트 소식', UPDATES[0][0], { go: '#/set/updates' }))}
     ${sgrp(srow('doc', '이용약관', '', { a: 'terms' }), srow('shield', '개인정보 처리방침', '', { a: 'privacy' }), srow('lic', '라이선스', '', { a: 'lic' }))}
-    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-13 77차</p>`, { up: '#/', tab: true });
+    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · ${BUILD_TAG}</p>`, { up: '#/', tab: true });
   $('[data-a=place]').onclick = e => { const on = !S.pref('autoPlace', false); S.setPref('autoPlace', on); e.currentTarget.querySelector('.tg').classList.toggle('on', on); };
   $('[data-a=terms]').onclick = () => { location.href = '../legal/terms.ko.html'; };
   $('[data-a=privacy]').onclick = () => { location.href = '../legal/privacy.ko.html'; };
@@ -3719,7 +3727,7 @@ if (boot) {
   const pool = 'ABCDEFG'.split('').filter(k => k !== last), k = pool[Math.floor(Math.random() * pool.length)];
   try { localStorage.setItem('dz.intro', k); } catch {}
   boot.classList.add('i' + k);
-  boot.innerHTML = `<div class="lgw">${LOGO}${k === 'D' ? '<i class="shine"></i>' : k === 'E' ? '<i class="dot"></i>' : ''}</div>`;
+  boot.innerHTML = `<div class="lgw">${LOGO}${k === 'D' ? '<i class="shine"></i>' : k === 'E' ? '<i class="dot"></i>' : ''}</div><small class="bver">${BUILD_TAG}</small>`;   // 78차: 테스트 동안 버전을 로고 아래에도
   if (k === 'B') boot.querySelectorAll('.lgo path').forEach(p => { const L = Math.ceil(p.getTotalLength()); p.style.strokeDasharray = L; p.style.setProperty('--len', L); p.style.strokeDashoffset = L; });
   if (k === 'D') { const svg = boot.querySelector('.lgo'), m = new XMLSerializer().serializeToString(svg).replace('currentColor', '#000'); boot.querySelector('.lgw').style.setProperty('--logomask', `url("data:image/svg+xml,${encodeURIComponent(m)}")`); }
 }
