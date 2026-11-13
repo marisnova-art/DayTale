@@ -1831,8 +1831,17 @@ function viewTpl() {
     const q = $('.wq', body); if (!q) return;
     mount($('[data-k=color] .wc', q), { ...blank('text', S.today()), bg: lastColor(), pages: [''], showDate: false });
     $$('.wt[data-d]', q).forEach(b => { const d = S.draft(b.dataset.d); if (d) mount($('.wc', b), { ...d.card, ratio: '45' }); });
-    const last = S.cards().find(c => c.bg && !c.sample);
-    if (last) mount($('.qbg', q), { ...blank('text', S.today()), bg: last.bg, pages: [''], showDate: false, ratio: '45' }); else q.classList.add('smp');
+    const pbg = c => c.pst?.[0]?.bg || c.bg;
+    const last = S.cards().find(c => pbg(c) && !c.sample);
+    if (last) {
+      mount($('.qbg', q), { ...blank('text', S.today()), bg: pbg(last), pages: [''], showDate: false, ratio: '45' });
+      const t = toneOf({ ...last, bg: pbg(last) }), m = /^#([0-9a-f]{6})$/i.exec(t || '');   // 79차: 밝은 바탕이면 판을 한 단계 더 눌러요 (흰 글씨 · 칸이 또렷하게)
+      if (m) { const v = parseInt(m[1], 16); if (((v >> 16) * .299 + ((v >> 8) & 255) * .587 + (v & 255) * .114) / 255 > .62) q.classList.add('lt'); }
+    } else q.classList.add('smp');
+    // 79차: 포토쓰기 칸 = 마지막 사진 카드의 사진 (없으면 예시 사진)
+    const pc = S.cards().find(c => { const b = pbg(c); return b?.id === 'photo' && b.ph && !b.vd; });
+    if (pc) { const b = pbg(pc); P.ensure(b.ph).then(() => { const u = P.url(b.ph), el = $('[data-k=photo] .phs', q); if (u && el) el.style.background = `url(${u}) ${b.x ?? 50}% ${b.y ?? 50}%/cover`; }).catch(() => {}); }
+    q.classList.toggle('two', $$('.wt', q).length === 2);   // 2개면 가운데, 3개 이상이면 왼쪽부터 (세 번째가 걸쳐 보여요)
     snapOne($('.trow', q));
   };
   bindNav();
@@ -1969,7 +1978,7 @@ const REC_T = { 밤: '밤에 쓰기 좋은', 비: '비 오는 날엔', 눈: '눈
 const WXK = { sun: '맑음', suncloud: '구름 조금', cloud: '흐림', rain: '비', snow: '눈', thunder: '천둥', fog: '안개' };
 const dayLine = (now = new Date()) => { let w = ''; try { const x = JSON.parse(localStorage.getItem('daytale.wx') || 'null'); if (x && Date.now() - x.at < 3 * 3600e3 && WXK[x.kind]) w = ` · ${WXK[x.kind]}${x.temp != null ? ` ${x.temp}°` : ''}`; } catch {} return `${now.getMonth() + 1}월 ${now.getDate()}일 ${'일월화수목금토'[now.getDay()]}요일${w}`; };
 // 78차: 새 버전 확인. 앱으로 돌아올 때(다른 앱 갔다 오기) version.txt가 지금과 다르면 저절로 새로 고쳐요. 쓰는 중엔 안 해요
-const BUILD = '78', BUILD_TAG = '11-13 78차';
+const BUILD = '79', BUILD_TAG = '11-13 79차';
 let verAt = 0;
 const checkVer = () => {
   if (document.hidden || Date.now() - verAt < 20e3) return; verAt = Date.now();
