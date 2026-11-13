@@ -1814,7 +1814,7 @@ function viewTpl() {
   pickEx = exampleText();
   const free = T.heroes().find(h => h.k === 'free')?.t, paid = isPaidUser();
   const lock = t => t.paid && !paid && t !== free;   // 테스트 동안은 표시만 (모두 열려 있어요)
-  const chips = [['홈', '전체'], ...(T.favs().length ? [['fav', '즐겨찾기']] : []), ...T.kinds().map(k => [k, k]), ...T.tagOrder().map(t => [t, t])];   // 11-04: 즐겨찾기는 홈 옆 칩으로 (비어 있으면 숨겨요)
+  const chips = [['홈', '전체'], ...(T.favs().length ? [['fav', '즐겨찾기']] : []), ...T.kinds().map(k => [k, k]), ...T.tagOrder().map(t => [t, t]), ['all', '모든 템플릿']];   // 80차: 맨 끝 = 모든 템플릿   // 11-04: 즐겨찾기는 홈 옆 칩으로 (비어 있으면 숨겨요)
   app.innerHTML = `<div class="amb"><div class="mo"></div></div><div class="tgr"></div><div class="tmv">
     <div class="stb"></div><main class="tbody"><div class="ttop"></div>
     <div class="tstk"><div class="tch">${chips.map(([c, n]) => `<button data-c="${esc(c)}">${esc(n)}</button>`).join('')}</div></div>
@@ -1891,15 +1891,17 @@ function viewTpl() {
       if (f === 'fav') { const fv = T.favs(); l = fv.map(T.tpl).filter(Boolean); }
       else if (T.kinds().includes(f)) l = l.filter(t => t.kind === f);
       else if (f.startsWith('s:')) l = T.sorted(f.slice(2));
-      else if (f !== '홈') l = l.filter(t => t.tags.includes(f));
+      else if (f !== '홈' && f !== 'all') l = l.filter(t => t.tags.includes(f));
       l = l.filter(t => T.hit(t, q));
-      body.innerHTML = l.length ? `<div class="tg2 solo">${l.map(t => tile(t)).join('')}</div>`
+      // 80차: 칩 결과 위에 제목 (이름 · 개수)
+      const nm = f.startsWith('s:') ? ({ new: '새로 나온', pop: '인기', mine: '자주 쓴' }[f.slice(2)] || '') : (chips.find(x => x[0] === f)?.[1] || f);
+      body.innerHTML = l.length ? `<div class="tsec"><b>${esc(nm)} · ${l.length}</b></div><div class="tg2 solo">${l.map(t => tile(t)).join('')}</div>`
         : `<div class="tempty"><span class="i">${f === 'fav' && !q ? HEART : ic('search')}</span><b>${f === 'fav' && !q ? '하트 누른 템플릿이 여기 모여요' : '맞는 템플릿이 없어요'}</b></div>`;
       $$('.tt', body).forEach(b => tq.observe(b));
     }
   };
   // 칩을 누르면 목록만 바뀌고, 칩이 맨 위에 붙는 자리로 가요 ('전체'는 이미 아래에 있을 때만)
-  const setF = f => { tstate.f = f; paint(); const st = $('.tstk'), y = st.getBoundingClientRect().top + scrollY - (parseFloat(getComputedStyle(st).top) || 0); if (f !== '홈' || scrollY > y) { hdHold = performance.now() + 900; document.documentElement.classList.remove('hd'); window.scrollTo({ top: y, behavior: 'smooth' }); } };   // 스스로 내려갈 땐 칩을 숨기지 않아요
+  const setF = f => { tstate.f = f; paint(); const st = $('.tstk'), y = $('.tlist').getBoundingClientRect().top + scrollY - st.offsetHeight - (parseFloat(getComputedStyle(st).top) || 0); if (f !== '홈' || scrollY > y) { hdHold = performance.now() + 900; document.documentElement.classList.remove('hd'); window.scrollTo({ top: y, behavior: 'smooth' }); } };   // 스스로 내려갈 땐 칩을 숨기지 않아요
   $('.tch').onclick = e => { const b = e.target.closest('[data-c]'); if (b) setF(b.dataset.c); };
   $('.tbody').onclick = e => {
     const k = e.target.closest('.wq [data-k]')?.dataset.k;
@@ -1978,7 +1980,7 @@ const REC_T = { 밤: '밤에 쓰기 좋은', 비: '비 오는 날엔', 눈: '눈
 const WXK = { sun: '맑음', suncloud: '구름 조금', cloud: '흐림', rain: '비', snow: '눈', thunder: '천둥', fog: '안개' };
 const dayLine = (now = new Date()) => { let w = ''; try { const x = JSON.parse(localStorage.getItem('daytale.wx') || 'null'); if (x && Date.now() - x.at < 3 * 3600e3 && WXK[x.kind]) w = ` · ${WXK[x.kind]}${x.temp != null ? ` ${x.temp}°` : ''}`; } catch {} return `${now.getMonth() + 1}월 ${now.getDate()}일 ${'일월화수목금토'[now.getDay()]}요일${w}`; };
 // 78차: 새 버전 확인. 앱으로 돌아올 때(다른 앱 갔다 오기) version.txt가 지금과 다르면 저절로 새로 고쳐요. 쓰는 중엔 안 해요
-const BUILD = '79', BUILD_TAG = '11-13 79차';
+const BUILD = '80', BUILD_TAG = '11-13 80차';
 let verAt = 0;
 const checkVer = () => {
   if (document.hidden || Date.now() - verAt < 20e3) return; verAt = Date.now();

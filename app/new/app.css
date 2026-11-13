@@ -2120,3 +2120,8 @@ html.lite #app .tmv .tch button { box-shadow: inset 0 0 0 1px rgba(0,0,0,.2); }
 html.lite #app .tmv .tch button.on { box-shadow: none; }
 html.hd .tmv .tstk { transform: none; }
 .tmv .wq.two .trow::after { display: none; }   /* 끝 여백 칸이 있으면 가운데가 어긋나요 */
+/* 80차 (11-13): 칩 사이 8 · 칩 줄과 첫 제목 사이 24 (목록 안쪽 여백이라 칩을 눌러도 같은 자리) · 칩 결과 제목 */
+.tmv .tch { gap: 8px; }
+.tmv .tlist { padding-top: 24px; }
+.tmv .tlist > .tsec:first-child { margin-top: 0; }
+.tmv .tg2.solo { padding-top: 0; }
