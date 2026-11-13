@@ -30,9 +30,13 @@ export function removeCard(id) {
   write(K_CARDS, all.filter(x => x.id !== id));
   mark('card', id, true); mark('trash', id);
 }
+// 75차 (11-13): 아주 지운 카드(30일 지남 · 지금 지우기 · 모두 비우기)를 알려요 → media.js가 저장소의 사진 · 영상도 지워요
+let gone = null;
+export const onGone = f => { gone = f; };
+const tellGone = cs => { if (cs.length) try { gone?.(cs); } catch {} };
 export function trash() {
   const all = readCards(K_TRASH), keep = all.filter(c => Date.now() - Date.parse(c.deleted) < 30 * DAY);
-  if (keep.length !== all.length) write(K_TRASH, keep);
+  if (keep.length !== all.length) { write(K_TRASH, keep); tellGone(all.filter(c => !keep.includes(c))); }
   return keep;
 }
 export function restoreCard(id) {
@@ -66,8 +70,8 @@ export function saveBook(b) {
 export const removeBook = id => { write(K_BOOKS, read(K_BOOKS, []).filter(b => b.id !== id)); mark('book', id, true); };
 
 // 휴지통에서 바로 지우기 · 모두 비우기
-export const purge = id => { write(K_TRASH, trash().filter(c => c.id !== id)); mark('trash', id, true); };
-export const emptyTrash = () => { trash().forEach(c => mark('trash', c.id, true)); write(K_TRASH, []); };
+export const purge = id => { const t = trash(); write(K_TRASH, t.filter(c => c.id !== id)); mark('trash', id, true); tellGone(t.filter(c => c.id === id)); };
+export const emptyTrash = () => { const t = trash(); t.forEach(c => mark('trash', c.id, true)); write(K_TRASH, []); tellGone(t); };
 
 // 백업 파일: 카드 · 책 · 설정 (휴지통은 빼요). 되살리기는 이미 있는 카드는 두고 없는 것만 더해요
 export const dump = () => ({ cards: read(K_CARDS, []), books: read(K_BOOKS, []), prefs: read(K_PREF, {}) });

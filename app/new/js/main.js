@@ -161,7 +161,7 @@ function nav(on) {
     <button class="nb${T(on === 'mark')}" data-n="mark" aria-label="책갈피">${ic('bookmark')}<span class="nl">책갈피</span></button>
     <button class="nb${T(on === 'me')}" data-n="me" aria-label="프로필"><span class="av"${avStyle()}></span><span class="nl">프로필</span></button></nav>`;   // 11-12: 인스타처럼 프로필은 맨 오른쪽 탭
 }
-let navWas = null;   // 바로 전 화면의 메뉴 바탕 (바뀌면 천천히 넘어가요)
+let navWas = null, calY0 = 0;   // calY0 = 75차 홈 캘린더가 처음 자리 잡은 높이   // 바로 전 화면의 메뉴 바탕 (바뀌면 천천히 넘어가요)
 function navFade() {
   requestAnimationFrame(() => {   // 화면 색(무드)이 칠해진 뒤에 재요
     const n = $('.nav'); if (!n) return;
@@ -173,7 +173,8 @@ function navFade() {
   });
 }
 function bindNav() {
-  const home = () => ($('main.feed:not(.mkf)') || $('.calv.hm')) ? window.scrollTo({ top: 0, behavior: 'smooth' }) : (tabGo = '#/', go('#/'));   // 검색 결과 칸도 .feed 모양을 써서 main만
+  // 75차 (11-13): 홈인데 내려가 있으면 맨 위로, 이미 맨 위면 위쪽 보기 버튼과 같이 1열 → 2열 → 캘린더 → 1열
+  const home = () => { const cal = $('.calv.hm'), y0 = cal ? calY0 : 0; return ($('main.feed:not(.mkf)') || cal) ? (Math.abs(scrollY - y0) > 4 ? window.scrollTo({ top: y0, behavior: 'smooth' }) : $('[data-a=view]')?.click()) : (tabGo = '#/', go('#/')); };   // 캘린더는 처음 연 자리(오늘)가 '맨 위'   // 검색 결과 칸도 .feed 모양을 써서 main만
   const find = () => $('.srch') ? ($('.srch .fld input').focus(), window.scrollTo({ top: 0, behavior: 'smooth' })) : (tabY.search ? 0 : kbNow(), tabGo = '#/search', go('#/search'));   // 56차: 보던 자리가 있으면 키보드는 안 올려요
   // 11-11: 책장 · 템플릿 탭 대신 캘린더 · 책갈피. 쓰기 = 템플릿 홈 (바로 쓰기가 맨 위)
   const top = (sel, h) => () => $(sel) ? window.scrollTo({ top: 0, behavior: 'smooth' }) : (tabGo = h, go(h));
@@ -913,8 +914,8 @@ const inDate = (c, r) => c.date && (r.from ? c.date >= r.from && c.date <= r.to 
 
 function viewSearch(fromPick) {
   const mine = S.cards();
-  app.innerHTML = `${MOOD}<div class="srch${fromPick ? '' : ' ttl'}">${fromPick ? '' : '<header class="shtop"><div class="tl"><h1>검색</h1></div></header>'}<header class="sbar">${fromPick ? `<button class="cb bk" data-a="back" aria-label="뒤로">${ic('back')}</button>` : ''}
-    <label class="fld"><span class="li">${ic('search')}</span><input type="search" enterkeyhint="search" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="글, 장소, 날짜, 포맷"><button class="x" data-a="clr" aria-label="지우기" hidden>${ic('close')}</button></label></header>
+  app.innerHTML = `${MOOD}<div class="srch">${/* 75차: 검색 탭도 큰 제목 없이 검색창이 맨 위 */''}<header class="sbar">${fromPick ? `<button class="cb bk" data-a="back" aria-label="뒤로">${ic('back')}</button>` : ''}
+    <label class="fld"><span class="li">${ic('search')}</span><input type="search" enterkeyhint="search" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="검색 · 글, 장소, 날짜, 포맷"><button class="x" data-a="clr" aria-label="지우기" hidden>${ic('close')}</button></label></header>
     <main class="sbody"></main></div>${fromPick ? '' : nav('search')}`;
   bindNav();
   const stopMood = paintMood($('.amb'));   // 10-31: 템플릿홈과 같은 바탕
@@ -1158,7 +1159,7 @@ function viewShelf() {
 // 책갈피 (11-11): 책갈피한 카드만 날짜별 1열. 누르면 크게 보기, ⋯ 에서 책갈피를 빼면 바로 빠져요
 function viewMarks() {
   const list = byDate(S.cards().filter(c => c.mark));
-  app.innerHTML = `${MOOD}<div class="shv mkv mood"><header class="shtop"><div class="tl"><h1>책갈피</h1></div></header><main class="feed mkf"></main></div>${nav('mark')}`;
+  app.innerHTML = `${MOOD}<div class="shv mkv mood"><main class="feed mkf"></main></div>${nav('mark')}`;
   bindNav();
   const stopMood = paintMood($('.amb')), feed = $('.mkf');
   let stop = () => {};
@@ -1665,8 +1666,8 @@ function viewCal(month) {
     setH(); const ro = new ResizeObserver(setH); ro.observe(cpn);   // 11-05: 날짜에 끌려 붙기(스냅) 없음, 손 뗀 자리 그대로
     const stopList = stop; stop = () => { stopList(); ro.disconnect(); document.documentElement.classList.toggle('csnap', false); };
     list.insertAdjacentHTML('beforeend', `<p class="firstd">처음 쓴 날 · ${ymd(first)}</p>`);
-    requestAnimationFrame(() => { toWeek(act, false); mark(act); if (!settle(all, open)) jump(act, false); });
-  } else { list.innerHTML = `<div class="empty"><span class="i">${ic('cal')}</span><b>아직 쓴 카드가 없어요</b></div>`; requestAnimationFrame(() => toWeek(T, false)); }
+    requestAnimationFrame(() => { toWeek(act, false); mark(act); if (!settle(all, open)) jump(act, false); requestAnimationFrame(() => { calY0 = scrollY; }); });   // 75차: 처음 자리 = 홈 버튼의 '맨 위'
+  } else { list.innerHTML = `<div class="empty"><span class="i">${ic('cal')}</span><b>아직 쓴 카드가 없어요</b></div>`; requestAnimationFrame(() => { toWeek(T, false); calY0 = scrollY; }); }
   cleanup = () => { stop(); stopMood(); closeRun(true); closeFocus(true); removeEventListener('scroll', onScroll); clearTimeout(st); cancelAnimationFrame(raf); };
 }
 
@@ -3421,7 +3422,7 @@ function viewSet(sub) {
     ${sgrp(srow('bell', '알림', S.pref('remind', false) ? '켜짐' : '', { go: '#/set/alarm' }), srow('globe', '언어', LANGS[S.pref('lang', 'ko')], { go: '#/set/lang' }))}
     ${sgrp(srow('spark', '서비스 소개', '', { go: '#/set/about' }), srow('help', '도움말', '', { a: 'help' }), srow('bell', '공지사항 · 이벤트', '', { go: '#/set/news' }), srow('clock', '업데이트 소식', UPDATES[0][0], { go: '#/set/updates' }))}
     ${sgrp(srow('doc', '이용약관', '', { a: 'terms' }), srow('shield', '개인정보 처리방침', '', { a: 'privacy' }), srow('lic', '라이선스', '', { a: 'lic' }))}
-    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-12 74차</p>`, { up: '#/', tab: true });
+    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-13 75차</p>`, { up: '#/', tab: true });
   $('[data-a=place]').onclick = e => { const on = !S.pref('autoPlace', false); S.setPref('autoPlace', on); e.currentTarget.querySelector('.tg').classList.toggle('on', on); };
   $('[data-a=terms]').onclick = () => { location.href = '../legal/terms.ko.html'; };
   $('[data-a=privacy]').onclick = () => { location.href = '../legal/privacy.ko.html'; };
@@ -3704,11 +3705,19 @@ function setPlan() {
 }
 
 const usedPhotos = () => [...S.cards(), ...S.trash(), ...S.drafts().map(d => d.card)].filter(Boolean).flatMap(c => [c.bg, ...(c.pst || []).map(p => p.bg)]).flatMap(b => [b?.ph, b?.vd]).filter(Boolean);   // 영상 파일도
-// 처음 열 때 (11-04): 바탕 위 로고만 보이다가, 글꼴 · 첫 화면이 다 그려지면 0.3초에 걸쳐 나타나요. 늦어도 2초면 그냥 보여요
+// 처음 열 때 (11-04): 바탕 위 로고만 보이다가, 글꼴 · 첫 화면이 다 그려지면 홈이 나타나요 (75차: 아래 인트로)
 const boot = document.getElementById('boot');
 if (boot) boot.innerHTML = LOGO;
-const bootEnd = () => { document.documentElement.classList.remove('booting'); if (!boot || boot.classList.contains('out')) return; boot.classList.add('out'); setTimeout(() => boot.remove(), 400); };
-setTimeout(bootEnd, 2000);
+// 75차 (11-13): 인트로 = 로고가 손글씨처럼 왼쪽부터 써지고(0.9초) 살짝 빛나요. 준비가 빨라도 1.5초는 보여 주고, 늦으면 로고가 숨 쉬며 기다려요 (늦어도 4초면 넘어가요)
+const BOOT_MIN = 1500, bootT0 = performance.now();
+let bootDone = false;
+const bootEnd = () => {
+  if (bootDone) return; bootDone = true;
+  const wait = oauthBack ? 0 : Math.max(0, BOOT_MIN - (performance.now() - bootT0));
+  setTimeout(() => { document.documentElement.classList.remove('booting'); if (!boot || boot.classList.contains('out')) return; boot.classList.add('out'); setTimeout(() => boot.remove(), 500); }, wait);
+};
+if (boot) setTimeout(() => boot.classList.add('wait'), BOOT_MIN);   // 준비가 아직이면 숨 쉬기
+setTimeout(bootEnd, 4000);
 const oauthBack = /[?&]code=/.test(location.search);
 // 템플릿 목록: 서버에서 새로 받아 바뀌었으면 템플릿 화면만 다시 그려요
 T.onUpdate(() => { if (/^#\/(tpl|pick|ti)\b/.test(location.hash)) route(); });

@@ -18,9 +18,28 @@ function used() {
   return { all, up };
 }
 
-// 한 번 맞추기. 돌려주는 것: { sent, got } (받은 게 있으면 화면을 다시 그려요)
+// 75차 (11-13): 아주 지운 카드의 사진 · 영상 번호를 모아 두었다가, 다음 맞추기 때 저장소에서도 지워요.
+// 다른 카드 · 휴지통 · 쓰다 만 글이 아직 같은 사진을 쓰면 남겨요 (이 기기에 없는 다른 기기의 쓰다 만 글은 알 수 없어요)
+const idsOf = cs => cs.flatMap(c => [c?.bg, ...(c?.pst || []).map(p => p?.bg)]).filter(Boolean).flatMap(b => [b.ph, b.vd]).filter(Boolean);
+S.onGone(cs => { const ids = idsOf(cs); if (!ids.length) return; st.del = [...new Set([...(st.del || []), ...ids])]; keep(); });
+async function prune(c, uid) {
+  if (!st.del?.length) return 0;
+  const { all } = used(), go = st.del.filter(id => !all.has(id)); let n = 0;
+  for (let i = 0; i < go.length; i += 100) {   // 한 번에 100개씩
+    const part = go.slice(i, i + 100);
+    const { error } = await c.storage.from(BK).remove(part.map(id => `${uid}/${id}`));
+    if (error) { console.warn('media del', error); return n; }
+    part.forEach(id => delete st.up[id]); n += part.length;
+    st.del = st.del.filter(id => !part.includes(id)); keep();
+  }
+  st.del = st.del.filter(id => !all.has(id) && !go.includes(id)); keep();   // 아직 쓰는 건 목록에서만 빼요
+  return n;
+}
+
+// 한 번 맞추기. 돌려주는 것: { sent, got, del } (받은 게 있으면 화면을 다시 그려요)
 export async function run(c, uid, prog) {
-  if (st.uid !== uid) { st = { uid, up: {} }; keep(); }
+  if (st.uid !== uid) { st = { uid, up: {}, del: st.uid ? [] : st.del || [] }; keep(); }   // 로그인 전에 지운 것도 이 계정에서 지워요
+  const del = await prune(c, uid);
   const { all, up } = used(); let sent = 0, got = 0;
   const todo = [...up].filter(id => !st.up[id]);
   for (const id of todo) {   // 올리기
@@ -37,7 +56,7 @@ export async function run(c, uid, prog) {
     if (error || !data) continue;
     await P.put(id, data); st.up[id] = 1; keep(); got++;
   }
-  return { sent, got };
+  return { sent, got, del };
 }
 export const pending = () => { const { up } = used(); return [...up].filter(id => !st.up?.[id]).length; };
 export function forget() { st = {}; try { localStorage.removeItem(K); } catch {} }
