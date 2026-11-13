@@ -26,9 +26,10 @@ h1 { font-size: 17px; font-weight: 500; margin-bottom: 6px; }
 
 /* A 손글씨 (지금 75차) */
 .A.go .lgo { -webkit-mask-image: linear-gradient(90deg,#000 42%,transparent 58%); mask-image: linear-gradient(90deg,#000 42%,transparent 58%); -webkit-mask-size: 260% 100%; mask-size: 260% 100%; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
-  animation: aW .9s cubic-bezier(.45,.05,.35,1) .1s both, glow 1s ease .9s both; }
+  animation: aW .9s cubic-bezier(.45,.05,.35,1) .1s both; }
+.A.go .stage { animation: glow 1.1s ease .85s both, out .5s ease 1.5s forwards; }   /* 빛은 가림막 밖(부모)에서: 끝이 잘리지 않게 */
 @keyframes aW { from { -webkit-mask-position: 100% 0; mask-position: 100% 0; transform: translateY(6px); } to { -webkit-mask-position: 0 0; mask-position: 0 0; transform: none; } }
-@keyframes glow { 0% { filter: drop-shadow(0 0 0 rgba(255,255,255,0)); } 45% { filter: drop-shadow(0 0 14px rgba(255,255,255,.45)); } 100% { filter: drop-shadow(0 0 0 rgba(255,255,255,0)); } }
+@keyframes glow { 0% { filter: drop-shadow(0 0 0 rgba(255,255,255,0)); } 40% { filter: drop-shadow(0 0 16px rgba(255,255,255,.5)); } 100% { filter: drop-shadow(0 0 2px rgba(255,255,255,0)); } }
 
 /* B 선 따라 그리기: 테두리를 펜처럼 따라 그린 뒤 속이 채워져요 */
 .B .lgo path { fill: transparent; stroke: #fff; stroke-width: 28; }

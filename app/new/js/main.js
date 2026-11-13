@@ -3707,7 +3707,7 @@ function setPlan() {
 const usedPhotos = () => [...S.cards(), ...S.trash(), ...S.drafts().map(d => d.card)].filter(Boolean).flatMap(c => [c.bg, ...(c.pst || []).map(p => p.bg)]).flatMap(b => [b?.ph, b?.vd]).filter(Boolean);   // 영상 파일도
 // 처음 열 때 (11-04): 바탕 위 로고만 보이다가, 글꼴 · 첫 화면이 다 그려지면 홈이 나타나요 (75차: 아래 인트로)
 const boot = document.getElementById('boot');
-if (boot) boot.innerHTML = LOGO;
+if (boot) boot.innerHTML = `<div class="lgw">${LOGO}</div>`;
 // 75차 (11-13): 인트로 = 로고가 손글씨처럼 왼쪽부터 써지고(0.9초) 살짝 빛나요. 준비가 빨라도 1.5초는 보여 주고, 늦으면 로고가 숨 쉬며 기다려요 (늦어도 4초면 넘어가요)
 const BOOT_MIN = 1500, bootT0 = performance.now();
 let bootDone = false;
