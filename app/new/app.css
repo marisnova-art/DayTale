@@ -2101,3 +2101,4 @@ html.lite .tmv .tstk.sc { border-top-color: transparent; border-bottom-color: rg
 html.lite #app .tmv .tch button { background: rgba(255,255,255,.6); box-shadow: inset 0 0 0 1px rgba(0,0,0,.14); }
 html.lite #app .tmv .tch button.on { background: #141416; color: #fff; box-shadow: none; }
 html.lite #app .tmv .wq { box-shadow: 0 8px 24px rgba(20,20,22,.12); }
+html.hd .tmv .tstk:not(.sc) { transform: none; }   /* 77차: 칩 줄은 위에 붙었을 때만 내릴 때 숨어요 (붙기 전엔 제자리) */
