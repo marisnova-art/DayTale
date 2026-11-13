@@ -447,6 +447,7 @@ function feedItem(c, tile, x = {}) {
   };
   if (ex && !x.ex) { ex.classList.add('xcap'); ex.onclick = () => { if (ex.classList.contains('open')) { ex.classList.remove('open'); exLine(); } else if ($('.xmore', ex) && !$('.xmore', ex).hidden) { ex.classList.add('open'); exOpen(); } }; }
   it._sync = () => { const f = $('.fls', it); if (f) f.innerHTML = flagsOf(c, tile); exLine(); };   // 메모 · 알림 · 책갈피가 바뀌면 바로
+  if (x.open && ex && !c.sample && (flat(c) || c.memos?.length)) ex.classList.add('open');   // 76차: 책갈피는 처음부터 글 전체 + 메모 모두 (눌러서 접을 수 있어요)
   exLine();   // 1열: 글 한 줄 + 더 보기. 검색에서는 찾은 낱말이 든 곳부터
   const draw = () => {   // 11-11: 그리기 (홈은 화면 가까이 왔을 때만)
     if (it._drawn) return; it._drawn = 1;
@@ -1163,7 +1164,7 @@ function viewMarks() {
   bindNav();
   const stopMood = paintMood($('.amb')), feed = $('.mkf');
   let stop = () => {};
-  if (list.length) { list.forEach(c => feed.appendChild(feedItem(c, false))); stop = liveMid(() => $$('.mkf .fi')); if (keepY != null) { const y = keepY; keepY = null; requestAnimationFrame(() => scrollTo(0, y)); } }
+  if (list.length) { list.forEach(c => feed.appendChild(feedItem(c, false, { open: true }))); stop = liveMid(() => $$('.mkf .fi')); if (keepY != null) { const y = keepY; keepY = null; requestAnimationFrame(() => scrollTo(0, y)); } }
   else feed.innerHTML = `<div class="empty"><span class="i">${ic('bookmark')}</span><b>책갈피한 카드가 여기 모여요</b></div>`;
   const onSc = () => $('.mkv')?.classList.toggle('sc', scrollY > 8);
   addEventListener('scroll', onSc, { passive: true });
@@ -1228,9 +1229,9 @@ function liveMid(items, { video = true, art = true, home = false, hold = () => f
   anim = requestAnimationFrame(tick);
   return () => { cancelAnimationFrame(anim); set(null); if (video && !covered()) V.sync([]); };
 }
-function dayList(host, list, onOpen, onMore, n = 2) {   // n = 열 수 (달력 3열, 11-04)
+function dayList(host, list, onOpen, onMore, n = 2) {   // n = 열 수 (달력 3열, 11-04). 76차: 날짜마다 .dg 묶음 (캘린더에서 날짜 머리가 위에 붙었다가 다음 날짜에 밀려 올라가요)
   const groups = new Map(); list.forEach(c => { const d = c.date || S.today(); if (!groups.has(d)) groups.set(d, []); groups.get(d).push(c); });
-  host.innerHTML = [...groups].map(([d, cs]) => { const [b, s] = dayHead(d, cs.length); return `<div class="dh" data-d="${d}"><b>${b}</b><span>${s}</span></div><div class="f2${n === 3 ? ' f3' : n === 1 ? ' f1' : ''}" data-d="${d}">${'<div class="mc"></div>'.repeat(n)}</div>`; }).join('');
+  host.innerHTML = [...groups].map(([d, cs]) => { const [b, s] = dayHead(d, cs.length); return `<section class="dg"><div class="dh" data-d="${d}"><b>${b}</b><span>${s}</span></div><div class="f2${n === 3 ? ' f3' : n === 1 ? ' f1' : ''}" data-d="${d}">${'<div class="mc"></div>'.repeat(n)}</div></section>`; }).join('');
   const io = new IntersectionObserver(es => es.forEach(e => { if (!e.isIntersecting) return; io.unobserve(e.target); const it = e.target, c = it._card, view = $('.view', it), pc = $('.pc', it); mount(view, c); pageInto(view, c, (i, n) => pcNum(pc, `${i}/${n}`)); }), { rootMargin: '900px 0px' });
   groups.forEach((cs, d) => {
     const cols = $$(`.f2[data-d="${d}"] .mc`, host), h = cols.map(() => 0);
@@ -1591,7 +1592,7 @@ function viewCal(month) {
     $$('.days .dh.act').forEach(x => x.classList.remove('act')); $(`.days .dh[data-d="${d}"]`)?.classList.add('act'); };
   // 그날 머리줄로 (패널 바로 아래)
   const jump = (d, smooth = true) => {
-    const el = $(`.dh[data-d="${d}"]`, list); if (!el) return;
+    const el = $(`.dh[data-d="${d}"]`, list)?.closest('.dg'); if (!el) return;   // 76차: 머리는 위에 붙어 있을 수 있어서 묶음 자리로 재요
     const y = el.getBoundingClientRect().top + scrollY - (parseFloat(getComputedStyle(panel).top) || 0) - panel.offsetHeight - 16;   // 패널 아래 16px 띄워서 (11-12: 판이 위 줄 아래에 붙어요)
     listLock = performance.now() + (smooth ? 900 : 150); hdHold = listLock + 100;
     scrollTo({ top: Math.max(0, y), behavior: smooth ? 'smooth' : 'instant' });
@@ -1662,7 +1663,7 @@ function viewCal(month) {
   if (all.length) {
     stop = dayList(list, all, open, c => cardMenu(c), 2);   // 11-11: 캘린더 2열로 되돌림 (앤드류)
     // 내리다 멈추면 가장 가까운 날짜 머리가 위 판 바로 아래에 와요 (11-04). 판 높이가 바뀌면(달 펼치기) 그 높이로
-    const cpn = $('.cpn'), setH = () => document.documentElement.style.setProperty('--cph', cpn.offsetHeight + 'px');
+    const cpn = $('.cpn'), setH = () => { const r = document.documentElement.style; r.setProperty('--cph', cpn.offsetHeight + 'px'); r.setProperty('--cpb', ((parseFloat(getComputedStyle(cpn).top) || 0) + cpn.offsetHeight) + 'px'); };   // 76차 --cpb = 판 아래 끝 (날짜 머리가 붙는 자리)
     setH(); const ro = new ResizeObserver(setH); ro.observe(cpn);   // 11-05: 날짜에 끌려 붙기(스냅) 없음, 손 뗀 자리 그대로
     const stopList = stop; stop = () => { stopList(); ro.disconnect(); document.documentElement.classList.toggle('csnap', false); };
     list.insertAdjacentHTML('beforeend', `<p class="firstd">처음 쓴 날 · ${ymd(first)}</p>`);
@@ -3422,7 +3423,7 @@ function viewSet(sub) {
     ${sgrp(srow('bell', '알림', S.pref('remind', false) ? '켜짐' : '', { go: '#/set/alarm' }), srow('globe', '언어', LANGS[S.pref('lang', 'ko')], { go: '#/set/lang' }))}
     ${sgrp(srow('spark', '서비스 소개', '', { go: '#/set/about' }), srow('help', '도움말', '', { a: 'help' }), srow('bell', '공지사항 · 이벤트', '', { go: '#/set/news' }), srow('clock', '업데이트 소식', UPDATES[0][0], { go: '#/set/updates' }))}
     ${sgrp(srow('doc', '이용약관', '', { a: 'terms' }), srow('shield', '개인정보 처리방침', '', { a: 'privacy' }), srow('lic', '라이선스', '', { a: 'lic' }))}
-    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-13 75차</p>`, { up: '#/', tab: true });
+    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-13 76차</p>`, { up: '#/', tab: true });
   $('[data-a=place]').onclick = e => { const on = !S.pref('autoPlace', false); S.setPref('autoPlace', on); e.currentTarget.querySelector('.tg').classList.toggle('on', on); };
   $('[data-a=terms]').onclick = () => { location.href = '../legal/terms.ko.html'; };
   $('[data-a=privacy]').onclick = () => { location.href = '../legal/privacy.ko.html'; };
@@ -3707,7 +3708,16 @@ function setPlan() {
 const usedPhotos = () => [...S.cards(), ...S.trash(), ...S.drafts().map(d => d.card)].filter(Boolean).flatMap(c => [c.bg, ...(c.pst || []).map(p => p.bg)]).flatMap(b => [b?.ph, b?.vd]).filter(Boolean);   // 영상 파일도
 // 처음 열 때 (11-04): 바탕 위 로고만 보이다가, 글꼴 · 첫 화면이 다 그려지면 홈이 나타나요 (75차: 아래 인트로)
 const boot = document.getElementById('boot');
-if (boot) boot.innerHTML = `<div class="lgw">${LOGO}</div>`;
+// 75차 (11-13, 앤드류): 인트로 A~G 중 하나를 골라요 (바로 전과 같은 건 빼고)
+if (boot) {
+  let last = ''; try { last = localStorage.getItem('dz.intro') || ''; } catch {}
+  const pool = 'ABCDEFG'.split('').filter(k => k !== last), k = pool[Math.floor(Math.random() * pool.length)];
+  try { localStorage.setItem('dz.intro', k); } catch {}
+  boot.classList.add('i' + k);
+  boot.innerHTML = `<div class="lgw">${LOGO}${k === 'D' ? '<i class="shine"></i>' : k === 'E' ? '<i class="dot"></i>' : ''}</div>`;
+  if (k === 'B') boot.querySelectorAll('.lgo path').forEach(p => { const L = Math.ceil(p.getTotalLength()); p.style.strokeDasharray = L; p.style.setProperty('--len', L); p.style.strokeDashoffset = L; });
+  if (k === 'D') { const svg = boot.querySelector('.lgo'), m = new XMLSerializer().serializeToString(svg).replace('currentColor', '#000'); boot.querySelector('.lgw').style.setProperty('--logomask', `url("data:image/svg+xml,${encodeURIComponent(m)}")`); }
+}
 // 75차 (11-13): 인트로 = 로고가 손글씨처럼 왼쪽부터 써지고(0.9초) 살짝 빛나요. 준비가 빨라도 1.5초는 보여 주고, 늦으면 로고가 숨 쉬며 기다려요 (늦어도 4초면 넘어가요)
 const BOOT_MIN = 1500, bootT0 = performance.now();
 let bootDone = false;
@@ -3716,7 +3726,7 @@ const bootEnd = () => {
   const wait = oauthBack ? 0 : Math.max(0, BOOT_MIN - (performance.now() - bootT0));
   setTimeout(() => { document.documentElement.classList.remove('booting'); if (!boot || boot.classList.contains('out')) return; boot.classList.add('out'); setTimeout(() => boot.remove(), 500); }, wait);
 };
-if (boot) setTimeout(() => boot.classList.add('wait'), BOOT_MIN);   // 준비가 아직이면 숨 쉬기
+if (boot) setTimeout(() => boot.classList.add('wait'), 2000);   // 모션이 끝난 뒤에도 준비가 아직이면 숨 쉬기   // 준비가 아직이면 숨 쉬기
 setTimeout(bootEnd, 4000);
 const oauthBack = /[?&]code=/.test(location.search);
 // 템플릿 목록: 서버에서 새로 받아 바뀌었으면 템플릿 화면만 다시 그려요

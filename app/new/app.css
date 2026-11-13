@@ -1594,7 +1594,8 @@ img.tth { display: block; width: 100%; aspect-ratio: 4 / 5; object-fit: cover; }
 /* 책갈피 탭: 1열 */
 .days .f1 { grid-template-columns: minmax(0, 1fr); padding: 0 var(--gut); }
 .days .f1 .mc { gap: 18px; }
-.mkv { position: relative; z-index: 1; min-height: 100vh; padding-bottom: calc(120px + var(--safe-b)); }
+.mkv { position: relative; z-index: 1; min-height: 100vh; }
+.shv.mkv { padding-bottom: 0; }   /* 76차: 아래 여백은 카드 목록(.feed) 하나만 (두 번 겹쳐 길게 비던 것) */
 /* 쓰기 홈 맨 위 바로 쓰기 (칩 줄 아래) */
 .tmv .wq { margin-top: 20px; }
 .tmv .wq + .thero { margin-top: 20px; }
@@ -2031,13 +2032,37 @@ html.lite #app .srch .fld .li { color: #1a1a1d; }
 html.lite #app .srch .fld input::placeholder { color: rgba(20,20,22,.5); }
 /* 75차 (11-13): 책갈피 탭도 큰 제목 없이 카드가 맨 위부터 (검색창과 같은 높이에서 시작) */
 .mkv > .mkf { padding-top: var(--top); }
-/* 75차 (11-13): 첫 화면 인트로. 로고가 왼쪽부터 부드러운 끝으로 써지며(0.9초) 살짝 올라오고 → 은은하게 빛났다가 → 준비가 늦으면 숨 쉬듯 기다려요 */
-#boot .lgo { -webkit-mask-image: linear-gradient(90deg, #000 42%, transparent 58%); mask-image: linear-gradient(90deg, #000 42%, transparent 58%);
-  -webkit-mask-size: 260% 100%; mask-size: 260% 100%; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
-  animation: bootWrite .9s cubic-bezier(.45,.05,.35,1) .1s both; }
-#boot .lgw { animation: bootGlow 1.1s ease .85s both; }   /* 빛은 가림막 밖(감싼 칸)에서: 끝이 잘리지 않게 */
-#boot.wait .lgo { animation: bootBreath 1.6s ease-in-out infinite; -webkit-mask-image: none; mask-image: none; }
+/* 75차 (11-13): 첫 화면 인트로 7가지 (앤드류: A~G 랜덤, 바로 전과 같은 건 안 나와요). #boot에 iA~iG, 로고는 .lgw > .lgo
+   A 손글씨 · B 선 따라 그리기 · C 잉크 번짐 · D 빛이 지나감 · E 점에서 퍼짐 · F 떠오름 · G 숨결. 준비가 늦으면 .wait = 숨 쉬듯 기다려요 */
+#boot .lgw { position: relative; display: grid; place-items: center; }
+#boot.iA .lgo { -webkit-mask-image: linear-gradient(90deg,#000 42%,transparent 58%); mask-image: linear-gradient(90deg,#000 42%,transparent 58%); -webkit-mask-size: 260% 100%; mask-size: 260% 100%; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; animation: bootWrite .9s cubic-bezier(.45,.05,.35,1) .1s both; }
+#boot.iA .lgw { animation: bootGlow 1.1s ease .85s both; }   /* 빛은 가림막 밖(감싼 칸)에서: 끝이 잘리지 않게 */
+#boot.iB .lgo path { fill: transparent; stroke: #fff; stroke-width: 28; animation: bootStroke 1.1s cubic-bezier(.5,0,.3,1) both, bootFill .45s ease .85s both; }
+#boot.iC .lgo { animation: bootInk 1.2s cubic-bezier(.2,.8,.2,1) both; }
+#boot.iD .lgw { -webkit-mask-image: var(--logomask); mask-image: var(--logomask); -webkit-mask-size: 100% 100%; mask-size: 100% 100%; animation: bootUp .6s ease both; }
+#boot.iD .lgo { color: rgba(255,255,255,.8); }
+#boot .shine { position: absolute; inset: -20% -10%; background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,.95) 50%, transparent 65%); background-size: 300% 100%; background-position: 100% 0; opacity: 0; }
+#boot.iD .shine { animation: bootShine .8s ease .55s both; }
+#boot .dot { position: absolute; left: 50%; top: 50%; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: #fff; opacity: 0; }
+#boot.iE .dot { animation: bootDot .7s cubic-bezier(.3,0,.2,1) both; }
+#boot.iE .lgo { -webkit-mask-image: radial-gradient(circle, #000 40%, transparent 60%); mask-image: radial-gradient(circle, #000 40%, transparent 60%); -webkit-mask-position: center; mask-position: center; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; animation: bootSpread .9s cubic-bezier(.3,0,.2,1) .35s both; }
+#boot.iF .lgw { overflow: hidden; padding: 10px 0 16px; }
+#boot.iF .lgo { animation: bootRise .8s cubic-bezier(.3,1.4,.4,1) .1s both; }
+#boot.iG .lgo { animation: bootCalm 1.3s ease-out both; }
+#boot.wait .lgw { animation: bootBreath 1.6s ease-in-out infinite; }
 @keyframes bootWrite { from { -webkit-mask-position: 100% 0; mask-position: 100% 0; transform: translateY(6px); } to { -webkit-mask-position: 0 0; mask-position: 0 0; transform: none; } }
 @keyframes bootGlow { 0% { filter: drop-shadow(0 0 0 rgba(255,255,255,0)); } 40% { filter: drop-shadow(0 0 16px rgba(255,255,255,.5)); } 100% { filter: drop-shadow(0 0 2px rgba(255,255,255,0)); } }
+@keyframes bootStroke { from { stroke-dashoffset: var(--len); } to { stroke-dashoffset: 0; } }
+@keyframes bootFill { from { fill: rgba(255,255,255,0); stroke-width: 28; } to { fill: #fff; stroke-width: 0; } }
+@keyframes bootInk { 0% { opacity: 0; filter: blur(18px); transform: scale(1.15); } 60% { opacity: 1; } 100% { opacity: 1; filter: blur(0); transform: none; } }
+@keyframes bootUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes bootShine { 0% { opacity: 1; background-position: 100% 0; } 100% { opacity: 1; background-position: 0 0; } }
+@keyframes bootDot { 0% { opacity: 0; transform: scale(.2); } 30% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(28); } }
+@keyframes bootSpread { from { -webkit-mask-size: 0% 0%; mask-size: 0% 0%; } to { -webkit-mask-size: 300% 300%; mask-size: 300% 300%; } }
+@keyframes bootRise { from { transform: translateY(105%); } to { transform: none; } }
+@keyframes bootCalm { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: none; } }
 @keyframes bootBreath { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
-@media (prefers-reduced-motion: reduce) { #boot .lgw, #boot .lgo, #boot.wait .lgo { animation: none; -webkit-mask-image: none; mask-image: none; } }
+@media (prefers-reduced-motion: reduce) { #boot .lgw, #boot .lgo, #boot .lgo path, #boot .shine, #boot .dot { animation: none !important; } #boot .lgo { -webkit-mask-image: none !important; mask-image: none !important; } #boot .lgo path { fill: #fff !important; stroke-width: 0 !important; } }
+/* 76차 (11-13): 캘린더 날짜 머리 = 위 판 바로 아래에 붙어 있다가 다음 날짜 묶음이 밀어 올려요 (아이폰 사진 · 연락처처럼). 붙어 있을 때 아래 카드가 비치지 않게 흐림 */
+.calv .days .dh { position: sticky; top: calc(var(--cpb, 160px) + 8px); transition: top .3s cubic-bezier(.2,.8,.2,1), background-color .22s ease; z-index: 5; -webkit-backdrop-filter: blur(20px) saturate(1.3); backdrop-filter: blur(20px) saturate(1.3); }
+html.hd .calv .days .dh { top: calc(var(--cpb, 160px) - 70px + 8px); }   /* 내릴 때 판이 70px 올라가면 머리도 같이 (47차 판 움직임과 같은 값) */
