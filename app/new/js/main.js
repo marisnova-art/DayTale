@@ -1,7 +1,7 @@
 // 갖고 싶은 하루 · 모바일 1차: 피드 → 포맷 고르기 → 쓰기 → 완료·저장
 import { ic } from './icons.js';
 import * as S from './store.js';
-import { exampleText, quoteText } from './prompts.js';
+import { exampleText, quoteText, dayQuestion } from './prompts.js';
 import { FORMATS, ORDER, LABEL, ensure, missing, blank, sampleCard, renderCard, fitCard, cardText, newSeed, placeObjects, dateChip, weekday, toneOf, pageBg, AR, RATIOS, arOf, dateOn, placeOn, infoPos, signOf, SIZE5, V5, dimLv, inkOn, dateLine, DATE_FMT, zoomOf, zoomCss, lines, starts } from './formats.js';
 import { FREE, KIND, find as findBg, drawCode } from './bg.js';
 import { buildPages, saveImages } from './export.js';
@@ -15,7 +15,7 @@ import * as P from './photos.js';
 import { FILTERS, filterOf, fidOf, grainLv, srcOf, thumb as fthumb } from './filters.js';
 import * as V from './video.js';
 import { LOGO } from './logo.js';
-import { paint as paintMood, panelCss, MODES as BG_MODES, mode as bgMode, reset as resetMood, PAGE_G, PAGE_S } from './mood.js';
+import { weather as wxNow, paint as paintMood, panelCss, MODES as BG_MODES, mode as bgMode, reset as resetMood, PAGE_G, PAGE_S } from './mood.js';
 import * as T from './templates.js';
 import * as PC from './pc.js';
 const TPL = T;   // 함수 안에서 T를 다른 뜻(달 · 길이)으로 쓰는 곳용
@@ -1814,41 +1814,56 @@ function viewTpl() {
   pickEx = exampleText();
   const free = T.heroes().find(h => h.k === 'free')?.t, paid = isPaidUser();
   const lock = t => t.paid && !paid && t !== free;   // 테스트 동안은 표시만 (모두 열려 있어요)
-  const chips = [['홈', '홈'], ...(T.favs().length ? [['fav', '즐겨찾기']] : []), ...T.kinds().map(k => [k, k]), ...T.tagOrder().map(t => [t, t])];   // 11-04: 즐겨찾기는 홈 옆 칩으로 (비어 있으면 숨겨요)
+  const chips = [['홈', '전체'], ...(T.favs().length ? [['fav', '즐겨찾기']] : []), ...T.kinds().map(k => [k, k]), ...T.tagOrder().map(t => [t, t])];   // 11-04: 즐겨찾기는 홈 옆 칩으로 (비어 있으면 숨겨요)
   app.innerHTML = `<div class="amb"><div class="mo"></div></div><div class="tgr"></div><div class="tmv">
-    <header class="shtop"><div class="tl"><h1>쓰기</h1></div></header>
-    <div class="tstk"><label class="tsf gls">${ic('search')}<input type="search" placeholder="검색" enterkeyhint="search" autocomplete="off"><button class="x" data-a="clr" aria-label="지우기" hidden>${ic('close')}</button></label>
-    <div class="tch">${chips.map(([c, n]) => `<button class="gls" data-c="${esc(c)}">${esc(n)}</button>`).join('')}</div></div>
-    <main class="tbody"></main></div>${nav('write')}`;
+    <main class="tbody"><div class="ttop"></div>
+    <div class="tstk"><div class="tch">${chips.map(([c, n]) => `<button data-c="${esc(c)}">${esc(n)}</button>`).join('')}</div></div>
+    <div class="tlist"></div></main></div>${nav('write')}`;   // 11-13 v4: 제목 · 검색 없음. 위 = 바로 쓰기 · 오늘의 무료 (늘 그대로), 칩부터 아래 = 목록
   // 바로 쓰기 (11-11): 글쓰기 · 포토쓰기 · 쓰다 만 글. 아이폰은 누른 그 순간에만 사진첩을 열어 줘서 여기서 바로
   const picker = document.createElement('input'); picker.type = 'file'; picker.accept = 'image/*,video/*'; picker.hidden = true; app.appendChild(picker);
   picker.onchange = () => { const fl = picker.files?.[0]; if (!fl) return; writeIntent = { photo: fl }; go('#/write/text'); };
-  const quick = () => `<section class="wbx gls wq" data-b="b1"><div class="bxh"><span class="tbs"><button class="on">바로 쓰기</button></span></div><div class="trow b1">
+  // 11-13 v4: 큰 판 하나. 바탕 = 마지막에 쓴 카드의 바탕(사진 · 색)을 크게 흐리게, 위 = 날짜 · 날씨 + 오늘의 질문(두 줄)
+  const quick = () => `<section class="wbx wq" data-b="b1"><div class="qbg"></div><div class="qh"><small class="qd">${dayLine()}</small><b>${esc(dayQuestion()).replace('\n', '<br>')}</b></div><div class="trow b1">
       <button class="wt wk" data-k="color"><div class="wc"></div><div class="wl">${ic('pen')}글쓰기</div></button>
       <button class="wt wk" data-k="photo"><div class="wc"><div class="phs"></div></div><div class="wl">${ic('img')}포토쓰기</div></button>
-      ${S.drafts().map(d => `<button class="wt wd" data-d="${d.id}"><div class="wc"></div><span class="pd">${whenOf(d.at)}</span><span class="x" data-x="${d.id}" role="button" aria-label="지우기">${ic('close')}</span></button>`).join('')}</div></section>`;
+      ${S.drafts().map(d => `<button class="wt wd" data-d="${d.id}"><div class="wc"></div><span class="pd">${whenOf(d.at)}</span><span class="x" data-x="${d.id}" role="button" aria-label="지우기">${ic('close')}</span><div class="wl">${ic('pen')}이어쓰기</div></button>`).join('')}</div></section>`;
   const fillQuick = body => {
     const q = $('.wq', body); if (!q) return;
     mount($('[data-k=color] .wc', q), { ...blank('text', S.today()), bg: lastColor(), pages: [''], showDate: false });
     $$('.wt[data-d]', q).forEach(b => { const d = S.draft(b.dataset.d); if (d) mount($('.wc', b), { ...d.card, ratio: '45' }); });
+    const last = S.cards().find(c => c.bg && !c.sample);
+    if (last) mount($('.qbg', q), { ...blank('text', S.today()), bg: last.bg, pages: [''], showDate: false, ratio: '45' }); else q.classList.add('smp');
     snapOne($('.trow', q));
   };
   bindNav();
   const stopMood = paintMood($('.amb'));
-  const inp = $('.tsf input'); inp.value = tstate.q;
   const tile = t => `<button class="tt" data-t="${t.id}"><div class="tc">${lock(t) ? `<span class="lk">${ic('lock')}</span>` : ''}</div><div class="nm"><span>${esc(t.name)}</span>${T.isFav(t.id) ? HEART : ''}</div></button>`;
   // 11-11: 견본 칸은 화면 가까이(가로 줄 포함) 온 것만 그려요. 쓰기 탭이 바로 떠요
   const tq = new IntersectionObserver(es => es.forEach(e => { if (!e.isIntersecting) return; tq.unobserve(e.target); const b = e.target; if (b.isConnected && !$('.tc .cd', b)) tplTile($('.tc', b), T.tpl(b.dataset.t)); }), { rootMargin: '600px 400px' });
   let timer = 0;
+  // 위 (늘 그대로): 바로 쓰기 판 + 오늘의 무료 · 추천 판. 옆으로 넘기기 + 5초마다 저절로 (손대면 멈춤)
+  const cardOf = t => T.exCard(t, 0, true);
+  const top = () => {
+    const box = $('.ttop');
+    const hs = T.heroes().map(h => ({ ...h, label: h.k === 'free' ? (paid ? '오늘 추천' : '오늘 무료') : h.k === 'now' ? '지금 추천' : '새로 나온' }));
+    box.innerHTML = `${quick()}<div class="thero"><div class="ths gls">${hs.map(h => `<button class="tday" data-t="${h.t.id}"><div class="th"></div><div class="tdx"><em class="gls">${h.label}</em><b>${esc(h.t.name)}</b><p>${esc(T.line(h.t.desc[0]))}</p></div></button>`).join('')}</div><div class="mdots" data-for="ths"></div></div>`;
+    fillQuick(box);
+    hs.forEach((h, i) => mount($$('.tday .th', box)[i], cardOf(h.t)));
+    const ths = $('.ths', box), dots = $('[data-for=ths]', box), n = hs.length;
+    const k = () => Math.round(ths.scrollLeft / Math.max(1, ths.clientWidth));
+    const pd = () => { dots.innerHTML = dotsHtml(n, k()); };
+    pd(); ths.addEventListener('scroll', pd, { passive: true });
+    const stop = () => clearInterval(timer);
+    ths.addEventListener('touchstart', stop, { passive: true }); ths.addEventListener('pointerdown', stop);
+    if (n > 1 && !matchMedia('(prefers-reduced-motion: reduce)').matches) timer = setInterval(() => ths.scrollTo({ left: ((k() + 1) % n) * ths.clientWidth, behavior: 'smooth' }), 5000);
+    wxNow().then(() => { const d = $('.wq .qd'); if (d) d.textContent = dayLine(); });   // 날씨가 늦게 오면 그때 채워요
+  };
+  // 칩부터 아래 (목록): 전체 = 줄들 + 모든 템플릿, 다른 칩 = 그 칩 템플릿 3열
   const paint = () => {
-    clearInterval(timer);
     const f = tstate.f, q = tstate.q.trim();
     $$('.tch button').forEach(b => b.classList.toggle('on', b.dataset.c === f));
-    $('[data-a=clr]').hidden = !q;
-    const body = $('.tbody'); body.innerHTML = '';
-    const cardOf = t => T.exCard(t, 0, true);
-    if (f === '홈' && !q) {   // 메인: 위 판 → 줄들 → 모든 템플릿
-      const hs = T.heroes().map(h => ({ ...h, label: h.k === 'free' ? (paid ? '오늘 추천' : '오늘 무료') : h.k === 'now' ? '지금 추천' : '새로 나온' }));
+    const body = $('.tlist'); body.innerHTML = '';
+    if (f === '홈' && !q) {
       const seen = new Set(), rows = [];
       const row = (title, list, c) => { const l = list.filter(t => !seen.has(t)).slice(0, 8); if (l.length >= 2) { l.forEach(t => seen.add(t)); rows.push({ title, l, c }); } };
       T.tagOrder().slice(0, 2).forEach(g => row(g, T.TEMPLATES.filter(t => t.tags.includes(g)), g));
@@ -1857,23 +1872,12 @@ function viewTpl() {
       const SORTS = [['new', '새로 나온'], ['pop', '인기'], ...(Object.keys(T.mineCount()).length ? [['mine', '자주 쓴']] : [])];
       if (!SORTS.some(x => x[0] === tstate.sort)) tstate.sort = 'new';
       const first = `<div class="tsec tabs"><span class="tbs">${SORTS.map(([k, n]) => `<button data-s="${k}" class="${k === tstate.sort ? 'on' : ''}">${n}</button>`).join('')}</span><button data-c="s:${tstate.sort}">모두 보기</button></div><div class="trow" data-row="sort">${T.sorted(tstate.sort).slice(0, 8).map(t => tile(t)).join('')}</div><div class="mdots"></div>`;
-      body.innerHTML = `${quick()}<div class="thero"><div class="ths gls">${hs.map(h => `<button class="tday" data-t="${h.t.id}"><div class="th"></div><div class="tdx"><em class="gls">${h.label}</em><b>${esc(h.t.name)}</b><p>${esc(T.line(h.t.desc[0]))}</p></div></button>`).join('')}</div><div class="mdots" data-for="ths"></div></div>
-        ${first}${rows.map(r => `<div class="tsec"><b>${esc(r.title)}</b><button data-c="${esc(r.c)}">모두 보기</button></div><div class="trow">${r.l.map(t => tile(t)).join('')}</div><div class="mdots"></div>`).join('')}
+      body.innerHTML = `${first}${rows.map(r => `<div class="tsec"><b>${esc(r.title)}</b><button data-c="${esc(r.c)}">모두 보기</button></div><div class="trow">${r.l.map(t => tile(t)).join('')}</div><div class="mdots"></div>`).join('')}
         <div class="tsec"><b>모든 템플릿</b></div><div class="tg2">${T.newest().map(t => tile(t)).join('')}</div>`;
-      fillQuick(body);
-      hs.forEach((h, i) => mount($$('.tday .th', body)[i], cardOf(h.t)));
       $$('.tt', body).forEach(b => tq.observe(b));
-      // 위 판: 옆으로 넘기기 + 5초마다 저절로 (손대면 멈춤)
-      const ths = $('.ths', body), dots = $('[data-for=ths]', body), n = hs.length;
-      const k = () => Math.round(ths.scrollLeft / Math.max(1, ths.clientWidth));
-      const pd = () => { dots.innerHTML = dotsHtml(n, k()); };
-      pd(); ths.addEventListener('scroll', pd, { passive: true });
-      const stop = () => clearInterval(timer);
-      ths.addEventListener('touchstart', stop, { passive: true }); ths.addEventListener('pointerdown', stop);
-      if (n > 1 && !matchMedia('(prefers-reduced-motion: reduce)').matches) timer = setInterval(() => ths.scrollTo({ left: ((k() + 1) % n) * ths.clientWidth, behavior: 'smooth' }), 5000);
       // 줄마다 점 · 대시 (밀어서 볼 쪽 수)
-      $$('.trow:not(.b1)', body).forEach(r => { const d = r.nextElementSibling; const p = () => { const m = Math.max(1, Math.ceil(r.scrollWidth / r.clientWidth - .05)); d.innerHTML = dotsHtml(m, Math.round(r.scrollLeft / Math.max(1, r.scrollWidth - r.clientWidth) * (m - 1)) || 0); }; p(); r.addEventListener('scroll', p, { passive: true }); });
-    } else {   // 칩 · 즐겨찾기 · 검색: 2열 전부
+      $$('.trow', body).forEach(r => { const d = r.nextElementSibling; const p = () => { const m = Math.max(1, Math.ceil(r.scrollWidth / r.clientWidth - .05)); d.innerHTML = dotsHtml(m, Math.round(r.scrollLeft / Math.max(1, r.scrollWidth - r.clientWidth) * (m - 1)) || 0); }; p(); r.addEventListener('scroll', p, { passive: true }); });
+    } else {   // 칩 · 즐겨찾기 · 모두 보기: 3열 전부
       let l = T.newest();
       if (f === 'fav') { const fv = T.favs(); l = fv.map(T.tpl).filter(Boolean); }
       else if (T.kinds().includes(f)) l = l.filter(t => t.kind === f);
@@ -1885,11 +1889,9 @@ function viewTpl() {
       $$('.tt', body).forEach(b => tq.observe(b));
     }
   };
-  const setF = f => { tstate.f = f; paint(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+  // 칩을 누르면 목록만 바뀌고, 칩이 맨 위에 붙는 자리로 가요 ('전체'는 이미 아래에 있을 때만)
+  const setF = f => { tstate.f = f; paint(); const y = $('.tstk').getBoundingClientRect().top + scrollY; if (f !== '홈' || scrollY > y) { hdHold = performance.now() + 900; document.documentElement.classList.remove('hd'); window.scrollTo({ top: y, behavior: 'smooth' }); } };   // 스스로 내려갈 땐 칩을 숨기지 않아요
   $('.tch').onclick = e => { const b = e.target.closest('[data-c]'); if (b) setF(b.dataset.c); };
-  $('[data-a=clr]').onclick = e => { e.preventDefault(); inp.value = tstate.q = ''; paint(); inp.focus(); };
-  inp.oninput = () => { tstate.q = inp.value; paint(); };
-  inp.onkeydown = e => { if (e.key === 'Enter') inp.blur(); };
   $('.tbody').onclick = e => {
     const k = e.target.closest('.wq [data-k]')?.dataset.k;
     if (k === 'color') { writeIntent = { color: true }; return go('#/write/text'); }
@@ -1907,9 +1909,9 @@ function viewTpl() {
     const c = e.target.closest('.tsec [data-c]'); if (c) { $(`.tch [data-c="${c.dataset.c}"]`)?.scrollIntoView({ inline: 'center', block: 'nearest' }); return setF(c.dataset.c); }
     const t = e.target.closest('[data-t]'); if (t) go('#/ti/' + t.dataset.t);
   };
-  paint();
+  top(); paint();
   const y = tstate.y || 0; if (y) requestAnimationFrame(() => window.scrollTo(0, y));
-  const stk = $('.tstk'), keep = () => { tstate.y = scrollY; stk.classList.toggle('sc', stk.getBoundingClientRect().top <= 0.5 && scrollY > 8); };   // 붙어 있을 때만 뒤 흐림
+  const stk = $('.tstk'), keep = () => { tstate.y = scrollY; stk.classList.toggle('sc', stk.getBoundingClientRect().top <= 1 && scrollY > 8); };   // 붙어 있을 때만 뒤 흐림
   addEventListener('scroll', keep, { passive: true });
   // 위 판의 아트 미리보기는 빛이 천천히 흘러요 (화면에 보일 때만)
   let anim = 0; const t0 = performance.now(), still = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1963,6 +1965,9 @@ let pickEx = null, writeIntent = null;   // writeIntent: 쓰기 홈에서 고른
 // 쓰기 메인 (10-31 시안 write-main-1031 board-v2, QA 10-31): 맨 위 '기본으로 쓰기' 띠 → 오늘의 추천(큰 판) → 이어 쓰기(있을 때만) → 최근 쓴 템플릿 → 즐겨찾기 → NEW → 템플릿 더 보기. 카드를 누르면 자세히 보기로 바로.
 // 줄은 옆으로 밀고 점 · 대시. 템플릿 카드를 누르면 크게 보기(이 템플릿으로 쓰기 · 자세히 보기), 이어 쓰기 카드는 바로 이어 써요. 빈 줄은 숨겨요
 const REC_T = { 밤: '밤에 쓰기 좋은', 비: '비 오는 날엔', 눈: '눈 오는 날엔', 아침: '아침에 쓰기 좋은', 겨울: '겨울에 어울리는', 봄: '봄에 어울리는', 여름: '여름에 어울리는', 가을: '가을에 어울리는', 짧은글: '짧게 남기는 날', 감성: '감성 가득한 날' };
+// 11-13 쓰기 탭 위 작은 줄: 날짜 · 날씨 (날씨는 3시간 안에 받은 것만)
+const WXK = { sun: '맑음', suncloud: '구름 조금', cloud: '흐림', rain: '비', snow: '눈', thunder: '천둥', fog: '안개' };
+const dayLine = (now = new Date()) => { let w = ''; try { const x = JSON.parse(localStorage.getItem('daytale.wx') || 'null'); if (x && Date.now() - x.at < 3 * 3600e3 && WXK[x.kind]) w = ` · ${WXK[x.kind]}${x.temp != null ? ` ${x.temp}°` : ''}`; } catch {} return `${now.getMonth() + 1}월 ${now.getDate()}일 ${'일월화수목금토'[now.getDay()]}요일${w}`; };
 const whenOf = iso => { const d = iso.slice(0, 10), t = S.today(); if (d === t) return '오늘'; const y = new Date(t + 'T00:00:00'); y.setDate(y.getDate() - 1); return d === `${y.getFullYear()}-${p2(y.getMonth() + 1)}-${p2(y.getDate())}` ? '어제' : `${+d.slice(5, 7)}.${d.slice(8, 10)}`; };
 // 가로 줄: 짧게 한 번 밀어도 한 장씩 착 (CSS 스냅만으론 반 넘게 밀어야 넘어가서 2~3번 밀게 돼요)
 function snapOne(r) {
@@ -3423,7 +3428,7 @@ function viewSet(sub) {
     ${sgrp(srow('bell', '알림', S.pref('remind', false) ? '켜짐' : '', { go: '#/set/alarm' }), srow('globe', '언어', LANGS[S.pref('lang', 'ko')], { go: '#/set/lang' }))}
     ${sgrp(srow('spark', '서비스 소개', '', { go: '#/set/about' }), srow('help', '도움말', '', { a: 'help' }), srow('bell', '공지사항 · 이벤트', '', { go: '#/set/news' }), srow('clock', '업데이트 소식', UPDATES[0][0], { go: '#/set/updates' }))}
     ${sgrp(srow('doc', '이용약관', '', { a: 'terms' }), srow('shield', '개인정보 처리방침', '', { a: 'privacy' }), srow('lic', '라이선스', '', { a: 'lic' }))}
-    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-13 76차</p>`, { up: '#/', tab: true });
+    ${u ? sgrp(srow('logout', '로그아웃', '', { end: '', a: 'out' })) : ''}<p class="sver">dayzine 1.0.0 · 테스트 · 11-13 77차</p>`, { up: '#/', tab: true });
   $('[data-a=place]').onclick = e => { const on = !S.pref('autoPlace', false); S.setPref('autoPlace', on); e.currentTarget.querySelector('.tg').classList.toggle('on', on); };
   $('[data-a=terms]').onclick = () => { location.href = '../legal/terms.ko.html'; };
   $('[data-a=privacy]').onclick = () => { location.href = '../legal/privacy.ko.html'; };

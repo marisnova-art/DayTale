@@ -2066,3 +2066,38 @@ html.lite #app .srch .fld input::placeholder { color: rgba(20,20,22,.5); }
 /* 76차 (11-13): 캘린더 날짜 머리 = 위 판 바로 아래에 붙어 있다가 다음 날짜 묶음이 밀어 올려요 (아이폰 사진 · 연락처처럼). 붙어 있을 때 아래 카드가 비치지 않게 흐림 */
 .calv .days .dh { position: sticky; top: calc(var(--cpb, 160px) + 8px); transition: top .3s cubic-bezier(.2,.8,.2,1), background-color .22s ease; z-index: 5; -webkit-backdrop-filter: blur(20px) saturate(1.3); backdrop-filter: blur(20px) saturate(1.3); }
 html.hd .calv .days .dh { top: calc(var(--cpb, 160px) - 70px + 8px); }   /* 내릴 때 판이 70px 올라가면 머리도 같이 (47차 판 움직임과 같은 값) */
+/* 77차 (11-13) 쓰기 탭 v4: 제목 · 검색 없음. 위 = 바로 쓰기 큰 판 + 오늘의 무료, 칩부터 아래 = 목록 (위에 얇은 선). 그림 크기 2가지 = 작은(3열 폭) · 템플릿 줄(40%) */
+.tmv .tbody { padding-top: var(--top); }
+.tmv .wq { position: relative; margin: 0 var(--gut); padding: 34px 0 16px; border-radius: 24px; overflow: hidden; isolation: isolate; background: #2a2a30; box-shadow: 0 12px 32px rgba(0,0,0,.22); }
+.tmv .wq .qbg { position: absolute; inset: -48px; z-index: -2; overflow: hidden; filter: blur(34px) saturate(1.35); pointer-events: none; }
+.tmv .wq .qbg .cd { width: 100% !important; }
+.tmv .wq.smp .qbg { background: url(./bg/photo-sample.webp) center / cover; }
+.tmv .wq::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(rgba(10,10,14,.32), rgba(10,10,14,.06) 55%, rgba(10,10,14,.18)); pointer-events: none; }   /* 위만 살짝 어둡게 (흰 글씨) */
+.tmv .wq .qh { text-align: center; padding: 0 20px; margin-bottom: 28px; color: #fff; }
+.tmv .wq .qh small { display: block; font-size: var(--fs-s); color: rgba(255,255,255,.85); margin-bottom: 10px; }
+.tmv .wq .qh b { display: block; font-size: var(--fs-l); font-weight: var(--fw); line-height: 1.3; letter-spacing: -.02em; white-space: nowrap; }
+.tmv .wq .trow { padding: 0 16px; scroll-padding: 0 16px; gap: 8px; }
+.tmv .wq .wt, .tmv .wq .wt.wd { flex: 0 0 calc((100% + 16px) / 3); border-radius: 14px; }
+.tmv .wq .wt .wl { left: 8px; right: auto; bottom: 8px; height: 28px; padding: 0 10px 0 8px; display: flex; align-items: center; gap: 5px; border-radius: 999px; background: rgba(20,20,22,.45); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); color: #fff; font-size: var(--fs-s); white-space: nowrap; }
+.tmv .wq .wt .wl .ic { width: 14px; height: 14px; flex: none; }
+.tmv .wq .wt .pd { left: 8px; top: 8px; height: 24px; padding: 0 8px; }
+.tmv .wq .wt .x { right: 4px; top: 4px; width: 32px; height: 32px; }
+.tmv .wq + .thero { margin-top: 16px; }
+.tmv .tday { padding: 16px; gap: 16px; }
+.tmv .tday .th { width: calc((100% + 16px) / 3); border-radius: 14px; }
+.tmv .tday .tdx b { font-size: var(--fs-m); margin: 10px 0 4px; }
+.tmv .tday .tdx p { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.tmv .tstk { position: sticky; top: 0; z-index: 20; margin-top: 32px; padding: 16px 0 12px; border-top: 1px solid rgba(255,255,255,.08); border-bottom: 1px solid transparent; transition: background-color .2s, border-color .2s; }
+.tmv .tstk.sc { padding-top: calc(var(--safe-t) + 12px); background: var(--navbg, rgba(18,18,20,.55)); -webkit-backdrop-filter: blur(22px) saturate(1.5); backdrop-filter: blur(22px) saturate(1.5); border-top-color: transparent; border-bottom-color: rgba(255,255,255,.08); }
+.tmv .tch { gap: 4px; margin-top: 0; }
+.tmv .tch button { height: 28px; padding: 0 12px; border-radius: 8px; background: rgba(255,255,255,.08); box-shadow: inset 0 0 0 1px rgba(255,255,255,.18); }
+.tmv .tch button.on { background: #fff; color: var(--bg); box-shadow: none; }
+.tmv .tlist { min-height: calc(100vh - 60px); }
+.tmv .tlist > .tsec:first-child { margin-top: 12px; }
+.tmv .tg2 { padding: 0 var(--gut); gap: 16px 8px; }
+.tmv .tg2.solo { padding-top: 12px; }
+html.lite .tmv .tstk { border-top-color: rgba(0,0,0,.08); }
+html.lite .tmv .tstk.sc { border-top-color: transparent; border-bottom-color: rgba(0,0,0,.08); }
+html.lite #app .tmv .tch button { background: rgba(255,255,255,.6); box-shadow: inset 0 0 0 1px rgba(0,0,0,.14); }
+html.lite #app .tmv .tch button.on { background: #141416; color: #fff; box-shadow: none; }
+html.lite #app .tmv .wq { box-shadow: 0 8px 24px rgba(20,20,22,.12); }
