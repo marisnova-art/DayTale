@@ -1825,7 +1825,7 @@ function viewTpl() {
   // 11-13 v4: 큰 판 하나. 바탕 = 마지막에 쓴 카드의 바탕(사진 · 색)을 크게 흐리게, 위 = 날짜 · 날씨 + 오늘의 질문(두 줄)
   const quick = () => `<section class="wbx wq" data-b="b1"><div class="qbg"></div><div class="qh"><small class="qd">${dayLine()}</small><b>${esc(dayQuestion()).replace('\n', '<br>')}</b></div><div class="trow b1">
       <button class="wt wk" data-k="color"><div class="wc"></div><div class="wl">${ic('pen')}글쓰기</div></button>
-      <button class="wt wk" data-k="photo"><div class="wc"><div class="phs"></div></div><div class="wl">${ic('img')}포토쓰기</div></button>
+      <button class="wt wk" data-k="photo"><div class="wc"><div class="phs"></div></div><div class="wl">${ic('img')}포토·영상쓰기</div></button>
       ${S.drafts().map(d => `<button class="wt wd" data-d="${d.id}"><div class="wc"></div><span class="pd">${whenOf(d.at)}</span><span class="x" data-x="${d.id}" role="button" aria-label="지우기">${ic('close')}</span><div class="wl">${ic('pen')}이어쓰기</div></button>`).join('')}</div></section>`;
   const fillQuick = body => {
     const q = $('.wq', body); if (!q) return;
@@ -1838,8 +1838,8 @@ function viewTpl() {
       const t = toneOf({ ...last, bg: pbg(last) }), m = /^#([0-9a-f]{6})$/i.exec(t || '');   // 79차: 밝은 바탕이면 판을 한 단계 더 눌러요 (흰 글씨 · 칸이 또렷하게)
       if (m) { const v = parseInt(m[1], 16); if (((v >> 16) * .299 + ((v >> 8) & 255) * .587 + (v & 255) * .114) / 255 > .62) q.classList.add('lt'); }
     } else q.classList.add('smp');
-    // 79차: 포토쓰기 칸 = 마지막 사진 카드의 사진 (없으면 예시 사진)
-    const pc = S.cards().find(c => { const b = pbg(c); return b?.id === 'photo' && b.ph && !b.vd; });
+    // 81차: 포토·영상쓰기 칸 = 가장 최근 사진 · 영상 카드의 장면 (영상이면 커버 장면, 없으면 예시 사진)
+    const pc = S.cards().find(c => { const b = pbg(c); return b?.id === 'photo' && b.ph; });
     if (pc) { const b = pbg(pc); P.ensure(b.ph).then(() => { const u = P.url(b.ph), el = $('[data-k=photo] .phs', q); if (u && el) el.style.background = `url(${u}) ${b.x ?? 50}% ${b.y ?? 50}%/cover`; }).catch(() => {}); }
     q.classList.toggle('two', $$('.wt', q).length === 2);   // 2개면 가운데, 3개 이상이면 왼쪽부터 (세 번째가 걸쳐 보여요)
     snapOne($('.trow', q));
@@ -1980,7 +1980,7 @@ const REC_T = { 밤: '밤에 쓰기 좋은', 비: '비 오는 날엔', 눈: '눈
 const WXK = { sun: '맑음', suncloud: '구름 조금', cloud: '흐림', rain: '비', snow: '눈', thunder: '천둥', fog: '안개' };
 const dayLine = (now = new Date()) => { let w = ''; try { const x = JSON.parse(localStorage.getItem('daytale.wx') || 'null'); if (x && Date.now() - x.at < 3 * 3600e3 && WXK[x.kind]) w = ` · ${WXK[x.kind]}${x.temp != null ? ` ${x.temp}°` : ''}`; } catch {} return `${now.getMonth() + 1}월 ${now.getDate()}일 ${'일월화수목금토'[now.getDay()]}요일${w}`; };
 // 78차: 새 버전 확인. 앱으로 돌아올 때(다른 앱 갔다 오기) version.txt가 지금과 다르면 저절로 새로 고쳐요. 쓰는 중엔 안 해요
-const BUILD = '80', BUILD_TAG = '11-13 80차';
+const BUILD = '81', BUILD_TAG = '11-20 81차';
 let verAt = 0;
 const checkVer = () => {
   if (document.hidden || Date.now() - verAt < 20e3) return; verAt = Date.now();
@@ -2044,7 +2044,7 @@ function viewPick(sub) {
   app.innerHTML = `${MOOD}<main class="wmn"><header class="shtop"><div class="tl"><h1>쓰기</h1></div></header>
     <section class="wbx gls" data-b="b1"><div class="bxh"><span class="tbs"><button class="on">기본</button></span></div><div class="trow b1">
       <button class="wt wk" data-k="color"><div class="wc"></div><div class="wl">${ic('pen')}글쓰기</div></button>
-      <button class="wt wk" data-k="photo"><div class="wc"><div class="phs"></div></div><div class="wl">${ic('img')}포토쓰기</div></button>
+      <button class="wt wk" data-k="photo"><div class="wc"><div class="phs"></div></div><div class="wl">${ic('img')}포토·영상쓰기</div></button>
       ${drafts()}</div></section>
     ${t2 ? `<section class="wbx gls" data-b="b2">${head('b2', t2)}<div class="trow">${row('b2')}</div></section>` : ''}
     ${t3 ? `<section class="wbx gls" data-b="b3">${head('b3', t3)}<div class="trow">${row('b3')}</div></section>` : ''}
