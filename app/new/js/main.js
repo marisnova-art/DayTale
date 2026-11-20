@@ -1172,7 +1172,7 @@ function viewMarks() {
 }
 // 날짜별 2열 (책 · 달력 같이): 날짜 머리 + 2열 칸(더 짧은 열에 차례로) + 칸 아래 [시간 · ⋯] (홈 2열과 같은 줄). 칸은 화면 가까이 올 때 그려요
 // 63 (11-06): 영상 카드 = 영상 아이콘, 움직이는 카드(아트 흐름 · 움직이는 아이콘) = 반짝임 둘. 오른쪽 위 쪽수 알약 안 (쪽수가 없어도 아이콘만)
-const motionKind = it => (it._card && hasVideo(it._card)) ? 'video' : (it._card && T.tplOfCard(it._card)?.motion === false) ? '' : it.querySelector('canvas.bgc, .cd.rebus .o[data-m]') ? 'spark2' : '';
+const motionKind = it => (it._card && hasVideo(it._card)) ? 'video' : (it._card && T.tplOfCard(it._card)?.motion === false) ? '' : it.querySelector('canvas.bgc, .cd.rebus .o[data-m], .cd.hilite .hm') ? 'spark2' : '';
 function pcNum(pc, t) { if (!pc) return; let b = $('b', pc); if (!b) { b = document.createElement('b'); pc.appendChild(b); } b.textContent = t; pc.hidden = !t && !$('.kic', pc); }
 function markKind(it) {
   if (it.dataset.kd || !it.querySelector('.cd')) return; it.dataset.kd = 1;
@@ -1980,7 +1980,7 @@ const REC_T = { 밤: '밤에 쓰기 좋은', 비: '비 오는 날엔', 눈: '눈
 const WXK = { sun: '맑음', suncloud: '구름 조금', cloud: '흐림', rain: '비', snow: '눈', thunder: '천둥', fog: '안개' };
 const dayLine = (now = new Date()) => { let w = ''; try { const x = JSON.parse(localStorage.getItem('daytale.wx') || 'null'); if (x && Date.now() - x.at < 3 * 3600e3 && WXK[x.kind]) w = ` · ${WXK[x.kind]}${x.temp != null ? ` ${x.temp}°` : ''}`; } catch {} return `${now.getMonth() + 1}월 ${now.getDate()}일 ${'일월화수목금토'[now.getDay()]}요일${w}`; };
 // 78차: 새 버전 확인. 앱으로 돌아올 때(다른 앱 갔다 오기) version.txt가 지금과 다르면 저절로 새로 고쳐요. 쓰는 중엔 안 해요
-const BUILD = '81', BUILD_TAG = '11-20 81차';
+const BUILD = '82', BUILD_TAG = '11-20 82차';
 let verAt = 0;
 const checkVer = () => {
   if (document.hidden || Date.now() - verAt < 20e3) return; verAt = Date.now();

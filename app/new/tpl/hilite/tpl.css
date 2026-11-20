@@ -11,7 +11,7 @@
 .cd.hilite .hm { position: relative; }
 .cd.hilite .hm[data-k=hl]::before, .cd.hilite .hm[data-k=hh]::before { content: ''; position: absolute; z-index: -1; left: -.1em; right: -.1em; top: .14em; bottom: .02em; background: var(--c); transform: rotate(var(--r, -1deg)) skewX(-6deg); border-radius: .12em .34em .18em .3em; opacity: .85; pointer-events: none; }
 .cd.hilite .hm[data-k=hh]::before { top: .62em; bottom: .04em; }
-.cd.hilite .hm[data-k=box] { background: var(--c); color: var(--paper, #FBF9F4); padding: .02em .14em; border-radius: .06em; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.cd.hilite .hm[data-k=box] { background: linear-gradient(var(--c), var(--c)) no-repeat 0 0 / 100% 100%; color: var(--paper, #FBF9F4); padding: .02em .14em; border-radius: .06em; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
 .cd.hilite .hm[data-k=ul] { text-decoration: underline var(--c); text-decoration-thickness: .085em; text-underline-offset: .2em; }
 .cd.hilite .hm[data-k=wv] { text-decoration: underline wavy var(--c); text-decoration-thickness: .06em; text-underline-offset: .22em; text-decoration-skip-ink: none; }
 .cd.hilite .hm[data-k=dt] { text-decoration: underline dashed var(--c); text-decoration-thickness: .075em; text-underline-offset: .22em; }
@@ -41,3 +41,16 @@
 .cd.hilite .pgbox { margin: 7.96cqw 7cqw 0 7cqw; }
 .cd.hilite.r916 .pgbox { margin-left: 6cqw; margin-right: 12cqw; }
 .cd.hilite .pgbox .rb { margin: 0; }
+/* 모션 (피드 가운데 카드만): 펜으로 긋듯 앞에서부터 하나씩 그어지고, 잠깐 두었다가 같은 차례로 지워지고 다시. 한 바퀴 7초 */
+:is(.fi, .tt, .rp).play:not(.intro) .cd.hilite .hm { animation: 7s linear calc(var(--i, 0) * .28s) infinite both; }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.hilite .hm::before, :is(.fi, .tt, .rp).play:not(.intro) .cd.hilite .hm::after { animation: 7s linear calc(var(--i, 0) * .28s) infinite both; }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.hilite .hm:is([data-k=hl], [data-k=hh])::before { transform-origin: left center; animation-name: hm-swipe; }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.hilite .hm[data-k=box] { animation-name: hm-box; }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.hilite .hm:is([data-k=ul], [data-k=wv], [data-k=dt]) { animation-name: hm-line; }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.hilite .hm[data-k=ink] { animation-name: hm-ink; }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.hilite .hm[data-k=cir]::after { animation-name: hm-circle; }
+@keyframes hm-swipe { 0% { transform: rotate(var(--r, -1deg)) skewX(-6deg) scaleX(0); opacity: .85; } 6%, 84% { transform: rotate(var(--r, -1deg)) skewX(-6deg) scaleX(1); opacity: .85; } 90%, 100% { transform: rotate(var(--r, -1deg)) skewX(-6deg) scaleX(1); opacity: 0; } }
+@keyframes hm-box { 0% { background-size: 0% 100%; color: #22201D; } 6%, 84% { background-size: 100% 100%; color: var(--paper, #FBF9F4); } 90%, 100% { background-size: 0% 100%; color: #22201D; } }
+@keyframes hm-line { 0% { text-decoration-color: transparent; } 6%, 84% { text-decoration-color: var(--c); } 90%, 100% { text-decoration-color: transparent; } }
+@keyframes hm-ink { 0% { color: #22201D; } 6%, 84% { color: var(--c); } 90%, 100% { color: #22201D; } }
+@keyframes hm-circle { 0% { clip-path: inset(0 100% 0 0); opacity: 1; } 8%, 84% { clip-path: inset(0 0 0 0); opacity: 1; } 90%, 100% { clip-path: inset(0 0 0 0); opacity: 0; } }

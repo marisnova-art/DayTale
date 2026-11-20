@@ -59,7 +59,7 @@ function place(root, seed) {
     const [a, b, k, c, rot] = want[i], rg = rangeAt(root, a, b);
     if (rg.startContainer !== rg.endContainer || rg.startContainer.nodeType !== 3) continue;   // 굵게 · 이모티콘 경계를 넘는 낱말은 그냥 둬요
     const s = document.createElement('span');
-    s.className = 'hm'; s.dataset.k = k; s.dataset.c = c; s.style.cssText = `--c:${c};--r:${rot}deg`;
+    s.className = 'hm'; s.dataset.k = k; s.dataset.c = c; s.style.cssText = `--c:${c};--r:${rot}deg;--i:${i % 16}`;   // --i = 모션에서 그어지는 차례
     rg.surroundContents(s);
   }
   return true;
