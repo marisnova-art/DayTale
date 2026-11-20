@@ -236,9 +236,9 @@ html:not(.kb-open):not(.pan) .wr.inf.ki { bottom: var(--kbh, 40vh); }   /* 키�
 .st2.fnr .fn.sel::after { content: ''; position: absolute; inset: 3px; border-radius: 11px; box-shadow: inset 0 0 0 2px #fff; }
 .st2.fnr .end { flex: 0 0 calc((100% - 20px) / 6 * 4 + 12px); }   /* 마지막 글꼴도 맨 앞까지 밀 수 있게 */
 /* 아래 줄: 날짜 · 장소 · 서명 글자(4칸) · 날짜 줄 자리 · 서명 자리 · 이미지 저장(2칸, 보라) */
-.st3 .wide, .ipn .wide { position: relative; border-radius: 14px; background: var(--srf); display: flex; align-items: center; gap: 6px; padding: 0 9px; color: #fff; font: var(--fw) var(--fs-s) var(--ui); min-width: 0; overflow: hidden; }
+.st3 .wide, .ipn .wide, .aip .wide { position: relative; border-radius: 14px; background: var(--srf); display: flex; align-items: center; gap: 6px; padding: 0 9px; color: #fff; font: var(--fw) var(--fs-s) var(--ui); min-width: 0; overflow: hidden; }
 .w2 { grid-column: span 2; } .w4 { grid-column: span 4; } .w7 { grid-column: span 7; } .w8 { grid-column: span 8; }
-.st3 .wide .ic, .ipn .wide .ic { width: 18px; height: 18px; color: var(--mut); flex: none; }
+.st3 .wide .ic, .ipn .wide .ic, .aip .wide .ic { width: 18px; height: 18px; color: var(--mut); flex: none; }
 .st3 .inf.mo { color: var(--mut); }
 .st3 .svb { background: #5B4BDB; color: #fff; justify-content: center; gap: 3px; padding: 0 3px; font-size: var(--fs-s); letter-spacing: -.03em; }
 .st3 .svb .ic { color: #fff; width: 18px; height: 18px; }
@@ -2125,3 +2125,18 @@ html.hd .tmv .tstk { transform: none; }
 .tmv .tlist { padding-top: 24px; }
 .tmv .tlist > .tsec:first-child { margin-top: 0; }
 .tmv .tg2.solo { padding-top: 0; }
+/* AI 글쓰기 (11-20): 날짜 · 장소 · 서명 화면과 같은 자리. 키워드 줄 · 짧게/길게 · 만들기 · 닫기 */
+.aip { display: none; flex: none; }
+.wr.aiw .aip { display: block; }
+.wr.aiw .ipn, .wr.aiw .recent { display: none !important; }
+.aip .wide { height: 44px; justify-content: center; font: var(--fw) var(--fs-m) var(--ui); color: #fff; }
+.aip .al { justify-content: flex-start; }
+.aip .wide:focus-within, .aip .len.sel { box-shadow: inset 0 0 0 1.5px #fff; }
+.aip .len:not(.sel) { color: var(--mut); }
+.aip .go { background: #fff; color: var(--bg); }
+.aip .go.mo { opacity: .45; }
+.aip .go.busy { animation: aiBusy 1.2s ease-in-out infinite; }
+@keyframes aiBusy { 50% { opacity: .5; } }
+.aip input { flex: 1; min-width: 0; background: none; border: 0; outline: none; color: #fff; font: var(--fw) var(--fs-m) var(--ui); }
+.aip input::placeholder { color: var(--mut); }
+html:not(.kb-open):not(.pan) .wr.aiw:not(.ki) .aip { padding-bottom: max(8px, var(--safe-b)); }

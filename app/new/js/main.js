@@ -1980,7 +1980,7 @@ const REC_T = { 밤: '밤에 쓰기 좋은', 비: '비 오는 날엔', 눈: '눈
 const WXK = { sun: '맑음', suncloud: '구름 조금', cloud: '흐림', rain: '비', snow: '눈', thunder: '천둥', fog: '안개' };
 const dayLine = (now = new Date()) => { let w = ''; try { const x = JSON.parse(localStorage.getItem('daytale.wx') || 'null'); if (x && Date.now() - x.at < 3 * 3600e3 && WXK[x.kind]) w = ` · ${WXK[x.kind]}${x.temp != null ? ` ${x.temp}°` : ''}`; } catch {} return `${now.getMonth() + 1}월 ${now.getDate()}일 ${'일월화수목금토'[now.getDay()]}요일${w}`; };
 // 78차: 새 버전 확인. 앱으로 돌아올 때(다른 앱 갔다 오기) version.txt가 지금과 다르면 저절로 새로 고쳐요. 쓰는 중엔 안 해요
-const BUILD = '85', BUILD_TAG = '11-20 85차';
+const BUILD = '86', BUILD_TAG = '11-20 86차';
 let verAt = 0;
 const checkVer = () => {
   if (document.hidden || Date.now() - verAt < 20e3) return; verAt = Date.now();
@@ -2138,7 +2138,7 @@ function viewWrite({ fmt, id, like }) {
   // 포토 포맷은 쓰는 중 줄에 사진 칸이 없어요 (팔레트 1칸 · 빈 장 가운데 버튼에서 골라요)
   // 8칸: 스타일 보기 = 키보드 · 비율 · 서식 · 글꼴 · 배경 · 셔플/필터 · ↶ · ↷ / 쓰기 보기 = 키보드 · 이모티콘 · 새 장 · 사진 · 빈칸 · 빈칸 · ↶ · ↷.
   // 지금 못 쓰는 칸은 숨겨요(빈칸). 되돌리기 · 다시하기만 흐리게 남아요
-  const T1 = [['kb', ''], ['ratio', 's'], ['fmt', 's'], ['font', 's'], ['bg', 's'], [f.tools.filter ? 'img' : 'shuf', 's'], ['emo', 'w'], ['page', 'w'], ['quote', 'w'], [f.tools.bg === 'photo' ? '' : 'photo', 'w'], ['', 'w'], ['undo', ''], ['redo', '']];
+  const T1 = [['kb', ''], ['ratio', 's'], ['fmt', 's'], ['font', 's'], ['bg', 's'], [f.tools.filter ? 'img' : 'shuf', 's'], ['emo', 'w'], ['page', 'w'], ['quote', 'w'], [f.tools.bg === 'photo' ? '' : 'photo', 'w'], ['ai', 'w'], ['undo', ''], ['redo', '']];   // ai = AI 글쓰기 (11-20, 모든 포맷)
   app.innerHTML = `<div class="wr ${rich ? 'rich' : 'plain'}">
     <header class="top"><button class="cb" data-a="back" aria-label="뒤로">${ic('back')}</button><div class="nm stt"></div><button class="cb w" data-a="ok" aria-label="완료">${ic('check')}</button></header>
     <div class="area"><section class="stage"></section></div>
@@ -2151,6 +2151,11 @@ function viewWrite({ fmt, id, like }) {
       <div class="g6"><button class="wide w8 dt" aria-label="날짜">${ic('date')}<span></span></button></div>
       <div class="g6"><label class="wide w8 pl">${ic('pin')}<input class="pi" maxlength="20" placeholder="장소" aria-label="장소" enterkeyhint="next"></label></div>
       <div class="g6"><label class="wide w8 sl">${ic('pen')}<input class="si" maxlength="24" placeholder="서명" aria-label="서명" enterkeyhint="done"></label></div>
+      <div class="g6"><button class="wide w8 ok" aria-label="닫기">닫기</button></div>
+    </div>
+    <div class="aip">
+      <div class="g6"><label class="wide w8 al">${ic('ai')}<input class="ai" maxlength="80" placeholder="키워드 · 주제" aria-label="키워드 · 주제" enterkeyhint="go"></label></div>
+      <div class="g6"><button class="wide w2 len" data-l="s" aria-label="짧게">짧게</button><button class="wide w2 len" data-l="l" aria-label="길게">길게</button><button class="wide w4 go" aria-label="만들기">만들기</button></div>
       <div class="g6"><button class="wide w8 ok" aria-label="닫기">닫기</button></div>
     </div>
     <div class="recent"></div>
@@ -2253,7 +2258,8 @@ function viewWrite({ fmt, id, like }) {
     dpc.innerHTML = ic(dOn ? 'p' + infoPos(card)[0] + (card.dh || 'l') : 'poff'); dpc.classList.toggle('hid', !f.tools.dp);
     sgc.innerHTML = ic(sg ? { l: 'sl', c: 'sc', r: 'sr' }[sg] : 'soff');
   }
-  const infOpen = () => wr.classList.contains('inf');
+  const infOpen = () => wr.classList.contains('inf') && !wr.classList.contains('aiw');
+  const aiOpen = () => wr.classList.contains('aiw');
   function openInf() { if (st.panel) closePanel(false); wr.classList.add('inf'); paintMeta(); applySize(true); }
   function closeInf() {
     if (!infOpen()) return;
@@ -2307,7 +2313,67 @@ function viewWrite({ fmt, id, like }) {
     x.addEventListener('blur', () => { setTimeout(() => { if (!document.activeElement?.matches?.('.ipn input')) { wr.classList.remove('ki'); paintRecent(); } }, 0); if (x === si && si.value.trim()) S.setPref('sign', si.value.trim()); flush(); });
   });
   // 글을 누르면 판을 닫고 쓰기로
-  stage.addEventListener('pointerdown', () => { if (infOpen()) closeInf(); }, true);
+  stage.addEventListener('pointerdown', () => { if (aiOpen()) { if (!st.aiBusy) closeAi(); } else if (infOpen()) closeInf(); }, true);
+
+  /* AI 글쓰기 (11-20): 키워드 · 주제 + 짧게/길게 → 만들기. 쓴 글이 있으면 그 뒤에 붙이고, 다시 만들기는 방금 넣은 글만 바꿔요.
+     날짜 · 장소 · 서명 화면과 같은 자리(키보드 위 입력 줄). 글은 서버(ai-write)가 만들어요 (키는 서버에만) */
+  const aip = $('.aip'), ain = $('.aip .ai'), aigo = $('.aip .go');
+  st.aiLen = S.pref('aiLen', 's');
+  const aiCur = () => rich ? (card.pages[st.pg] || '') : (card.html || '');
+  function paintAi() {
+    $$('.len', aip).forEach(b => b.classList.toggle('sel', b.dataset.l === st.aiLen));
+    const again = st.ai && st.ai.at === aiCur() && st.ai.topic === ain.value.trim();
+    aigo.textContent = st.aiBusy ? '만드는 중' : again ? '다시 만들기' : '만들기';
+    aigo.classList.toggle('busy', !!st.aiBusy); aigo.classList.toggle('mo', !ain.value.trim() && !st.aiBusy);
+  }
+  function openAi() {
+    if (st.panel) closePanel(false); if (infOpen()) closeInf();
+    flush(); wr.classList.add('inf', 'aiw'); paintAi(); applySize(true); tools();
+    ain.focus({ preventScroll: true });
+  }
+  function closeAi() {
+    if (!aiOpen()) return;
+    wr.classList.toggle('aiw', false); wr.classList.toggle('inf', false); wr.classList.toggle('ki', false);
+    document.activeElement?.blur?.(); applySize(true); tools();
+    setTimeout(() => { if (!document.activeElement?.matches?.('input, .body')) { scrollTo(0, 0); kb(); } }, 300);
+  }
+  const aiLang = () => { const l = (navigator.language || 'ko').slice(0, 2); return ['ko', 'en', 'ja', 'es', 'fr'].includes(l) ? l : 'en'; };
+  async function aiMake() {
+    const topic = ain.value.trim();
+    if (st.aiBusy) return;
+    if (!topic) { shake(aigo); return ain.focus({ preventScroll: true }); }
+    const C = window.APP_CONFIG || {};
+    if (!C.SUPABASE_URL || !navigator.onLine) return pop('인터넷에 연결해 주세요');
+    flush(); if (rich) ps();
+    const cur = aiCur(), again = st.ai && st.ai.at === cur;
+    const base = again ? st.ai.base : cur;   // 다시 만들기: 방금 넣은 글을 빼고 그 앞 글에 붙여요
+    st.aiBusy = true; paintAi();
+    let j = null;
+    try {
+      const r = await fetch(`${C.SUPABASE_URL}/functions/v1/ai-write`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: C.SUPABASE_ANON_KEY, authorization: `Bearer ${C.SUPABASE_ANON_KEY}` }, body: JSON.stringify({ topic, len: st.aiLen, lang: aiLang(), date: card.date, design: !rich }) });
+      j = await r.json().catch(() => null);
+      if (!r.ok || !j?.text) j = { error: j?.error || 'upstream' };
+    } catch { j = { error: 'net' }; }
+    st.aiBusy = false;
+    if (!wr.isConnected) return;
+    if (j.error) { paintAi(); return pop(j.error === 'busy' ? '잠시 뒤 다시 해 주세요' : j.error === 'net' ? '인터넷에 연결해 주세요' : '지금은 못 만들어요'); }
+    const add = rich ? esc(j.text).replace(/\n/g, '<br>') : esc(j.text);
+    const plain = base.replace(/<br\s*\/?>/g, '').replace(/<[^>]+>/g, '').trim();
+    const next = !plain ? add : rich ? `${base}<br><br>${add}` : `${base.replace(/(\s|&nbsp;)+$/, '')} ${add}`;
+    if (rich) card.pages[st.pg] = next; else card.html = next;
+    st.ai = { base, at: next, topic };
+    S.setPref('aiLen', st.aiLen);
+    push(); draw(); count(); tools(); paintAi(); applySize(true);
+    pop(st.aiLen === 'l' ? '길게' : '짧게', null, 'AI 글쓰기');
+  }
+  $$('button', aip).forEach(b => b.addEventListener('pointerdown', e => e.preventDefault()));
+  $$('.len', aip).forEach(b => { b.onclick = () => { st.aiLen = b.dataset.l; paintAi(); }; });
+  aigo.onclick = aiMake;
+  $('.ok', aip).onclick = closeAi;
+  ain.addEventListener('input', paintAi);
+  ain.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); aiMake(); } });
+  ain.addEventListener('focus', () => { wr.classList.add('ki'); applySize(true); });
+  ain.addEventListener('blur', () => { setTimeout(() => { if (document.activeElement !== ain) { wr.classList.toggle('ki', false); applySize(true); } }, 0); });
   // 사진 저장: 카드에 정한 그대로 모든 장을 바로 (쓰기 화면에 그대로 있어요. 완료 전이면 아직 쓰는 중)
   const svb = $('.st3 .svb');
   svb.addEventListener('pointerdown', e => e.preventDefault());
@@ -2447,6 +2513,7 @@ function viewWrite({ fmt, id, like }) {
   const enabled = k => {
     if (k === 'kb' || k === 'undo' || k === 'redo' || k === 'ratio') return true;
     if (k === 'photo' || k === 'emo' || k === 'page') return !!f.tools[k];
+    if (k === 'ai') return true;   // AI 글쓰기: 모든 포맷
     if (k === 'quote') return !!(rich && f.tools.page);   // 문장 넣기: 글포맷 · 아트
     if (k === 'fmt') return !!f.tools.style;
     if (k === 'font') return !!(f.tools.style && f.tools.font);
@@ -2462,7 +2529,7 @@ function viewWrite({ fmt, id, like }) {
       b.classList.toggle('hid', !enabled(k));
       if (k === 'ratio') b.textContent = RATIOS.find(r => r[0] === (card.ratio || '45'))[1];
       const tab = { ink: 'fmt', hue: 'bg', filter: 'img' }[st.tab] || st.tab;
-      b.classList.toggle('on', k === 'kb' ? typ && !st.panel : ['fmt', 'font', 'bg', 'img'].includes(k) ? tab === k && enabled(k) : st.panel === k);
+      b.classList.toggle('on', k === 'ai' ? aiOpen() : k === 'kb' ? typ && !st.panel : ['fmt', 'font', 'bg', 'img'].includes(k) ? tab === k && enabled(k) : st.panel === k);
     });
   }
   const shake = b => { b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake'); };
@@ -2500,6 +2567,7 @@ function viewWrite({ fmt, id, like }) {
       if (k === 'img') { st.tab = 'img'; paintRow2(); return; }   // 11-04: 위 칸은 아래 줄만 열어요. 사진첩은 아래 줄 사진 칸에서만 (두 곳에서 열려 헷갈려서)
       if (k === 'photo') return pickPhoto();   // 쓰는 중에도 이 장의 사진을 고를 수 있어요 (포토 포맷)
       if (k === 'emo') return st.panel === k ? closePanel(true) : openPanel(k);
+      if (k === 'ai') return aiOpen() ? closeAi() : openAi();
       if (k === 'quote') {   // 문장 넣기 (11-04): 빈 장이거나 방금 넣은 문장이면 다른 문장으로 바꾸고, 쓴 글이 있으면 그 뒤에 붙여요
         flush(); ps();
         const q = quoteText(), html = `${esc(q.t)}${q.by ? `<br><br>— ${esc(q.by)}` : ''}`, cur = card.pages[st.pg] || '';
