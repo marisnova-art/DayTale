@@ -1980,7 +1980,7 @@ const REC_T = { 밤: '밤에 쓰기 좋은', 비: '비 오는 날엔', 눈: '눈
 const WXK = { sun: '맑음', suncloud: '구름 조금', cloud: '흐림', rain: '비', snow: '눈', thunder: '천둥', fog: '안개' };
 const dayLine = (now = new Date()) => { let w = ''; try { const x = JSON.parse(localStorage.getItem('daytale.wx') || 'null'); if (x && Date.now() - x.at < 3 * 3600e3 && WXK[x.kind]) w = ` · ${WXK[x.kind]}${x.temp != null ? ` ${x.temp}°` : ''}`; } catch {} return `${now.getMonth() + 1}월 ${now.getDate()}일 ${'일월화수목금토'[now.getDay()]}요일${w}`; };
 // 78차: 새 버전 확인. 앱으로 돌아올 때(다른 앱 갔다 오기) version.txt가 지금과 다르면 저절로 새로 고쳐요. 쓰는 중엔 안 해요
-const BUILD = '84', BUILD_TAG = '11-20 84차';
+const BUILD = '85', BUILD_TAG = '11-20 85차';
 let verAt = 0;
 const checkVer = () => {
   if (document.hidden || Date.now() - verAt < 20e3) return; verAt = Date.now();
@@ -2969,10 +2969,12 @@ function viewWrite({ fmt, id, like }) {
   const from = !isNew && editFrom?.id === card.id ? editFrom.hash : null;
   const came = lastHash;   // 템플릿 소개에서 들어왔으면 뒤로 = 그 소개
   const backTo = () => { reopen = card.id; editFrom = null; if (lastHash === from) history.back(); else location.replace(from); };
-  $('[data-a=back]').onclick = () => {
+  $('[data-a=back]').onclick = async () => {
+    const changed = st.hi > 0 || !!st.timer;   // 고치기: 들어온 뒤 바꾼 게 있는지 (되돌리기로 처음 모습이면 없음)
     clearTimeout(st.timer);
     if (isNew) { if (hasText()) S.saveDraft(did, card); else S.clearDraft(did); }
-    else if (hasText()) S.saveCard(card);
+    // 11-20 (앤드류): 고치기에서 뒤로는 저장하지 않아요. 바뀐 게 있으면 한 번 물어보고 버려요. 저장은 ✓완료만
+    else if (changed && !(await ask('고친 내용을 버릴까요?', '버리기'))) return;
     if (from) return backTo();
     if (isNew && /^#\/ti\//.test(came || '')) return history.back();
     if (like && likeBack && came === likeBack.from) {   // 이 포맷으로 쓰기: 누른 화면으로 (홈 피드는 그 카드가 가운데, 다른 화면은 보던 자리)
