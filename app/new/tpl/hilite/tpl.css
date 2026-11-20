@@ -1,22 +1,27 @@
 /* 템플릿 틀: 하이라이트 문장 — 이 틀만의 모양. 공용(카드 틀 · 날짜 줄 · 서명)은 app.css. 틀을 처음 볼 때 같이 불러와요 */
 .cd.hilite { aspect-ratio: 4 / 5; overflow: clip; background: var(--paper, #FBF9F4); color: #22201D; display: flow-root; font-family: 'Pretendard Variable', sans-serif; }
 .cd.hilite.r916 { aspect-ratio: 9 / 16; } .cd.hilite.r11 { aspect-ratio: 1; } .cd.hilite.r32 { aspect-ratio: 3 / 2; } .cd.hilite.r169 { aspect-ratio: 16 / 9; }
-/* 글 상자: 옅은 공책 줄이 글줄을 따라가요 (줄 간격 = background-size, 글에서 정해요) */
-.cd.hilite .rb { outline: none; margin: 7.96cqw 7cqw 7.96cqw 7cqw; font-size: 8.5cqw; font-weight: 600; letter-spacing: -.02em; overflow-wrap: break-word; word-break: keep-all;
-  position: relative; isolation: isolate; background-image: linear-gradient(transparent calc(100% - 1px), var(--rule, rgba(60,70,110,.075)) 0); background-position: 0 -.08em; padding-bottom: .2em; }
+/* 글 상자 */
+.cd.hilite .rb { outline: none; margin: 7.96cqw 7cqw 7.96cqw 7cqw; font-size: 8.5cqw; font-weight: 600; letter-spacing: -.02em; overflow-wrap: break-word; word-break: keep-all; position: relative; isolation: isolate; padding-bottom: .2em; }
 .cd.hilite .rb .ph { color: #B9B5AC; }
 .cd.hilite .rb b, .cd.hilite .rb strong { font-weight: 800; }
 .cd.hilite .rb mark { background: none; color: inherit; }
-/* 표시 7가지: 형광펜(통째 · 아래 반) · 박스 · 밑줄 · 물결 · 점선 · 펜 색 · 동그라미. 글 자리는 그대로(줄이 흔들리지 않게) */
+/* 표시 7가지 (11-20 고침): 모두 낱말 뒤 · 아래에 깐 조각(::before · ::after)이라 아이폰에서도 똑같이 보여요. 글 자리는 그대로.
+   형광펜(통째 · 아래 반) · 박스 = ::before, 밑줄 · 물결 · 점선 · 동그라미 = ::after, 펜 색 = 글자 색 */
 .cd.hilite .hm { position: relative; }
-.cd.hilite .hm[data-k=hl]::before, .cd.hilite .hm[data-k=hh]::before { content: ''; position: absolute; z-index: -1; left: -.1em; right: -.1em; top: .14em; bottom: .02em; background: var(--c); transform: rotate(var(--r, -1deg)) skewX(-6deg); border-radius: .12em .34em .18em .3em; opacity: .85; pointer-events: none; }
+.cd.hilite .hm::before, .cd.hilite .hm::after { content: none; position: absolute; pointer-events: none; transform-origin: left center; }
+.cd.hilite .hm:is([data-k=hl], [data-k=hh], [data-k=box])::before { content: ''; z-index: -1; left: -.1em; right: -.1em; top: .14em; bottom: .02em; background: var(--c); rotate: var(--r, -1deg); border-radius: .12em .34em .18em .3em; opacity: .85; }
 .cd.hilite .hm[data-k=hh]::before { top: .62em; bottom: .04em; }
-.cd.hilite .hm[data-k=box] { background: linear-gradient(var(--c), var(--c)) no-repeat 0 0 / 100% 100%; color: var(--paper, #FBF9F4); padding: .02em .14em; border-radius: .06em; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
-.cd.hilite .hm[data-k=ul] { text-decoration: underline var(--c); text-decoration-thickness: .085em; text-underline-offset: .2em; }
-.cd.hilite .hm[data-k=wv] { text-decoration: underline wavy var(--c); text-decoration-thickness: .06em; text-underline-offset: .22em; text-decoration-skip-ink: none; }
-.cd.hilite .hm[data-k=dt] { text-decoration: underline dashed var(--c); text-decoration-thickness: .075em; text-underline-offset: .22em; }
+.cd.hilite .hm[data-k=box] { color: #fff; }
+.cd.hilite .hm[data-k=box]::before { left: -.12em; right: -.12em; top: .08em; bottom: -.02em; border-radius: .06em; opacity: 1; rotate: 0deg; }
+.cd.hilite .hm:is([data-k=ul], [data-k=wv], [data-k=dt])::after { content: ''; left: 0; right: 0; }
+.cd.hilite .hm[data-k=ul]::after { bottom: -.1em; height: .085em; background: var(--c); border-radius: .04em; }
+.cd.hilite .hm[data-k=dt]::after { bottom: -.1em; height: .08em; background: repeating-linear-gradient(90deg, var(--c) 0 .2em, transparent .2em .34em); }
+.cd.hilite .hm[data-k=wv]::after { bottom: -.2em; height: .22em; background: var(--c);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 10'%3E%3Cpath d='M0 5q5-5 10 0t10 0' fill='none' stroke='%23000' stroke-width='2.2'/%3E%3C/svg%3E") repeat-x 0 0 / .44em .22em;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 10'%3E%3Cpath d='M0 5q5-5 10 0t10 0' fill='none' stroke='%23000' stroke-width='2.2'/%3E%3C/svg%3E") repeat-x 0 0 / .44em .22em; }
 .cd.hilite .hm[data-k=ink] { color: var(--c); }
-.cd.hilite .hm[data-k=cir]::after { content: ''; position: absolute; left: -.14em; right: -.14em; top: -.02em; bottom: -.12em; border: .065em solid var(--c); border-radius: 50% 46% 52% 44%; transform: rotate(var(--r, -3deg)); pointer-events: none; }
+.cd.hilite .hm[data-k=cir]::after { content: ''; left: -.14em; right: -.14em; top: -.02em; bottom: -.12em; border: .065em solid var(--c); border-radius: 50% 46% 52% 44%; rotate: var(--r, -3deg); transform-origin: center; }
 /* 쓰기: 빈 카드엔 흐린 예시 글 */
 .cd.hilite .exm { display: none; position: absolute; top: 0; left: 0; right: 0; opacity: .3; pointer-events: none; background: none; }
 .cd.hilite.edit.empty .exm { display: block; }
@@ -41,16 +46,14 @@
 .cd.hilite .pgbox { margin: 7.96cqw 7cqw 0 7cqw; }
 .cd.hilite.r916 .pgbox { margin-left: 6cqw; margin-right: 12cqw; }
 .cd.hilite .pgbox .rb { margin: 0; }
-/* 모션 (피드 가운데 카드만): 펜으로 긋듯 앞에서부터 하나씩 그어지고, 잠깐 두었다가 같은 차례로 지워지고 다시. 한 바퀴 7초 */
-:is(.fi, .tt, .rp).play:not(.intro) .cd.hilite .hm { animation: 7s linear calc(var(--i, 0) * .28s) infinite both; }
-:is(.fi, .tt, .rp).play:not(.intro) .cd.hilite .hm::before, :is(.fi, .tt, .rp).play:not(.intro) .cd.hilite .hm::after { animation: 7s linear calc(var(--i, 0) * .28s) infinite both; }
-:is(.fi, .tt, .rp).play:not(.intro) .cd.hilite .hm:is([data-k=hl], [data-k=hh])::before { transform-origin: left center; animation-name: hm-swipe; }
-:is(.fi, .tt, .rp).play:not(.intro) .cd.hilite .hm[data-k=box] { animation-name: hm-box; }
-:is(.fi, .tt, .rp).play:not(.intro) .cd.hilite .hm:is([data-k=ul], [data-k=wv], [data-k=dt]) { animation-name: hm-line; }
-:is(.fi, .tt, .rp).play:not(.intro) .cd.hilite .hm[data-k=ink] { animation-name: hm-ink; }
-:is(.fi, .tt, .rp).play:not(.intro) .cd.hilite .hm[data-k=cir]::after { animation-name: hm-circle; }
-@keyframes hm-swipe { 0% { transform: rotate(var(--r, -1deg)) skewX(-6deg) scaleX(0); opacity: .85; } 6%, 84% { transform: rotate(var(--r, -1deg)) skewX(-6deg) scaleX(1); opacity: .85; } 90%, 100% { transform: rotate(var(--r, -1deg)) skewX(-6deg) scaleX(1); opacity: 0; } }
-@keyframes hm-box { 0% { background-size: 0% 100%; color: #22201D; } 6%, 84% { background-size: 100% 100%; color: var(--paper, #FBF9F4); } 90%, 100% { background-size: 0% 100%; color: #22201D; } }
-@keyframes hm-line { 0% { text-decoration-color: transparent; } 6%, 84% { text-decoration-color: var(--c); } 90%, 100% { text-decoration-color: transparent; } }
-@keyframes hm-ink { 0% { color: #22201D; } 6%, 84% { color: var(--c); } 90%, 100% { color: #22201D; } }
-@keyframes hm-circle { 0% { clip-path: inset(0 100% 0 0); opacity: 1; } 8%, 84% { clip-path: inset(0 0 0 0); opacity: 1; } 90%, 100% { clip-path: inset(0 0 0 0); opacity: 0; } }
+/* 모션 (피드 가운데 카드만, 11-20 고침): 펜으로 긋듯 앞에서부터 하나씩 그어지고, 잠깐 두었다가 같은 차례로 지워지고 다시. 한 바퀴 7초.
+   아이폰에서 확실히 도는 것만 써요: 조각의 scale · opacity (키프레임 안에 var() 없음). 차례(지연)는 낱말마다 숫자로 넣고 조각이 물려받아요 */
+:is(.fi, .tt, .rp).play:not(.intro) .cd.hilite .hm::before, :is(.fi, .tt, .rp).play:not(.intro) .cd.hilite .hm::after { animation-duration: 7s; animation-timing-function: linear; animation-iteration-count: infinite; animation-fill-mode: both; animation-delay: inherit; }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.hilite .hm:is([data-k=hl], [data-k=hh])::before, :is(.fi, .tt, .rp).play:not(.intro) .cd.hilite .hm:is([data-k=ul], [data-k=wv], [data-k=dt])::after { animation-name: hm-swipe; }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.hilite .hm[data-k=box]::before { animation-name: hm-swipe1; }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.hilite .hm[data-k=box] { animation: hm-boxtext 7s linear infinite both; animation-delay: inherit; }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.hilite .hm[data-k=cir]::after { animation-name: hm-pop; }
+@keyframes hm-swipe { 0% { scale: 0 1; opacity: .85; } 6%, 84% { scale: 1 1; opacity: .85; } 90%, 100% { scale: 1 1; opacity: 0; } }
+@keyframes hm-swipe1 { 0% { scale: 0 1; opacity: 1; } 6%, 84% { scale: 1 1; opacity: 1; } 90%, 100% { scale: 1 1; opacity: 0; } }
+@keyframes hm-boxtext { 0% { color: #22201D; } 4%, 84% { color: #fff; } 90%, 100% { color: #22201D; } }
+@keyframes hm-pop { 0% { scale: .5; opacity: 0; } 6%, 84% { scale: 1; opacity: 1; } 90%, 100% { scale: 1; opacity: 0; } }

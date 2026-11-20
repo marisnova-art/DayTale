@@ -12,7 +12,8 @@ const HL = ['#FFE34F', '#FF9CC2', '#7CE3C2', '#8CD2FF', '#C6A6FF', '#FFAE5E', '#
 const INK = ['#22201D', '#2B59E0', '#E2463C', '#16996A', '#7640DE', '#EC7614'];
 const BOX = ['#2B59E0', '#16996A', '#7640DE'];
 const K = '#22201D';
-const PAPER = [['#FBF9F4', 'rgba(60,70,110,.075)'], ['#F7F5EE', 'rgba(60,70,110,.08)'], ['#FFFFFF', 'rgba(60,70,110,.07)']];
+// 종이색 (11-20): 셔플마다 연한 종이 하나 (흰색 · 크림 · 연하늘 · 연분홍 · 연회색 · 연민트). 어두운 종이는 없어요 (표시가 묻혀요)
+const PAPER = ['#FBF9F4', '#F7F0DC', '#EAF1F8', '#F8ECEE', '#EEEEEA', '#EAF4EE'];
 const KINDS = ['hl', 'hh', 'box', 'ul', 'wv', 'dt', 'ink', 'cir', 'box', 'ul'];
 
 function shuffle(r, a) { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; }
@@ -59,7 +60,7 @@ function place(root, seed) {
     const [a, b, k, c, rot] = want[i], rg = rangeAt(root, a, b);
     if (rg.startContainer !== rg.endContainer || rg.startContainer.nodeType !== 3) continue;   // 굵게 · 이모티콘 경계를 넘는 낱말은 그냥 둬요
     const s = document.createElement('span');
-    s.className = 'hm'; s.dataset.k = k; s.dataset.c = c; s.style.cssText = `--c:${c};--r:${rot}deg;--i:${i % 16}`;   // --i = 모션에서 그어지는 차례
+    s.className = 'hm'; s.dataset.k = k; s.dataset.c = c; s.style.cssText = `--c:${c};--r:${rot}deg;animation-delay:${((i % 16) * .28).toFixed(2)}s`;   // 모션에서 그어지는 차례 (아이폰은 calc(var()) 지연을 못 읽어서 숫자로)
     rg.surroundContents(s);
   }
   return true;
@@ -69,11 +70,11 @@ function hilite(c, { edit = false } = {}) {
   const el = document.createElement('div');
   el.className = 'cd hilite' + (edit ? ' edit' : '');
   const P = palette(c.seed);
-  el.style.setProperty('--paper', P.paper[0]); el.style.setProperty('--rule', P.paper[1]);
+  el.style.setProperty('--paper', P.paper);
   const html = soft(htmlOf(c), edit), empty = !html.replace(/<[^>]+>/g, '').trim();
   const foot = [dateOn(c) ? `${dateChip(c.date).split(' ')[0]} ${weekday(c.date)}` : '', placeOn(c) ? c.place.trim() : ''].filter(Boolean).map(esc).join(' · ');
   const a = c.align || {}, lh = (1.62 * (LH[c.lh] || 1)).toFixed(3), sg = signOf(c), fz = { xs: 3.2, s: 3.5, m: 3.7, l: 4.2, xl: 4.6 }[c.size] || 3.7;
-  const ta = `text-align:${{ l: 'left', c: 'center', r: 'right' }[a.h || 'l']};line-height:${lh};background-size:100% ${lh}em`;
+  const ta = `text-align:${{ l: 'left', c: 'center', r: 'right' }[a.h || 'l']};line-height:${lh}`;
   el.dataset.dp = foot ? infoPos(c) : 'none';
   el.classList.toggle('hsg', !!sg);
   el.innerHTML = `<div class="rb body" data-v="${a.v || 't'}" style="${ta}" ${edit ? 'contenteditable="true" spellcheck="false" autocapitalize="off"' : ''}>${empty && !edit ? '<span class="ph">오늘 있었던 일을 써 보세요.</span>' : html}</div>

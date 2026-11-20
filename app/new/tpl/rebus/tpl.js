@@ -6,6 +6,9 @@ import { rangeAt } from '../../js/rich.js';
 
 const SAMPLE = { html: '친구랑 통화를 <b>오래</b> 했다. 별일 없는 이야기에 <mark>웃음</mark>이 많은 밤.', seed: 7 };
 const V = '#6C4BD8', O = '#F2622E', T = '#12A08F', Y = '#FFC21A', R = '#FF9EB5', K = '#2E2D2B', BG = '#F3F1EC';
+// 종이색 (11-20): 셔플마다 연한 종이색 하나 (어두운 색은 없어요). 그림 속 구멍 · 틈도 종이색을 따라가요
+export const PAPERS = ['#F3F1EC', '#F6EFD9', '#E9F0F6', '#F7E9EA', '#ECECE8', '#E8F2EC'];
+const paperOf = seed => PAPERS[Math.floor(rng((seed || 1) ^ 0x2c1b3c6d)() * PAPERS.length)];
 const sv = (w, b) => `<svg class="i" viewBox="0 0 ${w} 64">${b}</svg>`;
 const rep = (n, f) => Array.from({ length: n }, (_, i) => f(i)).join('');
 const OBJ = [
@@ -38,7 +41,7 @@ const OBJ = [
   sv(72, `<path d="M4 4h30a30 30 0 0 1-30 30z" fill="${O}"/><path d="M68 4v30a30 30 0 0 1-30-30z" fill="${V}"/><path d="M4 64V34a30 30 0 0 1 30 30z" fill="${Y}"/><path d="M68 64H38a30 30 0 0 1 30-30z" fill="${T}"/>`),
   sv(150, rep(5, i => `<rect x="${4 + i * 28}" y="${58 - (14 + i * 10)}" width="${18 + i * 2}" height="${14 + i * 10}" fill="${i % 2 ? O : K}"/>`)),
   sv(170, `<path d="M4 40c10 0 14-24 26-24s8 24 0 24 2-24 14-24 8 24 0 24 2-24 14-24 8 24 0 24 2-24 14-24 8 24 0 24 2-24 14-24 8 24 0 24 12 0 22 0" fill="none" stroke="${V}" stroke-width="5" stroke-linecap="round"/>`),
-];
+].map(x => x.replace(/(fill|stroke)="#F3F1EC"/g, 'style="$1:var(--paper,#F3F1EC)"'));
 
 // 그림마다 제 모양대로 움직여요 (피드 가운데 카드만): sway 물결 · 선이 옆으로 살랑, dash 점선이 흘러감, tw 조각이 하나씩 반짝,
 // spin 제자리에서 천천히 돎, pulse 숨 쉬듯, rise 막대 · 계단이 차례로 차오름. 그림 자리는 그대로
@@ -78,6 +81,7 @@ function placeObjects(root, seed) {
 function rebus(c, { edit = false } = {}) {
   const el = document.createElement('div');
   el.className = 'cd rebus' + (edit ? ' edit' : '');
+  el.style.setProperty('--paper', paperOf(c.seed));
   const html = soft(rebusHtmlOf(c), edit), empty = !html.replace(/<[^>]+>/g, '').trim();
   const foot = [dateOn(c) ? `${dateChip(c.date).split(' ')[0]} ${weekday(c.date)}` : '', placeOn(c) ? c.place.trim() : ''].filter(Boolean).map(esc).join(' · ');   // 10.22 목요일 · 장소 (글포맷처럼 날짜 먼저)
   const a = c.align || {}, ta = `text-align:${{ l: 'left', c: 'center', r: 'right' }[a.h || 'l']};line-height:${(1.34 * (LH[c.lh] || 1)).toFixed(3)}`, sg = signOf(c), fz = { xs: 3.2, s: 3.5, m: 3.889, l: 4.4, xl: 4.8 }[c.size] || 3.889;
