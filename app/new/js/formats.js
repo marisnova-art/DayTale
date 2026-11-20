@@ -1,5 +1,5 @@
 // 포맷 = 데이터 + 그리기. 카드는 가로 1080 기준으로 디자인하고 cqw 단위로 그려서, 화면 크기와 저장 이미지가 같은 모양이에요
-import { find as findBg, dimCss, drawCode } from './bg.js';
+import { find as findBg, dimCss, drawCode, slitLum } from './bg.js';
 import { bgUrl, keyOf, fidOf, grainLv, GRAPHIC } from './filters.js';
 import { rangeAt } from './rich.js';
 import { hydrate } from './stickers.js';
@@ -90,14 +90,30 @@ function bgLayer(c, page, pages) {
     if (u && cb.vd) base += '<canvas class="bgv"></canvas>';   // 영상: 커버 위에서 재생 (재생 중인 카드만 그려요)
   }
   else if (b.img) base = `<div class="bgi" style="background-image:url(${b.img});background-position:50% ${Math.round(shift * 100)}%"></div>`;
-  else if (b.code) base = `<canvas class="bgc" data-seed="${cb.seed || 1}" data-shift="${shift}"${cb.grain === false ? ' data-gr="0"' : ''}></canvas>`;
+  else if (b.code) base = `<canvas class="bgc" data-code="${b.code}" data-seed="${cb.seed || 1}" data-shift="${shift}"${cb.grain === false ? ' data-gr="0"' : ''}></canvas>`;
   else base = `<div class="bgi" style="background:${b.css}"></div>${grainLayer(cb)}`;   // 색 배경도 노이즈 (사진은 사진에 구워 넣어요)
   const gfx = b.photo && GRAPHIC.has(c.filter) && cb?.dim !== 'light' ? '<div class="dimL" style="background:rgba(0,0,0,.18)"></div>' : '';   // 그래픽 필터는 점이 굵어 글 뒤를 조금 더
   const ex = EXTRA[dimLv(cb?.dim)];
   let tink = (b.img || b.code || b.photo || cb?.dim === 'light') ? ink : b.ink;
   if (ex >= .4 && tink !== '#fff') tink = '#fff';   // 파스텔 · 밝은 색도 딤 강이면 흰 글
   const more = ex ? `<div class="dimL" style="background:rgba(0,0,0,${ex})"></div>` : '';   // 딤은 늘 어둡게 덮어요 (앤드류 10-28)
+  if (b.code === 'slit' && cb?.dim !== 'light') { const sl = slitLayer(c, page, shift, cb.seed || 1, ex); return { html: base + sl.html + more, ink: sl.ink, bink: sl.bink }; }
   return { html: base + `<div class="dimL" style="background:${dim}"></div>` + gfx + more, ink: tink };
+}
+
+// 노을 띠 (11-20): 글 뒤 띠가 밝으면 짙은 글 + 옅은 흰 막, 어두우면 흰 글 + 옅은 딤. 글이 놓인 쪽(위 · 가운데 · 아래)만 덮고, 가장자리는 비네트.
+// 아래 날짜 줄 · 서명은 아래 띠 밝기로 따로 (bink). 딤 강(.4)이면 모두 흰 글
+const SLIT_V = { t: [.06, .42], tm: [.16, .54], m: [.3, .7], bm: [.46, .84], b: [.58, .94] };
+function slitLayer(c, page, shift, seed, ex) {
+  const ar = arOf(c), full = 16 / 9, v = pageAlign(c, page).v || 'm', [a0, a1] = SLIT_V[v] || SLIT_V.m;
+  const toFull = y => (Math.max(0, full - ar) * shift + Math.min(ar, full) * y) / full;   // 카드 세로 자리 → 9:16 원본 자리
+  const dark = slitLum(seed, toFull(a0), toFull(a1)) > .62 && ex < .4;
+  const bDark = (v === 'b' || v === 'bm') ? dark : slitLum(seed, toFull(.86), toFull(.95)) > .62 && ex < .4;
+  const col = dark ? '255,255,255' : '10,8,14', k = dark ? .3 : .38;
+  const veil = v === 'm' ? `radial-gradient(ellipse 90% 55% at 50% 50%, rgba(${col},${k}) 0%, rgba(${col},${k * .45}) 55%, rgba(${col},0) 100%)`
+    : `linear-gradient(${v === 't' || v === 'tm' ? '180deg' : '0deg'}, rgba(${col},${k}) ${v.length > 1 ? 8 : 0}%, rgba(${col},${k * .42}) 46%, rgba(${col},0) 74%)`;
+  const vig = `radial-gradient(120% 95% at 50% 45%, rgba(0,0,0,0) 55%, rgba(0,0,0,${dark && bDark ? .16 : .34}) 100%)`;
+  return { html: `<div class="dimL" style="background:${veil}"></div><div class="dimL" style="background:${vig}"></div>`, ink: dark ? '#1E1B18' : '#fff', bink: bDark ? '#1E1B18' : '#fff' };
 }
 
 function text(c, { edit = false } = {}) {
@@ -111,10 +127,10 @@ function text(c, { edit = false } = {}) {
   shape(el, arOf(c));
   const ex = c.ex?.t || (FORMATS[c.fmt] || FORMATS.text).sample.pages[0].replace(/<[^>]+>/g, '');   // 새 카드마다 고른 질문 · 문장 (prompts.js)
   el.innerHTML = pages.map((h, i) => {
-    const { html, ink } = bgLayer(c, i, pages.length);
+    const { html, ink, bink } = bgLayer(c, i, pages.length);
     const date = info ? `<div class="dt ${dp === 'top' ? 'dup' : 'ddn'}" style="text-align:${dhOf(c)};font-size:${dl}cqw;font-family:${ff}${ls}">${info}</div>` : '';   // 날짜 줄도 카드 글꼴 · 글자 크기를 따라가요 (글꼴마다 크기 보정)
     const sig = sg ? `<div class="sgn" data-h="${sg}" style="font-size:${dl}cqw;font-family:${ff}${ls}">${esc(c.signTxt)}</div>` : '';   // 서명: 모든 장 맨 아래
-    return `<section class="pg${sg ? ' hsg' : ''}" data-i="${i}" style="color:${c.ink || ink};--dl:${dl}cqw">${html}
+    return `<section class="pg${sg ? ' hsg' : ''}" data-i="${i}" style="color:${c.ink || ink};--dl:${dl}cqw${bink && !c.ink ? `;--bink:${bink}` : ''}">${html}
       <div class="tx" data-k="${fo.k}" data-sz="${SIZES[c.size] || SIZES.m}" data-v="${pageAlign(c, i).v || 'm'}" style="${pageAlign(c, i).x != null ? `--dx:${+pageAlign(c, i).x || 0};--dy:${+pageAlign(c, i).y || 0};` : ''}font-family:${ff};line-height:${(fo.lh * (LH[c.lh] || 1)).toFixed(3)};letter-spacing:${fo.ls || 'normal'};text-align:${{ l: 'left', c: 'center', r: 'right' }[pageAlign(c, i).h || 'l']}${c.bold ? ';font-weight:700' : ''}">
         ${dp === 'top' && i === 0 ? date : ''}
         <div class="body" ${edit ? 'contenteditable="true" spellcheck="false" autocapitalize="off"' : ''} data-ph="${i === 0 ? esc(ex) : '이어서 써 보세요'}">${h}</div>
@@ -218,7 +234,7 @@ export function ensure(f) {
 export const missing = fmts => [...new Set(fmts)].filter(f => f && !FORMATS[f] && !BAD.has(f));
 export const ORDER = ['rebus', 'art', 'text'];
 // 피드 · 쓰기 위에 보이는 '종류 · 템플릿'
-export const LABEL = { text: '기본', rebus: '디자인 · 멤피스 문장', art: '아트 · 오로라 커튼', hilite: '디자인 · 하이라이트 문장' };
+export const LABEL = { text: '기본', rebus: '디자인 · 멤피스 문장', art: '아트 · 오로라 커튼', hilite: '디자인 · 하이라이트 문장', slit: '아트 · 노을 띠' };
 
 export function blank(fmt, date) {
   const d = FORMATS[fmt];

@@ -32,6 +32,7 @@ export const PAID = [
   { id: 'haze', img: './bg/haze.webp', tone: '#2f6b55', ink: '#F3ECE0', dim: ['all', '10,30,22', .55] },
   { id: 'stars', img: './bg/stars.webp', tone: '#3a3f7a', ink: '#F3E6C8', dim: ['center', '0,0,0', .55] },
   { id: 'bands', code: 'bands', tone: '#a35cff', ink: '#fff', dim: ['center', '40,16,70', .55] },
+  { id: 'slit', code: 'slit', tone: '#F07F3C', ink: '#fff', dim: ['all', '10,8,14', 0] },   // 노을 띠: 딤 · 글자색은 띠 밝기로 (formats.js slitLayer)
 ];
 
 // 내 사진: 사진은 카드마다 달라서(ph) 여기엔 딤 · 글색만. 어둡게 덮고 흰 글
@@ -144,8 +145,83 @@ function cpu(cv, P, off, full, t) {
   const mc = mid.getContext('2d'); mc.imageSmoothingQuality = 'high'; mc.drawImage(sm, 0, 0, mid.width, mid.height);
   const c = cv.getContext('2d'); c.imageSmoothingQuality = 'high'; c.drawImage(mid, 0, 0, W, H);
 }
+
+// 노을 띠 (11-20, 앤드류 레퍼런스: 슬릿스캔 가로 띠 풍경 → 코드). 가는 띠 많이 + 굵은 띠 가끔, 띠마다 가로로 살짝 번진 색.
+// 색 묶음 5개(노을 · 새벽 바다 · 숲 · 밤 도시 · 겨울 들판) = 씨앗 % 5. 같은 씨앗이면 늘 같은 그림.
+// 9:16 원본을 한 번 그려 두고(그레인까지) 카드만큼 잘라 보여 줘요. 모션 = 원본을 아주 조금 당겼다 놓는 숨 (t=0이면 정확히 멈춘 그림)
+export const SLIT_PAL = [
+  ['노을', ['#7FB4DA', '#A9C9DE', '#E9C9A0', '#F2A65A', '#F07F3C', '#C9532E', '#6E4A2E', '#3B3A26', '#24251A']],
+  ['새벽 바다', ['#1F2F4F', '#36507A', '#6E86B0', '#B9B7CF', '#E8C3B9', '#9DB3C6', '#4F7290', '#284763', '#14263B']],
+  ['숲', ['#C9D9C2', '#9DB98F', '#6E9466', '#4C7550', '#E2C46A', '#3D5C3C', '#2B4430', '#1D2F22', '#142018']],
+  ['밤 도시', ['#0D1026', '#1C1F4A', '#3A2E6E', '#7A3F86', '#E2557A', '#F59E5B', '#2A2F5A', '#14183A', '#080A1C']],
+  ['겨울 들판', ['#E9EEF3', '#D7E1EA', '#C6D3DF', '#F2E6DA', '#E7D2C2', '#BFCAD3', '#A7B4BE', '#D9DDE0', '#8E9AA3']],
+];
+export const slitPal = seed => ((seed >>> 0) || 1) % SLIT_PAL.length;
+const hx = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const mx = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
+const palAt = (p, t) => { const x = Math.max(0, Math.min(.9999, t)) * (p.length - 1), i = Math.floor(x); return mx(p[i], p[i + 1], x - i); };
+const cl = c => c.map(v => Math.round(Math.max(0, Math.min(255, v))));
+const lumOf = c => (.2126 * c[0] + .7152 * c[1] + .0722 * c[2]) / 255;
+const bandCache = new Map();
+// 띠 목록 (0~1, 원본 9:16 세로 기준): [위, 높이, 왼쪽 색, 밝은 자리, 가운데 색, 오른쪽 색, 빛 줄]
+function slitBands(seed) {
+  if (bandCache.has(seed)) return bandCache.get(seed);
+  const r = rng(seed ^ 0x2c1b3c6d), p = SLIT_PAL[slitPal(seed)][1].map(hx), warp = r() * .25 - .12, out = [];
+  let y = 0;
+  while (y < 1) {
+    const k = r(), h = k < .55 ? .004 + r() * .012 : k < .9 ? .02 + r() * .035 : .06 + r() * .07;
+    const t = y + h / 2, j = (r() - .5) * .07, d = (r() - .5) * 26;
+    const L = palAt(p, t + warp * Math.sin(t * 3.1) + j).map(v => v + d), R = mx(L, palAt(p, t + j + (r() - .5) * .12), .5 + r() * .4);
+    out.push([y, h, cl(mx(L, [0, 0, 0], .08)), .25 + r() * .5, cl(R.map(v => v + 14)), cl(mx(L, R, .5)), r() < .18 ? .06 + r() * .08 : 0]);
+    y += h;
+  }
+  if (bandCache.size > 40) bandCache.delete(bandCache.keys().next().value);
+  bandCache.set(seed, out); return out;
+}
+// 원본 세로 a~b(0~1) 사이의 평균 밝기 → 글자색 고르기에 써요 (그리기 전에도 알 수 있게 띠 목록으로 계산)
+export function slitLum(seed, a, b) {
+  let s = 0, n = 0;
+  for (const [y, h, L, , M, R] of slitBands(seed)) {
+    const o = Math.min(b, y + h) - Math.max(a, y); if (o <= 0) continue;
+    s += o * (lumOf(L) * .3 + lumOf(M) * .4 + lumOf(R) * .3); n += o;
+  }
+  return n ? s / n : .5;
+}
+const slitImgs = new Map();
+function slitImg(seed, W, gr) {
+  const key = seed + '|' + W + '|' + gr;
+  if (slitImgs.has(key)) { const v = slitImgs.get(key); slitImgs.delete(key); slitImgs.set(key, v); return v; }
+  const H = Math.round(W * 16 / 9), cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const g = cv.getContext('2d');
+  for (const [y, h, L, at, M, R, sh] of slitBands(seed)) {
+    const gr2 = g.createLinearGradient(0, 0, W, 0);
+    gr2.addColorStop(0, `rgb(${L})`); gr2.addColorStop(at, `rgb(${M})`); gr2.addColorStop(1, `rgb(${R})`);
+    g.fillStyle = gr2; g.fillRect(0, Math.floor(y * H), W, Math.ceil(h * H) + 1);
+    if (sh) { g.fillStyle = `rgba(255,255,255,${sh})`; g.fillRect(0, (y + h * .3) * H, W, Math.max(1, h * .15 * H)); }
+  }
+  // 띠 사이를 살짝 번지게 (가로 사진이 흐른 느낌). filter가 없는 기기는 그대로
+  try { const t = document.createElement('canvas'); t.width = W; t.height = H; t.getContext('2d').drawImage(cv, 0, 0); g.filter = `blur(${Math.max(.5, W / 1100).toFixed(2)}px)`; g.drawImage(t, 0, 0); g.filter = 'none'; } catch {}
+  if (gr > 0) {   // 필름 그레인: 밝기만 흔들어요
+    const id = g.getImageData(0, 0, W, H), d = id.data, rr = rng(seed ^ 0x51ed27), a = gr * 200;
+    for (let i = 0; i < d.length; i += 4) { const n = (rr() - .5) * a; d[i] += n; d[i + 1] += n; d[i + 2] += n; }
+    g.putImageData(id, 0, 0);
+  }
+  slitImgs.set(key, cv);
+  while (slitImgs.size > 4) slitImgs.delete(slitImgs.keys().next().value);   // 큰 그림이라 4장만 기억해요
+  return cv;
+}
+function drawSlit(cv, seed, shift, t, grainAmt) {
+  const W = cv.width, H = cv.height, src = slitImg(seed, W, grainAmt), full = src.height;
+  const off = Math.max(0, full - H) * shift;
+  const sh = Math.min(full, H) * (1 - .03 * (1 - Math.cos(t * .3)) / 2);   // 숨: 3%까지 천천히 당겼다 놓아요
+  let sy = off + (Math.min(full, H) - sh) / 2 + H * .012 * Math.sin(t * .21);
+  sy = Math.max(0, Math.min(full - sh, sy));
+  cv.getContext('2d').drawImage(src, 0, sy, W, sh, 0, 0, W, H);
+}
+
 export function drawCode(cv, seed, shift = 0, t = 0, grainAmt = cv.dataset.gr === '0' ? .01 : .09) {   // 노이즈 끄면 맑게(.01은 색 줄 생김만 막는 정도)
   const W = cv.width, H = cv.height; if (!W || !H) return;
+  if (cv.dataset.code === 'slit') return drawSlit(cv, seed, shift, t, cv.dataset.gr === '0' ? 0 : .09);
   const P = auroraOf(seed), full = W * 16 / 9, off = Math.max(0, full - H) * shift;
   const R = gl();
   if (!R) return cpu(cv, P, off, full, t);

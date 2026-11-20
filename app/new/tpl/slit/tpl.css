@@ -1,0 +1,2 @@
+/* 노을 띠: 아래 날짜 줄 · 서명은 아래 띠 밝기로 고른 색 (글색을 직접 고르면 그 색) */
+.cd.slit .dt.ddn, .cd.slit .sgn { color: var(--bink, inherit); }

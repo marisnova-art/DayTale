@@ -1980,7 +1980,7 @@ const REC_T = { 밤: '밤에 쓰기 좋은', 비: '비 오는 날엔', 눈: '눈
 const WXK = { sun: '맑음', suncloud: '구름 조금', cloud: '흐림', rain: '비', snow: '눈', thunder: '천둥', fog: '안개' };
 const dayLine = (now = new Date()) => { let w = ''; try { const x = JSON.parse(localStorage.getItem('daytale.wx') || 'null'); if (x && Date.now() - x.at < 3 * 3600e3 && WXK[x.kind]) w = ` · ${WXK[x.kind]}${x.temp != null ? ` ${x.temp}°` : ''}`; } catch {} return `${now.getMonth() + 1}월 ${now.getDate()}일 ${'일월화수목금토'[now.getDay()]}요일${w}`; };
 // 78차: 새 버전 확인. 앱으로 돌아올 때(다른 앱 갔다 오기) version.txt가 지금과 다르면 저절로 새로 고쳐요. 쓰는 중엔 안 해요
-const BUILD = '86', BUILD_TAG = '11-20 86차';
+const BUILD = '87', BUILD_TAG = '11-20 87차';
 let verAt = 0;
 const checkVer = () => {
   if (document.hidden || Date.now() - verAt < 20e3) return; verAt = Date.now();
@@ -2557,7 +2557,7 @@ function viewWrite({ fmt, id, like }) {
         const was = typingNow(); paintMeta(); draw(); if (was && !typingNow()) caretEnd(st.pg);
         paintRow2(); return;
       }
-      if (k === 'shuf') { if (rich) { ps().bg.seed = newSeed(); syncFirst(); } else card.seed = newSeed(); push(); draw(); paintRow2(); return; }   // 글카드: 보고 있는 장만
+      if (k === 'shuf') { if (rich) { const o = ps().bg.seed || 1; let n = newSeed(); while (ps().bg.id === 'slit' && n % 5 === o % 5) n = newSeed(); ps().bg.seed = n; syncFirst(); } else card.seed = newSeed(); push(); draw(); paintRow2(); return; }   // 글카드: 보고 있는 장만. 노을 띠는 셔플마다 색 묶음도 꼭 바뀌게
       if (k === 'page') {
         ps(); card.pages.splice(st.pg + 1, 0, ''); card.pst.splice(st.pg + 1, 0, clone(card.pst[st.pg])); st.pg += 1;   // 새 장은 앞 장 배경 · 위치를 이어받아요
         push(); draw(); scrollToPage(st.pg);
