@@ -147,44 +147,115 @@ function cpu(cv, P, off, full, t) {
 }
 
 // 노을 띠 (11-20, 앤드류 레퍼런스: 슬릿스캔 가로 띠 풍경 → 코드). 가는 띠 많이 + 굵은 띠 가끔, 띠마다 가로로 살짝 번진 색.
-// 색 묶음 5개(노을 · 새벽 바다 · 숲 · 밤 도시 · 겨울 들판) = 씨앗 % 5. 같은 씨앗이면 늘 같은 그림.
+// 색 묶음 5개(노을 · 붉은 저녁 · 황금빛 · 새벽 · 밤 바다) = 씨앗 % 5. 같은 씨앗이면 늘 같은 그림.
 // 9:16 원본을 한 번 그려 두고(그레인까지) 카드만큼 잘라 보여 줘요. 모션 = 원본을 아주 조금 당겼다 놓는 숨 (t=0이면 정확히 멈춘 그림)
+const Z = (s, e, cols, acc, ar) => [s, e, cols, acc || null, ar || 0];
 export const SLIT_PAL = [
-  ['노을', ['#7FB4DA', '#A9C9DE', '#E9C9A0', '#F2A65A', '#F07F3C', '#C9532E', '#6E4A2E', '#3B3A26', '#24251A']],
-  ['새벽 바다', ['#1F2F4F', '#36507A', '#6E86B0', '#B9B7CF', '#E8C3B9', '#9DB3C6', '#4F7290', '#284763', '#14263B']],
-  ['숲', ['#C9D9C2', '#9DB98F', '#6E9466', '#4C7550', '#E2C46A', '#3D5C3C', '#2B4430', '#1D2F22', '#142018']],
-  ['밤 도시', ['#0D1026', '#1C1F4A', '#3A2E6E', '#7A3F86', '#E2557A', '#F59E5B', '#2A2F5A', '#14183A', '#080A1C']],
-  ['겨울 들판', ['#E9EEF3', '#D7E1EA', '#C6D3DF', '#F2E6DA', '#E7D2C2', '#BFCAD3', '#A7B4BE', '#D9DDE0', '#8E9AA3']],
+  ['노을', [
+    Z(0, .10, ['#011A12', '#03221A', '#021A0C']),
+    Z(.10, .25, ['#03424F', '#06506E', '#04302C', '#05342F'], '#0B5C78', .25),
+    Z(.25, .46, ['#0670B2', '#0A7DBE', '#2B84BF', '#3487B8'], '#5A9CCB', .2),
+    Z(.46, .51, ['#6E87B0', '#929AB3', '#8B8BAB'], '#F7A07E', .45),
+    Z(.51, .55, ['#FFCB87', '#FFC27E', '#FEAB59']),
+    Z(.55, .635, ['#FA7347', '#E5543F', '#FF6F43', '#FF693B', '#F25C2C'], '#FFD631', .25),
+    Z(.635, .66, ['#7A2F1D', '#61463B', '#817D7A', '#6A737E']),
+    Z(.66, .672, ['#050406']),
+    Z(.672, .69, ['#3498CB', '#2E8CC4'], '#5FB0DD', .3),
+    Z(.69, .775, ['#0B0503', '#1E0C05', '#2E160A', '#3A2410']),
+    Z(.775, .885, ['#6A5A28', '#8E8040', '#A59C68', '#9A8C50', '#7C6E30']),
+    Z(.885, 1, ['#2A3418', '#0E1A0E', '#2F3B1C', '#08120A', '#162214'], '#55602E', .3),
+  ]],
+  ['붉은 저녁', [
+    Z(0, .10, ['#14061C', '#1C0A26', '#120418']),
+    Z(.10, .25, ['#2A1446', '#341C5E', '#22103A'], '#4A2C7A', .25),
+    Z(.25, .46, ['#3B2C8E', '#4A3AA6', '#5B48B0', '#6A50B4'], '#8A70D0', .2),
+    Z(.46, .51, ['#9A6AA8', '#B07AA6', '#A0709E'], '#FF8AA0', .45),
+    Z(.51, .55, ['#FFB0A0', '#FFA08C', '#FF8A78']),
+    Z(.55, .635, ['#F0485A', '#D8304A', '#FF5A5A', '#E83E50', '#C82848'], '#FFC060', .25),
+    Z(.635, .66, ['#6A1A2A', '#4E2A34', '#6E5A66', '#5A5266']),
+    Z(.66, .672, ['#060306']),
+    Z(.672, .69, ['#C04A8A', '#A83E7C'], '#F07AB0', .3),
+    Z(.69, .775, ['#0A0408', '#1C0A12', '#2C1018', '#3A1A1E']),
+    Z(.775, .885, ['#5A3A3A', '#7A5048', '#9A6C5C', '#84584C', '#6A4640']),
+    Z(.885, 1, ['#2A1A22', '#120A10', '#30202A', '#0A0608', '#1A1018'], '#5A3A48', .3),
+  ]],
+  ['황금빛', [
+    Z(0, .10, ['#0A1A16', '#0E2420', '#081610']),
+    Z(.10, .25, ['#0E4A4A', '#145A58', '#0C3A36'], '#1C6E6A', .25),
+    Z(.25, .46, ['#178A8A', '#1E9A94', '#3AA49A', '#4AA898'], '#70C0B0', .2),
+    Z(.46, .51, ['#8AA88A', '#A8B48A', '#9CA884'], '#FFD27A', .45),
+    Z(.51, .55, ['#FFE08A', '#FFD470', '#FFC24E']),
+    Z(.55, .635, ['#FFAA2E', '#F0901E', '#FFB840', '#F89A24', '#E07C14'], '#FFF0A0', .25),
+    Z(.635, .66, ['#7A4A12', '#5E4A2E', '#7E786A', '#6A6E66']),
+    Z(.66, .672, ['#060504']),
+    Z(.672, .69, ['#2AA8A0', '#209890'], '#60D0C4', .3),
+    Z(.69, .775, ['#0C0804', '#1E1206', '#30200C', '#3E2C12']),
+    Z(.775, .885, ['#6E6020', '#948634', '#B0A456', '#A09444', '#827426']),
+    Z(.885, 1, ['#2C3214', '#10180A', '#323A18', '#0A1006', '#1A2210'], '#5C6428', .3),
+  ]],
+  ['새벽', [
+    Z(0, .10, ['#0A0E24', '#10162E', '#080C1E']),
+    Z(.10, .25, ['#1E2A58', '#26366E', '#18224A'], '#34488A', .25),
+    Z(.25, .46, ['#3A5AAE', '#4A6CC0', '#6A80C8', '#7C8CCC'], '#9AAAE0', .2),
+    Z(.46, .51, ['#A49AC8', '#B8A6CC', '#AA9CC4'], '#FFB4C8', .45),
+    Z(.51, .55, ['#FFD4D8', '#FFC6CC', '#FFB0BC']),
+    Z(.55, .635, ['#F58AA8', '#E0708E', '#FF9AB0', '#EA7C98', '#D46484'], '#FFE0B0', .25),
+    Z(.635, .66, ['#6A3A52', '#5A4A5E', '#7E7A88', '#6A7084']),
+    Z(.66, .672, ['#05050A']),
+    Z(.672, .69, ['#6A8AD8', '#5A7ACA'], '#A0B8F0', .3),
+    Z(.69, .775, ['#08080E', '#141420', '#20202E', '#2C2C3C']),
+    Z(.775, .885, ['#4E5468', '#6A7084', '#8A90A2', '#7A8094', '#5E6478']),
+    Z(.885, 1, ['#1E2230', '#0C0E16', '#242838', '#08080E', '#141826'], '#3E4660', .3),
+  ]],
+  ['밤 바다', [
+    Z(0, .10, ['#02060E', '#040A16', '#02040A']),
+    Z(.10, .25, ['#081E3A', '#0C2A50', '#061830'], '#12386A', .25),
+    Z(.25, .46, ['#0E3E7E', '#144A92', '#1E5298', '#24589C'], '#3A70B4', .2),
+    Z(.46, .51, ['#3A5480', '#4A5C84', '#40527A'], '#FF8A6A', .45),
+    Z(.51, .55, ['#FF9A6E', '#F27A5A', '#D85E4A']),
+    Z(.55, .635, ['#8A2E46', '#6A2440', '#9A3A4E', '#7A2A44', '#5A1E3A'], '#FFB070', .25),
+    Z(.635, .66, ['#2A1428', '#2A2434', '#3E4256', '#36405A']),
+    Z(.66, .672, ['#020204']),
+    Z(.672, .69, ['#1E7AC0', '#186CB0'], '#4AA4E0', .3),
+    Z(.69, .775, ['#030812', '#06101E', '#0A182C', '#0E2038']),
+    Z(.775, .885, ['#163A5E', '#1E4A74', '#2A5A84', '#22507A', '#183E64']),
+    Z(.885, 1, ['#0A1A2C', '#040C16', '#0E2034', '#02060C', '#081424'], '#24486E', .3),
+  ]],
 ];
 export const slitPal = seed => ((seed >>> 0) || 1) % SLIT_PAL.length;
 const hx = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
 const mx = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
-const palAt = (p, t) => { const x = Math.max(0, Math.min(.9999, t)) * (p.length - 1), i = Math.floor(x); return mx(p[i], p[i + 1], x - i); };
 const cl = c => c.map(v => Math.round(Math.max(0, Math.min(255, v))));
 const lumOf = c => (.2126 * c[0] + .7152 * c[1] + .0722 * c[2]) / 255;
 const bandCache = new Map();
-// 띠 목록 (0~1, 원본 9:16 세로 기준): [위, 높이, 왼쪽 색, 밝은 자리, 가운데 색, 오른쪽 색, 빛 줄]
+// 띠 목록 (0~1, 원본 9:16 세로 기준): [위, 높이, 색, 가로 음영]. v2 (11-20 89차, 앤드류 레퍼런스에 가깝게): 구간 구조 그대로, 선명한 띠, 가는 밝은 선
 function slitBands(seed) {
   if (bandCache.has(seed)) return bandCache.get(seed);
-  const r = rng(seed ^ 0x2c1b3c6d), p = SLIT_PAL[slitPal(seed)][1].map(hx), warp = r() * .25 - .12, out = [];
-  let y = 0;
-  while (y < 1) {
-    const k = r(), h = k < .55 ? .004 + r() * .012 : k < .9 ? .02 + r() * .035 : .06 + r() * .07;
-    const t = y + h / 2, j = (r() - .5) * .07, d = (r() - .5) * 26;
-    const L = palAt(p, t + warp * Math.sin(t * 3.1) + j).map(v => v + d), R = mx(L, palAt(p, t + j + (r() - .5) * .12), .5 + r() * .4);
-    out.push([y, h, cl(mx(L, [0, 0, 0], .08)), .25 + r() * .5, cl(R.map(v => v + 14)), cl(mx(L, R, .5)), r() < .18 ? .06 + r() * .08 : 0]);
-    y += h;
-  }
+  const r = rng(seed ^ 0x2c1b3c6d), zones = SLIT_PAL[slitPal(seed)][1], out = [];
+  // 4:5 카드(원본 9:16의 가운데 70%)에 구조가 다 보이게 .1~.9로 모으고, 위아래 남는 곳은 첫 · 끝 구간 색. 경계는 셔플마다 조금씩
+  const edges = zones.map(z => z[0]).concat(1).map((e, i, a) => .1 + .8 * (i === 0 || i === a.length - 1 ? e : e + (r() - .5) * .022));
+  edges[0] = 0; edges[edges.length - 1] = 1;
+  zones.forEach(([, , cols, acc, ar], zi) => {
+    const s0 = edges[zi], e = edges[zi + 1], P = cols.map(hx);
+    let y = s0;
+    while (y < e - 1e-4) {
+      const k = r(), thin = acc && r() < ar;
+      let h = thin ? .0012 + r() * .0025 : k < .55 ? .0015 + r() * .005 : k < .88 ? .006 + r() * .014 : .018 + r() * .03;
+      h = Math.min(h, e - y);
+      const t = (y - s0) / Math.max(1e-6, e - s0), x = Math.min(.9999, Math.max(0, t + (r() - .5) * .35)) * (P.length - 1), i = Math.floor(x);
+      let c = P.length > 1 ? mx(P[i], P[Math.min(P.length - 1, i + 1)], x - i) : P[0];
+      c = thin ? mx(hx(acc), c, r() * .25) : c.map(v => v * (1 + (r() - .5) * .1));
+      out.push([y, h, cl(c), (r() - .5) * .08]);
+      y += h;
+    }
+  });
   if (bandCache.size > 40) bandCache.delete(bandCache.keys().next().value);
   bandCache.set(seed, out); return out;
 }
 // 원본 세로 a~b(0~1) 사이의 평균 밝기 → 글자색 고르기에 써요 (그리기 전에도 알 수 있게 띠 목록으로 계산)
 export function slitLum(seed, a, b) {
   let s = 0, n = 0;
-  for (const [y, h, L, , M, R] of slitBands(seed)) {
-    const o = Math.min(b, y + h) - Math.max(a, y); if (o <= 0) continue;
-    s += o * (lumOf(L) * .3 + lumOf(M) * .4 + lumOf(R) * .3); n += o;
-  }
+  for (const [y, h, c] of slitBands(seed)) { const o = Math.min(b, y + h) - Math.max(a, y); if (o > 0) { s += o * lumOf(c); n += o; } }
   return n ? s / n : .5;
 }
 const slitImgs = new Map();
@@ -193,15 +264,12 @@ function slitImg(seed, W, gr) {
   if (slitImgs.has(key)) { const v = slitImgs.get(key); slitImgs.delete(key); slitImgs.set(key, v); return v; }
   const H = Math.round(W * 16 / 9), cv = document.createElement('canvas'); cv.width = W; cv.height = H;
   const g = cv.getContext('2d');
-  for (const [y, h, L, at, M, R, sh] of slitBands(seed)) {
+  for (const [y, h, c, sh] of slitBands(seed)) {   // 띠 안은 거의 한 색 (가로로 아주 옅은 음영만), 경계는 선명하게
     const gr2 = g.createLinearGradient(0, 0, W, 0);
-    gr2.addColorStop(0, `rgb(${L})`); gr2.addColorStop(at, `rgb(${M})`); gr2.addColorStop(1, `rgb(${R})`);
+    gr2.addColorStop(0, `rgb(${cl(c.map(v => v * (1 - sh)))})`); gr2.addColorStop(1, `rgb(${cl(c.map(v => v * (1 + sh)))})`);
     g.fillStyle = gr2; g.fillRect(0, Math.floor(y * H), W, Math.ceil(h * H) + 1);
-    if (sh) { g.fillStyle = `rgba(255,255,255,${sh})`; g.fillRect(0, (y + h * .3) * H, W, Math.max(1, h * .15 * H)); }
   }
-  // 띠 사이를 살짝 번지게 (가로 사진이 흐른 느낌). filter가 없는 기기는 그대로
-  try { const t = document.createElement('canvas'); t.width = W; t.height = H; t.getContext('2d').drawImage(cv, 0, 0); g.filter = `blur(${Math.max(.5, W / 1100).toFixed(2)}px)`; g.drawImage(t, 0, 0); g.filter = 'none'; } catch {}
-  if (gr > 0) {   // 필름 그레인: 밝기만 흔들어요
+  if (gr > 0) {   // 필름 그레인 아주 약하게: 밝기만 흔들어요
     const id = g.getImageData(0, 0, W, H), d = id.data, rr = rng(seed ^ 0x51ed27), a = gr * 200;
     for (let i = 0; i < d.length; i += 4) { const n = (rr() - .5) * a; d[i] += n; d[i + 1] += n; d[i + 2] += n; }
     g.putImageData(id, 0, 0);
@@ -244,7 +312,7 @@ function drawSlit(cv, seed, shift, t, grainAmt) {
 }
 export function drawCode(cv, seed, shift = 0, t = 0, grainAmt = cv.dataset.gr === '0' ? .01 : .09) {   // 노이즈 끄면 맑게(.01은 색 줄 생김만 막는 정도)
   const W = cv.width, H = cv.height; if (!W || !H) return;
-  if (cv.dataset.code === 'slit') return drawSlit(cv, seed, shift, t, cv.dataset.gr === '0' ? 0 : .09);
+  if (cv.dataset.code === 'slit') return drawSlit(cv, seed, shift, t, cv.dataset.gr === '0' ? 0 : .035);
   const P = auroraOf(seed), full = W * 16 / 9, off = Math.max(0, full - H) * shift;
   const R = gl();
   if (!R) return cpu(cv, P, off, full, t);
