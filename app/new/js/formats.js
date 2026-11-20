@@ -241,7 +241,7 @@ export function blank(fmt, date) {
   if (d?.blank) return { fmt, date, place: '', ...d.blank() };
   return { fmt, date, place: '', pages: [''], bg: { id: 'g1', dim: 'dark', seed: newSeed() }, align: { h: 'l', v: 'm' }, datePos: 'none', font: 'serif', size: 'm' };
 }
-export const sampleCard = (fmt, date) => ({ ...blank(fmt, date), ...structuredClone(FORMATS[fmt]?.sample || {}), sample: true });
+export const sampleCard = (fmt, date) => ({ ...blank(fmt, date), ...structuredClone(FORMATS[fmt]?.sample || {}), ...(fmt !== 'text' ? { showDate: false } : {}), sample: true });   // 템플릿 예시엔 날짜 없음 (앤드류 11-20)
 
 // 틀이 아직 없으면(불러오는 중 · 실패) 같은 비율의 빈 자리. 다 불러오면 그 자리에서 카드로 바뀌어요
 function waitCard(c, opt) {

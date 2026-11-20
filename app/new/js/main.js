@@ -1185,7 +1185,7 @@ function markKind(it) {
   pc.insertAdjacentHTML('afterbegin', `<i class="kic">${ic(k)}</i>`); pc.hidden = false;
 }
 // 64 (11-06): 움직일 카드 고르기. 후보는 화면에 보이는 '움직이는 카드'만.
-// ① 화면 가운데 영역(위에서 30~60%)에 걸친 카드 ② 홈 맨 위(스크롤 전)에서만, 가운데에 없으면 맨 위쪽 카드 ③ 나란히 둘이면 왼쪽부터 → 끝나면 오른쪽 (영상 = 한 번 다 돌면, 모션 = 6초)
+// ① 화면 가운데 영역(위에서 30~60%)에 걸친 카드 ② 홈 맨 위(스크롤 전)에서는 맨 위 줄 카드 (88차) ③ 나란히 둘이면 왼쪽부터 → 끝나면 오른쪽 (영상 = 한 번 다 돌면, 모션 = 6초)
 // 스크롤하는 동안은 모두 멈추고, 멈추고 0.3초 뒤 다시 골라요. 2분 동안 화면을 안 만지면 멈추고, 만지면 바로 이어서
 let lastTouch = Date.now(), lastScroll = 0;
 ['pointerdown', 'touchstart', 'keydown', 'wheel'].forEach(e => addEventListener(e, () => { lastTouch = Date.now(); }, { passive: true, capture: true }));
@@ -1197,8 +1197,8 @@ function chooseMoving(list, home) {
   const H = innerHeight, W = innerWidth, z0 = H * .3, z1 = H * .6, vis = [];
   for (const it of list) { if (!it.querySelector('.cd') || !movable(it)) continue; const r = boxOf(it); if (!r.width || r.bottom <= 0 || r.top >= H || r.right <= 0 || r.left >= W) continue; vis.push({ it, r }); }
   let cand = vis.filter(x => x.r.bottom > z0 && x.r.top < z1), lead;
-  if (cand.length) lead = cand.slice().sort((a, b) => Math.abs((a.r.top + a.r.bottom) / 2 - H * .45) - Math.abs((b.r.top + b.r.bottom) / 2 - H * .45))[0];
-  else if (home && scrollY < 10 && vis.length) { cand = vis; lead = vis.slice().sort((a, b) => a.r.top - b.r.top || a.r.left - b.r.left)[0]; }
+  if (home && scrollY < 10 && vis.length) { cand = vis; lead = vis.slice().sort((a, b) => a.r.top - b.r.top || a.r.left - b.r.left)[0]; }   // 88차: 홈 맨 위에선 늘 첫 줄부터 (가운데 규칙이면 둘째 줄 · 키 큰 9:16만 돌았어요)
+  else if (cand.length) lead = cand.slice().sort((a, b) => Math.abs((a.r.top + a.r.bottom) / 2 - H * .45) - Math.abs((b.r.top + b.r.bottom) / 2 - H * .45))[0];
   else return [];
   const side = cand.filter(x => x === lead || (Math.abs(x.r.left - lead.r.left) > 20 && Math.min(x.r.bottom, lead.r.bottom) - Math.max(x.r.top, lead.r.top) > .5 * Math.min(x.r.height, lead.r.height)));
   return side.sort((a, b) => a.r.left - b.r.left).slice(0, 2).map(x => x.it);
@@ -1980,7 +1980,7 @@ const REC_T = { 밤: '밤에 쓰기 좋은', 비: '비 오는 날엔', 눈: '눈
 const WXK = { sun: '맑음', suncloud: '구름 조금', cloud: '흐림', rain: '비', snow: '눈', thunder: '천둥', fog: '안개' };
 const dayLine = (now = new Date()) => { let w = ''; try { const x = JSON.parse(localStorage.getItem('daytale.wx') || 'null'); if (x && Date.now() - x.at < 3 * 3600e3 && WXK[x.kind]) w = ` · ${WXK[x.kind]}${x.temp != null ? ` ${x.temp}°` : ''}`; } catch {} return `${now.getMonth() + 1}월 ${now.getDate()}일 ${'일월화수목금토'[now.getDay()]}요일${w}`; };
 // 78차: 새 버전 확인. 앱으로 돌아올 때(다른 앱 갔다 오기) version.txt가 지금과 다르면 저절로 새로 고쳐요. 쓰는 중엔 안 해요
-const BUILD = '87', BUILD_TAG = '11-20 87차';
+const BUILD = '88', BUILD_TAG = '11-20 88차';
 let verAt = 0;
 const checkVer = () => {
   if (document.hidden || Date.now() - verAt < 20e3) return; verAt = Date.now();
@@ -2108,7 +2108,7 @@ function viewWrite({ fmt, id, like }) {
     card = blank(tp ? tp.fmt : fmt, S.today());
     if (tp) card.tpl = tp.id;   // 카드에 템플릿 이름표
     if (card.fmt === 'text') { card.font = fontOf(S.pref('font', card.font)).id; const dp = S.pref('datePos', ''); if (dp === 'top' || dp === 'bottom') card.datePos = dp; const dh = S.pref('dh', ''); if (dh) card.dh = dh; }
-    card.showDate = S.pref('showDate:' + card.fmt, dateOn(card));
+    card.showDate = card.tpl || card.fmt !== 'text' ? S.pref('tdate:' + card.fmt, false) : S.pref('showDate:' + card.fmt, dateOn(card));   // 템플릿은 날짜 기본 끔 (앤드류 11-20). 켜면 다음에도 켜진 채
     card.ratio = S.pref('ratio', '45'); card.sg = S.pref('sg', ''); card.signTxt = S.pref('sign', '');
     if (FORMATS[card.fmt]?.rich) card.ex = pickEx || exampleText();   // 흐린 예시 글: 질문 7 · 문장 3 (디자인 포맷은 정해 둔 예시). 포맷 고르기에서 본 그 글
     pickEx = null;
@@ -3061,7 +3061,7 @@ function viewWrite({ fmt, id, like }) {
     if (card.fmt === 'text') { S.setPref('font', card.font); S.setPref('datePos', infoPos(card)); S.setPref('dh', card.dh || 'l'); }   // 다음 새 카드는 이 글꼴 · 날짜 줄 자리로 시작
     { const b0 = card.pst?.[0]?.bg || card.bg; if (card.fmt === 'text' && b0?.id && b0.id !== 'photo') S.setPref('lastBg', { id: b0.id, dim: b0.dim, ...(b0.hex ? { hex: b0.hex, pos: b0.pos } : {}) }); }   // 컬러로 쓰기는 이 색으로 시작
     shrinkLater(card.id);   // 영상은 뒤에서 10초 · 720으로 줄여 둬요
-    S.setPref('ratio', card.ratio || '45'); S.setPref('sg', card.sg || ''); if (card.sg) S.setPref('sgLast', card.sg); S.setPref('showDate:' + card.fmt, dateOn(card));
+    S.setPref('ratio', card.ratio || '45'); S.setPref('sg', card.sg || ''); if (card.sg) S.setPref('sgLast', card.sg); S.setPref((card.tpl || card.fmt !== 'text' ? 'tdate:' : 'showDate:') + card.fmt, dateOn(card));
     // 다 됐다는 표시: 가운데 큰 체크가 잠깐 떴다가 피드로
     const ok = $('[data-a=ok]'); ok.disabled = true; document.activeElement?.blur?.();
     const mk = document.createElement('div'); mk.className = 'okmark'; mk.innerHTML = `<span>${ic('check')}</span>`; document.body.appendChild(mk);

@@ -210,15 +210,38 @@ function slitImg(seed, W, gr) {
   while (slitImgs.size > 4) slitImgs.delete(slitImgs.keys().next().value);   // 큰 그림이라 4장만 기억해요
   return cv;
 }
-function drawSlit(cv, seed, shift, t, grainAmt) {
-  const W = cv.width, H = cv.height, src = slitImg(seed, W, grainAmt), full = src.height;
-  const off = Math.max(0, full - H) * shift;
-  const sh = Math.min(full, H) * (1 - .03 * (1 - Math.cos(t * .3)) / 2);   // 숨: 3%까지 천천히 당겼다 놓아요
-  let sy = off + (Math.min(full, H) - sh) / 2 + H * .012 * Math.sin(t * .21);
-  sy = Math.max(0, Math.min(full - sh, sy));
-  cv.getContext('2d').drawImage(src, 0, sy, W, sh, 0, 0, W, H);
+// 띠마다 흐르는 빛 (11-20 88차, 앤드류 "더 강하게"): 띠의 60%에 밝은 자리가 하나씩, 띠마다 다른 속도 · 방향으로 옆으로 흘러요
+const sweepCache = new Map();
+function slitSweeps(seed) {
+  if (sweepCache.has(seed)) return sweepCache.get(seed);
+  const r = rng(seed ^ 0x7a3d91), out = [];
+  for (const [y, h] of slitBands(seed)) {
+    if (r() > .6) continue;
+    out.push([y, h, (.05 + r() * .13) * (r() < .5 ? -1 : 1), r() * 1.6, .18 + r() * .3, .16 + r() * .26]);   // 위, 높이, 속도(폭/초), 시작, 빛 폭, 세기
+  }
+  if (sweepCache.size > 40) sweepCache.delete(sweepCache.keys().next().value);
+  sweepCache.set(seed, out); return out;
 }
-
+function drawSlit(cv, seed, shift, t, grainAmt) {
+  const W = cv.width, H = cv.height, src = slitImg(seed, W, grainAmt), full = src.height, g = cv.getContext('2d');
+  const off = Math.max(0, full - H) * shift;
+  const e = t > 0 ? (x => x * x * (3 - 2 * x))(Math.min(1, t / 2.5)) : 0;   // 처음 2.5초에 천천히 시작 (t=0이면 정확히 멈춘 그림)
+  const vis = Math.min(full, H), sh = vis * (1 - .14 * e);   // 14% 당겨 두고 그 안에서 위아래로 흘러요
+  const room = full - sh, mid = Math.min(room, Math.max(0, off + (vis - sh) / 2));
+  const sy = Math.max(0, Math.min(room, mid + Math.min(mid, room - mid, vis * .1) * Math.sin(t * .32) * e));
+  g.drawImage(src, 0, sy, W, sh, 0, 0, W, H);
+  if (!e) return;
+  const k = H / sh;
+  g.save(); g.globalCompositeOperation = 'screen';
+  for (const [y, h, sp, ph, w, a] of slitSweeps(seed)) {
+    const y0 = (y * full - sy) * k, hh = h * full * k; if (y0 > H || y0 + hh < 0) continue;
+    const cx = (((ph + sp * t) % 1.6 + 1.6) % 1.6 - .3) * W, ww = w * W;
+    const gr = g.createLinearGradient(cx - ww, 0, cx + ww, 0);
+    gr.addColorStop(0, 'rgba(255,240,220,0)'); gr.addColorStop(.5, `rgba(255,240,220,${(a * e).toFixed(3)})`); gr.addColorStop(1, 'rgba(255,240,220,0)');
+    g.fillStyle = gr; g.fillRect(cx - ww, y0, ww * 2, hh + 1);
+  }
+  g.restore();
+}
 export function drawCode(cv, seed, shift = 0, t = 0, grainAmt = cv.dataset.gr === '0' ? .01 : .09) {   // 노이즈 끄면 맑게(.01은 색 줄 생김만 막는 정도)
   const W = cv.width, H = cv.height; if (!W || !H) return;
   if (cv.dataset.code === 'slit') return drawSlit(cv, seed, shift, t, cv.dataset.gr === '0' ? 0 : .09);
