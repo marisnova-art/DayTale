@@ -1,0 +1,43 @@
+/* 템플릿 틀: 하이라이트 문장 — 이 틀만의 모양. 공용(카드 틀 · 날짜 줄 · 서명)은 app.css. 틀을 처음 볼 때 같이 불러와요 */
+.cd.hilite { aspect-ratio: 4 / 5; overflow: clip; background: var(--paper, #FBF9F4); color: #22201D; display: flow-root; font-family: 'Pretendard Variable', sans-serif; }
+.cd.hilite.r916 { aspect-ratio: 9 / 16; } .cd.hilite.r11 { aspect-ratio: 1; } .cd.hilite.r32 { aspect-ratio: 3 / 2; } .cd.hilite.r169 { aspect-ratio: 16 / 9; }
+/* 글 상자: 옅은 공책 줄이 글줄을 따라가요 (줄 간격 = background-size, 글에서 정해요) */
+.cd.hilite .rb { outline: none; margin: 7.96cqw 7cqw 7.96cqw 7cqw; font-size: 8.5cqw; font-weight: 600; letter-spacing: -.02em; overflow-wrap: break-word; word-break: keep-all;
+  position: relative; isolation: isolate; background-image: linear-gradient(transparent calc(100% - 1px), var(--rule, rgba(60,70,110,.075)) 0); background-position: 0 -.08em; padding-bottom: .2em; }
+.cd.hilite .rb .ph { color: #B9B5AC; }
+.cd.hilite .rb b, .cd.hilite .rb strong { font-weight: 800; }
+.cd.hilite .rb mark { background: none; color: inherit; }
+/* 표시 7가지: 형광펜(통째 · 아래 반) · 박스 · 밑줄 · 물결 · 점선 · 펜 색 · 동그라미. 글 자리는 그대로(줄이 흔들리지 않게) */
+.cd.hilite .hm { position: relative; }
+.cd.hilite .hm[data-k=hl]::before, .cd.hilite .hm[data-k=hh]::before { content: ''; position: absolute; z-index: -1; left: -.1em; right: -.1em; top: .14em; bottom: .02em; background: var(--c); transform: rotate(var(--r, -1deg)) skewX(-6deg); border-radius: .12em .34em .18em .3em; opacity: .85; pointer-events: none; }
+.cd.hilite .hm[data-k=hh]::before { top: .62em; bottom: .04em; }
+.cd.hilite .hm[data-k=box] { background: var(--c); color: var(--paper, #FBF9F4); padding: .02em .14em; border-radius: .06em; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.cd.hilite .hm[data-k=ul] { text-decoration: underline var(--c); text-decoration-thickness: .085em; text-underline-offset: .2em; }
+.cd.hilite .hm[data-k=wv] { text-decoration: underline wavy var(--c); text-decoration-thickness: .06em; text-underline-offset: .22em; text-decoration-skip-ink: none; }
+.cd.hilite .hm[data-k=dt] { text-decoration: underline dashed var(--c); text-decoration-thickness: .075em; text-underline-offset: .22em; }
+.cd.hilite .hm[data-k=ink] { color: var(--c); }
+.cd.hilite .hm[data-k=cir]::after { content: ''; position: absolute; left: -.14em; right: -.14em; top: -.02em; bottom: -.12em; border: .065em solid var(--c); border-radius: 50% 46% 52% 44%; transform: rotate(var(--r, -3deg)); pointer-events: none; }
+/* 쓰기: 빈 카드엔 흐린 예시 글 */
+.cd.hilite .exm { display: none; position: absolute; top: 0; left: 0; right: 0; opacity: .3; pointer-events: none; background: none; }
+.cd.hilite.edit.empty .exm { display: block; }
+.cd.hilite.edit .rb { min-height: 1.4em; z-index: 1; }
+.cd.hilite.edit .exm { position: absolute; z-index: 0; min-height: 0; }
+.cd.hilite.edit.empty .rb { background: none; }
+.cd.hilite.edit.empty::after { content: '예시'; position: absolute; font: 700 2.8cqw/1 var(--ui); padding: 1cqw 2.4cqw; border-radius: 99px; background: rgba(34,32,29,.12); color: #6b6862; top: 3cqw; right: 4cqw; pointer-events: none; }
+.wr .cd.hilite .rb { transition: margin-top .25s ease; }
+.wr .cd.hilite { width: var(--cw); margin: 0 auto; border-radius: 14px; }
+/* 날짜 줄 · 서명 */
+.cd.hilite .foot { position: absolute; left: 7cqw; right: 7cqw; bottom: 6.5cqw; display: flex; justify-content: space-between; font-weight: 600; line-height: 1; letter-spacing: .02em; color: #22201D; }
+.cd.hilite[data-dp=top] .foot { bottom: auto; top: 6.5cqw; }
+.cd.hilite.hsg[data-dp=bottom] .foot { bottom: 13.3cqw; }
+.cd.hilite[data-dp=none] .foot { display: none; }
+.cd.hilite .sgn { bottom: 6.5cqw; font-weight: 600; line-height: 1; color: #22201D; opacity: 1; letter-spacing: 0; }
+.cd.hilite .sgn[data-h=l] { left: 7cqw; } .cd.hilite .sgn[data-h=r] { right: 7cqw; }
+.cd.hilite.r916 .foot { bottom: 39.1cqw; right: 12cqw; left: 6cqw; } .cd.hilite.r916[data-dp=top] .foot { top: 23.1cqw; bottom: auto; }
+.cd.hilite.r916.hsg[data-dp=bottom] .foot { bottom: 46.5cqw; }
+.cd.hilite.r916 .rb { margin-left: 6cqw; margin-right: 12cqw; }
+/* 저장할 때 장으로 나뉜 카드 */
+.cd.hilite.paged { aspect-ratio: auto; }
+.cd.hilite .pgbox { margin: 7.96cqw 7cqw 0 7cqw; }
+.cd.hilite.r916 .pgbox { margin-left: 6cqw; margin-right: 12cqw; }
+.cd.hilite .pgbox .rb { margin: 0; }

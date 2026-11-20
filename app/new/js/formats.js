@@ -218,7 +218,7 @@ export function ensure(f) {
 export const missing = fmts => [...new Set(fmts)].filter(f => f && !FORMATS[f] && !BAD.has(f));
 export const ORDER = ['rebus', 'art', 'text'];
 // 피드 · 쓰기 위에 보이는 '종류 · 템플릿'
-export const LABEL = { text: '기본', rebus: '디자인 · 멤피스 문장', art: '아트 · 오로라 커튼' };
+export const LABEL = { text: '기본', rebus: '디자인 · 멤피스 문장', art: '아트 · 오로라 커튼', hilite: '디자인 · 하이라이트 문장' };
 
 export function blank(fmt, date) {
   const d = FORMATS[fmt];

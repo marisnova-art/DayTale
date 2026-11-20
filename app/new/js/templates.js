@@ -20,6 +20,17 @@ const BUILTIN = [
     tags: ['밤', '감성'], words: ['오로라', '커튼', '그라데이션', '번지는 빛', '빛', '무지개', '몽환', '새벽', '네온', '번짐', '흐르는', '디지털 아트'],
     ex: [['창밖 불빛이 번지는 밤.', 11, '916'], ['퇴근길 하늘이 보라색이었다.', 42, '45'], ['오늘은 아무것도 하지 않아도 괜찮았다.', 77, '11']] },
 ];
+// 시험 중 미리 보기 (11-20): 관리자에 '숨김'으로 올린 새 템플릿을 앤드류가 폰에서 써 볼 수 있게, 서버 목록에 아직 없으면 앞에 붙여요.
+// 공개하면 서버 것이 대신해요(같은 id). 오픈 전에 DUMMY와 같이 꺼요
+const PREVIEW = [
+  { id: 'hilite', fmt: 'hilite', name: '하이라이트 문장', kind: '디자인', pop: 3, added: '2026-11-20', motion: false, paid: true,
+    desc: ['공부하며 책에 표시하듯|형광펜, 박스, 밑줄, 동그라미가 낱말 위에 그어져요.', '셔플할 때마다|표시 자리와 색 조합이 새로 바뀌어요.', '짧은 한 줄도 긴 하루도|글 길이에 맞춰 크기가 맞춰져요.'],
+    tags: ['짧은글', '감성'], words: ['하이라이트', '형광펜', '마커', '밑줄', '공부', '노트', '공책', '책', '표시', '동그라미', '박스', '점선', '물결', '에디토리얼'],
+    ex: ['오늘 7시에 일어나서 강변까지 천천히 걸었다. 바람은 차가웠지만 머리가 맑아지는 아침이었다.',
+      '점심에 회사 앞에 새로 생긴 국숫집에 갔다. 12시 10분인데 벌써 줄이 길었다. 기다린 보람이 있을 만큼 국물이 진했다.',
+      '시험까지 딱 3주가 남았다. 아침 9시에 도서관 자리를 잡고 지난주에 틀린 문제부터 다시 풀었다. 처음엔 하나도 모르겠더니 두 번째 보니까 조금씩 길이 보였다. 내일도 오늘만큼만 하자.'],
+    preview: true },
+];
 
 // 테스트용 더미 (10-31 앤드류: 2개로는 전체 볼륨을 몰라요). 같은 두 템플릿을 그림 · 태그 · 날짜만 바꿔 채워요. 오픈 전에 false
 const DUMMY = true;   // 오픈 전에 false (런치 체크리스트)
@@ -48,11 +59,11 @@ function fromRow(r) {
     thumb: typeof r.assets?.thumb === 'string' ? r.assets.thumb : '' };   // 목록용 정지 그림 (공개할 때 자동으로 만들어요)
 }
 function use(list) {
-  const base = list.length ? list : BUILTIN;
-  TEMPLATES.splice(0, TEMPLATES.length, ...base, ...(DUMMY ? dummies(base) : []));
+  const base = list.length ? list : BUILTIN, pre = DUMMY ? PREVIEW.filter(t => !base.some(b => b.id === t.id)) : [];
+  TEMPLATES.splice(0, TEMPLATES.length, ...pre, ...base, ...(DUMMY ? dummies(base) : []));
   TEMPLATES.forEach(t => KNOWN.set(t.id, t));
 }
-BUILTIN.forEach(t => KNOWN.set(t.id, t));
+[...BUILTIN, ...PREVIEW].forEach(t => KNOWN.set(t.id, t));
 // 이 앱에 그 틀 폴더가 없으면(서버가 앞서 감) 목록에서 빼요
 onFail(f => { const n = TEMPLATES.length; for (let i = TEMPLATES.length - 1; i >= 0; i--) if (TEMPLATES[i].fmt === f) TEMPLATES.splice(i, 1); if (TEMPLATES.length !== n) onUpd?.(); });
 try { const c = JSON.parse(localStorage.getItem(CK) || 'null'); use((c?.rows || []).map(fromRow).filter(Boolean)); } catch { use([]); }
