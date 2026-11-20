@@ -285,7 +285,7 @@ function slitSweeps(seed) {
   const r = rng(seed ^ 0x7a3d91), out = [];
   for (const [y, h] of slitBands(seed)) {
     if (r() > .6) continue;
-    out.push([y, h, (.05 + r() * .13) * (r() < .5 ? -1 : 1), r() * 1.6, .18 + r() * .3, .16 + r() * .26]);   // 위, 높이, 속도(폭/초), 시작, 빛 폭, 세기
+    out.push([y, h, (.035 + r() * .09) * (r() < .5 ? -1 : 1), r() * 1.6, .18 + r() * .3, (.16 + r() * .26) * .6]);   // 89차 뒤 앤드류 '조금 과해요' → 속도 70% · 밝기 60%   // 위, 높이, 속도(폭/초), 시작, 빛 폭, 세기
   }
   if (sweepCache.size > 40) sweepCache.delete(sweepCache.keys().next().value);
   sweepCache.set(seed, out); return out;
@@ -294,9 +294,9 @@ function drawSlit(cv, seed, shift, t, grainAmt) {
   const W = cv.width, H = cv.height, src = slitImg(seed, W, grainAmt), full = src.height, g = cv.getContext('2d');
   const off = Math.max(0, full - H) * shift;
   const e = t > 0 ? (x => x * x * (3 - 2 * x))(Math.min(1, t / 2.5)) : 0;   // 처음 2.5초에 천천히 시작 (t=0이면 정확히 멈춘 그림)
-  const vis = Math.min(full, H), sh = vis * (1 - .14 * e);   // 14% 당겨 두고 그 안에서 위아래로 흘러요
+  const vis = Math.min(full, H), sh = vis * (1 - .08 * e);   // 8% 당겨 두고 그 안에서 위아래로 흘러요
   const room = full - sh, mid = Math.min(room, Math.max(0, off + (vis - sh) / 2));
-  const sy = Math.max(0, Math.min(room, mid + Math.min(mid, room - mid, vis * .1) * Math.sin(t * .32) * e));
+  const sy = Math.max(0, Math.min(room, mid + Math.min(mid, room - mid, vis * .06) * Math.sin(t * .32) * e));
   g.drawImage(src, 0, sy, W, sh, 0, 0, W, H);
   if (!e) return;
   const k = H / sh;
