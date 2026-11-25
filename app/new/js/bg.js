@@ -33,6 +33,7 @@ export const PAID = [
   { id: 'stars', img: './bg/stars.webp', tone: '#3a3f7a', ink: '#F3E6C8', dim: ['center', '0,0,0', .55] },
   { id: 'bands', code: 'bands', tone: '#a35cff', ink: '#fff', dim: ['center', '40,16,70', .55] },
   { id: 'slit', code: 'slit', tone: '#F07F3C', ink: '#fff', dim: ['all', '10,8,14', 0] },
+  { id: 'tunnel', code: 'tunnel', tone: '#2A1F7A', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 빛 터널 (101차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'neon', code: 'neon', tone: '#6A3DFF', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 네온 흐름 (100차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'swirl', code: 'swirl', tone: '#93CBE0', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 빛 소용돌이 (99차): 글자색 · 막은 바탕 밝기로 (formats.js)   // 노을 띠: 딤 · 글자색은 띠 밝기로 (formats.js slitLayer)
 ];
@@ -491,11 +492,97 @@ function drawNeon(cv, seed, t, grainAmt) {
   g.drawArrays(g.TRIANGLES, 0, 3);
   cv.getContext('2d').drawImage(gc, 0, 0, W, H);
 }
+// 빛 터널 (11-25 101차, 앤드류 레퍼런스(사진을 붙인 3D 터널)의 느낌만 · 사진 없이 코드로 새로 작성). 가운데 한 점으로 빨려 드는
+// 가는 빛줄기 + 색 다른 큰 부채꼴 면 3~5개 + 별가루. 가운데는 빛줄기가 옅어지는 글 자리. 색 묶음 10가지(어두운 8 · 연한 2),
+// 칩으로 고르면(pb.pal) 고정, 아니면 씨앗 % 10. 셔플 = 부채꼴 수 · 빛줄기 밀도 · 소실점(가운데/살짝 위) · 도는 방향. t = 초(0이면 멈춘 그림)
+export const TUNNEL_PAL = [   // [이름, 바탕, 가운데 어둠, 면1, 면2, 빛줄기]
+  ['남보라 · 빨강', '#2A1F7A', '#07051A', '#4B5BFF', '#E0283C', '#D6E4FF'], ['청록 · 파랑', '#0E3E6A', '#030B16', '#18C8D8', '#2F5BFF', '#DFFBFF'],
+  ['자홍 · 주황', '#4A0E4A', '#12030F', '#FF2FA6', '#FF8A1F', '#FFE6F4'], ['초록 · 노랑', '#0E3A2A', '#03100A', '#2FE08A', '#E8FF4F', '#F2FFE0'],
+  ['남색 · 금빛', '#101A44', '#03050F', '#3F7BFF', '#FFC24F', '#FFF4D6'], ['보라 · 민트', '#2A1050', '#08030F', '#9A5BFF', '#3DFFC2', '#EDE4FF'],
+  ['빨강 · 분홍', '#3A0A14', '#0D0205', '#FF3B3B', '#FF8FC8', '#FFE4EC'], ['은빛', '#1A1D24', '#050608', '#8A96A8', '#E8EEF8', '#FFFFFF'],
+  ['연한 하늘 · 분홍', '#E6EEFA', '#F7F9FD', '#8FB0FF', '#FF9CC2', '#5F78C8'], ['연한 살구 · 보라', '#F8ECE2', '#FDF8F4', '#FFB48A', '#B99BFF', '#B0705A'],
+];
+export const tunnelPal = (seed, pal) => pal != null && TUNNEL_PAL[+pal] ? +pal : ((seed >>> 0) || 1) % TUNNEL_PAL.length;
+export const tunnelLight = (seed, pal) => { const [r, g, b] = hx3(TUNNEL_PAL[tunnelPal(seed, pal)][1]); return .2126 * r + .7152 * g + .0722 * b > .5; };
+const tunnelCache = new Map();
+function tunnelOf(seed) {
+  if (tunnelCache.has(seed)) return tunnelCache.get(seed);
+  const r = rng(seed ^ 0x71c0de), p = { nf: 3 + Math.floor(r() * 3), den: .25 + r() * .45, vy: r() < .3 ? .1 : 0, rot: (r() < .5 ? -1 : 1) * .02, t0: r() * 30, s: (seed >>> 0) % 83 };
+  if (tunnelCache.size > 60) tunnelCache.delete(tunnelCache.keys().next().value);
+  tunnelCache.set(seed, p); return p;
+}
+const TU_GLSL = `precision highp float;
+uniform vec2 uRes; uniform float uT, uS, uNf, uDen, uVy, uRot, uGrain; uniform vec3 uBg, uDk, uF0, uF1, uSk;
+float h(float x) { return fract(sin(x * 78.233 + uS * 12.9898) * 43758.5453); }
+float h2(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7)) + uS * 3.1) * 43758.5453); }
+float grain(vec2 p) { vec3 q = fract(vec3(p.xyx) * .1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }
+float ad(float a, float b) { return mod(a - b + 3.14159, 6.28318) - 3.14159; }
+void main() {
+  vec2 uv = (gl_FragCoord.xy - .5 * uRes) / max(uRes.x * 1.25, uRes.y) - vec2(0., uVy);
+  float r = length(uv), a = atan(uv.y, uv.x) + uT * uRot, lr = log(r + 1e-4), light = step(.5, dot(uBg, vec3(.2126, .7152, .0722)));
+  float band = .5 + .5 * sin(a * 3. + h(1.) * 6.) * sin(a * 7. + h(2.) * 6.);
+  vec3 c = mix(uDk, uBg, smoothstep(0., .45, r) * (.55 + .45 * band));
+  for (int i = 0; i < 5; i++) { float fi = float(i); if (fi >= uNf) break;   // 큰 부채꼴 면
+    float d = ad(a, h(fi + 10.) * 6.2832), w = .12 + .25 * h(fi + 20.);
+    c = mix(c, mod(fi, 2.) < .5 ? uF0 : uF1, exp(-d * d / (w * w)) * smoothstep(.02, .35, r) * (.5 + .5 * h(fi + 30.)) * (light > .5 ? .5 : .75));
+  }
+  float N = 260., k = (a + 3.14159) / 6.28318 * N, ai = floor(k), af = fract(k);   // 가는 빛줄기: 칸마다 길이 · 속도 · 밝기, 안쪽으로 흘러요
+  float on = step(1. - uDen, h(ai + 40.)), sp = .25 + .5 * h(ai + 50.), ln = .25 + .6 * h(ai + 60.);
+  float u = fract(lr * .9 + uT * sp * .35 + h(ai + 70.));
+  float st = on * smoothstep(0., .08, u) * smoothstep(ln, ln - .25, u) * step(u, ln) * (1. - smoothstep(.15, .5, abs(af - .5))) * smoothstep(.1, .45, r) * (.35 + .65 * h(ai + 80.));
+  vec2 g = vec2(floor((a + 3.14159) * 30.), floor(lr * 14. + uT * .5)), gf = vec2(fract((a + 3.14159) * 30.), fract(lr * 14. + uT * .5));   // 별가루
+  float dust = step(.9, h2(g)) * exp(-dot(gf - .5, gf - .5) * 60.) * smoothstep(.02, .25, r);
+  if (light > .5) c = mix(c, uSk, st * .55 + dust * .3); else c += uSk * (st * .42 + dust * .4);
+  c = mix(c, uDk, (1. - smoothstep(0., .3, r)) * .35 * (1. - light));   // 가운데 글 자리는 조금 더 차분하게
+  c *= 1. - .2 * smoothstep(.5, 1., r);
+  if (uGrain > 0.) c += (grain(gl_FragCoord.xy) + grain(gl_FragCoord.xy + vec2(37., 91.)) - 1.) * uGrain;
+  gl_FragColor = vec4(clamp(c, 0., 1.), 1.);
+}`;
+let TG = null;
+function tuGl() {
+  if (TG !== null) return TG;
+  TG = false;
+  try {
+    const cv = document.createElement('canvas'), g = cv.getContext('webgl', { premultipliedAlpha: false, antialias: false });
+    if (!g) return TG;
+    const sh = (type, src) => { const o = g.createShader(type); g.shaderSource(o, src); g.compileShader(o); if (!g.getShaderParameter(o, g.COMPILE_STATUS)) throw new Error(g.getShaderInfoLog(o)); return o; };
+    const pr = g.createProgram();
+    g.attachShader(pr, sh(g.VERTEX_SHADER, 'attribute vec2 a; void main() { gl_Position = vec4(a, 0., 1.); }'));
+    g.attachShader(pr, sh(g.FRAGMENT_SHADER, TU_GLSL)); g.linkProgram(pr); g.useProgram(pr);
+    const buf = g.createBuffer(); g.bindBuffer(g.ARRAY_BUFFER, buf); g.bufferData(g.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), g.STATIC_DRAW);
+    const a = g.getAttribLocation(pr, 'a'); g.enableVertexAttribArray(a); g.vertexAttribPointer(a, 2, g.FLOAT, false, 0, 0);
+    const u = {}; ['uRes', 'uT', 'uS', 'uNf', 'uDen', 'uVy', 'uRot', 'uGrain', 'uBg', 'uDk', 'uF0', 'uF1', 'uSk'].forEach(k => { u[k] = g.getUniformLocation(pr, k); });
+    TG = { cv, g, u };
+  } catch (e) { console.warn('tunnel gl', e); TG = false; }
+  return TG;
+}
+// WebGL이 없을 때: 캔버스로 비슷하게 (바탕 · 부채꼴 · 빛줄기 선)
+function tunnelCpu(cv, P, pal, t) {
+  const W = cv.width, H = cv.height, g = cv.getContext('2d'), U = Math.max(W * 1.25, H), cx = W / 2, cy = H / 2 - P.vy * U, [, bg, dk, f0, f1, sk] = TUNNEL_PAL[pal], r = rng(P.s * 7919 + 5);
+  let gr = g.createRadialGradient(cx, cy, 0, cx, cy, U * .5); gr.addColorStop(0, dk); gr.addColorStop(1, bg); g.fillStyle = gr; g.fillRect(0, 0, W, H);
+  g.save(); g.globalAlpha = .5;
+  for (let i = 0; i < P.nf; i++) { const a = r() * 6.283 + t * P.rot, w = .12 + .25 * r(); g.fillStyle = i % 2 ? f1 : f0; g.beginPath(); g.moveTo(cx, cy); g.arc(cx, cy, U, a - w, a + w); g.fill(); }
+  g.globalAlpha = .35; g.strokeStyle = sk; g.lineWidth = Math.max(1, U * .002);
+  for (let i = 0; i < 120 * P.den; i++) { const a = r() * 6.283 + t * P.rot, r0 = U * (.15 + r() * .5), r1 = r0 + U * (.05 + r() * .2); g.beginPath(); g.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0); g.lineTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1); g.stroke(); }
+  g.restore();
+}
+function drawTunnel(cv, seed, t, grainAmt) {
+  const W = cv.width, H = cv.height, P = tunnelOf(seed), pal = tunnelPal(seed, cv.dataset.pal), R = tuGl();
+  if (!R) return tunnelCpu(cv, P, pal, t);
+  const { cv: gc, g, u } = R, k = t > 0 ? Math.min(1, 720 / W) : 1, w = Math.round(W * k), h = Math.round(H * k), C = TUNNEL_PAL[pal];   // 움직일 땐 폭 720까지만
+  if (gc.width !== w || gc.height !== h) { gc.width = w; gc.height = h; }
+  g.viewport(0, 0, w, h);
+  g.uniform2f(u.uRes, w, h); g.uniform1f(u.uT, P.t0 + t); g.uniform1f(u.uS, P.s); g.uniform1f(u.uNf, P.nf); g.uniform1f(u.uDen, P.den); g.uniform1f(u.uVy, P.vy); g.uniform1f(u.uRot, P.rot); g.uniform1f(u.uGrain, grainAmt * .5);
+  ['uBg', 'uDk', 'uF0', 'uF1', 'uSk'].forEach((n, i) => g.uniform3fv(u[n], hx3(C[i + 1])));
+  g.drawArrays(g.TRIANGLES, 0, 3);
+  cv.getContext('2d').drawImage(gc, 0, 0, W, H);
+}
 export function drawCode(cv, seed, shift = 0, t = 0, grainAmt = cv.dataset.gr === '0' ? .01 : .09) {   // 노이즈 끄면 맑게(.01은 색 줄 생김만 막는 정도)
   const W = cv.width, H = cv.height; if (!W || !H) return;
   if (cv.dataset.code === 'slit') return drawSlit(cv, seed, shift, t, cv.dataset.gr === '0' ? 0 : .035);
   if (cv.dataset.code === 'swirl') return drawSwirl(cv, seed, t, cv.dataset.gr === '0' ? 0 : .05);
   if (cv.dataset.code === 'neon') return drawNeon(cv, seed, t, cv.dataset.gr === '0' ? 0 : .05);
+  if (cv.dataset.code === 'tunnel') return drawTunnel(cv, seed, t, cv.dataset.gr === '0' ? 0 : .05);
   const P = auroraOf(seed), full = W * 16 / 9, off = Math.max(0, full - H) * shift;
   const R = gl();
   if (!R) return cpu(cv, P, off, full, t);
