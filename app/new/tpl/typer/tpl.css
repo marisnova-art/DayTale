@@ -33,94 +33,174 @@
 .cd.ctyp.r916 .pgbox { margin-left: 6cqw; margin-right: 12cqw; }
 .cd.ctyp .pgbox .rb { margin: 0; }
 
-/* 바탕: 구운 무늬 · 사진 그림 (카드를 덮어요) */
-.cd.ctyp .tbg { position: absolute; inset: 0; background-size: cover; background-position: 50% 50%; pointer-events: none; }
+/* 바탕: 구운 장면 그림 (디더링 점은 또렷하게) */
+.cd.ctyp .tbg { position: absolute; inset: 0; background-size: cover; background-position: 50% 50%; pointer-events: none; image-rendering: pixelated; }
 .cd.ctyp .rb b, .cd.ctyp .rb strong { font-weight: 700; }
 .cd.ctyp .foot, .cd.ctyp .sgn { color: #262626; font-weight: 400; }
 .cd.ctyp .rb .ph { color: rgba(38,38,38,.45); }
 .cd.ctyp.edit.empty::after { background: rgba(38,38,38,.12); color: #3a3a3a; }
-.cd.ctyp .cur { display: none; }
-/* 모션 (피드 가운데 카드만, 97차 천천히): 한 자 0.18초씩 찍히고 다 찍으면 3초 쉬었다 처음부터. 나타나는 때 80칸(b1~b80, 1.1%씩) · 한 바퀴 길이는 글자에 (JS) · 커서는 늘 깜빡 */
+.cd.ctyp .tcu::after { content: none; }
+/* 모션 (피드 가운데 카드만): 한 자 0.18초씩 찍히고 다 찍으면 3초 쉬었다 처음부터. 나타나는 때 80칸(b1~b80, 1.1%씩) · 한 바퀴 길이는 글자에 (JS)
+   커서 (98차): 칸마다 마지막 글자(.tcu) 뒤에 붙어 그 칸 동안만 보여요 → 찍히는 글자를 따라 이동 · 다 찍히면 사라짐 */
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .tk { animation-iteration-count: infinite; animation-timing-function: step-end; }
-:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .cur { display: inline-block; width: .55em; height: 1.05em; background: #262626; vertical-align: -.18em; margin-left: .08em; animation: ty-cur 1s step-end infinite; }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .tcu::after { content: ''; display: inline-block; width: .55em; height: 1.05em; margin-right: -.55em; background: #262626; vertical-align: -.18em; opacity: 0; animation-duration: inherit; animation-iteration-count: infinite; animation-timing-function: step-end; }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b1 { animation-name: ty1; } @keyframes ty1 { 0% { opacity: 0; } 1.1% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b1.tcu::after { animation-name: tc1; } @keyframes tc1 { 0% { opacity: 0; } 1.1% { opacity: 1; } 2.2% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b2 { animation-name: ty2; } @keyframes ty2 { 0% { opacity: 0; } 2.2% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b2.tcu::after { animation-name: tc2; } @keyframes tc2 { 0% { opacity: 0; } 2.2% { opacity: 1; } 3.3% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b3 { animation-name: ty3; } @keyframes ty3 { 0% { opacity: 0; } 3.3% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b3.tcu::after { animation-name: tc3; } @keyframes tc3 { 0% { opacity: 0; } 3.3% { opacity: 1; } 4.4% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b4 { animation-name: ty4; } @keyframes ty4 { 0% { opacity: 0; } 4.4% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b4.tcu::after { animation-name: tc4; } @keyframes tc4 { 0% { opacity: 0; } 4.4% { opacity: 1; } 5.5% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b5 { animation-name: ty5; } @keyframes ty5 { 0% { opacity: 0; } 5.5% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b5.tcu::after { animation-name: tc5; } @keyframes tc5 { 0% { opacity: 0; } 5.5% { opacity: 1; } 6.6% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b6 { animation-name: ty6; } @keyframes ty6 { 0% { opacity: 0; } 6.6% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b6.tcu::after { animation-name: tc6; } @keyframes tc6 { 0% { opacity: 0; } 6.6% { opacity: 1; } 7.7% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b7 { animation-name: ty7; } @keyframes ty7 { 0% { opacity: 0; } 7.7% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b7.tcu::after { animation-name: tc7; } @keyframes tc7 { 0% { opacity: 0; } 7.7% { opacity: 1; } 8.8% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b8 { animation-name: ty8; } @keyframes ty8 { 0% { opacity: 0; } 8.8% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b8.tcu::after { animation-name: tc8; } @keyframes tc8 { 0% { opacity: 0; } 8.8% { opacity: 1; } 9.9% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b9 { animation-name: ty9; } @keyframes ty9 { 0% { opacity: 0; } 9.9% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b9.tcu::after { animation-name: tc9; } @keyframes tc9 { 0% { opacity: 0; } 9.9% { opacity: 1; } 11.0% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b10 { animation-name: ty10; } @keyframes ty10 { 0% { opacity: 0; } 11.0% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b10.tcu::after { animation-name: tc10; } @keyframes tc10 { 0% { opacity: 0; } 11.0% { opacity: 1; } 12.1% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b11 { animation-name: ty11; } @keyframes ty11 { 0% { opacity: 0; } 12.1% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b11.tcu::after { animation-name: tc11; } @keyframes tc11 { 0% { opacity: 0; } 12.1% { opacity: 1; } 13.2% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b12 { animation-name: ty12; } @keyframes ty12 { 0% { opacity: 0; } 13.2% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b12.tcu::after { animation-name: tc12; } @keyframes tc12 { 0% { opacity: 0; } 13.2% { opacity: 1; } 14.3% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b13 { animation-name: ty13; } @keyframes ty13 { 0% { opacity: 0; } 14.3% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b13.tcu::after { animation-name: tc13; } @keyframes tc13 { 0% { opacity: 0; } 14.3% { opacity: 1; } 15.4% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b14 { animation-name: ty14; } @keyframes ty14 { 0% { opacity: 0; } 15.4% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b14.tcu::after { animation-name: tc14; } @keyframes tc14 { 0% { opacity: 0; } 15.4% { opacity: 1; } 16.5% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b15 { animation-name: ty15; } @keyframes ty15 { 0% { opacity: 0; } 16.5% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b15.tcu::after { animation-name: tc15; } @keyframes tc15 { 0% { opacity: 0; } 16.5% { opacity: 1; } 17.6% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b16 { animation-name: ty16; } @keyframes ty16 { 0% { opacity: 0; } 17.6% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b16.tcu::after { animation-name: tc16; } @keyframes tc16 { 0% { opacity: 0; } 17.6% { opacity: 1; } 18.7% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b17 { animation-name: ty17; } @keyframes ty17 { 0% { opacity: 0; } 18.7% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b17.tcu::after { animation-name: tc17; } @keyframes tc17 { 0% { opacity: 0; } 18.7% { opacity: 1; } 19.8% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b18 { animation-name: ty18; } @keyframes ty18 { 0% { opacity: 0; } 19.8% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b18.tcu::after { animation-name: tc18; } @keyframes tc18 { 0% { opacity: 0; } 19.8% { opacity: 1; } 20.9% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b19 { animation-name: ty19; } @keyframes ty19 { 0% { opacity: 0; } 20.9% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b19.tcu::after { animation-name: tc19; } @keyframes tc19 { 0% { opacity: 0; } 20.9% { opacity: 1; } 22.0% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b20 { animation-name: ty20; } @keyframes ty20 { 0% { opacity: 0; } 22.0% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b20.tcu::after { animation-name: tc20; } @keyframes tc20 { 0% { opacity: 0; } 22.0% { opacity: 1; } 23.1% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b21 { animation-name: ty21; } @keyframes ty21 { 0% { opacity: 0; } 23.1% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b21.tcu::after { animation-name: tc21; } @keyframes tc21 { 0% { opacity: 0; } 23.1% { opacity: 1; } 24.2% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b22 { animation-name: ty22; } @keyframes ty22 { 0% { opacity: 0; } 24.2% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b22.tcu::after { animation-name: tc22; } @keyframes tc22 { 0% { opacity: 0; } 24.2% { opacity: 1; } 25.3% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b23 { animation-name: ty23; } @keyframes ty23 { 0% { opacity: 0; } 25.3% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b23.tcu::after { animation-name: tc23; } @keyframes tc23 { 0% { opacity: 0; } 25.3% { opacity: 1; } 26.4% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b24 { animation-name: ty24; } @keyframes ty24 { 0% { opacity: 0; } 26.4% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b24.tcu::after { animation-name: tc24; } @keyframes tc24 { 0% { opacity: 0; } 26.4% { opacity: 1; } 27.5% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b25 { animation-name: ty25; } @keyframes ty25 { 0% { opacity: 0; } 27.5% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b25.tcu::after { animation-name: tc25; } @keyframes tc25 { 0% { opacity: 0; } 27.5% { opacity: 1; } 28.6% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b26 { animation-name: ty26; } @keyframes ty26 { 0% { opacity: 0; } 28.6% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b26.tcu::after { animation-name: tc26; } @keyframes tc26 { 0% { opacity: 0; } 28.6% { opacity: 1; } 29.7% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b27 { animation-name: ty27; } @keyframes ty27 { 0% { opacity: 0; } 29.7% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b27.tcu::after { animation-name: tc27; } @keyframes tc27 { 0% { opacity: 0; } 29.7% { opacity: 1; } 30.8% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b28 { animation-name: ty28; } @keyframes ty28 { 0% { opacity: 0; } 30.8% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b28.tcu::after { animation-name: tc28; } @keyframes tc28 { 0% { opacity: 0; } 30.8% { opacity: 1; } 31.9% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b29 { animation-name: ty29; } @keyframes ty29 { 0% { opacity: 0; } 31.9% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b29.tcu::after { animation-name: tc29; } @keyframes tc29 { 0% { opacity: 0; } 31.9% { opacity: 1; } 33.0% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b30 { animation-name: ty30; } @keyframes ty30 { 0% { opacity: 0; } 33.0% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b30.tcu::after { animation-name: tc30; } @keyframes tc30 { 0% { opacity: 0; } 33.0% { opacity: 1; } 34.1% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b31 { animation-name: ty31; } @keyframes ty31 { 0% { opacity: 0; } 34.1% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b31.tcu::after { animation-name: tc31; } @keyframes tc31 { 0% { opacity: 0; } 34.1% { opacity: 1; } 35.2% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b32 { animation-name: ty32; } @keyframes ty32 { 0% { opacity: 0; } 35.2% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b32.tcu::after { animation-name: tc32; } @keyframes tc32 { 0% { opacity: 0; } 35.2% { opacity: 1; } 36.3% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b33 { animation-name: ty33; } @keyframes ty33 { 0% { opacity: 0; } 36.3% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b33.tcu::after { animation-name: tc33; } @keyframes tc33 { 0% { opacity: 0; } 36.3% { opacity: 1; } 37.4% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b34 { animation-name: ty34; } @keyframes ty34 { 0% { opacity: 0; } 37.4% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b34.tcu::after { animation-name: tc34; } @keyframes tc34 { 0% { opacity: 0; } 37.4% { opacity: 1; } 38.5% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b35 { animation-name: ty35; } @keyframes ty35 { 0% { opacity: 0; } 38.5% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b35.tcu::after { animation-name: tc35; } @keyframes tc35 { 0% { opacity: 0; } 38.5% { opacity: 1; } 39.6% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b36 { animation-name: ty36; } @keyframes ty36 { 0% { opacity: 0; } 39.6% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b36.tcu::after { animation-name: tc36; } @keyframes tc36 { 0% { opacity: 0; } 39.6% { opacity: 1; } 40.7% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b37 { animation-name: ty37; } @keyframes ty37 { 0% { opacity: 0; } 40.7% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b37.tcu::after { animation-name: tc37; } @keyframes tc37 { 0% { opacity: 0; } 40.7% { opacity: 1; } 41.8% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b38 { animation-name: ty38; } @keyframes ty38 { 0% { opacity: 0; } 41.8% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b38.tcu::after { animation-name: tc38; } @keyframes tc38 { 0% { opacity: 0; } 41.8% { opacity: 1; } 42.9% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b39 { animation-name: ty39; } @keyframes ty39 { 0% { opacity: 0; } 42.9% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b39.tcu::after { animation-name: tc39; } @keyframes tc39 { 0% { opacity: 0; } 42.9% { opacity: 1; } 44.0% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b40 { animation-name: ty40; } @keyframes ty40 { 0% { opacity: 0; } 44.0% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b40.tcu::after { animation-name: tc40; } @keyframes tc40 { 0% { opacity: 0; } 44.0% { opacity: 1; } 45.1% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b41 { animation-name: ty41; } @keyframes ty41 { 0% { opacity: 0; } 45.1% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b41.tcu::after { animation-name: tc41; } @keyframes tc41 { 0% { opacity: 0; } 45.1% { opacity: 1; } 46.2% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b42 { animation-name: ty42; } @keyframes ty42 { 0% { opacity: 0; } 46.2% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b42.tcu::after { animation-name: tc42; } @keyframes tc42 { 0% { opacity: 0; } 46.2% { opacity: 1; } 47.3% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b43 { animation-name: ty43; } @keyframes ty43 { 0% { opacity: 0; } 47.3% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b43.tcu::after { animation-name: tc43; } @keyframes tc43 { 0% { opacity: 0; } 47.3% { opacity: 1; } 48.4% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b44 { animation-name: ty44; } @keyframes ty44 { 0% { opacity: 0; } 48.4% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b44.tcu::after { animation-name: tc44; } @keyframes tc44 { 0% { opacity: 0; } 48.4% { opacity: 1; } 49.5% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b45 { animation-name: ty45; } @keyframes ty45 { 0% { opacity: 0; } 49.5% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b45.tcu::after { animation-name: tc45; } @keyframes tc45 { 0% { opacity: 0; } 49.5% { opacity: 1; } 50.6% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b46 { animation-name: ty46; } @keyframes ty46 { 0% { opacity: 0; } 50.6% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b46.tcu::after { animation-name: tc46; } @keyframes tc46 { 0% { opacity: 0; } 50.6% { opacity: 1; } 51.7% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b47 { animation-name: ty47; } @keyframes ty47 { 0% { opacity: 0; } 51.7% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b47.tcu::after { animation-name: tc47; } @keyframes tc47 { 0% { opacity: 0; } 51.7% { opacity: 1; } 52.8% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b48 { animation-name: ty48; } @keyframes ty48 { 0% { opacity: 0; } 52.8% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b48.tcu::after { animation-name: tc48; } @keyframes tc48 { 0% { opacity: 0; } 52.8% { opacity: 1; } 53.9% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b49 { animation-name: ty49; } @keyframes ty49 { 0% { opacity: 0; } 53.9% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b49.tcu::after { animation-name: tc49; } @keyframes tc49 { 0% { opacity: 0; } 53.9% { opacity: 1; } 55.0% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b50 { animation-name: ty50; } @keyframes ty50 { 0% { opacity: 0; } 55.0% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b50.tcu::after { animation-name: tc50; } @keyframes tc50 { 0% { opacity: 0; } 55.0% { opacity: 1; } 56.1% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b51 { animation-name: ty51; } @keyframes ty51 { 0% { opacity: 0; } 56.1% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b51.tcu::after { animation-name: tc51; } @keyframes tc51 { 0% { opacity: 0; } 56.1% { opacity: 1; } 57.2% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b52 { animation-name: ty52; } @keyframes ty52 { 0% { opacity: 0; } 57.2% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b52.tcu::after { animation-name: tc52; } @keyframes tc52 { 0% { opacity: 0; } 57.2% { opacity: 1; } 58.3% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b53 { animation-name: ty53; } @keyframes ty53 { 0% { opacity: 0; } 58.3% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b53.tcu::after { animation-name: tc53; } @keyframes tc53 { 0% { opacity: 0; } 58.3% { opacity: 1; } 59.4% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b54 { animation-name: ty54; } @keyframes ty54 { 0% { opacity: 0; } 59.4% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b54.tcu::after { animation-name: tc54; } @keyframes tc54 { 0% { opacity: 0; } 59.4% { opacity: 1; } 60.5% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b55 { animation-name: ty55; } @keyframes ty55 { 0% { opacity: 0; } 60.5% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b55.tcu::after { animation-name: tc55; } @keyframes tc55 { 0% { opacity: 0; } 60.5% { opacity: 1; } 61.6% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b56 { animation-name: ty56; } @keyframes ty56 { 0% { opacity: 0; } 61.6% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b56.tcu::after { animation-name: tc56; } @keyframes tc56 { 0% { opacity: 0; } 61.6% { opacity: 1; } 62.7% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b57 { animation-name: ty57; } @keyframes ty57 { 0% { opacity: 0; } 62.7% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b57.tcu::after { animation-name: tc57; } @keyframes tc57 { 0% { opacity: 0; } 62.7% { opacity: 1; } 63.8% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b58 { animation-name: ty58; } @keyframes ty58 { 0% { opacity: 0; } 63.8% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b58.tcu::after { animation-name: tc58; } @keyframes tc58 { 0% { opacity: 0; } 63.8% { opacity: 1; } 64.9% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b59 { animation-name: ty59; } @keyframes ty59 { 0% { opacity: 0; } 64.9% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b59.tcu::after { animation-name: tc59; } @keyframes tc59 { 0% { opacity: 0; } 64.9% { opacity: 1; } 66.0% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b60 { animation-name: ty60; } @keyframes ty60 { 0% { opacity: 0; } 66.0% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b60.tcu::after { animation-name: tc60; } @keyframes tc60 { 0% { opacity: 0; } 66.0% { opacity: 1; } 67.1% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b61 { animation-name: ty61; } @keyframes ty61 { 0% { opacity: 0; } 67.1% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b61.tcu::after { animation-name: tc61; } @keyframes tc61 { 0% { opacity: 0; } 67.1% { opacity: 1; } 68.2% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b62 { animation-name: ty62; } @keyframes ty62 { 0% { opacity: 0; } 68.2% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b62.tcu::after { animation-name: tc62; } @keyframes tc62 { 0% { opacity: 0; } 68.2% { opacity: 1; } 69.3% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b63 { animation-name: ty63; } @keyframes ty63 { 0% { opacity: 0; } 69.3% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b63.tcu::after { animation-name: tc63; } @keyframes tc63 { 0% { opacity: 0; } 69.3% { opacity: 1; } 70.4% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b64 { animation-name: ty64; } @keyframes ty64 { 0% { opacity: 0; } 70.4% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b64.tcu::after { animation-name: tc64; } @keyframes tc64 { 0% { opacity: 0; } 70.4% { opacity: 1; } 71.5% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b65 { animation-name: ty65; } @keyframes ty65 { 0% { opacity: 0; } 71.5% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b65.tcu::after { animation-name: tc65; } @keyframes tc65 { 0% { opacity: 0; } 71.5% { opacity: 1; } 72.6% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b66 { animation-name: ty66; } @keyframes ty66 { 0% { opacity: 0; } 72.6% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b66.tcu::after { animation-name: tc66; } @keyframes tc66 { 0% { opacity: 0; } 72.6% { opacity: 1; } 73.7% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b67 { animation-name: ty67; } @keyframes ty67 { 0% { opacity: 0; } 73.7% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b67.tcu::after { animation-name: tc67; } @keyframes tc67 { 0% { opacity: 0; } 73.7% { opacity: 1; } 74.8% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b68 { animation-name: ty68; } @keyframes ty68 { 0% { opacity: 0; } 74.8% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b68.tcu::after { animation-name: tc68; } @keyframes tc68 { 0% { opacity: 0; } 74.8% { opacity: 1; } 75.9% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b69 { animation-name: ty69; } @keyframes ty69 { 0% { opacity: 0; } 75.9% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b69.tcu::after { animation-name: tc69; } @keyframes tc69 { 0% { opacity: 0; } 75.9% { opacity: 1; } 77.0% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b70 { animation-name: ty70; } @keyframes ty70 { 0% { opacity: 0; } 77.0% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b70.tcu::after { animation-name: tc70; } @keyframes tc70 { 0% { opacity: 0; } 77.0% { opacity: 1; } 78.1% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b71 { animation-name: ty71; } @keyframes ty71 { 0% { opacity: 0; } 78.1% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b71.tcu::after { animation-name: tc71; } @keyframes tc71 { 0% { opacity: 0; } 78.1% { opacity: 1; } 79.2% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b72 { animation-name: ty72; } @keyframes ty72 { 0% { opacity: 0; } 79.2% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b72.tcu::after { animation-name: tc72; } @keyframes tc72 { 0% { opacity: 0; } 79.2% { opacity: 1; } 80.3% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b73 { animation-name: ty73; } @keyframes ty73 { 0% { opacity: 0; } 80.3% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b73.tcu::after { animation-name: tc73; } @keyframes tc73 { 0% { opacity: 0; } 80.3% { opacity: 1; } 81.4% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b74 { animation-name: ty74; } @keyframes ty74 { 0% { opacity: 0; } 81.4% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b74.tcu::after { animation-name: tc74; } @keyframes tc74 { 0% { opacity: 0; } 81.4% { opacity: 1; } 82.5% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b75 { animation-name: ty75; } @keyframes ty75 { 0% { opacity: 0; } 82.5% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b75.tcu::after { animation-name: tc75; } @keyframes tc75 { 0% { opacity: 0; } 82.5% { opacity: 1; } 83.6% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b76 { animation-name: ty76; } @keyframes ty76 { 0% { opacity: 0; } 83.6% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b76.tcu::after { animation-name: tc76; } @keyframes tc76 { 0% { opacity: 0; } 83.6% { opacity: 1; } 84.7% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b77 { animation-name: ty77; } @keyframes ty77 { 0% { opacity: 0; } 84.7% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b77.tcu::after { animation-name: tc77; } @keyframes tc77 { 0% { opacity: 0; } 84.7% { opacity: 1; } 85.8% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b78 { animation-name: ty78; } @keyframes ty78 { 0% { opacity: 0; } 85.8% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b78.tcu::after { animation-name: tc78; } @keyframes tc78 { 0% { opacity: 0; } 85.8% { opacity: 1; } 86.9% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b79 { animation-name: ty79; } @keyframes ty79 { 0% { opacity: 0; } 86.9% { opacity: 1; } 97% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b79.tcu::after { animation-name: tc79; } @keyframes tc79 { 0% { opacity: 0; } 86.9% { opacity: 1; } 88.0% { opacity: 0; } }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b80 { animation-name: ty80; } @keyframes ty80 { 0% { opacity: 0; } 88.0% { opacity: 1; } 97% { opacity: 0; } }
-@keyframes ty-cur { 0% { opacity: 1; } 50% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b80.tcu::after { animation-name: tc80; } @keyframes tc80 { 0% { opacity: 0; } 88.0% { opacity: 1; } 89.1% { opacity: 0; } }
