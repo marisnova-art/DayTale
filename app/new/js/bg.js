@@ -32,7 +32,8 @@ export const PAID = [
   { id: 'haze', img: './bg/haze.webp', tone: '#2f6b55', ink: '#F3ECE0', dim: ['all', '10,30,22', .55] },
   { id: 'stars', img: './bg/stars.webp', tone: '#3a3f7a', ink: '#F3E6C8', dim: ['center', '0,0,0', .55] },
   { id: 'bands', code: 'bands', tone: '#a35cff', ink: '#fff', dim: ['center', '40,16,70', .55] },
-  { id: 'slit', code: 'slit', tone: '#F07F3C', ink: '#fff', dim: ['all', '10,8,14', 0] },   // 노을 띠: 딤 · 글자색은 띠 밝기로 (formats.js slitLayer)
+  { id: 'slit', code: 'slit', tone: '#F07F3C', ink: '#fff', dim: ['all', '10,8,14', 0] },
+  { id: 'swirl', code: 'swirl', tone: '#93CBE0', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 빛 소용돌이 (99차): 글자색 · 막은 바탕 밝기로 (formats.js)   // 노을 띠: 딤 · 글자색은 띠 밝기로 (formats.js slitLayer)
 ];
 
 // 내 사진: 사진은 카드마다 달라서(ph) 여기엔 딤 · 글색만. 어둡게 덮고 흰 글
@@ -310,9 +311,101 @@ function drawSlit(cv, seed, shift, t, grainAmt) {
   }
   g.restore();
 }
+// 빛 소용돌이 (11-25 99차, 앤드류 레퍼런스(셰이더 그림)의 느낌만 · 코드는 새로 작성). 연한~어두운 바탕 위 가운데 흐린 빛,
+// 겹겹 원 위 반짝임(도는 방향으로 살짝 늘어진 빛)이 천천히 돌고, 가운데서 부드러운 물결 고리(파장)가 번져 나가요.
+// 색 20가지 = 연한 · 중간 · 선명한 · 어두운 4단계 × 5. 칩으로 고르면(pb.pal) 고정, 아니면 씨앗 % 20.
+// 셔플 = 겹 수(3~7) · 반짝임 자리 · 감김 · 도는 방향 · 파장 간격 · 나선 물결(0~3갈래). t = 초(0이면 멈춘 그림)
+export const SWIRL_PAL = [
+  ['하늘', '#93CBE0', '#D6F7FF'], ['분홍', '#EDBCCB', '#FFE3EC'], ['라벤더', '#BFB8EA', '#EEEAFF'], ['민트', '#A9DEC9', '#E0FFF1'], ['복숭아', '#F2C6AA', '#FFE9D9'],
+  ['코발트', '#4F78D6', '#BFD3FF'], ['산호', '#EC7C6A', '#FFD2C6'], ['보라', '#8A63D2', '#DCCBFF'], ['청록', '#2FA3A0', '#BDF5F0'], ['겨자', '#D9A93A', '#FFEBB5'],
+  ['파랑', '#1E4BFF', '#9FD8FF'], ['빨강', '#F2210C', '#FFC08A'], ['연두', '#6CC81A', '#F4FFB0'], ['자홍', '#F01E9E', '#FFB3EC'], ['주황', '#FF7A00', '#FFE08A'],
+  ['남색', '#0E1A44', '#3FA9FF'], ['검보라', '#24103D', '#B65CFF'], ['짙은 초록', '#0B2B22', '#3DE8A6'], ['검정', '#070708', '#8FE3FF'], ['와인', '#3A0B19', '#FF5F8A'],
+];
+export const swirlPal = (seed, pal) => pal != null && SWIRL_PAL[+pal] ? +pal : ((seed >>> 0) || 1) % SWIRL_PAL.length;
+const hx3 = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255);
+export const swirlLight = (seed, pal) => { const [r, g, b] = hx3(SWIRL_PAL[swirlPal(seed, pal)][1]); return .2126 * r + .7152 * g + .0722 * b > .55; };
+const swirlCache = new Map();
+function swirlOf(seed) {
+  if (swirlCache.has(seed)) return swirlCache.get(seed);
+  const r = rng(seed ^ 0x5a17c3), rings = 3 + Math.floor(r() * 5), dir = r() < .5 ? -1 : 1, tw = .2 + r() * 1.1, wf = 14 + r() * 30, a = r();
+  const p = { rings, dir, tw, wf, arm: a < .55 ? 0 : a < .75 ? 1 : a < .9 ? 2 : 3, wa: wf > 36 ? .14 : .17, s: (seed >>> 0) % 97 };
+  if (swirlCache.size > 60) swirlCache.delete(swirlCache.keys().next().value);
+  swirlCache.set(seed, p); return p;
+}
+const SW_GLSL = `precision highp float;
+uniform vec2 uRes; uniform float uT, uS, uRings, uDir, uTw, uWf, uWa, uArm, uGrain; uniform vec3 uBase, uGlow;
+float h(vec2 q) { return fract(sin(dot(q, vec2(127.1, 311.7)) + uS * 1.37) * 43758.5453); }
+float grain(vec2 p) { vec3 q = fract(vec3(p.xyx) * .1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }
+void main() {
+  vec2 uv = (gl_FragCoord.xy - .5 * uRes) / max(uRes.x * 1.25, uRes.y); float r = length(uv), th = atan(uv.y, uv.x);
+  float lum = dot(uBase, vec3(.2126, .7152, .0722)), kk = 1. - .45 * smoothstep(.45, .8, lum);
+  vec3 c = uBase * (1. - .2 * r) + uGlow * .55 * kk * exp(-r * r * 9.);
+  float wv = sin(r * uWf - uT * 1.1 + th * uArm + sin(th * 3. + uS) * .4), wave = pow(.5 + .5 * wv, 3.) * smoothstep(.9, .05, r) * smoothstep(0., .12, r);   // 파장
+  c += uGlow * uWa * wave * kk + vec3(1.) * uWa * .12 * pow(.5 + .5 * wv, 12.) * smoothstep(.8, .1, r) * kk;
+  float L = 0.;
+  for (int k = 0; k < 7; k++) { float fk = float(k); if (fk >= uRings) break;
+    float rk = .07 + fk * .085 + .02 * h(vec2(fk, 1.)), sp = uDir * .22 / (1. + fk * .35), ph = fk * uTw + h(vec2(fk, 2.)) * 6.283 + uT * sp, n = 3. + fk * 1.6;
+    L += .05 * exp(-pow((r - rk) / .0016, 2.)) * smoothstep(.2, .9, h(vec2(floor((th + ph) * 3.), fk)));   // 가는 빛 줄
+    for (int j = 0; j < 14; j++) { float fj = float(j); if (fj >= n) break;
+      float on = h(vec2(fk, fj + 7.)); if (on < .25) continue;
+      float a = fj / n * 6.2832 + ph + (h(vec2(fj, fk + 3.)) - .5) * .5, rr = rk * (1. + (h(vec2(fj, fk + 9.)) - .5) * .12);
+      vec2 q = vec2(cos(a), sin(a)), d = uv - q * rr;
+      float dt = dot(d, vec2(-q.y, q.x)), dr = dot(d, q), sz = .4 + on;
+      L += sz * (exp(-(dt * dt / (.00028 * sz) + dr * dr / .000012)) * 1.1 + exp(-dot(d, d) / (.0016 * sz)) * .07);
+    }
+  }
+  L = 1. - exp(-L * 1.4); c += (uGlow * .7 + .3) * L * .75 * kk;
+  if (uGrain > 0.) c += (grain(gl_FragCoord.xy) + grain(gl_FragCoord.xy + vec2(37., 91.)) - 1.) * uGrain;
+  gl_FragColor = vec4(pow(clamp(c, 0., 1.), vec3(.95)), 1.);
+}`;
+let SG = null;
+function swGl() {
+  if (SG !== null) return SG;
+  SG = false;
+  try {
+    const cv = document.createElement('canvas'), g = cv.getContext('webgl', { premultipliedAlpha: false, antialias: false });
+    if (!g) return SG;
+    const sh = (type, src) => { const o = g.createShader(type); g.shaderSource(o, src); g.compileShader(o); if (!g.getShaderParameter(o, g.COMPILE_STATUS)) throw new Error(g.getShaderInfoLog(o)); return o; };
+    const pr = g.createProgram();
+    g.attachShader(pr, sh(g.VERTEX_SHADER, 'attribute vec2 a; void main() { gl_Position = vec4(a, 0., 1.); }'));
+    g.attachShader(pr, sh(g.FRAGMENT_SHADER, SW_GLSL)); g.linkProgram(pr); g.useProgram(pr);
+    const buf = g.createBuffer(); g.bindBuffer(g.ARRAY_BUFFER, buf); g.bufferData(g.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), g.STATIC_DRAW);
+    const a = g.getAttribLocation(pr, 'a'); g.enableVertexAttribArray(a); g.vertexAttribPointer(a, 2, g.FLOAT, false, 0, 0);
+    const u = {}; ['uRes', 'uT', 'uS', 'uRings', 'uDir', 'uTw', 'uWf', 'uWa', 'uArm', 'uGrain', 'uBase', 'uGlow'].forEach(k => { u[k] = g.getUniformLocation(pr, k); });
+    SG = { cv, g, u };
+  } catch (e) { console.warn('swirl gl', e); SG = false; }
+  return SG;
+}
+// WebGL이 없을 때: 캔버스로 비슷하게 (바탕 · 가운데 빛 · 물결 고리 · 반짝임)
+function swirlCpu(cv, P, pal, t) {
+  const W = cv.width, H = cv.height, g = cv.getContext('2d'), U = Math.max(W * 1.25, H), cx = W / 2, cy = H / 2, [, base, glow] = SWIRL_PAL[pal];
+  g.fillStyle = base; g.fillRect(0, 0, W, H);
+  g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = .35;
+  let gr = g.createRadialGradient(cx, cy, 0, cx, cy, U * .45); gr.addColorStop(0, glow); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, W, H);
+  g.globalAlpha = .12; g.strokeStyle = glow; g.lineWidth = U * .03;
+  const sp = 2 * Math.PI / P.wf, off = (t * 1.1 / P.wf) % sp;
+  for (let rr = off; rr < .8; rr += sp) { g.beginPath(); g.arc(cx, cy, rr * U, 0, 7); g.stroke(); }
+  const r = rng(P.s * 7919 + 1); g.globalAlpha = .7; g.fillStyle = '#fff';
+  for (let k = 0; k < P.rings; k++) { const rk = .07 + k * .085, n = 3 + Math.floor(k * 1.6), ph = k * P.tw + r() * 6.283 + t * P.dir * .22 / (1 + k * .35);
+    for (let j = 0; j < n; j++) { if (r() < .25) continue; const a = j / n * 6.283 + ph; g.save(); g.translate(cx + Math.cos(a) * rk * U, cy + Math.sin(a) * rk * U); g.rotate(a + Math.PI / 2); g.beginPath(); g.ellipse(0, 0, U * .012, U * .0025, 0, 0, 7); g.fill(); g.restore(); } }
+  g.restore();
+}
+function drawSwirl(cv, seed, t, grainAmt) {
+  const W = cv.width, H = cv.height, P = swirlOf(seed), pal = swirlPal(seed, cv.dataset.pal), R = swGl();
+  if (!R) return swirlCpu(cv, P, pal, t);
+  const { cv: gc, g, u } = R, k = t > 0 ? Math.min(1, 720 / W) : 1, w = Math.round(W * k), h = Math.round(H * k);   // 움직일 땐 폭 720까지만 계산해서 키워요 (부드러운 빛이라 차이 없음)
+  if (gc.width !== w || gc.height !== h) { gc.width = w; gc.height = h; }
+  g.viewport(0, 0, w, h);
+  g.uniform2f(u.uRes, w, h); g.uniform1f(u.uT, t); g.uniform1f(u.uS, P.s); g.uniform1f(u.uRings, P.rings); g.uniform1f(u.uDir, P.dir); g.uniform1f(u.uTw, P.tw);
+  g.uniform1f(u.uWf, P.wf); g.uniform1f(u.uWa, P.wa); g.uniform1f(u.uArm, P.arm); g.uniform1f(u.uGrain, grainAmt * .5);
+  g.uniform3fv(u.uBase, hx3(SWIRL_PAL[pal][1])); g.uniform3fv(u.uGlow, hx3(SWIRL_PAL[pal][2]));
+  g.drawArrays(g.TRIANGLES, 0, 3);
+  cv.getContext('2d').drawImage(gc, 0, 0, W, H);
+}
 export function drawCode(cv, seed, shift = 0, t = 0, grainAmt = cv.dataset.gr === '0' ? .01 : .09) {   // 노이즈 끄면 맑게(.01은 색 줄 생김만 막는 정도)
   const W = cv.width, H = cv.height; if (!W || !H) return;
   if (cv.dataset.code === 'slit') return drawSlit(cv, seed, shift, t, cv.dataset.gr === '0' ? 0 : .035);
+  if (cv.dataset.code === 'swirl') return drawSwirl(cv, seed, t, cv.dataset.gr === '0' ? 0 : .05);
   const P = auroraOf(seed), full = W * 16 / 9, off = Math.max(0, full - H) * shift;
   const R = gl();
   if (!R) return cpu(cv, P, off, full, t);

@@ -1,5 +1,5 @@
 // 포맷 = 데이터 + 그리기. 카드는 가로 1080 기준으로 디자인하고 cqw 단위로 그려서, 화면 크기와 저장 이미지가 같은 모양이에요
-import { find as findBg, dimCss, drawCode, slitLum } from './bg.js';
+import { find as findBg, dimCss, drawCode, slitLum, swirlLight } from './bg.js';
 import { bgUrl, keyOf, fidOf, grainLv, GRAPHIC } from './filters.js';
 import { rangeAt } from './rich.js';
 import { hydrate } from './stickers.js';
@@ -90,7 +90,7 @@ function bgLayer(c, page, pages) {
     if (u && cb.vd) base += '<canvas class="bgv"></canvas>';   // 영상: 커버 위에서 재생 (재생 중인 카드만 그려요)
   }
   else if (b.img) base = `<div class="bgi" style="background-image:url(${b.img});background-position:50% ${Math.round(shift * 100)}%"></div>`;
-  else if (b.code) base = `<canvas class="bgc" data-code="${b.code}" data-seed="${cb.seed || 1}" data-shift="${shift}"${cb.grain === false ? ' data-gr="0"' : ''}></canvas>`;
+  else if (b.code) base = `<canvas class="bgc" data-code="${b.code}" data-seed="${cb.seed || 1}" data-shift="${shift}"${cb.pal != null ? ` data-pal="${cb.pal}"` : ''}${cb.grain === false ? ' data-gr="0"' : ''}></canvas>`;
   else base = `<div class="bgi" style="background:${b.css}"></div>${grainLayer(cb)}`;   // 색 배경도 노이즈 (사진은 사진에 구워 넣어요)
   const gfx = b.photo && GRAPHIC.has(c.filter) && cb?.dim !== 'light' ? '<div class="dimL" style="background:rgba(0,0,0,.18)"></div>' : '';   // 그래픽 필터는 점이 굵어 글 뒤를 조금 더
   const ex = EXTRA[dimLv(cb?.dim)];
@@ -98,6 +98,10 @@ function bgLayer(c, page, pages) {
   if (ex >= .4 && tink !== '#fff') tink = '#fff';   // 파스텔 · 밝은 색도 딤 강이면 흰 글
   const more = ex ? `<div class="dimL" style="background:rgba(0,0,0,${ex})"></div>` : '';   // 딤은 늘 어둡게 덮어요 (앤드류 10-28)
   if (b.code === 'slit' && cb?.dim !== 'light') { const sl = slitLayer(c, page, shift, cb.seed || 1, ex); return { html: base + sl.html + more, ink: sl.ink, bink: sl.bink }; }
+  if (b.code === 'swirl' && cb?.dim !== 'light') {   // 빛 소용돌이 (99차): 연한 바탕 = 짙은 글 + 가운데 옅은 흰 막, 나머지 = 흰 글 + 가운데 옅은 어두운 막
+    const lt = swirlLight(cb.seed || 1, cb.pal) && ex < .4, col = lt ? '255,255,255' : '0,0,0', k = lt ? .22 : .2;
+    return { html: base + `<div class="dimL" style="background:radial-gradient(ellipse 85% 60% at 50% 50%, rgba(${col},${k}) 0%, rgba(${col},${k * .45}) 55%, rgba(${col},0) 100%)"></div>` + more, ink: lt ? '#1E1B18' : '#fff' };
+  }
   return { html: base + `<div class="dimL" style="background:${dim}"></div>` + gfx + more, ink: tink };
 }
 
@@ -198,7 +202,7 @@ function fitText(el) {
   el.querySelectorAll('canvas.bgc').forEach(cv => {
     const w = cv.clientWidth; if (!w) return;
     const k = Math.min(3, window.devicePixelRatio || 1), W = Math.round(w * k), H = Math.min(Math.round(cv.clientHeight * k) || Math.round(W * 1.25), Math.round(W * 16 / 9));
-    const key = [cv.dataset.seed, cv.dataset.shift, H, cv.dataset.gr].join();
+    const key = [cv.dataset.seed, cv.dataset.shift, H, cv.dataset.gr, cv.dataset.pal].join();
     if (cv.width === W && cv.dataset.done === key) return;
     cv.width = W; cv.height = H; drawCode(cv, +cv.dataset.seed, +cv.dataset.shift); cv.dataset.done = key;
   });
@@ -234,7 +238,7 @@ export function ensure(f) {
 export const missing = fmts => [...new Set(fmts)].filter(f => f && !FORMATS[f] && !BAD.has(f));
 export const ORDER = ['rebus', 'art', 'text'];
 // 피드 · 쓰기 위에 보이는 '종류 · 템플릿'
-export const LABEL = { text: '기본', rebus: '디자인 · 멤피스 문장', art: '아트 · 오로라 커튼', hilite: '디자인 · 하이라이트 문장', slit: '아트 · 노을 띠', pill: '디자인 · 그라데이션 알약', dots: '디자인 · 동그라미 목차', wave: '디자인 · 물결 문장', tower: '디자인 · 글 탑', symbol: '디자인 · 기호 문장', label: '디자인 · 라벨 조각', typer: '디자인 · 타자 메모', vset: '디자인 · 비디오 세팅' };
+export const LABEL = { text: '기본', rebus: '디자인 · 멤피스 문장', art: '아트 · 오로라 커튼', hilite: '디자인 · 하이라이트 문장', slit: '아트 · 노을 띠', swirl: '아트 · 빛 소용돌이', pill: '디자인 · 그라데이션 알약', dots: '디자인 · 동그라미 목차', wave: '디자인 · 물결 문장', tower: '디자인 · 글 탑', symbol: '디자인 · 기호 문장', label: '디자인 · 라벨 조각', typer: '디자인 · 타자 메모', vset: '디자인 · 비디오 세팅' };
 
 export function blank(fmt, date) {
   const d = FORMATS[fmt];
