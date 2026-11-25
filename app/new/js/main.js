@@ -1175,7 +1175,7 @@ function viewMarks() {
 }
 // 날짜별 2열 (책 · 달력 같이): 날짜 머리 + 2열 칸(더 짧은 열에 차례로) + 칸 아래 [시간 · ⋯] (홈 2열과 같은 줄). 칸은 화면 가까이 올 때 그려요
 // 63 (11-06): 영상 카드 = 영상 아이콘, 움직이는 카드(아트 흐름 · 움직이는 아이콘) = 반짝임 둘. 오른쪽 위 쪽수 알약 안 (쪽수가 없어도 아이콘만)
-const motionKind = it => (it._card && hasVideo(it._card)) ? 'video' : (it._card && T.tplOfCard(it._card)?.motion === false) ? '' : it.querySelector('canvas.bgc, .cd.rebus .o[data-m], .cd.hilite .hm, .cd.gpl .gp.g, .cd.cdots .cdot, .cd.cwave .wvc, .cd.ctwr .tk, .cd.csym .sy, .cd.clab .ln') ? 'spark2' : '';
+const motionKind = it => (it._card && hasVideo(it._card)) ? 'video' : (it._card && T.tplOfCard(it._card)?.motion === false) ? '' : it.querySelector('canvas.bgc, .cd.rebus .o[data-m], .cd.hilite .hm, .cd.gpl .gp.g, .cd.cdots .cdot, .cd.cwave .wvc, .cd.ctwr .tk, .cd.csym .sy, .cd.clab .ln, .cd.ctyp .tk, .cd.cvst .vpl') ? 'spark2' : '';
 function pcNum(pc, t) { if (!pc) return; let b = $('b', pc); if (!b) { b = document.createElement('b'); pc.appendChild(b); } b.textContent = t; pc.hidden = !t && !$('.kic', pc); }
 function markKind(it) {
   if (it.dataset.kd || !it.querySelector('.cd')) return; it.dataset.kd = 1;
@@ -1983,7 +1983,7 @@ const REC_T = { 밤: '밤에 쓰기 좋은', 비: '비 오는 날엔', 눈: '눈
 const WXK = { sun: '맑음', suncloud: '구름 조금', cloud: '흐림', rain: '비', snow: '눈', thunder: '천둥', fog: '안개' };
 const dayLine = (now = new Date()) => { let w = ''; try { const x = JSON.parse(localStorage.getItem('daytale.wx') || 'null'); if (x && Date.now() - x.at < 3 * 3600e3 && WXK[x.kind]) w = ` · ${WXK[x.kind]}${x.temp != null ? ` ${x.temp}°` : ''}`; } catch {} return `${now.getMonth() + 1}월 ${now.getDate()}일 ${'일월화수목금토'[now.getDay()]}요일${w}`; };
 // 78차: 새 버전 확인. 앱으로 돌아올 때(다른 앱 갔다 오기) version.txt가 지금과 다르면 저절로 새로 고쳐요. 쓰는 중엔 안 해요
-const BUILD = '95', BUILD_TAG = '11-25 95차';
+const BUILD = '96', BUILD_TAG = '11-25 96차';
 let verAt = 0;
 const checkVer = () => {
   if (document.hidden || Date.now() - verAt < 20e3) return; verAt = Date.now();
@@ -2395,7 +2395,7 @@ function viewWrite({ fmt, id, like }) {
   /* 카드 그리기. 글만 바뀌면 그 자리에서 바꾸고(키보드가 내려가지 않게), 장 수·배경·날짜 같은 틀이 바뀔 때만 새로 그려요 */
   let el = null, shape = '';
   const look = () => [card.ratio, card.lh, card.bold, card.ink, card.showDate, card.placeOff, card.sg, card.signTxt, card.dh];
-  const shapeOf = () => JSON.stringify(rich ? [card.pages.length, card.bg, card.align, card.pst, card.datePos, card.date, card.place, card.font, card.size, card.filter, card.leak, ...look()] : [card.date, card.place, card.size, card.align, card.datePos, card.seed, card.pal, ...look()]);   // 셔플(seed)하면 종이색까지 새로 (11-20)
+  const shapeOf = () => JSON.stringify(rich ? [card.pages.length, card.bg, card.align, card.pst, card.datePos, card.date, card.place, card.font, card.size, card.filter, card.leak, ...look()] : [card.date, card.place, card.size, card.align, card.datePos, card.seed, card.pal, card.bg?.ph, ...look()]);   // 셔플(seed)하면 종이색까지 새로 (11-20)
   const bodies = () => $$('.body', el);
   const pageOf = b => b.closest('.pg') ? +b.closest('.pg').dataset.i : 0;
   const caretIn = b => { const s = getSelection(); return s.rangeCount && b.contains(s.anchorNode) ? offsetsOf(b, s.getRangeAt(0)) : null; };
@@ -2779,14 +2779,15 @@ function viewWrite({ fmt, id, like }) {
   // 배경 줄(디자인 템플릿, 91차): 컬러칩(직접 색) · 색 조합 14개. 칩을 고르면 색은 그대로 두고 셔플은 표시만 바꿔요.
   // 고른 칩을 한 번 더 누르면 풀려서 다시 셔플마다 색도 바뀌어요
   function paintComboRow() {
-    const keep = $('.swp', row2)?.scrollLeft, own = isHex(card.pal);
+    const keep = $('.swp', row2)?.scrollLeft, own = isHex(card.pal), phu = card.bg?.id === 'photo' ? srcOf(card.bg) : '';   // 내 사진을 넣은 디자인 카드(타자 메모, 96차): 맨 앞 사진 칸 = 누르면 사진 빼기
     row2.className = 'st2 g6 bgr cbr';
     row2.innerHTML = `<button class="k hue ${own ? 'sel' : ''}" data-x="hue" aria-label="직접 색"><i></i></button>
-      <div class="swp">${COMBOS.map((c, i) => `<button class="k sw ${card.pal === i ? 'sel' : ''}" data-p="${i}" aria-label="${c[0]}" style="background:${c[1]}"></button>`).join('')}<span class="end"></span></div>`;
+      <div class="swp">${phu ? `<button class="k sw phc sel" data-x="noph" aria-label="사진 빼기" style="background-image:url(${phu})"><i>${ic('close')}</i></button>` : ''}${COMBOS.map((c, i) => `<button class="k sw ${card.pal === i ? 'sel' : ''}" data-p="${i}" aria-label="${c[0]}" style="background:${c[1]}"></button>`).join('')}<span class="end"></span></div>`;
     const sw = $('.swp', row2), sel = $('.sel', sw);
     if (keep != null) sw.scrollLeft = keep; else if (sel) sw.scrollLeft = Math.max(0, sel.offsetLeft - sw.offsetLeft);
     $$('button', row2).forEach(x => x.addEventListener('pointerdown', e => e.preventDefault()));
     $('[data-x=hue]', row2).onclick = () => { st.tab = 'hue'; paintRow2(); };
+    const np = $('[data-x=noph]', row2); if (np) np.onclick = () => { flush(); card.bg = { id: 'g1', dim: 'dark' }; push(); draw(); paintComboRow(); pop('사진 뺌', null, '배경'); };
     $$('[data-p]', row2).forEach(t => t.onclick = () => {
       flush(); const i = +t.dataset.p, off = card.pal === i;
       card.pal = off ? undefined : i; card.palPos = undefined;
@@ -2840,7 +2841,7 @@ function viewWrite({ fmt, id, like }) {
       if (vid) p = await V.add(file);
       else try { p = await P.add(file); } catch (e) { if (!f.tools.filter || /^image\//.test(file.type)) throw e; vid = true; wait(); p = await V.add(file); }   // 사진으로 안 열리면 영상으로 한 번 더
       clearInterval(busy);
-      const pb = ps().bg;
+      const pb = ps().bg || (ps().bg = {});   // 디자인 템플릿(타자 메모)은 배경 칸이 없던 카드 (96차)
       flush(); clearPhoto(pb); Object.assign(pb, { id: 'photo', ...p, x: 50, y: 50 }); if (!pb.dim) pb.dim = 'dark';
       if (f.tools.filter && st.tab !== 'filter') st.tab = 'img';   // 고른 뒤엔 이미지 줄 (필터 · 영상 칸)
       if (vid) st.vpause = false;

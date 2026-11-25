@@ -1,0 +1,86 @@
+/* 템플릿 틀: 타자 메모 (96차) — 이 틀만의 모양. 공용(카드 틀 · 날짜 줄 · 서명)은 app.css. 틀을 처음 볼 때 같이 불러와요 */
+.cd.ctyp { aspect-ratio: 4 / 5; overflow: clip; background: var(--paper, #FBF9F4); color: var(--ink, #22201D); display: flow-root; font-family: 'DT Courier Prime', 'DT Nanum Gothic Coding', monospace; }
+.cd.ctyp.r916 { aspect-ratio: 9 / 16; } .cd.ctyp.r11 { aspect-ratio: 1; } .cd.ctyp.r32 { aspect-ratio: 3 / 2; } .cd.ctyp.r169 { aspect-ratio: 16 / 9; }
+/* 글 상자 */
+.cd.ctyp .rb { outline: none; margin: 7.96cqw 7cqw 7.96cqw 7cqw; font-size: 6cqw; font-weight: 400; letter-spacing: 0; color: #262626; overflow-wrap: break-word; word-break: keep-all; position: relative; isolation: isolate; padding-bottom: .2em; }
+.cd.ctyp .rb .ph { color: #B9B5AC; }
+.cd.ctyp .rb b, .cd.ctyp .rb strong { font-weight: 800; }
+.cd.ctyp .rb mark { background: none; color: inherit; }
+.cd.ctyp.dk .rb .ph { color: rgba(255,255,255,.42); }
+.cd.ctyp.dk.edit.empty::after { background: rgba(255,255,255,.16); color: rgba(255,255,255,.75); }
+/* 쓰기: 빈 카드엔 흐린 예시 글 */
+.cd.ctyp .exm { display: none; position: absolute; top: 0; left: 0; right: 0; opacity: .3; pointer-events: none; background: none; }
+.cd.ctyp.edit.empty .exm { display: block; }
+.cd.ctyp.edit .rb { min-height: 1.4em; z-index: 1; }
+.cd.ctyp.edit .exm { position: absolute; z-index: 0; min-height: 0; }
+.cd.ctyp.edit.empty .rb { background: none; }
+.cd.ctyp.edit.empty::after { content: '예시'; position: absolute; font: 700 2.8cqw/1 var(--ui); padding: 1cqw 2.4cqw; border-radius: 99px; background: rgba(34,32,29,.12); color: #6b6862; top: 3cqw; right: 4cqw; pointer-events: none; }
+.wr .cd.ctyp .rb { transition: margin-top .25s ease; }
+.wr .cd.ctyp { width: var(--cw); margin: 0 auto; border-radius: 14px; }
+/* 날짜 줄 · 서명 */
+.cd.ctyp .foot { position: absolute; left: 7cqw; right: 7cqw; bottom: 6.5cqw; display: flex; justify-content: space-between; font-weight: 600; line-height: 1; letter-spacing: .02em; color: var(--ink, #22201D); }
+.cd.ctyp[data-dp=top] .foot { bottom: auto; top: 6.5cqw; }
+.cd.ctyp.hsg[data-dp=bottom] .foot { bottom: 13.3cqw; }
+.cd.ctyp[data-dp=none] .foot { display: none; }
+.cd.ctyp .sgn { bottom: 6.5cqw; font-weight: 600; line-height: 1; color: var(--ink, #22201D); opacity: 1; letter-spacing: 0; }
+.cd.ctyp .sgn[data-h=l] { left: 7cqw; } .cd.ctyp .sgn[data-h=r] { right: 7cqw; }
+.cd.ctyp.r916 .foot { bottom: 39.1cqw; right: 12cqw; left: 6cqw; } .cd.ctyp.r916[data-dp=top] .foot { top: 23.1cqw; bottom: auto; }
+.cd.ctyp.r916.hsg[data-dp=bottom] .foot { bottom: 46.5cqw; }
+.cd.ctyp.r916 .rb { margin-left: 6cqw; margin-right: 12cqw; }
+/* 저장할 때 장으로 나뉜 카드 */
+.cd.ctyp.paged { aspect-ratio: auto; }
+.cd.ctyp .pgbox { margin: 7.96cqw 7cqw 0 7cqw; }
+.cd.ctyp.r916 .pgbox { margin-left: 6cqw; margin-right: 12cqw; }
+.cd.ctyp .pgbox .rb { margin: 0; }
+
+/* 바탕: 구운 무늬 · 사진 그림 (카드를 덮어요) */
+.cd.ctyp .tbg { position: absolute; inset: 0; background-size: cover; background-position: 50% 50%; pointer-events: none; }
+.cd.ctyp .rb b, .cd.ctyp .rb strong { font-weight: 700; }
+.cd.ctyp .foot, .cd.ctyp .sgn { color: #262626; font-weight: 400; }
+.cd.ctyp .rb .ph { color: rgba(38,38,38,.45); }
+.cd.ctyp.edit.empty::after { background: rgba(38,38,38,.12); color: #3a3a3a; }
+.cd.ctyp .cur { display: none; }
+/* 모션 (피드 가운데 카드만): 8초마다 처음부터 한 자씩 찍혀요. 글자마다 나타나는 때를 40칸(b1~b40, 2%씩)으로 나눠 칸마다 키프레임 (아이폰도 같게) · 끝에서 커서 깜빡 */
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .tk { animation-duration: 8s; animation-iteration-count: infinite; animation-timing-function: step-end; }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .cur { display: inline-block; width: .55em; height: 1.05em; background: #262626; vertical-align: -.18em; margin-left: .08em; animation: ty-cur 8s step-end infinite; }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b1 { animation-name: ty1; } @keyframes ty1 { 0% { opacity: 0; } 2% { opacity: 1; } 96% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b2 { animation-name: ty2; } @keyframes ty2 { 0% { opacity: 0; } 4% { opacity: 1; } 96% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b3 { animation-name: ty3; } @keyframes ty3 { 0% { opacity: 0; } 6% { opacity: 1; } 96% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b4 { animation-name: ty4; } @keyframes ty4 { 0% { opacity: 0; } 8% { opacity: 1; } 96% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b5 { animation-name: ty5; } @keyframes ty5 { 0% { opacity: 0; } 10% { opacity: 1; } 96% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b6 { animation-name: ty6; } @keyframes ty6 { 0% { opacity: 0; } 12% { opacity: 1; } 96% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b7 { animation-name: ty7; } @keyframes ty7 { 0% { opacity: 0; } 14% { opacity: 1; } 96% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b8 { animation-name: ty8; } @keyframes ty8 { 0% { opacity: 0; } 16% { opacity: 1; } 96% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b9 { animation-name: ty9; } @keyframes ty9 { 0% { opacity: 0; } 18% { opacity: 1; } 96% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b10 { animation-name: ty10; } @keyframes ty10 { 0% { opacity: 0; } 20% { opacity: 1; } 96% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b11 { animation-name: ty11; } @keyframes ty11 { 0% { opacity: 0; } 22% { opacity: 1; } 96% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b12 { animation-name: ty12; } @keyframes ty12 { 0% { opacity: 0; } 24% { opacity: 1; } 96% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b13 { animation-name: ty13; } @keyframes ty13 { 0% { opacity: 0; } 26% { opacity: 1; } 96% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b14 { animation-name: ty14; } @keyframes ty14 { 0% { opacity: 0; } 28% { opacity: 1; } 96% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b15 { animation-name: ty15; } @keyframes ty15 { 0% { opacity: 0; } 30% { opacity: 1; } 96% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b16 { animation-name: ty16; } @keyframes ty16 { 0% { opacity: 0; } 32% { opacity: 1; } 96% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b17 { animation-name: ty17; } @keyframes ty17 { 0% { opacity: 0; } 34% { opacity: 1; } 96% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b18 { animation-name: ty18; } @keyframes ty18 { 0% { opacity: 0; } 36% { opacity: 1; } 96% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b19 { animation-name: ty19; } @keyframes ty19 { 0% { opacity: 0; } 38% { opacity: 1; } 96% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b20 { animation-name: ty20; } @keyframes ty20 { 0% { opacity: 0; } 40% { opacity: 1; } 96% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b21 { animation-name: ty21; } @keyframes ty21 { 0% { opacity: 0; } 42% { opacity: 1; } 96% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b22 { animation-name: ty22; } @keyframes ty22 { 0% { opacity: 0; } 44% { opacity: 1; } 96% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b23 { animation-name: ty23; } @keyframes ty23 { 0% { opacity: 0; } 46% { opacity: 1; } 96% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b24 { animation-name: ty24; } @keyframes ty24 { 0% { opacity: 0; } 48% { opacity: 1; } 96% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b25 { animation-name: ty25; } @keyframes ty25 { 0% { opacity: 0; } 50% { opacity: 1; } 96% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b26 { animation-name: ty26; } @keyframes ty26 { 0% { opacity: 0; } 52% { opacity: 1; } 96% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b27 { animation-name: ty27; } @keyframes ty27 { 0% { opacity: 0; } 54% { opacity: 1; } 96% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b28 { animation-name: ty28; } @keyframes ty28 { 0% { opacity: 0; } 56% { opacity: 1; } 96% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b29 { animation-name: ty29; } @keyframes ty29 { 0% { opacity: 0; } 58% { opacity: 1; } 96% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b30 { animation-name: ty30; } @keyframes ty30 { 0% { opacity: 0; } 60% { opacity: 1; } 96% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b31 { animation-name: ty31; } @keyframes ty31 { 0% { opacity: 0; } 62% { opacity: 1; } 96% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b32 { animation-name: ty32; } @keyframes ty32 { 0% { opacity: 0; } 64% { opacity: 1; } 96% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b33 { animation-name: ty33; } @keyframes ty33 { 0% { opacity: 0; } 66% { opacity: 1; } 96% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b34 { animation-name: ty34; } @keyframes ty34 { 0% { opacity: 0; } 68% { opacity: 1; } 96% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b35 { animation-name: ty35; } @keyframes ty35 { 0% { opacity: 0; } 70% { opacity: 1; } 96% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b36 { animation-name: ty36; } @keyframes ty36 { 0% { opacity: 0; } 72% { opacity: 1; } 96% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b37 { animation-name: ty37; } @keyframes ty37 { 0% { opacity: 0; } 74% { opacity: 1; } 96% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b38 { animation-name: ty38; } @keyframes ty38 { 0% { opacity: 0; } 76% { opacity: 1; } 96% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b39 { animation-name: ty39; } @keyframes ty39 { 0% { opacity: 0; } 78% { opacity: 1; } 96% { opacity: 0; } }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctyp .b40 { animation-name: ty40; } @keyframes ty40 { 0% { opacity: 0; } 80% { opacity: 1; } 96% { opacity: 0; } }
+@keyframes ty-cur { 0% { opacity: 0; } 82% { opacity: 1; } 86% { opacity: 0; } 90% { opacity: 1; } 93% { opacity: 0; } 95% { opacity: 1; } 96% { opacity: 0; } }

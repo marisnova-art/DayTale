@@ -1,6 +1,6 @@
 // 카드 → 4:5 장들. 저장할 땐 1080×1350 이미지로, 피드에선 같은 장을 화면 폭으로 그려서 옆으로 넘겨 봐요
 // (쓰는 동안은 한 장의 긴 카드, 나누는 건 여기서만. 줄이 잘리지 않게 줄 단위로 나눠요)
-import { ensure, renderCard, fitCard, cardText, rbMargins, lines, starts, shape, arOf, signOf } from './formats.js';
+import { ensure, renderCard, fitCard, cardText, rbMargins, lines, starts, shape, arOf, signOf, FORMATS } from './formats.js';
 import { drawCode } from './bg.js';
 import { ready } from './stickers.js';
 import { fontOf } from './fonts.js';
@@ -20,17 +20,24 @@ const famRules = {};
 async function rulesOf(file, family) {
   if (famRules[family]) return famRules[family];
   const base = new URL(`../fonts/${file}`, location.href), src = await (await fetch(base)).text();
-  const re = new RegExp(`@font-face\\s*{[^}]*font-family:\\s*'${family}'[^}]*src:\\s*url\\(([^)]+)\\)[^}]*unicode-range:\\s*([^;]+);[^}]*}`, 'g');
-  return (famRules[family] = [...src.matchAll(re)].map(m => ({ url: new URL(m[1], base).href, ranges: m[2].split(',').map(x => x.trim().replace('U+', '').split('-').map(h => parseInt(h, 16))) })));
+  const out = [];
+  for (const b of src.match(/@font-face\s*{[^}]*}/g) || []) {
+    if (!b.includes(`'${family}'`)) continue;
+    const u = b.match(/src:\s*url\(([^)]+)\)/), ur = b.match(/unicode-range:\s*([^;]+);/), w = b.match(/font-weight:\s*(\d+);/);
+    if (!u || !ur) continue;
+    out.push({ w: w?.[1], url: new URL(u[1], base).href, ranges: ur[1].split(',').map(x => x.trim().replace('U+', '').split('-').map(h => parseInt(h, 16))) });
+  }
+  return (famRules[family] = out);
 }
-async function fontCss(text, font) {
+// extra = 템플릿이 쓰는 글꼴 [[css 파일, 글꼴 이름, 굵기?]] (96차: 타자 메모 · 비디오 세팅처럼 카드 글꼴이 아닌 틀 글꼴)
+async function fontCss(text, font, extra = []) {
   let css = `@font-face{font-family:'Pretendard Variable';font-weight:45 920;src:url(${await toData(new URL('../fonts/PretendardVariable.woff2', location.href).href)}) format('woff2');}`;
-  const fo = fontOf(font);
-  if (!fo.file) return css;   // 프리텐다드는 위에서 넣었어요
-  const fam = [fo.file, fo.fam];
+  const fo = fontOf(font), list = [...(fo.file ? [[fo.file, fo.fam]] : []), ...extra];   // 프리텐다드는 위에서 넣었어요
   const cps = [...new Set([...text].map(ch => ch.codePointAt(0)))];
-  const hit = (await rulesOf(...fam)).filter(r => r.ranges.some(([a, b = a]) => cps.some(c => c >= a && c <= b)));
-  for (const r of hit) css += `@font-face{font-family:'${fam[1]}';src:url(${await toData(r.url)}) format('woff2');}`;
+  for (const fam of list) {
+    const hit = (await rulesOf(fam[0], fam[1])).filter(r => r.ranges.some(([a, b = a]) => cps.some(c => c >= a && c <= b)));
+    for (const r of hit) css += `@font-face{font-family:'${fam[1]}';${r.w ? `font-weight:${r.w};` : ''}src:url(${await toData(r.url)}) format('woff2');}`;
+  }
   return css;
 }
 
@@ -101,6 +108,7 @@ export async function buildPages(c, W, ratio = 1, ar = arOf(c)) {
   await ensure(c.fmt);   // 템플릿 틀은 볼 때만 불러와요
   if (c.pages) { const d = document.createElement('div'); d.innerHTML = (c.pages || []).join(''); await ready(d); }   // 이모티콘 그림을 먼저 받아 둬요
   await prep(c);   // 포토 포맷: 필터를 건 사진을 먼저 만들어 둬요 (그래야 저장 이미지에도 필터가)
+  await FORMATS[c.fmt]?.prep?.(c);   // 템플릿이 굽는 그림 (타자 메모: 흑백 + 색 사진, 96차)
   return !c.pages ? rebusPages(c, W, ar) : textPages(c, W, ratio, ar);
 }
 
@@ -134,7 +142,7 @@ export const cardImages = (c, o = {}) => one(async () => {
   await document.fonts.ready;
   const pick = o.pages ? o.pages.filter(i => all[i]) : all.map((_, i) => i);
   try {
-    const fontEmbedCSS = await fontCss(cardText(c) + (c.place || '') + (signOf(c) ? c.signTxt : '') + '0123456789.·/ 일월화수목금토요', c.pages ? c.font || 'serif' : 'sans');
+    const fontEmbedCSS = await fontCss(cardText(c) + (c.place || '') + (signOf(c) ? c.signTxt : '') + '0123456789.·/ 일월화수목금토요' + all.map(n => n.textContent).join(''), c.pages ? c.font || 'serif' : 'sans', FORMATS[c.fmt]?.fonts || []);
     const opt = { width: W, height: H, pixelRatio: ar < .6 ? 16 / 9 : 1,   // 16:9는 1920×1080으로 (PC · 유튜브 크기)
       fontEmbedCSS, cacheBust: false };
     const files = [], failed = [];

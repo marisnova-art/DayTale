@@ -1,0 +1,52 @@
+/* 템플릿 틀: 비디오 세팅 (96차) — 이 틀만의 모양. 공용(카드 틀 · 서명)은 app.css */
+.cd.cvst { aspect-ratio: 4 / 5; overflow: clip; background: var(--vb, #2340C8); color: var(--vt, #fff); display: flow-root; font-family: 'DT Galmuri', monospace; }
+.cd.cvst.r916 { aspect-ratio: 9 / 16; } .cd.cvst.r11 { aspect-ratio: 1; } .cd.cvst.r32 { aspect-ratio: 3 / 2; } .cd.cvst.r169 { aspect-ratio: 16 / 9; }
+/* 위 메뉴 · 아래 설정 줄 (카드에 붙은 장치) */
+.cd.cvst .vtop { position: absolute; left: 6cqw; right: 6cqw; top: 5.5cqw; display: flex; flex-direction: column; gap: 3cqw; pointer-events: none; z-index: 2; }
+.cd.cvst .vbot { position: absolute; left: 6cqw; right: 6cqw; bottom: 5.5cqw; display: flex; flex-direction: column; gap: 2.6cqw; font-size: 3.6cqw; line-height: 1.4; pointer-events: none; z-index: 2; }
+.cd.cvst.r916 .vtop { top: 23cqw; } .cd.cvst.r916 .vbot { bottom: 40cqw; right: 12cqw; }
+.cd.cvst .vbar { background: var(--vt); color: var(--vb); padding: .6cqw 2cqw; display: flex; justify-content: space-between; font-size: 4.2cqw; line-height: 1.4; }
+.cd.cvst .vtab { display: flex; gap: 2.4cqw; font-size: 3.8cqw; line-height: 1.4; } .cd.cvst .vtab span { padding: 0 1.2cqw; } .cd.cvst .vtab .on { background: var(--vt); color: var(--vb); }
+.cd.cvst .vrow { display: grid; grid-template-columns: 15cqw 1fr auto; align-items: center; gap: 2.4cqw; }
+.cd.cvst .vseg { display: flex; gap: .8cqw; height: 3cqw; } .cd.cvst .vseg b { flex: 1; border: .5cqw solid var(--vt); } .cd.cvst .vseg b.f { background: var(--vt); }
+.cd.cvst .vdash { display: flex; gap: .9cqw; height: 2.2cqw; align-items: center; } .cd.cvst .vdash b { flex: 1; height: 100%; background: var(--vt); } .cd.cvst .vdash b.o { height: .5cqw; }
+.cd.cvst .vdash.d2 b { height: 2.2cqw; border-radius: 50%; flex: 0 0 2.2cqw; } .cd.cvst .vdash.d2 { justify-content: space-between; } .cd.cvst .vdash.d2 b.o { height: .7cqw; flex-basis: 1.4cqw; border-radius: 0; }
+.cd.cvst .vtg { display: flex; gap: 1.2cqw; } .cd.cvst .vtg span { padding: 0 1.2cqw; } .cd.cvst .vtg .on { background: var(--vt); color: var(--vb); }
+.cd.cvst .vft { display: flex; justify-content: space-between; font-size: 3.8cqw; } .cd.cvst .vft em { font-style: normal; }
+.cd.cvst .vsec { display: inline-block; height: 1.4em; overflow: hidden; vertical-align: bottom; } .cd.cvst .vsc { display: block; } .cd.cvst .vsc i { display: block; font-style: normal; height: 1.4em; }
+.cd.cvst .vrec { display: inline-block; width: 2.3cqw; height: 2.3cqw; border-radius: 50%; background: #FF4A3D; margin-right: 1.2cqw; vertical-align: .1cqw; }
+.cd.cvst .vscan { position: absolute; left: 0; right: 0; top: -12cqw; bottom: 0; pointer-events: none; z-index: 3; background: repeating-linear-gradient(0deg, rgba(0,0,0,.09) 0 .3cqw, transparent .3cqw 1.2cqw); }
+/* 글 상자 */
+.cd.cvst .rb { outline: none; margin: 30cqw 6cqw 7cqw; font-size: 5.6cqw; font-weight: 400; letter-spacing: 0; overflow-wrap: break-word; word-break: keep-all; position: relative; }
+.cd.cvst.r916 .rb { margin-right: 12cqw; }
+.cd.cvst .rb .ph { opacity: .5; }
+.cd.cvst .rb b, .cd.cvst .rb strong { font-weight: 700; } .cd.cvst .rb mark { background: none; color: inherit; }
+.cd.cvst .iv { background: var(--vt); color: var(--vb); padding: 0 .12em; }
+.cd.cvst .ovl { position: absolute; top: 0; left: 0; right: 0; pointer-events: none; z-index: 1; }
+.cd.cvst.edit .rb.body { min-height: 1.4em; z-index: 1; }
+.cd.cvst.edit .rb.body:not(:focus) { color: transparent; }
+.cd.cvst.edit .rb.body:focus ~ .ovl, .cd.cvst.edit.empty .ovl { visibility: hidden; }
+.cd.cvst .exm { display: none; position: absolute; top: 0; left: 0; right: 0; opacity: .4; pointer-events: none; }
+.cd.cvst.edit.empty .exm { display: block; }
+.cd.cvst.edit.empty::after { content: '예시'; position: absolute; font: 700 2.8cqw/1 var(--ui); padding: 1cqw 2.4cqw; border-radius: 99px; background: rgba(255,255,255,.2); color: var(--vt); top: 1cqw; right: 2cqw; pointer-events: none; z-index: 4; }
+.wr .cd.cvst .rb { transition: margin-top .25s ease; }
+.wr .cd.cvst { width: var(--cw); margin: 0 auto; border-radius: 14px; }
+/* 서명 · 날짜 줄 (날짜는 메뉴 띠에) */
+.cd.cvst .foot { display: none; }
+.cd.cvst .sgn { bottom: 1.6cqw; font-size: 3cqw; line-height: 1; color: var(--vt); opacity: .8; letter-spacing: 0; z-index: 2; }
+.cd.cvst .sgn[data-h=l] { left: 6cqw; } .cd.cvst .sgn[data-h=r] { right: 6cqw; }
+.cd.cvst.r916 .sgn { bottom: 36cqw; }
+/* 저장할 때 장으로 나뉜 카드 */
+.cd.cvst.paged { aspect-ratio: auto; }
+.cd.cvst .pgbox { margin: 30cqw 6cqw 0; } .cd.cvst .pgbox .rb { margin: 0; }
+/* 모션 (피드 가운데 카드만) */
+:is(.fi, .tt, .rp).play:not(.intro) .cd.cvst :is(.vpl, .vrec) { animation: vs-blink 1.2s step-end infinite; }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.cvst .vseg b.f { animation: vs-fill 6s step-end infinite; }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.cvst .vscan { animation: vs-scan 3s linear infinite; }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.cvst .rb, :is(.fi, .tt, .rp).play:not(.intro) .cd.cvst .vtop { animation: vs-glitch 6s step-end infinite; }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.cvst .vsc { animation: vs-sec 60s steps(60, end) infinite; }
+@keyframes vs-blink { 0% { opacity: 1; } 50% { opacity: 0; } }
+@keyframes vs-fill { 0% { opacity: .2; } 8% { opacity: 1; } }
+@keyframes vs-scan { 0% { transform: translateY(0); } 100% { transform: translateY(12cqw); } }
+@keyframes vs-glitch { 0%, 100% { transform: none; } 92% { transform: translateX(.8cqw); } 93% { transform: translateX(-.6cqw); } 94% { transform: none; } }
+@keyframes vs-sec { 0% { transform: translateY(0); } 100% { transform: translateY(-100%); } }
