@@ -1983,7 +1983,7 @@ const REC_T = { 밤: '밤에 쓰기 좋은', 비: '비 오는 날엔', 눈: '눈
 const WXK = { sun: '맑음', suncloud: '구름 조금', cloud: '흐림', rain: '비', snow: '눈', thunder: '천둥', fog: '안개' };
 const dayLine = (now = new Date()) => { let w = ''; try { const x = JSON.parse(localStorage.getItem('daytale.wx') || 'null'); if (x && Date.now() - x.at < 3 * 3600e3 && WXK[x.kind]) w = ` · ${WXK[x.kind]}${x.temp != null ? ` ${x.temp}°` : ''}`; } catch {} return `${now.getMonth() + 1}월 ${now.getDate()}일 ${'일월화수목금토'[now.getDay()]}요일${w}`; };
 // 78차: 새 버전 확인. 앱으로 돌아올 때(다른 앱 갔다 오기) version.txt가 지금과 다르면 저절로 새로 고쳐요. 쓰는 중엔 안 해요
-const BUILD = '96', BUILD_TAG = '11-25 96차';
+const BUILD = '97', BUILD_TAG = '11-25 97차';
 let verAt = 0;
 const checkVer = () => {
   if (document.hidden || Date.now() - verAt < 20e3) return; verAt = Date.now();
@@ -2141,7 +2141,9 @@ function viewWrite({ fmt, id, like }) {
   // 포토 포맷은 쓰는 중 줄에 사진 칸이 없어요 (팔레트 1칸 · 빈 장 가운데 버튼에서 골라요)
   // 8칸: 스타일 보기 = 키보드 · 비율 · 서식 · 글꼴 · 배경 · 셔플/필터 · ↶ · ↷ / 쓰기 보기 = 키보드 · 이모티콘 · 새 장 · 사진 · 빈칸 · 빈칸 · ↶ · ↷.
   // 지금 못 쓰는 칸은 숨겨요(빈칸). 되돌리기 · 다시하기만 흐리게 남아요
-  const T1 = [['kb', ''], ['ratio', 's'], ['fmt', 's'], ['font', 's'], ['bg', 's'], [f.tools.filter ? 'img' : 'shuf', 's'], ['emo', 'w'], ['page', 'w'], ['quote', 'w'], [f.tools.bg === 'photo' ? '' : 'photo', 'w'], ['ai', 'w'], ['undo', ''], ['redo', '']];   // ai = AI 글쓰기 (11-20, 모든 포맷)
+  // 디자인 템플릿 중 사진을 받는 틀(tools.photo 'tab', 타자 메모 97차): 기본 글쓰기처럼 컬러 칸 오른쪽에 이미지 칸 + 셔플 (글꼴 칸 자리를 써서 8칸). 키보드 줄엔 사진 칸 없음
+  const imgTab = f.tools.photo === 'tab';
+  const T1 = [['kb', ''], ['ratio', 's'], ['fmt', 's'], ...(imgTab ? [] : [['font', 's']]), ['bg', 's'], ...(imgTab ? [['img', 's'], ['shuf', 's']] : [[f.tools.filter ? 'img' : 'shuf', 's']]), ['emo', 'w'], ['page', 'w'], ['quote', 'w'], [f.tools.bg === 'photo' || imgTab ? '' : 'photo', 'w'], ['ai', 'w'], ['undo', ''], ['redo', '']];   // ai = AI 글쓰기 (11-20, 모든 포맷)
   app.innerHTML = `<div class="wr ${rich ? 'rich' : 'plain'}">
     <header class="top"><button class="cb" data-a="back" aria-label="뒤로">${ic('back')}</button><div class="nm stt"></div><button class="cb w" data-a="ok" aria-label="완료">${ic('check')}</button></header>
     <div class="area"><section class="stage"></section></div>
@@ -2520,7 +2522,7 @@ function viewWrite({ fmt, id, like }) {
     if (k === 'quote') return !!(rich && f.tools.page);   // 문장 넣기: 글포맷 · 아트
     if (k === 'fmt') return !!f.tools.style;
     if (k === 'font') return !!(f.tools.style && f.tools.font);
-    if (k === 'img') return !!f.tools.filter;
+    if (k === 'img') return !!f.tools.filter || imgTab;
     const v = f.tools[k]; return k === 'shuf' && v === 'code' ? !!findBg(ps().bg?.id).code : !!v;
   };
   function tools() {
@@ -2600,6 +2602,7 @@ function viewWrite({ fmt, id, like }) {
     if (st.tab === 'bg' && f.tools.bg === 'combo') return paintComboRow();
     if (st.tab === 'bg' && f.tools.bg === 'art') return paintArtRow();
     if (st.tab === 'img' && f.tools.filter) return paintPhotoRow();
+    if (st.tab === 'img' && imgTab) return paintImgRow();
     if (st.tab === 'filter' && f.tools.filter) return paintFilterRow();
     if (st.tab === 'bg' && f.tools.bg) return paintBgRow();
     if (st.tab === 'font' && f.tools.font) return paintFontRow();
@@ -2701,6 +2704,15 @@ function viewWrite({ fmt, id, like }) {
   // 사진이 없는 장은 사진 칸 · 딤 · 노이즈만 (필터는 사진이 생기면)
   const PLAY = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5z" fill="currentColor" stroke="none"/></svg>';
   const PAUSE = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h3.2v14H7zM13.8 5H17v14h-3.2z" fill="currentColor" stroke="none"/></svg>';
+  // 이미지 줄 (사진을 받는 디자인 템플릿, 97차): 사진 고르기(넣은 뒤엔 그 사진 썸네일, 누르면 바꾸기) · 빼기. 딤 · 노이즈 · 필터는 틀이 알아서
+  function paintImgRow() {
+    const u = card.bg?.id === 'photo' ? srcOf(card.bg) : '';
+    row2.className = 'st2 g6';
+    row2.innerHTML = `${u ? `<button class="k cv sel" data-x="photo" aria-label="사진 바꾸기" style="background-image:url(${u})"></button><button class="k" data-x="noph" aria-label="사진 빼기">${ic('trash')}</button>` : `<button class="k" data-x="photo" aria-label="사진 고르기">${ic('album')}</button><span></span>`}<span></span><span></span><span></span><span></span>`;
+    $$('button', row2).forEach(x => x.addEventListener('pointerdown', e => e.preventDefault()));
+    $('[data-x=photo]', row2).onclick = pickPhoto;
+    const np = $('[data-x=noph]', row2); if (np) np.onclick = () => { flush(); card.bg = { id: 'g1', dim: 'dark' }; push(); draw(); paintImgRow(); pop('사진 뺌', null, '이미지'); };
+  }
   function paintPhotoRow() {
     const pb = ps().bg, has = pb.id === 'photo' && !!srcOf(pb), vid = has && !!pb.vd;
     row2.className = 'st2 g6';
@@ -2779,15 +2791,14 @@ function viewWrite({ fmt, id, like }) {
   // 배경 줄(디자인 템플릿, 91차): 컬러칩(직접 색) · 색 조합 14개. 칩을 고르면 색은 그대로 두고 셔플은 표시만 바꿔요.
   // 고른 칩을 한 번 더 누르면 풀려서 다시 셔플마다 색도 바뀌어요
   function paintComboRow() {
-    const keep = $('.swp', row2)?.scrollLeft, own = isHex(card.pal), phu = card.bg?.id === 'photo' ? srcOf(card.bg) : '';   // 내 사진을 넣은 디자인 카드(타자 메모, 96차): 맨 앞 사진 칸 = 누르면 사진 빼기
+    const keep = $('.swp', row2)?.scrollLeft, own = isHex(card.pal);
     row2.className = 'st2 g6 bgr cbr';
     row2.innerHTML = `<button class="k hue ${own ? 'sel' : ''}" data-x="hue" aria-label="직접 색"><i></i></button>
-      <div class="swp">${phu ? `<button class="k sw phc sel" data-x="noph" aria-label="사진 빼기" style="background-image:url(${phu})"><i>${ic('close')}</i></button>` : ''}${COMBOS.map((c, i) => `<button class="k sw ${card.pal === i ? 'sel' : ''}" data-p="${i}" aria-label="${c[0]}" style="background:${c[1]}"></button>`).join('')}<span class="end"></span></div>`;
+      <div class="swp">${COMBOS.map((c, i) => `<button class="k sw ${card.pal === i ? 'sel' : ''}" data-p="${i}" aria-label="${c[0]}" style="background:${c[1]}"></button>`).join('')}<span class="end"></span></div>`;
     const sw = $('.swp', row2), sel = $('.sel', sw);
     if (keep != null) sw.scrollLeft = keep; else if (sel) sw.scrollLeft = Math.max(0, sel.offsetLeft - sw.offsetLeft);
     $$('button', row2).forEach(x => x.addEventListener('pointerdown', e => e.preventDefault()));
     $('[data-x=hue]', row2).onclick = () => { st.tab = 'hue'; paintRow2(); };
-    const np = $('[data-x=noph]', row2); if (np) np.onclick = () => { flush(); card.bg = { id: 'g1', dim: 'dark' }; push(); draw(); paintComboRow(); pop('사진 뺌', null, '배경'); };
     $$('[data-p]', row2).forEach(t => t.onclick = () => {
       flush(); const i = +t.dataset.p, off = card.pal === i;
       card.pal = off ? undefined : i; card.palPos = undefined;
