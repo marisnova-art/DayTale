@@ -1,0 +1,32 @@
+/* 템플릿 틀: 라벨 조각 (94차) — 이 틀만의 모양. 공용(카드 틀 · 서명)은 app.css */
+.cd.clab { aspect-ratio: 4 / 5; overflow: clip; background: var(--paper, #F2120C); color: var(--ink, #FFFFFF); display: flow-root; font-family: 'Pretendard Variable', sans-serif; }
+.cd.clab.r916 { aspect-ratio: 9 / 16; } .cd.clab.r11 { aspect-ratio: 1; } .cd.clab.r32 { aspect-ratio: 3 / 2; } .cd.clab.r169 { aspect-ratio: 16 / 9; }
+.cd.clab .rb { outline: none; margin: 7.96cqw 6cqw; font-size: 7cqw; font-weight: 700; letter-spacing: -.03em; overflow-wrap: break-word; word-break: keep-all; position: relative; }
+.cd.clab .rb .ph { color: rgba(255,255,255,.6); }
+.cd.clab .rb b, .cd.clab .rb strong { font-weight: inherit; } .cd.clab .rb mark { background: none; color: inherit; }
+.cd.clab:not(.edit) .rb.body { visibility: hidden; }
+/* 라벨 층: 카드 위 여백 안에 깔고, 라벨(.lk)마다 자리를 JS가 */
+.cd.clab .lbl { position: absolute; left: 6cqw; right: 6cqw; top: 0; pointer-events: none; z-index: 2; }
+.cd.clab.r916 .lbl { right: 12cqw; }
+.cd.clab .lk { position: absolute; font-weight: 800; letter-spacing: -.06em; line-height: 1.04; white-space: nowrap; }
+.cd.clab .lk.big { font-size: 1.17em; } .cd.clab .lk.sm { font-size: .58em; letter-spacing: -.02em; }
+.cd.clab .ln { position: relative; width: fit-content; padding: .05em .2em .09em; color: var(--lt); isolation: isolate; }
+.cd.clab .ln::before { content: ''; position: absolute; inset: 0; background: var(--lab); z-index: -1; transform-origin: 0 50%; animation-delay: inherit; }
+/* 쓰기: 쓰는 중(글 상자에 커서)엔 반듯한 글, 아니면 위에 깐 라벨 */
+.cd.clab .exm { display: none; opacity: .4; }
+.cd.clab.edit.empty .exm { display: block; }
+.cd.clab.edit .rb.body { min-height: 1.4em; z-index: 1; }
+.cd.clab.edit .rb.body:not(:focus) { color: transparent; }
+.cd.clab.edit .rb.body:focus ~ .lbl:not(.exm), .cd.clab.edit.empty .lbl:not(.exm) { visibility: hidden; }
+.cd.clab.edit .rb.body:focus ~ .exm { visibility: hidden; }
+.cd.clab.edit.empty::after { content: '예시'; position: absolute; font: 700 2.8cqw/1 var(--ui); padding: 1cqw 2.4cqw; border-radius: 99px; background: rgba(255,255,255,.18); color: rgba(255,255,255,.8); top: 3cqw; right: 4cqw; pointer-events: none; }
+.wr .cd.clab .rb { transition: margin-top .25s ease; }
+.wr .cd.clab { width: var(--cw); margin: 0 auto; border-radius: 14px; }
+/* 서명 (날짜 · 장소는 라벨로) */
+.cd.clab .foot { display: none; }
+.cd.clab .sgn { bottom: 6.5cqw; font-weight: 600; line-height: 1; color: var(--lab); opacity: 1; letter-spacing: 0; }
+.cd.clab .sgn[data-h=l] { left: 6cqw; } .cd.clab .sgn[data-h=r] { right: 6cqw; }
+.cd.clab.r916 .sgn { bottom: 39.1cqw; }
+/* 모션 (피드 가운데 카드만): 라벨 띠가 차례로 왼쪽 → 오른쪽으로 펼쳐지고 잠깐 머물렀다 다시 (7초). 글자는 늘 보여요 */
+:is(.fi, .tt, .rp).play:not(.intro) .cd.clab .ln::before { animation: lb-tape 7s cubic-bezier(.2,.7,.2,1) infinite; animation-delay: inherit; }
+@keyframes lb-tape { 0% { transform: scaleX(0); } 9%, 92% { transform: scaleX(1); } 100% { transform: scaleX(0); } }

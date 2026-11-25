@@ -18,6 +18,7 @@ export const COMBOS = [
   ['남색', '#14204A', '#E6ECFF', '#FFE34F', '#7CE3C2', ['#FFE34F', '#FF9CC2', '#7CE3C2', '#FFAE5E'], '#E6ECFF'],
   ['연회색', '#E6E6E3', '#1E1B18', '#6C4BD8', '#F2622E', ['#FFE34F', '#FF9CC2', '#7CE3C2', '#8CD2FF'], '#1E1B18'],
   ['진회색', '#48484B', '#FFFFFF', '#FFE34F', '#7CE3C2', ['#FFE34F', '#FF9CC2', '#7CE3C2', '#FFAE5E'], '#FFFFFF'],
+  ['빨강', '#F2120C', '#FFFFFF', '#FFE34F', '#111111', ['#FFE34F', '#FFFFFF', '#FFC6A8', '#8CD2FF'], '#FFFFFF'],   // 94차 (라벨 조각 레퍼런스)
 ];
 const hx = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
 export const lumOf = h => { const [r, g, b] = hx(h).map(v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; }); return .2126 * r + .7152 * g + .0722 * b; };
