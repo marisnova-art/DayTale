@@ -1,0 +1,38 @@
+/* 템플릿 틀: 글 탑 (93차) — 이 틀만의 모양. 공용(카드 틀 · 서명)은 app.css */
+.cd.ctwr { aspect-ratio: 4 / 5; overflow: clip; background: var(--paper, #FAFAF7); color: var(--pk, #1E1B18); display: flow-root; font-family: 'Pretendard Variable', sans-serif; }
+.cd.ctwr.r916 { aspect-ratio: 9 / 16; } .cd.ctwr.r11 { aspect-ratio: 1; } .cd.ctwr.r32 { aspect-ratio: 3 / 2; } .cd.ctwr.r169 { aspect-ratio: 16 / 9; }
+.cd.ctwr .rb { outline: none; margin: 7.96cqw 7cqw; font-size: 8.5cqw; font-weight: 500; letter-spacing: -.01em; overflow-wrap: break-word; word-break: keep-all; position: relative; }
+.cd.ctwr .rb .ph { color: #9A968E; }
+.cd.ctwr .rb b, .cd.ctwr .rb strong { font-weight: inherit; } .cd.ctwr .rb mark { background: none; color: inherit; }
+/* 탑: 덩어리(.tk)는 가운데 쌓고 위아래로 겹쳐 붙어요 */
+.cd.ctwr .tw { display: flex; flex-direction: column; align-items: center; padding: .3em 0 .1em; }
+.cd.ctwr .tk { position: relative; padding: .16em .55em .22em; border-radius: .8em; background: var(--blob); color: var(--bt); margin-top: -.3em; white-space: nowrap; line-height: 1.25; }
+.cd.ctwr .tk.d { letter-spacing: .02em; }
+.cd.ctwr .tk i { position: absolute; top: .08em; height: .06em; width: .62em; background: var(--bt); border-radius: 1px; }
+/* 쓰기: 쓰는 중(글 상자에 커서)엔 반듯한 글, 아니면 위에 깐 탑 */
+.cd.ctwr .ovl, .cd.ctwr .exm { position: absolute; top: 0; left: 0; right: 0; pointer-events: none; z-index: 2; margin-left: 7cqw; margin-right: 7cqw; }
+.cd.ctwr .exm { display: none; opacity: .35; }
+.cd.ctwr.edit.empty .exm { display: block; }
+.cd.ctwr.edit .rb.body { min-height: 1.4em; z-index: 1; text-align: left; }
+.cd.ctwr.edit .rb.body:not(:focus) { color: transparent; }
+.cd.ctwr.edit .rb.body:focus ~ .ovl, .cd.ctwr.edit.empty .ovl { visibility: hidden; }
+.cd.ctwr.edit.empty::after { content: '예시'; position: absolute; font: 700 2.8cqw/1 var(--ui); padding: 1cqw 2.4cqw; border-radius: 99px; background: rgba(34,32,29,.12); color: #6b6862; top: 3cqw; right: 4cqw; pointer-events: none; }
+.cd.ctwr.dk .rb .ph { color: rgba(255,255,255,.42); }
+.cd.ctwr.dk.edit.empty::after { background: rgba(255,255,255,.16); color: rgba(255,255,255,.75); }
+.wr .cd.ctwr .rb { transition: margin-top .25s ease; }
+.wr .cd.ctwr { width: var(--cw); margin: 0 auto; border-radius: 14px; }
+/* 서명 (날짜 · 장소는 탑 안에) */
+.cd.ctwr .foot { display: none; }
+.cd.ctwr .sgn { bottom: 6.5cqw; font-weight: 600; line-height: 1; color: var(--blob); opacity: 1; letter-spacing: 0; }
+.cd.ctwr .sgn[data-h=l] { left: 7cqw; } .cd.ctwr .sgn[data-h=r] { right: 7cqw; }
+.cd.ctwr.r916 .sgn { bottom: 39.1cqw; }
+/* 저장할 때 장으로 나뉜 카드 */
+.cd.ctwr.paged { aspect-ratio: auto; }
+.cd.ctwr .pgbox { margin: 7.96cqw 7cqw 0 7cqw; }
+.cd.ctwr .pgbox .rb { margin: 0; }
+/* 모션 (피드 가운데 카드만): 탑 줄이 위로 천천히 흘러 끝없이 이어져요. 정지 그림 · 저장엔 안 보여요 */
+.cd.ctwr .twl { display: none; position: absolute; pointer-events: none; }
+.cd.ctwr .twl .tw { position: absolute; left: 0; right: 0; }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctwr .twl { display: block; animation: tw-up 12s linear infinite; }
+:is(.fi, .tt, .rp).play:not(.intro) .cd.ctwr:has(.twl) > .rb.body { visibility: hidden; }
+@keyframes tw-up { 0% { transform: translateY(0); } 100% { transform: translateY(-100%); } }

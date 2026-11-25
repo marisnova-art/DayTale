@@ -1,0 +1,49 @@
+/* 템플릿 틀: 물결 문장 (93차) — 이 틀만의 모양. 공용(카드 틀 · 날짜 줄 · 서명)은 app.css. 틀을 처음 볼 때 같이 불러와요 */
+.cd.cwave { aspect-ratio: 4 / 5; overflow: clip; background: var(--paper, #FBF9F4); color: var(--ink, #22201D); display: flow-root; font-family: 'Pretendard Variable', sans-serif; }
+.cd.cwave.r916 { aspect-ratio: 9 / 16; } .cd.cwave.r11 { aspect-ratio: 1; } .cd.cwave.r32 { aspect-ratio: 3 / 2; } .cd.cwave.r169 { aspect-ratio: 16 / 9; }
+/* 글 상자 */
+.cd.cwave .rb { outline: none; margin: 7.96cqw 7cqw 7.96cqw 7cqw; font-size: 8.5cqw; font-weight: 500; letter-spacing: -.02em; overflow-wrap: break-word; word-break: keep-all; position: relative; isolation: isolate; padding-bottom: .2em; }
+.cd.cwave .rb .ph { color: #B9B5AC; }
+.cd.cwave .rb b, .cd.cwave .rb strong { font-weight: 800; }
+.cd.cwave .rb mark { background: none; color: inherit; }
+.cd.cwave.dk .rb .ph { color: rgba(255,255,255,.42); }
+.cd.cwave.dk.edit.empty::after { background: rgba(255,255,255,.16); color: rgba(255,255,255,.75); }
+/* 쓰기: 빈 카드엔 흐린 예시 글 */
+.cd.cwave .exm { display: none; position: absolute; top: 0; left: 0; right: 0; opacity: .3; pointer-events: none; background: none; }
+.cd.cwave.edit.empty .exm { display: block; }
+.cd.cwave.edit .rb { min-height: 1.4em; z-index: 1; }
+.cd.cwave.edit .exm { position: absolute; z-index: 0; min-height: 0; }
+.cd.cwave.edit.empty .rb { background: none; }
+.cd.cwave.edit.empty::after { content: '예시'; position: absolute; font: 700 2.8cqw/1 var(--ui); padding: 1cqw 2.4cqw; border-radius: 99px; background: rgba(34,32,29,.12); color: #6b6862; top: 3cqw; right: 4cqw; pointer-events: none; }
+.wr .cd.cwave .rb { transition: margin-top .25s ease; }
+.wr .cd.cwave { width: var(--cw); margin: 0 auto; border-radius: 14px; }
+/* 날짜 줄 · 서명 */
+.cd.cwave .foot { position: absolute; left: 7cqw; right: 7cqw; bottom: 6.5cqw; display: flex; justify-content: space-between; font-weight: 600; line-height: 1; letter-spacing: .02em; color: var(--ink, #22201D); }
+.cd.cwave[data-dp=top] .foot { bottom: auto; top: 6.5cqw; }
+.cd.cwave.hsg[data-dp=bottom] .foot { bottom: 13.3cqw; }
+.cd.cwave[data-dp=none] .foot { display: none; }
+.cd.cwave .sgn { bottom: 6.5cqw; font-weight: 600; line-height: 1; color: var(--ink, #22201D); opacity: 1; letter-spacing: 0; }
+.cd.cwave .sgn[data-h=l] { left: 7cqw; } .cd.cwave .sgn[data-h=r] { right: 7cqw; }
+.cd.cwave.r916 .foot { bottom: 39.1cqw; right: 12cqw; left: 6cqw; } .cd.cwave.r916[data-dp=top] .foot { top: 23.1cqw; bottom: auto; }
+.cd.cwave.r916.hsg[data-dp=bottom] .foot { bottom: 46.5cqw; }
+.cd.cwave.r916 .rb { margin-left: 6cqw; margin-right: 12cqw; }
+/* 저장할 때 장으로 나뉜 카드 */
+.cd.cwave.paged { aspect-ratio: auto; }
+.cd.cwave .pgbox { margin: 7.96cqw 7cqw 0 7cqw; }
+.cd.cwave.r916 .pgbox { margin-left: 6cqw; margin-right: 12cqw; }
+.cd.cwave .pgbox .rb { margin: 0; }
+
+/* 물결: 낱말 = 한 덩어리(줄에서 안 나뉘어요), 글자 = 곡선 위 자리(translate · rotate는 글자마다 JS가) */
+.cd.cwave .wvw { display: inline-block; white-space: nowrap; }
+.cd.cwave .wvc { display: inline-block; white-space: pre; transform-origin: 50% 70%; }
+.cd.cwave .wvi .wvc { font-style: italic; font-synthesis: style; }
+.cd.cwave .wvu .wvc { text-decoration: underline; text-decoration-thickness: .06em; text-underline-offset: .16em; }
+.cd.cwave.dk .rb .ph { color: rgba(255,255,255,.42); }
+.cd.cwave.dk.edit.empty::after { background: rgba(255,255,255,.16); color: rgba(255,255,255,.75); }
+/* 쓰기: 쓰는 중(글 상자에 커서)엔 반듯한 글, 아니면 위에 깐 물결 한 겹을 보여요 */
+.cd.cwave .ovl { position: absolute; top: 0; left: 0; right: 0; pointer-events: none; z-index: 2; }
+.cd.cwave.edit .rb.body:not(:focus) { color: transparent; }
+.cd.cwave.edit .rb.body:focus ~ .ovl, .cd.cwave.edit.empty .ovl { visibility: hidden; }
+/* 모션 (피드 가운데 카드만): 곡선 위로 물결이 옆으로 지나가요 (글자마다 차례로 살짝 오르내림) */
+:is(.fi, .tt, .rp).play:not(.intro) .cd.cwave .wvc { animation: wv-bob 2.6s ease-in-out infinite alternate; }
+@keyframes wv-bob { 0% { transform: translateY(-.12em); } 100% { transform: translateY(.12em); } }
