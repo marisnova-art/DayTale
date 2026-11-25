@@ -1,4 +1,4 @@
-/* 템플릿 틀: 동그라미 목차 (91차) — 이 틀만의 모양. 공용(카드 틀 · 날짜 줄 · 서명)은 app.css. 틀을 처음 볼 때 같이 불러와요 */
+/* 템플릿 틀: 서클 인덱스 (91차) — 이 틀만의 모양. 공용(카드 틀 · 날짜 줄 · 서명)은 app.css. 틀을 처음 볼 때 같이 불러와요 */
 .cd.cdots { aspect-ratio: 4 / 5; overflow: clip; background: var(--paper, #FBF9F4); color: var(--ink, #22201D); display: flow-root; font-family: 'Pretendard Variable', sans-serif; }
 .cd.cdots.r916 { aspect-ratio: 9 / 16; } .cd.cdots.r11 { aspect-ratio: 1; } .cd.cdots.r32 { aspect-ratio: 3 / 2; } .cd.cdots.r169 { aspect-ratio: 16 / 9; }
 /* 글 상자 */

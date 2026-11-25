@@ -1,7 +1,7 @@
-// 템플릿 틀: 동그라미 목차 (디자인, 11-25 91차). 글은 한 문단으로 흐르고, 문장마다 첫 글자가 색 동그라미 안에 (헤드 글자).
+// 템플릿 틀: 서클 인덱스 (디자인, 11-25 91차). 글은 한 문단으로 흐르고, 문장마다 첫 글자가 색 동그라미 안에 (헤드 글자).
 // 그래서 동그라미가 줄 맨 앞에도, 줄 중간에도 나와요. 한글 문장은 한글, 영문 문장은 영문 글자 그대로.
 // 줄바꿈 · 계단 들여쓰기는 가끔만 (씨앗 = 셔플마다 다르게). 동그라미 색은 카드 색 조합(js/combo.js)의 강조 · 표시 색에서.
-// 동그라미(span.cdot) · 줄바꿈(span.hbk)은 저장하지 않아요 (rich.js clean이 벗겨요). 크기 · 여백 · 장 나누기는 하이라이트 문장과 같아요
+// 동그라미(span.cdot) · 줄바꿈(span.hbk)은 저장하지 않아요 (rich.js clean이 벗겨요). 크기 · 여백 · 장 나누기는 하이라이트 노트과 같아요
 import { rng, esc, soft, htmlOf, dateChip, weekday, dateOn, placeOn, infoPos, signOf, dhOf, LH, shape, arOf } from '../../js/formats.js';
 import { comboOf, paintCombo, textOn } from '../../js/combo.js';
 import H from '../hilite/tpl.js';
@@ -101,7 +101,7 @@ function dots(c, { edit = false } = {}) {
 }
 
 export default {
-  id: 'dots', name: '동그라미 목차', info: '모든 길이 · 사진 없음 · 문장마다 첫 글자 동그라미', paid: true, css: true,
+  id: 'dots', name: '서클 인덱스', info: '모든 길이 · 사진 없음 · 문장마다 첫 글자 동그라미', paid: true, css: true,
   tools: { photo: false, emo: false, page: false, shuf: true, style: true, font: false, bg: 'combo', dp: true },
   sample: SAMPLE,
   datePos: 'bottom',

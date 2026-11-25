@@ -1,7 +1,7 @@
-// 템플릿 틀: 그라데이션 알약 (디자인, 11-25 91차). 쓴 글의 낱말 몇 개가 두 색 그라데이션 알약에 담겨요 (가끔 회색 알약).
+// 템플릿 틀: 그라데이션 필 (디자인, 11-25 91차). 쓴 글의 낱말 몇 개가 두 색 그라데이션 필에 담겨요 (가끔 회색 알약).
 // 색 · 방향 · 번지는 정도 모두 씨앗(셔플)으로 랜덤. 알약 색은 카드 색 조합(js/combo.js)의 강조 · 표시 색에서 골라요.
 // 앞에서부터 차례로 정해서, 뒤에 글을 더 써도 앞 알약은 바뀌지 않아요. 알약(span.gp)은 저장하지 않아요 (rich.js clean이 벗겨요)
-// 크기 · 여백 · 장 나누기는 하이라이트 문장과 같아요 (fit · margins를 같이 써요)
+// 크기 · 여백 · 장 나누기는 하이라이트 노트과 같아요 (fit · margins를 같이 써요)
 import { rng, esc, soft, htmlOf, dateChip, weekday, dateOn, placeOn, infoPos, signOf, dhOf, LH, shape, arOf } from '../../js/formats.js';
 import { rangeAt } from '../../js/rich.js';
 import { comboOf, paintCombo, contrast } from '../../js/combo.js';
@@ -80,7 +80,7 @@ function pill(c, { edit = false } = {}) {
 }
 
 export default {
-  id: 'pill', name: '그라데이션 알약', info: '모든 길이 · 사진 없음 · 셔플마다 새 알약', paid: true, css: true,
+  id: 'pill', name: '그라데이션 필', info: '모든 길이 · 사진 없음 · 셔플마다 새 알약', paid: true, css: true,
   tools: { photo: false, emo: false, page: false, shuf: true, style: true, font: false, bg: 'combo', dp: true },
   sample: SAMPLE,
   datePos: 'bottom',

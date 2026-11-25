@@ -1,4 +1,4 @@
-// 템플릿 틀: 글 탑 (디자인, 11-25 93차). 앤드류 레퍼런스(파란 덩어리 날짜 탑)의 느낌: 쓴 글을 7글자 안쪽으로 끊어 둥근 덩어리에 담고 쌓아요.
+// 템플릿 틀: 타이포 타워 (디자인, 11-25 93차). 앤드류 레퍼런스(파란 덩어리 날짜 탑)의 느낌: 쓴 글을 7글자 안쪽으로 끊어 둥근 덩어리에 담고 쌓아요.
 // 덩어리끼리 겹쳐 붙어 굽이치는 한 덩어리 탑 · 좌우로 어긋나고 조금씩 기울어요 · 몇 덩어리엔 짧은 윗줄. 셔플 = 어긋남 · 기울기 · 윗줄.
 // 색: 덩어리 = 조합 배경색, 덩어리 글자 = 조합 글자색, 바탕 = 흰 종이 (밝은 조합이면 검은 종이).
 // 날짜는 기본 꺼짐 · 켜면 아래 날짜 줄 대신 탑 끝에 덩어리로, 휴대폰 언어로 (앤드류 11-25). 장소도 켜면 덩어리로.
@@ -106,7 +106,7 @@ function loop(el, box, tw, top, h, Hh) {
 }
 
 export default {
-  id: 'tower', name: '글 탑', info: '짧은 글 · 사진 없음 · 셔플마다 새 탑', paid: true, css: true,
+  id: 'tower', name: '타이포 타워', info: '짧은 글 · 사진 없음 · 셔플마다 새 탑', paid: true, css: true,
   tools: { photo: false, emo: false, page: false, shuf: true, style: true, font: false, bg: 'combo', dp: true },
   sample: SAMPLE,
   datePos: 'bottom',

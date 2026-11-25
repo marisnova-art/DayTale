@@ -1,4 +1,4 @@
-// 템플릿 틀: 멤피스 문장 (디자인). 이 폴더만 이 템플릿의 그리는 코드 · 모양(tpl.css)이에요.
+// 템플릿 틀: 멤피스 타이포 (디자인). 이 폴더만 이 템플릿의 그리는 코드 · 모양(tpl.css)이에요.
 // 날짜 줄 · 서명 · 비율 · 장 나누기 · 저장 · 셔플 · 모션 규칙 · 도구 줄은 공용 틀(js/formats.js · main.js)이 해요.
 // 볼 때만 불러와요 (formats.js ensure). 지우지 않아요: 이 틀로 쓴 카드가 남아 있어요 (템플릿은 숨김만)
 import { rng, esc, px, soft, htmlOf as rebusHtmlOf, dateChip, weekday, dateOn, placeOn, infoPos, signOf, dhOf, LH, shape, arOf } from '../../js/formats.js';
@@ -138,7 +138,7 @@ function fitRebus(el) {
   p.style.marginTop = top + 'px'; if (ex) ex.style.marginTop = top + 'px';
 }
 export default {
-  id: 'rebus', name: '멤피스 문장', info: '짧은 글 · 사진 없음 · 사계절', paid: true, css: true,
+  id: 'rebus', name: '멤피스 타이포', info: '짧은 글 · 사진 없음 · 사계절', paid: true, css: true,
   // 쓰기 화면 도구: style = 서식 줄(글꼴·크기·좌우·위아래), bg = 배경 줄, dp = 날짜 위치. 디자인은 모양이 정해져 있어 대부분 꺼요
   tools: { photo: false, emo: false, page: false, shuf: true, style: true, font: false, bg: 'combo', dp: true },   // bg combo = 색 조합 칩 + 직접 색 (91차)
   sample: SAMPLE,

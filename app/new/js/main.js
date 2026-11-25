@@ -1983,7 +1983,7 @@ const REC_T = { 밤: '밤에 쓰기 좋은', 비: '비 오는 날엔', 눈: '눈
 const WXK = { sun: '맑음', suncloud: '구름 조금', cloud: '흐림', rain: '비', snow: '눈', thunder: '천둥', fog: '안개' };
 const dayLine = (now = new Date()) => { let w = ''; try { const x = JSON.parse(localStorage.getItem('daytale.wx') || 'null'); if (x && Date.now() - x.at < 3 * 3600e3 && WXK[x.kind]) w = ` · ${WXK[x.kind]}${x.temp != null ? ` ${x.temp}°` : ''}`; } catch {} return `${now.getMonth() + 1}월 ${now.getDate()}일 ${'일월화수목금토'[now.getDay()]}요일${w}`; };
 // 78차: 새 버전 확인. 앱으로 돌아올 때(다른 앱 갔다 오기) version.txt가 지금과 다르면 저절로 새로 고쳐요. 쓰는 중엔 안 해요
-const BUILD = '106', BUILD_TAG = '11-26 106차';
+const BUILD = '107', BUILD_TAG = '11-26 107차';
 let verAt = 0;
 const checkVer = () => {
   if (document.hidden || Date.now() - verAt < 20e3) return; verAt = Date.now();
@@ -2141,7 +2141,7 @@ function viewWrite({ fmt, id, like }) {
   // 포토 포맷은 쓰는 중 줄에 사진 칸이 없어요 (팔레트 1칸 · 빈 장 가운데 버튼에서 골라요)
   // 8칸: 스타일 보기 = 키보드 · 비율 · 서식 · 글꼴 · 배경 · 셔플/필터 · ↶ · ↷ / 쓰기 보기 = 키보드 · 이모티콘 · 새 장 · 사진 · 빈칸 · 빈칸 · ↶ · ↷.
   // 지금 못 쓰는 칸은 숨겨요(빈칸). 되돌리기 · 다시하기만 흐리게 남아요
-  // 디자인 템플릿 중 사진을 받는 틀(tools.photo 'tab', 타자 메모 97차): 기본 글쓰기처럼 컬러 칸 오른쪽에 이미지 칸 + 셔플 (글꼴 칸 자리를 써서 8칸). 키보드 줄엔 사진 칸 없음
+  // 디자인 템플릿 중 사진을 받는 틀(tools.photo 'tab', 타이프라이터 97차): 기본 글쓰기처럼 컬러 칸 오른쪽에 이미지 칸 + 셔플 (글꼴 칸 자리를 써서 8칸). 키보드 줄엔 사진 칸 없음
   const imgTab = f.tools.photo === 'tab';
   const T1 = [['kb', ''], ['ratio', 's'], ['fmt', 's'], ...(imgTab ? [] : [['font', 's']]), ['bg', 's'], ...(imgTab ? [['img', 's'], ['shuf', 's']] : [[f.tools.filter ? 'img' : 'shuf', 's']]), ['emo', 'w'], ['page', 'w'], ['quote', 'w'], [f.tools.bg === 'photo' || imgTab ? '' : 'photo', 'w'], ['ai', 'w'], ['undo', ''], ['redo', '']];   // ai = AI 글쓰기 (11-20, 모든 포맷)
   app.innerHTML = `<div class="wr ${rich ? 'rich' : 'plain'}">
@@ -2562,7 +2562,7 @@ function viewWrite({ fmt, id, like }) {
         const was = typingNow(); paintMeta(); draw(); if (was && !typingNow()) caretEnd(st.pg);
         paintRow2(); return;
       }
-      if (k === 'shuf') { if (rich) { const o = ps().bg.seed || 1; let n = newSeed(); while ((ps().bg.id === 'slit' && n % 5 === o % 5) || (ps().bg.id === 'swirl' && ps().bg.pal == null && n % 20 === o % 20) || ((ps().bg.id === 'neon' || ps().bg.id === 'tunnel' || ps().bg.id === 'eclipse' || ps().bg.id === 'mesh' || ps().bg.id === 'pixel') && ps().bg.pal == null && n % 10 === o % 10) || (ps().bg.id === 'plasma' && ps().bg.pal == null && n % 11 === o % 11)) n = newSeed(); ps().bg.seed = n; syncFirst(); } else card.seed = newSeed(); push(); draw(); paintRow2(); return; }   // 글카드: 보고 있는 장만. 노을 띠는 셔플마다 색 묶음도 꼭 바뀌게
+      if (k === 'shuf') { if (rich) { const o = ps().bg.seed || 1; let n = newSeed(); while ((ps().bg.id === 'slit' && n % 5 === o % 5) || (ps().bg.id === 'swirl' && ps().bg.pal == null && n % 20 === o % 20) || ((ps().bg.id === 'neon' || ps().bg.id === 'tunnel' || ps().bg.id === 'eclipse' || ps().bg.id === 'mesh' || ps().bg.id === 'pixel') && ps().bg.pal == null && n % 10 === o % 10) || (ps().bg.id === 'plasma' && ps().bg.pal == null && n % 11 === o % 11) || (ps().bg.id === 'fractal' && n % 10 === o % 10)) n = newSeed(); ps().bg.seed = n; syncFirst(); } else card.seed = newSeed(); push(); draw(); paintRow2(); return; }   // 글카드: 보고 있는 장만. 슬릿스캔는 셔플마다 색 묶음도 꼭 바뀌게
       if (k === 'page') {
         ps(); card.pages.splice(st.pg + 1, 0, ''); card.pst.splice(st.pg + 1, 0, clone(card.pst[st.pg])); st.pg += 1;   // 새 장은 앞 장 배경 · 위치를 이어받아요
         push(); draw(); scrollToPage(st.pg);
@@ -2782,9 +2782,9 @@ function viewWrite({ fmt, id, like }) {
     const b = $('[data-x=grain]', row2);
     b.onclick = () => { flush(); if (on) pb.grain = false; else delete pb.grain; syncFirst(); push(); draw(); paintArtRow(); pop(on ? '노이즈 끔' : '노이즈 켬', null, pgLab()); };
   }
-  // 빛 소용돌이 · 네온 흐름 배경 줄 (99 · 100차): 딤 · 노이즈 · 색 칩 (소용돌이 20 · 네온 10). 칩을 고르면 색 고정 · 셔플은 모양만, 한 번 더 누르면 풀려서 셔플마다 색도
+  // 라이트 스월 · 네온 플로우 배경 줄 (99 · 100차): 딤 · 노이즈 · 색 칩 (소용돌이 20 · 네온 10). 칩을 고르면 색 고정 · 셔플은 모양만, 한 번 더 누르면 풀려서 셔플마다 색도
   function paintSwirlRow() {
-    const id = ps().bg.id, neon = id === 'neon', PALS = () => id === 'plasma' ? PLASMA_PAL : id === 'pixel' ? PIXEL_PAL : id === 'mesh' ? MESH_PAL : id === 'eclipse' ? ECLIPSE_PAL : id === 'tunnel' ? TUNNEL_PAL : neon ? NEON_PAL : SWIRL_PAL;   // 101차: 빛 터널도 같은 줄
+    const id = ps().bg.id, neon = id === 'neon', PALS = () => id === 'plasma' ? PLASMA_PAL : id === 'pixel' ? PIXEL_PAL : id === 'mesh' ? MESH_PAL : id === 'eclipse' ? ECLIPSE_PAL : id === 'tunnel' ? TUNNEL_PAL : neon ? NEON_PAL : SWIRL_PAL;   // 101차: 라이트 터널도 같은 줄
     const chipBg = c => id === 'plasma' ? `radial-gradient(circle at 70% 28%, ${c[3]} 0%, transparent 55%), linear-gradient(160deg, ${c[2]}, ${c[1]})` : id === 'pixel' ? (c[4] ? 'conic-gradient(#FFE14A 0 25%, #29D8FF 0 50%, #FF3B3B 0 75%, #2A4BFF 0) 0 0 / 50% 50%' : `conic-gradient(${c[2]} 0 25%, ${c[3]} 0 50%, ${c[2]} 0 75%, ${c[3]} 0) 0 0 / 50% 50%, ${c[1]}`) : id === 'mesh' ? `radial-gradient(circle at 30% 30%, transparent 0 26%, ${c[3]} 30%, ${c[2]} 36%, transparent 42%), radial-gradient(circle at 75% 72%, transparent 0 26%, ${c[3]} 30%, ${c[2]} 36%, transparent 42%), ${c[1]}` : id === 'eclipse' ? `radial-gradient(circle at 58% 42%, ${c[2]} 0 30%, transparent 40%), conic-gradient(${c[3]}, ${c[4]}, ${c[5]}, ${c[6]}, ${c[3]})` : id === 'tunnel' ? `radial-gradient(circle, ${c[2]} 0 14%, transparent 52%), conic-gradient(${c[3]}, ${c[1]} 25%, ${c[4]} 50%, ${c[1]} 75%, ${c[3]})` : neon ? `radial-gradient(circle at 32% 34%, ${c[2][0]} 0 16%, transparent 46%), radial-gradient(circle at 68% 68%, ${c[2][1]} 0 16%, transparent 46%), ${c[1]}` : `radial-gradient(circle at 50% 50%, ${c[2]} 0%, ${c[1]} 70%)`;
     const pb = ps().bg, on = pb.grain !== false, keep = $('.swp', row2)?.scrollLeft;
     row2.className = 'st2 g6 bgr swr';
@@ -2872,7 +2872,7 @@ function viewWrite({ fmt, id, like }) {
       if (vid) p = await V.add(file);
       else try { p = await P.add(file); } catch (e) { if (!f.tools.filter || /^image\//.test(file.type)) throw e; vid = true; wait(); p = await V.add(file); }   // 사진으로 안 열리면 영상으로 한 번 더
       clearInterval(busy);
-      const pb = ps().bg || (ps().bg = {});   // 디자인 템플릿(타자 메모)은 배경 칸이 없던 카드 (96차)
+      const pb = ps().bg || (ps().bg = {});   // 디자인 템플릿(타이프라이터)은 배경 칸이 없던 카드 (96차)
       flush(); clearPhoto(pb); Object.assign(pb, { id: 'photo', ...p, x: 50, y: 50 }); if (!pb.dim) pb.dim = 'dark';
       if (f.tools.filter && st.tab !== 'filter') st.tab = 'img';   // 고른 뒤엔 이미지 줄 (필터 · 영상 칸)
       if (vid) st.vpause = false;

@@ -29,7 +29,7 @@ async function rulesOf(file, family) {
   }
   return (famRules[family] = out);
 }
-// extra = 템플릿이 쓰는 글꼴 [[css 파일, 글꼴 이름, 굵기?]] (96차: 타자 메모 · 비디오 세팅처럼 카드 글꼴이 아닌 틀 글꼴)
+// extra = 템플릿이 쓰는 글꼴 [[css 파일, 글꼴 이름, 굵기?]] (96차: 타이프라이터 · 비디오 세팅처럼 카드 글꼴이 아닌 틀 글꼴)
 async function fontCss(text, font, extra = []) {
   let css = `@font-face{font-family:'Pretendard Variable';font-weight:45 920;src:url(${await toData(new URL('../fonts/PretendardVariable.woff2', location.href).href)}) format('woff2');}`;
   const fo = fontOf(font), list = [...(fo.file ? [[fo.file, fo.fam]] : []), ...extra];   // 프리텐다드는 위에서 넣었어요
@@ -93,7 +93,7 @@ async function textPages(c, W, ratio, ar) {
   });
   // 장마다 따로 된 카드 틀에 넣고, 배경은 장마다 보이는 부분을 위 → 아래로 옮겨요
   const nodes = out.map((pg, i) => {
-    const wrap = shape(document.createElement('div'), ar); wrap.classList.add('cd', 'text', 'one', ...(FORMATS[c.fmt]?.cls || '').split(' ').filter(Boolean)); wrap.appendChild(pg); h.appendChild(wrap);   // 틀 모양(cls)도 같이 (빛 고리: 좁은 글 폭, 103차)
+    const wrap = shape(document.createElement('div'), ar); wrap.classList.add('cd', 'text', 'one', ...(FORMATS[c.fmt]?.cls || '').split(' ').filter(Boolean)); wrap.appendChild(pg); h.appendChild(wrap);   // 틀 모양(cls)도 같이 (이클립스 링: 좁은 글 폭, 103차)
     const shift = out.length > 1 ? i / (out.length - 1) : .5;
     pg.querySelectorAll('.bgi:not(.ph)').forEach(b => { if (b.style.backgroundImage) b.style.backgroundPosition = `50% ${Math.round(shift * 100)}%`; });
     pg.querySelectorAll('canvas.bgc').forEach(cv => { cv.width = Math.round(W * ratio); cv.height = Math.round(H * ratio); cv.dataset.shift = shift; drawCode(cv, +cv.dataset.seed, shift); });
@@ -108,7 +108,7 @@ export async function buildPages(c, W, ratio = 1, ar = arOf(c)) {
   await ensure(c.fmt);   // 템플릿 틀은 볼 때만 불러와요
   if (c.pages) { const d = document.createElement('div'); d.innerHTML = (c.pages || []).join(''); await ready(d); }   // 이모티콘 그림을 먼저 받아 둬요
   await prep(c);   // 포토 포맷: 필터를 건 사진을 먼저 만들어 둬요 (그래야 저장 이미지에도 필터가)
-  await FORMATS[c.fmt]?.prep?.(c);   // 템플릿이 굽는 그림 (타자 메모: 흑백 + 색 사진, 96차)
+  await FORMATS[c.fmt]?.prep?.(c);   // 템플릿이 굽는 그림 (타이프라이터: 흑백 + 색 사진, 96차)
   return !c.pages ? rebusPages(c, W, ar) : textPages(c, W, ratio, ar);
 }
 

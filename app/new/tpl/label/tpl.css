@@ -1,4 +1,4 @@
-/* 템플릿 틀: 라벨 조각 (94차) — 이 틀만의 모양. 공용(카드 틀 · 서명)은 app.css */
+/* 템플릿 틀: 라벨 콜라주 (94차) — 이 틀만의 모양. 공용(카드 틀 · 서명)은 app.css */
 .cd.clab { aspect-ratio: 4 / 5; overflow: clip; background: var(--paper, #F2120C); color: var(--ink, #FFFFFF); display: flow-root; font-family: 'Pretendard Variable', sans-serif; }
 .cd.clab.r916 { aspect-ratio: 9 / 16; } .cd.clab.r11 { aspect-ratio: 1; } .cd.clab.r32 { aspect-ratio: 3 / 2; } .cd.clab.r169 { aspect-ratio: 16 / 9; }
 .cd.clab .rb { outline: none; margin: 7.96cqw 6cqw; font-size: 7cqw; font-weight: 700; letter-spacing: -.03em; overflow-wrap: break-word; word-break: keep-all; position: relative; }

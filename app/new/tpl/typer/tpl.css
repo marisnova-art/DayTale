@@ -1,4 +1,4 @@
-/* 템플릿 틀: 타자 메모 (96차) — 이 틀만의 모양. 공용(카드 틀 · 날짜 줄 · 서명)은 app.css. 틀을 처음 볼 때 같이 불러와요 */
+/* 템플릿 틀: 타이프라이터 (96차) — 이 틀만의 모양. 공용(카드 틀 · 날짜 줄 · 서명)은 app.css. 틀을 처음 볼 때 같이 불러와요 */
 .cd.ctyp { aspect-ratio: 4 / 5; overflow: clip; background: var(--paper, #FBF9F4); color: var(--ink, #22201D); display: flow-root; font-family: 'DT Courier Prime', 'DT Nanum Gothic Coding', monospace; }
 .cd.ctyp.r916 { aspect-ratio: 9 / 16; } .cd.ctyp.r11 { aspect-ratio: 1; } .cd.ctyp.r32 { aspect-ratio: 3 / 2; } .cd.ctyp.r169 { aspect-ratio: 16 / 9; }
 /* 글 상자 */

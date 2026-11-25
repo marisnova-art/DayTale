@@ -1,4 +1,4 @@
-// 템플릿 틀: 타자 메모 (디자인, 11-25 96차). 앤드류 레퍼런스(타자기 글씨 · 바랜 노란 풍경)의 느낌만: 타자기 글씨(고정폭) + 흑백 풀숲 무늬 위에 연한 색.
+// 템플릿 틀: 타이프라이터 (디자인, 11-25 96차). 앤드류 레퍼런스(타자기 글씨 · 바랜 노란 풍경)의 느낌만: 타자기 글씨(고정폭) + 흑백 풀숲 무늬 위에 연한 색.
 // 글꼴 = 영문 Courier Prime · 한글 나눔고딕코딩 (둘 다 OFL, fonts/type.css). 바탕 무늬는 코드로 그려 한 장 그림으로 구워요 (씨앗 · 색마다 한 번).
 // 98차 (앤드류): 이미지 넣기 없앰. 바탕 = 코드로 그린 자연 장면(숲 · 바다 · 들판 · 산 능선 · 구름 하늘) → 굵은 점 디더링 + 가끔 가로 줄 어긋남(글리치) → 검정 없이 바램 → 연한 색.
 // 색 = 색 조합 칩의 배경색을 흰색에 많이 섞은 연한 색 (직접 색도). 셔플 = 장면 종류 · 구도 · 어긋난 줄 (칩을 안 골랐으면 색도).
@@ -117,7 +117,7 @@ function typer(c, { edit = false } = {}) {
 }
 
 export default {
-  id: 'typer', name: '타자 메모', info: '모든 길이 · 셔플마다 새 풍경', paid: true, css: true,
+  id: 'typer', name: '타이프라이터', info: '모든 길이 · 셔플마다 새 풍경', paid: true, css: true,
   tools: { photo: false, emo: false, page: false, shuf: true, style: true, font: false, bg: 'combo', dp: true },   // 98차: 이미지 넣기 없음
   fonts: [['type.css', 'DT Courier Prime'], ['type.css', 'DT Nanum Gothic Coding']],
   sample: SAMPLE,

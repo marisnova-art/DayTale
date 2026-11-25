@@ -1,5 +1,5 @@
 // 포맷 = 데이터 + 그리기. 카드는 가로 1080 기준으로 디자인하고 cqw 단위로 그려서, 화면 크기와 저장 이미지가 같은 모양이에요
-import { find as findBg, dimCss, drawCode, slitLum, swirlLight, neonLight, tunnelLight, eclipseLight, meshLight, pixelLight, plasmaLight } from './bg.js';
+import { find as findBg, dimCss, drawCode, slitLum, swirlLight, neonLight, tunnelLight, eclipseLight, meshLight, pixelLight, plasmaLight, fractalLight } from './bg.js';
 import { bgUrl, keyOf, fidOf, grainLv, GRAPHIC } from './filters.js';
 import { rangeAt } from './rich.js';
 import { hydrate } from './stickers.js';
@@ -98,23 +98,24 @@ function bgLayer(c, page, pages) {
   if (ex >= .4 && tink !== '#fff') tink = '#fff';   // 파스텔 · 밝은 색도 딤 강이면 흰 글
   const more = ex ? `<div class="dimL" style="background:rgba(0,0,0,${ex})"></div>` : '';   // 딤은 늘 어둡게 덮어요 (앤드류 10-28)
   if (b.code === 'slit' && cb?.dim !== 'light') { const sl = slitLayer(c, page, shift, cb.seed || 1, ex); return { html: base + sl.html + more, ink: sl.ink, bink: sl.bink }; }
+  if (b.code === 'fractal' && cb?.dim !== 'light') { const lt = fractalLight(cb.seed || 1) && ex < .4; return { html: base + more, ink: lt ? '#1E1B18' : '#fff' }; }   // 프랙탈 패턴 (107차)
   if (b.code === 'plasma' && cb?.dim !== 'light') { const lt = plasmaLight(cb.seed || 1, cb.pal) && ex < .4; return { html: base + more, ink: lt ? '#1E1B18' : '#fff' }; }   // 플라즈마 (106차): 글 둘레는 셰이더가 글자색에 맞춰 옅게
-  if (b.code === 'pixel' && cb?.dim !== 'light') { const lt = pixelLight(cb.seed || 1, cb.pal) && ex < .4; return { html: base + more, ink: lt ? '#1E1B18' : '#fff' }; }   // 픽셀 체크 (105차): 글 둘레는 셰이더가 글자색에 맞춰 연하게
-  if (b.code === 'mesh' && cb?.dim !== 'light') { const lt = meshLight(cb.seed || 1, cb.pal) && ex < .4; return { html: base + more, ink: lt ? '#1E1B18' : '#fff' }; }   // 형광 물결망 (104차): 가운데는 셰이더가 옅게 비워 둬요
-  if (b.code === 'eclipse' && cb?.dim !== 'light') {   // 빛 고리 (103차): 글 뒤를 옅게 (어두운 바탕 = 어두운 막, 연한 바탕 = 흰 막)
+  if (b.code === 'pixel' && cb?.dim !== 'light') { const lt = pixelLight(cb.seed || 1, cb.pal) && ex < .4; return { html: base + more, ink: lt ? '#1E1B18' : '#fff' }; }   // 픽셀 체커 (105차): 글 둘레는 셰이더가 글자색에 맞춰 연하게
+  if (b.code === 'mesh' && cb?.dim !== 'light') { const lt = meshLight(cb.seed || 1, cb.pal) && ex < .4; return { html: base + more, ink: lt ? '#1E1B18' : '#fff' }; }   // 네온 메시 (104차): 가운데는 셰이더가 옅게 비워 둬요
+  if (b.code === 'eclipse' && cb?.dim !== 'light') {   // 이클립스 링 (103차): 글 뒤를 옅게 (어두운 바탕 = 어두운 막, 연한 바탕 = 흰 막)
     const lt = eclipseLight(cb.seed || 1, cb.pal) && ex < .4, col = lt ? '255,255,255' : '0,0,0', k = lt ? .2 : .18;
     return { html: base + `<div class="dimL" style="background:radial-gradient(ellipse 70% 45% at 50% 50%, rgba(${col},${k}) 0%, rgba(${col},${k * .45}) 55%, rgba(${col},0) 100%)"></div>` + more, ink: lt ? '#1E1B18' : '#fff' };
   }
-  if (b.code === 'tunnel' && cb?.dim !== 'light') { const lt = tunnelLight(cb.seed || 1, cb.pal) && ex < .4; return { html: base + more, ink: lt ? '#1E1B18' : '#fff' }; }   // 빛 터널 (101차)
-  if (b.code === 'neon' && cb?.dim !== 'light') { const lt = neonLight(cb.seed || 1, cb.pal) && ex < .4; return { html: base + more, ink: lt ? '#1E1B18' : '#fff' }; }   // 네온 흐름 (100차): 가운데는 셰이더가 비워 둬요
-  if (b.code === 'swirl' && cb?.dim !== 'light') {   // 빛 소용돌이 (99차): 연한 바탕 = 짙은 글 + 가운데 옅은 흰 막, 나머지 = 흰 글 + 가운데 옅은 어두운 막
+  if (b.code === 'tunnel' && cb?.dim !== 'light') { const lt = tunnelLight(cb.seed || 1, cb.pal) && ex < .4; return { html: base + more, ink: lt ? '#1E1B18' : '#fff' }; }   // 라이트 터널 (101차)
+  if (b.code === 'neon' && cb?.dim !== 'light') { const lt = neonLight(cb.seed || 1, cb.pal) && ex < .4; return { html: base + more, ink: lt ? '#1E1B18' : '#fff' }; }   // 네온 플로우 (100차): 가운데는 셰이더가 비워 둬요
+  if (b.code === 'swirl' && cb?.dim !== 'light') {   // 라이트 스월 (99차): 연한 바탕 = 짙은 글 + 가운데 옅은 흰 막, 나머지 = 흰 글 + 가운데 옅은 어두운 막
     const lt = swirlLight(cb.seed || 1, cb.pal) && ex < .4, col = lt ? '255,255,255' : '0,0,0', k = lt ? .22 : .2;
     return { html: base + `<div class="dimL" style="background:radial-gradient(ellipse 85% 60% at 50% 50%, rgba(${col},${k}) 0%, rgba(${col},${k * .45}) 55%, rgba(${col},0) 100%)"></div>` + more, ink: lt ? '#1E1B18' : '#fff' };
   }
   return { html: base + `<div class="dimL" style="background:${dim}"></div>` + gfx + more, ink: tink };
 }
 
-// 노을 띠 (11-20): 글 뒤 띠가 밝으면 짙은 글 + 옅은 흰 막, 어두우면 흰 글 + 옅은 딤. 글이 놓인 쪽(위 · 가운데 · 아래)만 덮고, 가장자리는 비네트.
+// 슬릿스캔 (11-20): 글 뒤 띠가 밝으면 짙은 글 + 옅은 흰 막, 어두우면 흰 글 + 옅은 딤. 글이 놓인 쪽(위 · 가운데 · 아래)만 덮고, 가장자리는 비네트.
 // 아래 날짜 줄 · 서명은 아래 띠 밝기로 따로 (bink). 딤 강(.4)이면 모두 흰 글
 const SLIT_V = { t: [.06, .42], tm: [.16, .54], m: [.3, .7], bm: [.46, .84], b: [.58, .94] };
 function slitLayer(c, page, shift, seed, ex) {
@@ -247,7 +248,7 @@ export function ensure(f) {
 export const missing = fmts => [...new Set(fmts)].filter(f => f && !FORMATS[f] && !BAD.has(f));
 export const ORDER = ['rebus', 'art', 'text'];
 // 피드 · 쓰기 위에 보이는 '종류 · 템플릿'
-export const LABEL = { text: '기본', rebus: '디자인 · 멤피스 문장', art: '아트 · 오로라 커튼', hilite: '디자인 · 하이라이트 문장', slit: '아트 · 노을 띠', swirl: '아트 · 빛 소용돌이', neon: '아트 · 네온 흐름', tunnel: '아트 · 빛 터널', eclipse: '아트 · 빛 고리', mesh: '아트 · 형광 물결망', pixel: '아트 · 픽셀 체크', plasma: '아트 · 플라즈마', pill: '디자인 · 그라데이션 알약', dots: '디자인 · 동그라미 목차', wave: '디자인 · 물결 문장', tower: '디자인 · 글 탑', symbol: '디자인 · 기호 문장', label: '디자인 · 라벨 조각', typer: '디자인 · 타자 메모', vset: '디자인 · 비디오 세팅' };
+export const LABEL = { text: '기본', rebus: '디자인 · 멤피스 타이포', art: '아트 · 오로라 커튼', hilite: '디자인 · 하이라이트 노트', slit: '아트 · 슬릿스캔', swirl: '아트 · 라이트 스월', neon: '아트 · 네온 플로우', tunnel: '아트 · 라이트 터널', eclipse: '아트 · 이클립스 링', mesh: '아트 · 네온 메시', pixel: '아트 · 픽셀 체커', plasma: '아트 · 플라즈마', fractal: '아트 · 프랙탈 패턴', pill: '디자인 · 그라데이션 필', dots: '디자인 · 서클 인덱스', wave: '디자인 · 웨이브 타이포', tower: '디자인 · 타이포 타워', symbol: '디자인 · 심볼 타이포', label: '디자인 · 라벨 콜라주', typer: '디자인 · 타이프라이터', vset: '디자인 · 비디오 세팅' };
 
 export function blank(fmt, date) {
   const d = FORMATS[fmt];

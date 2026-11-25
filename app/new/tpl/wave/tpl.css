@@ -1,4 +1,4 @@
-/* 템플릿 틀: 물결 문장 (93차) — 이 틀만의 모양. 공용(카드 틀 · 날짜 줄 · 서명)은 app.css. 틀을 처음 볼 때 같이 불러와요 */
+/* 템플릿 틀: 웨이브 타이포 (93차) — 이 틀만의 모양. 공용(카드 틀 · 날짜 줄 · 서명)은 app.css. 틀을 처음 볼 때 같이 불러와요 */
 .cd.cwave { aspect-ratio: 4 / 5; overflow: clip; background: var(--paper, #FBF9F4); color: var(--ink, #22201D); display: flow-root; font-family: 'Pretendard Variable', sans-serif; }
 .cd.cwave.r916 { aspect-ratio: 9 / 16; } .cd.cwave.r11 { aspect-ratio: 1; } .cd.cwave.r32 { aspect-ratio: 3 / 2; } .cd.cwave.r169 { aspect-ratio: 16 / 9; }
 /* 글 상자 */

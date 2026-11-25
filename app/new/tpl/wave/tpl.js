@@ -1,8 +1,8 @@
-// 템플릿 틀: 물결 문장 (디자인, 11-25 93차). 앤드류 레퍼런스(물결 타이포 포스터)의 느낌: 줄마다 글자가 곡선을 따라 놓여요.
+// 템플릿 틀: 웨이브 타이포 (디자인, 11-25 93차). 앤드류 레퍼런스(물결 타이포 포스터)의 느낌: 줄마다 글자가 곡선을 따라 놓여요.
 // 줄마다 언덕 · 물결 · 처짐 · 기울기 중 하나 (첫 줄은 언덕), 글자는 곡선 방향으로 살짝 돌아가요. 몇 낱말은 기울인 글씨 · 끊긴 밑줄, 가끔 한 글자가 톡 올라가요.
 // 쓰는 동안(글 상자에 커서)엔 반듯한 글, 키보드를 내리면 물결 (글 위에 같은 글을 한 겹 더 깔아 휘어요: 고치는 글은 그대로라 커서가 안전해요).
 // 보기 카드 · 저장 그림에선 글 상자 안 글자를 바로 휘어요. 글자 조각(span)은 저장하지 않아요 (rich.js clean이 벗겨요)
-// 크기 · 여백 · 장 나누기는 하이라이트 문장 틀(fit · margins)을 같이 써요. 색은 색 조합(js/combo.js)
+// 크기 · 여백 · 장 나누기는 하이라이트 노트 틀(fit · margins)을 같이 써요. 색은 색 조합(js/combo.js)
 import { rng, esc, soft, htmlOf, dateChip, weekday, dateOn, placeOn, infoPos, signOf, dhOf, LH, shape, arOf } from '../../js/formats.js';
 import { comboOf, paintCombo } from '../../js/combo.js';
 import H from '../hilite/tpl.js';
@@ -91,7 +91,7 @@ function fit(el) {
 }
 
 export default {
-  id: 'wave', name: '물결 문장', info: '모든 길이 · 사진 없음 · 셔플마다 새 물결', paid: true, css: true,
+  id: 'wave', name: '웨이브 타이포', info: '모든 길이 · 사진 없음 · 셔플마다 새 물결', paid: true, css: true,
   tools: { photo: false, emo: false, page: false, shuf: true, style: true, font: false, bg: 'combo', dp: true },
   sample: SAMPLE,
   datePos: 'bottom',

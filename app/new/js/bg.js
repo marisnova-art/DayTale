@@ -33,13 +33,14 @@ export const PAID = [
   { id: 'stars', img: './bg/stars.webp', tone: '#3a3f7a', ink: '#F3E6C8', dim: ['center', '0,0,0', .55] },
   { id: 'bands', code: 'bands', tone: '#a35cff', ink: '#fff', dim: ['center', '40,16,70', .55] },
   { id: 'slit', code: 'slit', tone: '#F07F3C', ink: '#fff', dim: ['all', '10,8,14', 0] },
-  { id: 'pixel', code: 'pixel', tone: '#DCCB2A', ink: '#1E1B18', dim: ['center', '0,0,0', 0] },   // 픽셀 체크 (105차): 글자색은 바탕 밝기로 (formats.js)
+  { id: 'pixel', code: 'pixel', tone: '#DCCB2A', ink: '#1E1B18', dim: ['center', '0,0,0', 0] },   // 픽셀 체커 (105차): 글자색은 바탕 밝기로 (formats.js)
+  { id: 'fractal', code: 'fractal', tone: '#1F6F99', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 프랙탈 패턴 (107차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'plasma', code: 'plasma', tone: '#0A6E8C', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 플라즈마 (106차): 글자색은 바탕 밝기로 (formats.js)
-  { id: 'mesh', code: 'mesh', tone: '#A8F03C', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 형광 물결망 (104차): 글자색은 바탕 밝기로 (formats.js)
-  { id: 'eclipse', code: 'eclipse', tone: '#6E3A44', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 빛 고리 (103차): 글자색은 바탕 밝기로 (formats.js)
-  { id: 'tunnel', code: 'tunnel', tone: '#2A1F7A', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 빛 터널 (101차): 글자색은 바탕 밝기로 (formats.js)
-  { id: 'neon', code: 'neon', tone: '#6A3DFF', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 네온 흐름 (100차): 글자색은 바탕 밝기로 (formats.js)
-  { id: 'swirl', code: 'swirl', tone: '#93CBE0', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 빛 소용돌이 (99차): 글자색 · 막은 바탕 밝기로 (formats.js)   // 노을 띠: 딤 · 글자색은 띠 밝기로 (formats.js slitLayer)
+  { id: 'mesh', code: 'mesh', tone: '#A8F03C', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 네온 메시 (104차): 글자색은 바탕 밝기로 (formats.js)
+  { id: 'eclipse', code: 'eclipse', tone: '#6E3A44', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 이클립스 링 (103차): 글자색은 바탕 밝기로 (formats.js)
+  { id: 'tunnel', code: 'tunnel', tone: '#2A1F7A', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 라이트 터널 (101차): 글자색은 바탕 밝기로 (formats.js)
+  { id: 'neon', code: 'neon', tone: '#6A3DFF', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 네온 플로우 (100차): 글자색은 바탕 밝기로 (formats.js)
+  { id: 'swirl', code: 'swirl', tone: '#93CBE0', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 라이트 스월 (99차): 글자색 · 막은 바탕 밝기로 (formats.js)   // 슬릿스캔: 딤 · 글자색은 띠 밝기로 (formats.js slitLayer)
 ];
 
 // 내 사진: 사진은 카드마다 달라서(ph) 여기엔 딤 · 글색만. 어둡게 덮고 흰 글
@@ -153,7 +154,7 @@ function cpu(cv, P, off, full, t) {
   const c = cv.getContext('2d'); c.imageSmoothingQuality = 'high'; c.drawImage(mid, 0, 0, W, H);
 }
 
-// 노을 띠 (11-20, 앤드류 레퍼런스: 슬릿스캔 가로 띠 풍경 → 코드). 가는 띠 많이 + 굵은 띠 가끔, 띠마다 가로로 살짝 번진 색.
+// 슬릿스캔 (11-20, 앤드류 레퍼런스: 슬릿스캔 가로 띠 풍경 → 코드). 가는 띠 많이 + 굵은 띠 가끔, 띠마다 가로로 살짝 번진 색.
 // 색 묶음 5개(노을 · 붉은 저녁 · 황금빛 · 새벽 · 밤 바다) = 씨앗 % 5. 같은 씨앗이면 늘 같은 그림.
 // 9:16 원본을 한 번 그려 두고(그레인까지) 카드만큼 잘라 보여 줘요. 모션 = 원본을 아주 조금 당겼다 놓는 숨 (t=0이면 정확히 멈춘 그림)
 const Z = (s, e, cols, acc, ar) => [s, e, cols, acc || null, ar || 0];
@@ -317,7 +318,7 @@ function drawSlit(cv, seed, shift, t, grainAmt) {
   }
   g.restore();
 }
-// 빛 소용돌이 (11-25 99차, 앤드류 레퍼런스(셰이더 그림)의 느낌만 · 코드는 새로 작성). 연한~어두운 바탕 위 가운데 흐린 빛,
+// 라이트 스월 (11-25 99차, 앤드류 레퍼런스(셰이더 그림)의 느낌만 · 코드는 새로 작성). 연한~어두운 바탕 위 가운데 흐린 빛,
 // 겹겹 원 위 반짝임(도는 방향으로 살짝 늘어진 빛)이 천천히 돌고, 가운데서 부드러운 물결 고리(파장)가 번져 나가요.
 // 색 20가지 = 연한 · 중간 · 선명한 · 어두운 4단계 × 5. 칩으로 고르면(pb.pal) 고정, 아니면 씨앗 % 20.
 // 셔플 = 겹 수(3~7) · 반짝임 자리 · 감김 · 도는 방향 · 파장 간격 · 나선 물결(0~3갈래). t = 초(0이면 멈춘 그림)
@@ -408,7 +409,7 @@ function drawSwirl(cv, seed, t, grainAmt) {
   g.drawArrays(g.TRIANGLES, 0, 3);
   cv.getContext('2d').drawImage(gc, 0, 0, W, H);
 }
-// 네온 흐름 (11-25 100차, 앤드류 레퍼런스(옵아트 캔버스)의 느낌만 · 코드는 새로 작성, 링 없음). 흐린 네온 덩어리 3~6개가
+// 네온 플로우 (11-25 100차, 앤드류 레퍼런스(옵아트 캔버스)의 느낌만 · 코드는 새로 작성, 링 없음). 흐린 네온 덩어리 3~6개가
 // 리사주 길(8자 · 타원 · 물결)을 따라 천천히 흐르며 지난 3~4초 자리를 부드러운 꼬리로 남겨요. 가운데는 글 자리로 덜 밝게.
 // 색 묶음 10가지(어두운 바탕 8 · 연한 바탕 2). 칩으로 고르면(pb.pal) 고정, 아니면 씨앗 % 10. 한 바퀴 약 22초. t = 초(0이면 멈춘 그림)
 export const NEON_PAL = [
@@ -496,7 +497,7 @@ function drawNeon(cv, seed, t, grainAmt) {
   g.drawArrays(g.TRIANGLES, 0, 3);
   cv.getContext('2d').drawImage(gc, 0, 0, W, H);
 }
-// 빛 터널 (11-25 101차, 앤드류 레퍼런스(사진을 붙인 3D 터널)의 느낌만 · 사진 없이 코드로 새로 작성). 가운데 한 점에서 밖으로 뻗어 나오는 (102차 방향 바꿈)
+// 라이트 터널 (11-25 101차, 앤드류 레퍼런스(사진을 붙인 3D 터널)의 느낌만 · 사진 없이 코드로 새로 작성). 가운데 한 점에서 밖으로 뻗어 나오는 (102차 방향 바꿈)
 // 가는 빛줄기 + 색 다른 큰 부채꼴 면 3~5개 + 별가루. 가운데는 빛줄기가 옅어지는 글 자리. 색 묶음 10가지(어두운 8 · 연한 2),
 // 칩으로 고르면(pb.pal) 고정, 아니면 씨앗 % 10. 셔플 = 부채꼴 수 · 빛줄기 밀도 · 소실점(가운데/살짝 위) · 도는 방향. t = 초(0이면 멈춘 그림)
 export const TUNNEL_PAL = [   // [이름, 바탕, 가운데 어둠, 면1, 면2, 빛줄기]
@@ -581,7 +582,7 @@ function drawTunnel(cv, seed, t, grainAmt) {
   g.drawArrays(g.TRIANGLES, 0, 3);
   cv.getContext('2d').drawImage(gc, 0, 0, W, H);
 }
-// 빛 고리 (11-25 103차, 앤드류 레퍼런스(만화경 그림)의 느낌만 · 코드로 새로 작성). 가운데 크게 번진 빛의 고리 안에 어두운 원이 한쪽으로 비켜서
+// 이클립스 링 (11-25 103차, 앤드류 레퍼런스(만화경 그림)의 느낌만 · 코드로 새로 작성). 가운데 크게 번진 빛의 고리 안에 어두운 원이 한쪽으로 비켜서
 // 초승달처럼 (일식 느낌). 색 4가지가 고리를 따라 이어지고 아주 천천히 돌아요 (한 바퀴 약 40초), 두께는 숨 쉬듯 살짝. 글은 안쪽 원 가운데.
 // 색 묶음 10가지(어두운 8 · 연한 2), 칩으로 고르면(pb.pal) 고정, 아니면 씨앗 % 10. 셔플 = 초승달 방향 · 굵기 · 고리 크기. t = 초(0이면 멈춘 그림)
 export const ECLIPSE_PAL = [   // [이름, 바탕, 안쪽 원, 고리 색 4]
@@ -663,7 +664,7 @@ function drawEclipse(cv, seed, t, grainAmt) {
   g.drawArrays(g.TRIANGLES, 0, 3);
   cv.getContext('2d').drawImage(gc, 0, 0, W, H);
 }
-// 형광 물결망 (11-25 104차, 앤드류 레퍼런스(노이즈 + 네온 색 영상)의 느낌만 · 코드로 새로 작성). 부드러운 무늬 값이 한 높이를 지나는 자리에 굵은 형광 선,
+// 네온 메시 (11-25 104차, 앤드류 레퍼런스(노이즈 + 네온 색 영상)의 느낌만 · 코드로 새로 작성). 부드러운 무늬 값이 한 높이를 지나는 자리에 굵은 형광 선,
 // 선 한 줄 안에서 두 색이 번지고 선이 만나는 곳은 저절로 두껍게. 정돈 정도(ord)가 셔플마다 랜덤: 두 방향 물결을 겹친 고른 칸 ↔ 자유로운 그물 (대부분 정돈).
 // 가운데 글 자리는 선이 옅어져요. 두 색 묶음 10가지(어두운 8 · 연한 2), 칩으로 고르면(pb.pal) 고정, 아니면 씨앗 % 10. t = 초(0이면 멈춘 그림)
 export const MESH_PAL = [   // [이름, 바탕, 색1, 색2]
@@ -746,7 +747,7 @@ function drawMesh(cv, seed, t, grainAmt) {
   g.drawArrays(g.TRIANGLES, 0, 3);
   cv.getContext('2d').drawImage(gc, 0, 0, W, H);
 }
-// 픽셀 체크 (11-26 105차, 앤드류 레퍼런스(물결 바둑판 이미지 · 영상)의 느낌만 · 코드로 새로 작성). 굵은 픽셀 격자 위에 가로 물결 × 세로 물결 =
+// 픽셀 체커 (11-26 105차, 앤드류 레퍼런스(물결 바둑판 이미지 · 영상)의 느낌만 · 코드로 새로 작성). 굵은 픽셀 격자 위에 가로 물결 × 세로 물결 =
 // 밝은 칸 · 어두운 칸이 번갈아 놓인 바둑판, 칸 사이는 바탕색 줄, 5단계로 끊어 픽셀 느낌. 글 뒤 박스 없이 대비를 낮춰요: 전체 조금 + 글 둘레는 경계 없이
 // 서서히, 특히 글자색과 부딪히는 칸(짙은 글이면 어두운 칸)을 거의 지워요. 색 10가지(한 색 7 · 무지개 1 · 연한 2). 셔플 = 칸 크기 · 픽셀 크기 · 칸 모양
 export const PIXEL_PAL = [   // [이름, 바탕(줄), 밝은 칸, 어두운 칸, 무지개?]
@@ -917,11 +918,75 @@ function drawPlasma(cv, seed, t, grainAmt) {
   g.drawArrays(g.TRIANGLES, 0, 3);
   const x = cv.getContext('2d'); x.imageSmoothingEnabled = true; x.drawImage(gc, 0, 0, W, H);
 }
+// 프랙탈 패턴 (11-26 107차, 앤드류 레퍼런스(점 밀도 무늬)의 원리만 · 식과 코드는 새로 작성). 점 수만 개를 사인 물결 식으로 계속 옮겨
+// 많이 지나간 자리일수록 밝게 → 실이 얽힌 무늬 (모서리끼리 이어지는 타일). 밝기는 순위로 고르게 펴서 다섯 색으로. 배경 도구 없이 셔플만:
+// 셔플 한 번에 무늬 · 크기(1~3칸) · 색 묶음(10가지) · 색 방향(가끔 밝은 바탕에 짙은 실)이 함께 바뀌어요. 글 둘레는 바탕색으로 넓고 옅게
+export const FRACTAL_PAL = [   // [이름, 빈 자리 → 실이 가장 많이 지나간 자리 다섯 색]
+  ['심해', '#020B1A', '#0B2E59', '#1F6F99', '#6FC3D6', '#E6F6F2'], ['숲', '#06140C', '#173D26', '#3F7A4A', '#A9C97A', '#F2EFC8'],
+  ['노을', '#12060E', '#4A1230', '#A8323E', '#E8894A', '#FBE3B0'], ['자두', '#0E0614', '#3A1550', '#7E3A8C', '#D47FB0', '#FBE0EC'],
+  ['금빛', '#0D0A04', '#3A2A0C', '#8A6420', '#D9AE55', '#FFF1C8'], ['밤하늘', '#05060F', '#151E4A', '#3B4FA0', '#8FA8E8', '#EEF2FF'],
+  ['오로라', '#03100F', '#0B3B3A', '#1E8A6E', '#8FE0A6', '#F0FFE8'], ['먹', '#0A0A0A', '#262626', '#5A5A5A', '#A8A8A8', '#F2F2F2'],
+  ['종이', '#F6F1E7', '#E6D9C3', '#C2A887', '#8A6E52', '#3E2F22'], ['하늘빛', '#F2F6FA', '#D6E3EE', '#A3BED6', '#5F84A8', '#22384F'],
+];
+const FTAU = Math.PI * 2;
+function frDensity(P, G, N, IT, seed) {
+  const cnt = new Float32Array(G * G), r = rng(seed), { a, b, c, d, k, ph } = P;
+  const f = (x, y) => a * Math.sin(FTAU * x) + b * Math.sin(FTAU * x) * Math.cos(FTAU * y + ph) + c * Math.cos(2 * FTAU * y) + d * Math.sin(3 * FTAU * x + ph) * Math.sin(2 * FTAU * y) + k * y;
+  for (let n = 0; n < N; n++) {
+    let x = r(), y = r();
+    for (let i = 0; i < IT; i++) {
+      const u = f(x, y), v = f(y, x); x = u - Math.floor(u); y = v - Math.floor(v);   // 가로세로를 바꾼 같은 식 → 대각선으로 마주 보는 무늬
+      if (i > 4) cnt[(Math.floor(y * G) % G) * G + (Math.floor(x * G) % G)]++;
+    }
+  }
+  return cnt;
+}
+const fractalCache = new Map();
+function fractalOf(seed) {
+  if (fractalCache.has(seed)) return fractalCache.get(seed);
+  const r = rng(seed ^ 0x3f7a), pal = ((seed >>> 0) || 1) % FRACTAL_PAL.length;
+  let P;
+  for (let i = 0; i < 10; i++) {   // 휑하거나 꽉 찬 무늬는 다시
+    P = { a: r() * 2 - 1, b: r() * 2 - 1, c: r() * 1.6 - .8, d: r() * 1.4 - .7, k: Math.floor(r() * 5) - 2, ph: r() * FTAU };
+    const D = frDensity(P, 100, 4000, 22, seed + i); let nz = 0; for (const v of D) if (v > 0) nz++;
+    const cv = nz / 1e4; if (cv > .18 && cv < .8) break;
+  }
+  const o = { P, pal, inv: pal < 8 && r() < .22, n: [1, 1.5, 1.5, 2, 2, 3][Math.floor(r() * 6)], tile: null, bg: null };
+  if (fractalCache.size > 8) fractalCache.delete(fractalCache.keys().next().value);
+  fractalCache.set(seed, o); return o;
+}
+export const fractalLight = seed => { const o = fractalOf(seed), C = FRACTAL_PAL[o.pal], [r, g, b] = hx3(o.inv ? C[5] : C[1]); return .2126 * r + .7152 * g + .0722 * b > .5; };
+// 타일은 한 번만 계산해서 기억해요 (밝기 순위 → 다섯 색, 고운 결도 같이 구워요)
+function fractalTile(o, seed) {
+  if (o.tile) return o.tile;
+  const G = 300, cnt = frDensity(o.P, G, 22000, 34, seed), vals = Float32Array.from(cnt.filter(v => v > 0)).sort(), L = vals.length || 1;
+  const cv = document.createElement('canvas'); cv.width = cv.height = G;
+  const x = cv.getContext('2d'), im = x.createImageData(G, G), C = FRACTAL_PAL[o.pal].slice(1).map(h => hx3(h).map(v => v * 255)), r = rng(seed * 3 + 1);
+  if (o.inv) C.reverse();
+  const rank = v => { let lo = 0, hi = vals.length; while (lo < hi) { const m = (lo + hi) >> 1; if (vals[m] < v) lo = m + 1; else hi = m; } return lo / L; };
+  for (let i = 0; i < G * G; i++) {
+    const t = cnt[i] > 0 ? .12 + .88 * Math.pow(rank(cnt[i]), 1.25) : 0, k = t * 4, j = Math.min(3, Math.floor(k)), fr = k - j, gr = (r() - .5) * 8;
+    for (let q = 0; q < 3; q++) im.data[i * 4 + q] = C[j][q] + (C[j + 1][q] - C[j][q]) * fr + gr;
+    im.data[i * 4 + 3] = 255;
+  }
+  x.putImageData(im, 0, 0); o.tile = cv; o.bg = C[0].map(Math.round); return cv;
+}
+function drawFractal(cv, seed, t) {
+  const W = cv.width, H = cv.height, o = fractalOf(seed), T = fractalTile(o, seed), ts = W / o.n, x = cv.getContext('2d');
+  const ox = ((t * .006 * ts) % ts + ts) % ts, oy = ((t * .004 * ts) % ts + ts) % ts;   // 아주 천천히 비스듬히 흘러요
+  x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high'; x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1;
+  for (let yy = -oy; yy < H; yy += ts) for (let xx = -ox; xx < W; xx += ts) x.drawImage(T, xx, yy, ts + .5, ts + .5);
+  if (t > 0) { x.globalCompositeOperation = 'screen'; x.globalAlpha = .07 * (.5 + .5 * Math.sin(t * .5)); for (let yy = -oy; yy < H; yy += ts) for (let xx = -ox; xx < W; xx += ts) x.drawImage(T, xx, yy, ts + .5, ts + .5); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; }   // 실의 빛이 숨 쉬어요
+  const cy = H / 2 - (H / W > 1.6 ? .08 * W : 0), g = x.createRadialGradient(W / 2, cy, 0, W / 2, cy, W * .55), c = `rgba(${o.bg.join(',')},`;   // 글 둘레: 박스 없이 바탕색으로 넓고 옅게
+  g.addColorStop(0, c + '.8)'); g.addColorStop(.55, c + '.56)'); g.addColorStop(1, c + '0)');
+  x.save(); x.translate(W / 2, cy); x.scale(1, .62); x.translate(-W / 2, -cy); x.fillStyle = g; x.fillRect(0, -H, W, H * 4); x.restore();
+}
 export function drawCode(cv, seed, shift = 0, t = 0, grainAmt = cv.dataset.gr === '0' ? .01 : .09) {   // 노이즈 끄면 맑게(.01은 색 줄 생김만 막는 정도)
   const W = cv.width, H = cv.height; if (!W || !H) return;
   if (cv.dataset.code === 'slit') return drawSlit(cv, seed, shift, t, cv.dataset.gr === '0' ? 0 : .035);
   if (cv.dataset.code === 'swirl') return drawSwirl(cv, seed, t, cv.dataset.gr === '0' ? 0 : .05);
   if (cv.dataset.code === 'neon') return drawNeon(cv, seed, t, cv.dataset.gr === '0' ? 0 : .05);
+  if (cv.dataset.code === 'fractal') return drawFractal(cv, seed, t);
   if (cv.dataset.code === 'plasma') return drawPlasma(cv, seed, t, cv.dataset.gr === '0' ? 0 : .025);
   if (cv.dataset.code === 'pixel') return drawPixel(cv, seed, t, cv.dataset.gr === '0' ? 0 : .03);
   if (cv.dataset.code === 'mesh') return drawMesh(cv, seed, t, cv.dataset.gr === '0' ? 0 : .04);

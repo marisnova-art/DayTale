@@ -1,4 +1,4 @@
-/* 템플릿 틀: 멤피스 문장 — 이 틀만의 모양. 공용(카드 틀 · 날짜 줄 · 서명 · 키프레임)은 app.css. 틀을 처음 볼 때 같이 불러와요 */
+/* 템플릿 틀: 멤피스 타이포 — 이 틀만의 모양. 공용(카드 틀 · 날짜 줄 · 서명 · 키프레임)은 app.css. 틀을 처음 볼 때 같이 불러와요 */
 .cd.rebus { aspect-ratio: 4 / 5; overflow: clip; background: var(--paper, #F3F1EC); color: var(--ink, #2E2D2B); display: flow-root; font-family: 'Pretendard Variable', sans-serif; }
 .cd.rebus .rb { outline: none; margin: 6.667cqw 5.185cqw 15.74cqw 5.926cqw; font-size: 7.778cqw; font-weight: 800; line-height: 1.34; letter-spacing: -.03em; overflow-wrap: break-word; }
 .cd.rebus .rb .ph { color: #B9B5AC; }
