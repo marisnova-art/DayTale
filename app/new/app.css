@@ -813,7 +813,7 @@ mark { background: rgba(255,255,255,.32); color: #fff; border-radius: 0; padding
 .srw.acc { height: 76px; } .srw.acc .av { width: 44px; height: 44px; flex: none; }
 .srw.acc .t { min-width: 0; } .srw.acc b { display: block; font-size: var(--fs-m); font-weight: var(--fw); overflow: hidden; text-overflow: ellipsis; } .srw.acc small { display: block; margin-top: 2px; font-size: var(--fs-s); color: var(--mut); }
 .schip { height: 26px; padding: 0 10px; border-radius: 999px; background: var(--srf2); color: #fff; font-size: var(--fs-s); font-weight: var(--fw); font-style: normal; display: inline-flex; align-items: center; }
-.sver { margin-top: 18px; text-align: center; color: #55555b; font-size: var(--fs-s); font-weight: var(--fw); }
+.sver { margin-top: 18px; text-align: center; color: #fff; font-size: var(--fs-xl); font-weight: var(--fw); line-height: 1.3; }   /* 100차: 테스트 동안 버전 크게 (앤드류). 출시 땐 작게 되돌리고 시작 화면 버전은 빼요 */
 .ahd { text-align: center; padding: 6px 0 4px; }
 .ahd .avw { position: relative; display: block; width: 84px; height: 84px; margin: 0 auto; }
 .ahd .avw .av { display: block; width: 84px; height: 84px; }
@@ -2108,7 +2108,7 @@ html.lite #app .tmv .wq { box-shadow: 0 8px 24px rgba(20,20,22,.12); }
 html.hd .tmv .tstk:not(.sc) { transform: none; }   /* 77차: 칩 줄은 위에 붙었을 때만 내릴 때 숨어요 (붙기 전엔 제자리) */
 /* 78차: 칩 줄은 위 선에서부터 붙고 시계 줄과 칩 사이에 여유(30) · 시계 줄 자리는 따로 덮어요 (여백이 안 바뀌어 목록이 안 튀어요) · 칩 32 */
 .tmv .tstk { padding-top: 30px; }
-#boot .bver { position: absolute; left: 0; right: 0; top: calc(50% + 64px); text-align: center; font-size: var(--fs-s); color: rgba(255,255,255,.55); pointer-events: none; }
+#boot .bver { position: absolute; left: 0; right: 0; top: calc(50% + 64px); text-align: center; font-size: var(--fs-xl); color: #fff; pointer-events: none; }
 .tmv .stb { position: fixed; top: 0; left: 0; right: 0; height: var(--safe-t); z-index: 21; background: var(--navbg, rgba(18,18,20,.5)); -webkit-backdrop-filter: blur(22px) saturate(1.5); backdrop-filter: blur(22px) saturate(1.5); opacity: 0; transition: opacity .2s; pointer-events: none; }
 .tmv.scd .stb { opacity: 1; }
 /* 79차 (11-13): 바로 쓰기 그림 = 늘 40% (템플릿 줄과 같은 크기) · 2개면 가운데 · 이름 가운데 · 칸마다 옅은 그림자 + 얇은 테두리. 밝은 바탕이면 판 한 단계 더 어둡게 · 템플릿 그림도 그림자 + 테두리 · 칩 테두리 20%. 붙은 칩 줄은 내려도 늘 보여요 */

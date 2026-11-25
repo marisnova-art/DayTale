@@ -3,7 +3,7 @@ import { ic } from './icons.js';
 import * as S from './store.js';
 import { exampleText, quoteText, dayQuestion } from './prompts.js';
 import { FORMATS, ORDER, LABEL, ensure, missing, blank, sampleCard, renderCard, fitCard, cardText, newSeed, placeObjects, dateChip, weekday, toneOf, pageBg, AR, RATIOS, arOf, dateOn, placeOn, infoPos, signOf, SIZE5, V5, dimLv, inkOn, dateLine, DATE_FMT, zoomOf, zoomCss, lines, starts } from './formats.js';
-import { FREE, KIND, find as findBg, drawCode, SWIRL_PAL } from './bg.js';
+import { FREE, KIND, find as findBg, drawCode, SWIRL_PAL, NEON_PAL } from './bg.js';
 import { buildPages, saveImages } from './export.js';
 import { saveCard, pill, pillOff } from './save.js';
 import * as A from './account.js';
@@ -1983,7 +1983,7 @@ const REC_T = { 밤: '밤에 쓰기 좋은', 비: '비 오는 날엔', 눈: '눈
 const WXK = { sun: '맑음', suncloud: '구름 조금', cloud: '흐림', rain: '비', snow: '눈', thunder: '천둥', fog: '안개' };
 const dayLine = (now = new Date()) => { let w = ''; try { const x = JSON.parse(localStorage.getItem('daytale.wx') || 'null'); if (x && Date.now() - x.at < 3 * 3600e3 && WXK[x.kind]) w = ` · ${WXK[x.kind]}${x.temp != null ? ` ${x.temp}°` : ''}`; } catch {} return `${now.getMonth() + 1}월 ${now.getDate()}일 ${'일월화수목금토'[now.getDay()]}요일${w}`; };
 // 78차: 새 버전 확인. 앱으로 돌아올 때(다른 앱 갔다 오기) version.txt가 지금과 다르면 저절로 새로 고쳐요. 쓰는 중엔 안 해요
-const BUILD = '99', BUILD_TAG = '11-25 99차';
+const BUILD = '100', BUILD_TAG = '11-25 100차';
 let verAt = 0;
 const checkVer = () => {
   if (document.hidden || Date.now() - verAt < 20e3) return; verAt = Date.now();
@@ -2562,7 +2562,7 @@ function viewWrite({ fmt, id, like }) {
         const was = typingNow(); paintMeta(); draw(); if (was && !typingNow()) caretEnd(st.pg);
         paintRow2(); return;
       }
-      if (k === 'shuf') { if (rich) { const o = ps().bg.seed || 1; let n = newSeed(); while ((ps().bg.id === 'slit' && n % 5 === o % 5) || (ps().bg.id === 'swirl' && ps().bg.pal == null && n % 20 === o % 20)) n = newSeed(); ps().bg.seed = n; syncFirst(); } else card.seed = newSeed(); push(); draw(); paintRow2(); return; }   // 글카드: 보고 있는 장만. 노을 띠는 셔플마다 색 묶음도 꼭 바뀌게
+      if (k === 'shuf') { if (rich) { const o = ps().bg.seed || 1; let n = newSeed(); while ((ps().bg.id === 'slit' && n % 5 === o % 5) || (ps().bg.id === 'swirl' && ps().bg.pal == null && n % 20 === o % 20) || (ps().bg.id === 'neon' && ps().bg.pal == null && n % 10 === o % 10)) n = newSeed(); ps().bg.seed = n; syncFirst(); } else card.seed = newSeed(); push(); draw(); paintRow2(); return; }   // 글카드: 보고 있는 장만. 노을 띠는 셔플마다 색 묶음도 꼭 바뀌게
       if (k === 'page') {
         ps(); card.pages.splice(st.pg + 1, 0, ''); card.pst.splice(st.pg + 1, 0, clone(card.pst[st.pg])); st.pg += 1;   // 새 장은 앞 장 배경 · 위치를 이어받아요
         push(); draw(); scrollToPage(st.pg);
@@ -2774,7 +2774,7 @@ function viewWrite({ fmt, id, like }) {
   // 아트 포맷 배경 줄: 그림은 셔플로 바꾸고, 여기서는 그림을 꾸미는 옵션만 (지금은 노이즈 하나, 옵션이 생기면 옆 칸에)
   function paintArtRow() {
     const pb = ps().bg, on = pb.grain !== false;
-    if (pb.id === 'swirl') return paintSwirlRow();
+    if (pb.id === 'swirl' || pb.id === 'neon') return paintSwirlRow();
     row2.className = 'st2 g6';
     row2.innerHTML = `${dimBtn(pb)}<button class="k" data-x="grain" aria-label="노이즈">${ic(on ? 'grain' : 'nograin')}</button><span></span><span></span><span></span><span></span><span></span><span></span>`;
     $$('button', row2).forEach(x => x.addEventListener('pointerdown', e => e.preventDefault()));
@@ -2782,12 +2782,14 @@ function viewWrite({ fmt, id, like }) {
     const b = $('[data-x=grain]', row2);
     b.onclick = () => { flush(); if (on) pb.grain = false; else delete pb.grain; syncFirst(); push(); draw(); paintArtRow(); pop(on ? '노이즈 끔' : '노이즈 켬', null, pgLab()); };
   }
-  // 빛 소용돌이 배경 줄 (99차): 딤 · 노이즈 · 색 20칩 (연한 → 어두운). 칩을 고르면 색 고정 · 셔플은 모양만, 한 번 더 누르면 풀려서 셔플마다 색도
+  // 빛 소용돌이 · 네온 흐름 배경 줄 (99 · 100차): 딤 · 노이즈 · 색 칩 (소용돌이 20 · 네온 10). 칩을 고르면 색 고정 · 셔플은 모양만, 한 번 더 누르면 풀려서 셔플마다 색도
   function paintSwirlRow() {
+    const neon = ps().bg.id === 'neon', PALS = () => neon ? NEON_PAL : SWIRL_PAL;
+    const chipBg = c => neon ? `radial-gradient(circle at 32% 34%, ${c[2][0]} 0 16%, transparent 46%), radial-gradient(circle at 68% 68%, ${c[2][1]} 0 16%, transparent 46%), ${c[1]}` : `radial-gradient(circle at 50% 50%, ${c[2]} 0%, ${c[1]} 70%)`;
     const pb = ps().bg, on = pb.grain !== false, keep = $('.swp', row2)?.scrollLeft;
     row2.className = 'st2 g6 bgr swr';
     row2.innerHTML = `${dimBtn(pb)}<button class="k" data-x="grain" aria-label="노이즈">${ic(on ? 'grain' : 'nograin')}</button>
-      <div class="swp">${SWIRL_PAL.map((c, i) => `<button class="k sw ${pb.pal === i ? 'sel' : ''}" data-p="${i}" aria-label="${c[0]}" style="background:radial-gradient(circle at 50% 50%, ${c[2]} 0%, ${c[1]} 70%)"></button>`).join('')}<span class="end"></span></div>`;
+      <div class="swp">${PALS().map((c, i) => `<button class="k sw ${pb.pal === i ? 'sel' : ''}" data-p="${i}" aria-label="${c[0]}" style="background:${chipBg(c)}"></button>`).join('')}<span class="end"></span></div>`;
     const sw = $('.swp', row2), sel = $('.sel', sw);
     if (keep != null) sw.scrollLeft = keep; else if (sel) sw.scrollLeft = Math.max(0, sel.offsetLeft - sw.offsetLeft);
     $$('button', row2).forEach(x => x.addEventListener('pointerdown', e => e.preventDefault()));
@@ -2796,7 +2798,7 @@ function viewWrite({ fmt, id, like }) {
     $$('[data-p]', row2).forEach(t => t.onclick = () => {
       flush(); const i = +t.dataset.p, off = pb.pal === i;
       if (off) delete pb.pal; else pb.pal = i;
-      syncFirst(); push(); draw(); paintSwirlRow(); pop(off ? '셔플마다 바뀌어요' : SWIRL_PAL[i][0], null, '배경색');
+      syncFirst(); push(); draw(); paintSwirlRow(); pop(off ? '셔플마다 바뀌어요' : PALS()[i][0], null, '배경색');
     });
   }
   // 딤: 약 → 중 → 강 (아이콘 = 네모가 칠해지는 만큼). 글이 또렷해져요

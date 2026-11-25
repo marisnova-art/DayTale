@@ -33,6 +33,7 @@ export const PAID = [
   { id: 'stars', img: './bg/stars.webp', tone: '#3a3f7a', ink: '#F3E6C8', dim: ['center', '0,0,0', .55] },
   { id: 'bands', code: 'bands', tone: '#a35cff', ink: '#fff', dim: ['center', '40,16,70', .55] },
   { id: 'slit', code: 'slit', tone: '#F07F3C', ink: '#fff', dim: ['all', '10,8,14', 0] },
+  { id: 'neon', code: 'neon', tone: '#6A3DFF', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 네온 흐름 (100차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'swirl', code: 'swirl', tone: '#93CBE0', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 빛 소용돌이 (99차): 글자색 · 막은 바탕 밝기로 (formats.js)   // 노을 띠: 딤 · 글자색은 띠 밝기로 (formats.js slitLayer)
 ];
 
@@ -402,10 +403,99 @@ function drawSwirl(cv, seed, t, grainAmt) {
   g.drawArrays(g.TRIANGLES, 0, 3);
   cv.getContext('2d').drawImage(gc, 0, 0, W, H);
 }
+// 네온 흐름 (11-25 100차, 앤드류 레퍼런스(옵아트 캔버스)의 느낌만 · 코드는 새로 작성, 링 없음). 흐린 네온 덩어리 3~6개가
+// 리사주 길(8자 · 타원 · 물결)을 따라 천천히 흐르며 지난 3~4초 자리를 부드러운 꼬리로 남겨요. 가운데는 글 자리로 덜 밝게.
+// 색 묶음 10가지(어두운 바탕 8 · 연한 바탕 2). 칩으로 고르면(pb.pal) 고정, 아니면 씨앗 % 10. 한 바퀴 약 22초. t = 초(0이면 멈춘 그림)
+export const NEON_PAL = [
+  ['연두 · 보라', '#0B0B12', ['#B6FF2E', '#6A3DFF']], ['분홍 · 하늘', '#0D0A14', ['#FF4FB3', '#4FD8FF']], ['주황 · 파랑', '#0A0C16', ['#FF8A1F', '#2F5BFF']], ['민트 · 자홍', '#0A1210', ['#3DFFC2', '#FF2FA6']],
+  ['노랑 · 빨강 · 보라', '#120A0C', ['#FFE14F', '#FF3B3B', '#8A3DFF']], ['하늘 · 보라 · 분홍', '#0A1030', ['#5FD0FF', '#9A5BFF', '#FF6FC8']], ['청록 · 주황', '#06141A', ['#18E0D0', '#FF9A3D']], ['흰빛 · 파랑', '#05060C', ['#E8F4FF', '#3F7BFF']],
+  ['연한 분홍 · 파랑', '#F3EEE6', ['#FF5FA8', '#5B8CFF']], ['연한 민트 · 보라', '#EEF2EF', ['#2FD6A0', '#A05BFF']],
+];
+export const neonPal = (seed, pal) => pal != null && NEON_PAL[+pal] ? +pal : ((seed >>> 0) || 1) % NEON_PAL.length;
+export const neonLight = (seed, pal) => { const [r, g, b] = hx3(NEON_PAL[neonPal(seed, pal)][1]); return .2126 * r + .7152 * g + .0722 * b > .5; };
+const neonCache = new Map();
+function neonOf(seed) {
+  if (neonCache.has(seed)) return neonCache.get(seed);
+  const r = rng(seed ^ 0x3e0f1b), nb = 3 + Math.floor(r() * 4), p = { nb, sz: nb <= 3 ? .12 : nb >= 6 ? .07 : .09, pk: Math.floor(r() * 3), t0: 4 + r() * 18, s: (seed >>> 0) % 89 };
+  if (neonCache.size > 60) neonCache.delete(neonCache.keys().next().value);
+  neonCache.set(seed, p); return p;
+}
+const NE_GLSL = `precision highp float;
+uniform vec2 uRes; uniform float uT, uS, uNb, uSz, uPk, uNc, uGrain; uniform vec3 uBg, uC0, uC1, uC2;
+float h(float x) { return fract(sin(x * 78.233 + uS * 12.9898) * 43758.5453); }
+float grain(vec2 p) { vec3 q = fract(vec3(p.xyx) * .1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }
+vec2 path(float i, float t) {
+  float a = 1. + floor(h(i + 1.) * 2.), bb = a + (uPk < .5 ? 1. : uPk < 1.5 ? 0. : 2.), w = 6.2832 / 22.;
+  float ph = h(i + 3.) * 6.2832, ps = h(i + 5.) * 6.2832, rx = .34 + .12 * h(i + 7.), ry = .44 + .12 * h(i + 9.);
+  return vec2(rx * sin(a * w * t + ph), ry * sin(bb * w * t * (1. + .08 * h(i + 11.)) + ps));
+}
+void main() {
+  vec2 uv = (gl_FragCoord.xy - .5 * uRes) / max(uRes.x * 1.25, uRes.y);
+  vec3 acc = vec3(0.); float tot = 0.;
+  for (int i = 0; i < 6; i++) { float fi = float(i); if (fi >= uNb) break;
+    float k3 = mod(fi, uNc); vec3 col = k3 < .5 ? uC0 : k3 < 1.5 ? uC1 : uC2;
+    float rad = uSz * (.75 + .5 * h(fi + 13.)), g = 0.;
+    for (int k = 0; k < 28; k++) { float fk = float(k);   // 꼬리: 지난 자리 28번 (0.13초 간격)
+      vec2 d = uv - path(fi, uT - fk * .13);
+      g += pow(1. - fk / 28., 1.6) * exp(-dot(d, d) / (rad * rad * (1. + fk * .03)));
+    }
+    vec2 d0 = uv - path(fi, uT); g += 2.2 * exp(-dot(d0, d0) / (rad * rad * .45));   // 머리는 조금 또렷하게
+    g /= 9.; acc += col * g; tot += g;
+  }
+  float r = length(uv * vec2(1.2, 1.)), keep = (.3 + .7 * smoothstep(.12, .42, r)) * .95;   // 가운데는 덜 (글 자리)
+  acc *= keep; tot *= keep;
+  vec3 c = dot(uBg, vec3(.2126, .7152, .0722)) < .4 ? uBg + (1. - exp(-acc * 1.6)) : mix(uBg, (acc / max(tot, 1e-3)) * .95, 1. - exp(-tot * 1.3));
+  c *= 1. - .25 * smoothstep(.45, .95, length(uv));
+  if (uGrain > 0.) c += (grain(gl_FragCoord.xy) + grain(gl_FragCoord.xy + vec2(37., 91.)) - 1.) * uGrain;
+  gl_FragColor = vec4(clamp(c, 0., 1.), 1.);
+}`;
+let NG = null;
+function neGl() {
+  if (NG !== null) return NG;
+  NG = false;
+  try {
+    const cv = document.createElement('canvas'), g = cv.getContext('webgl', { premultipliedAlpha: false, antialias: false });
+    if (!g) return NG;
+    const sh = (type, src) => { const o = g.createShader(type); g.shaderSource(o, src); g.compileShader(o); if (!g.getShaderParameter(o, g.COMPILE_STATUS)) throw new Error(g.getShaderInfoLog(o)); return o; };
+    const pr = g.createProgram();
+    g.attachShader(pr, sh(g.VERTEX_SHADER, 'attribute vec2 a; void main() { gl_Position = vec4(a, 0., 1.); }'));
+    g.attachShader(pr, sh(g.FRAGMENT_SHADER, NE_GLSL)); g.linkProgram(pr); g.useProgram(pr);
+    const buf = g.createBuffer(); g.bindBuffer(g.ARRAY_BUFFER, buf); g.bufferData(g.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), g.STATIC_DRAW);
+    const a = g.getAttribLocation(pr, 'a'); g.enableVertexAttribArray(a); g.vertexAttribPointer(a, 2, g.FLOAT, false, 0, 0);
+    const u = {}; ['uRes', 'uT', 'uS', 'uNb', 'uSz', 'uPk', 'uNc', 'uGrain', 'uBg', 'uC0', 'uC1', 'uC2'].forEach(k => { u[k] = g.getUniformLocation(pr, k); });
+    NG = { cv, g, u };
+  } catch (e) { console.warn('neon gl', e); NG = false; }
+  return NG;
+}
+// WebGL이 없을 때: 캔버스로 비슷하게 (덩어리 · 꼬리를 흐린 원으로)
+function neonCpu(cv, P, pal, t) {
+  const W = cv.width, H = cv.height, g = cv.getContext('2d'), U = Math.max(W * 1.25, H), [, bg, cs] = NEON_PAL[pal], r = rng(P.s * 7919 + 3), light = neonLight(0, pal);
+  g.fillStyle = bg; g.fillRect(0, 0, W, H);
+  g.save(); g.globalCompositeOperation = light ? 'multiply' : 'lighter';
+  for (let i = 0; i < P.nb; i++) {
+    const a = 1 + Math.floor(r() * 2), b = a + [1, 0, 2][P.pk], ph = r() * 6.283, ps = r() * 6.283, rx = .34 + .12 * r(), ry = .44 + .12 * r(), w = 6.2832 / 22, col = cs[i % cs.length];
+    for (let k = 9; k >= 0; k--) { const tt = P.t0 + t - k * .36, x = W / 2 + rx * Math.sin(a * w * tt + ph) * U, y = H / 2 - ry * Math.sin(b * w * tt + ps) * U, rad = P.sz * U * 1.6;
+      const gr = g.createRadialGradient(x, y, 0, x, y, rad); gr.addColorStop(0, col); gr.addColorStop(1, light ? '#FFFFFF00' : '#00000000');
+      g.globalAlpha = .1 * (1 - k / 10); g.fillStyle = gr; g.fillRect(x - rad, y - rad, rad * 2, rad * 2); }
+  }
+  g.restore();
+}
+function drawNeon(cv, seed, t, grainAmt) {
+  const W = cv.width, H = cv.height, P = neonOf(seed), pal = neonPal(seed, cv.dataset.pal), R = neGl();
+  if (!R) return neonCpu(cv, P, pal, t);
+  const { cv: gc, g, u } = R, k = t > 0 ? Math.min(1, 540 / W) : 1, w = Math.round(W * k), h = Math.round(H * k), cs = NEON_PAL[pal][2];   // 움직일 땐 폭 540까지만 (흐린 빛이라 차이 없음)
+  if (gc.width !== w || gc.height !== h) { gc.width = w; gc.height = h; }
+  g.viewport(0, 0, w, h);
+  g.uniform2f(u.uRes, w, h); g.uniform1f(u.uT, P.t0 + t); g.uniform1f(u.uS, P.s); g.uniform1f(u.uNb, P.nb); g.uniform1f(u.uSz, P.sz); g.uniform1f(u.uPk, P.pk); g.uniform1f(u.uNc, cs.length); g.uniform1f(u.uGrain, grainAmt * .5);
+  g.uniform3fv(u.uBg, hx3(NEON_PAL[pal][1])); g.uniform3fv(u.uC0, hx3(cs[0])); g.uniform3fv(u.uC1, hx3(cs[1])); g.uniform3fv(u.uC2, hx3(cs[2] || cs[0]));
+  g.drawArrays(g.TRIANGLES, 0, 3);
+  cv.getContext('2d').drawImage(gc, 0, 0, W, H);
+}
 export function drawCode(cv, seed, shift = 0, t = 0, grainAmt = cv.dataset.gr === '0' ? .01 : .09) {   // 노이즈 끄면 맑게(.01은 색 줄 생김만 막는 정도)
   const W = cv.width, H = cv.height; if (!W || !H) return;
   if (cv.dataset.code === 'slit') return drawSlit(cv, seed, shift, t, cv.dataset.gr === '0' ? 0 : .035);
   if (cv.dataset.code === 'swirl') return drawSwirl(cv, seed, t, cv.dataset.gr === '0' ? 0 : .05);
+  if (cv.dataset.code === 'neon') return drawNeon(cv, seed, t, cv.dataset.gr === '0' ? 0 : .05);
   const P = auroraOf(seed), full = W * 16 / 9, off = Math.max(0, full - H) * shift;
   const R = gl();
   if (!R) return cpu(cv, P, off, full, t);
