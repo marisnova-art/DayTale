@@ -33,6 +33,7 @@ export const PAID = [
   { id: 'stars', img: './bg/stars.webp', tone: '#3a3f7a', ink: '#F3E6C8', dim: ['center', '0,0,0', .55] },
   { id: 'bands', code: 'bands', tone: '#a35cff', ink: '#fff', dim: ['center', '40,16,70', .55] },
   { id: 'slit', code: 'slit', tone: '#F07F3C', ink: '#fff', dim: ['all', '10,8,14', 0] },
+  { id: 'eclipse', code: 'eclipse', tone: '#6E3A44', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 빛 고리 (103차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'tunnel', code: 'tunnel', tone: '#2A1F7A', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 빛 터널 (101차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'neon', code: 'neon', tone: '#6A3DFF', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 네온 흐름 (100차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'swirl', code: 'swirl', tone: '#93CBE0', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 빛 소용돌이 (99차): 글자색 · 막은 바탕 밝기로 (formats.js)   // 노을 띠: 딤 · 글자색은 띠 밝기로 (formats.js slitLayer)
@@ -577,11 +578,94 @@ function drawTunnel(cv, seed, t, grainAmt) {
   g.drawArrays(g.TRIANGLES, 0, 3);
   cv.getContext('2d').drawImage(gc, 0, 0, W, H);
 }
+// 빛 고리 (11-25 103차, 앤드류 레퍼런스(만화경 그림)의 느낌만 · 코드로 새로 작성). 가운데 크게 번진 빛의 고리 안에 어두운 원이 한쪽으로 비켜서
+// 초승달처럼 (일식 느낌). 색 4가지가 고리를 따라 이어지고 아주 천천히 돌아요 (한 바퀴 약 40초), 두께는 숨 쉬듯 살짝. 글은 안쪽 원 가운데.
+// 색 묶음 10가지(어두운 8 · 연한 2), 칩으로 고르면(pb.pal) 고정, 아니면 씨앗 % 10. 셔플 = 초승달 방향 · 굵기 · 고리 크기. t = 초(0이면 멈춘 그림)
+export const ECLIPSE_PAL = [   // [이름, 바탕, 안쪽 원, 고리 색 4]
+  ['장미 갈색 · 무지개', '#6E3A44', '#5A1A12', '#2A2AE8', '#D0107A', '#C89A40', '#30E070'], ['남색 · 청록', '#1C2440', '#0A0F22', '#19D3E0', '#3A6BFF', '#8A4BFF', '#1FE0A0'],
+  ['보라 · 분홍', '#3A2350', '#1E0E30', '#FF5FA8', '#B04BFF', '#FF9A6B', '#6B7BFF'], ['숲 · 노랑', '#1F3A2E', '#0C1E15', '#E8F04F', '#2FE08A', '#18A8C8', '#F0A030'],
+  ['먹색 · 불꽃', '#1A1618', '#0A0808', '#FF4A2A', '#FFB02A', '#FF2F7A', '#FFE06A'], ['바다 · 산호', '#123848', '#06202C', '#FF7A6B', '#2FC8E0', '#FFD08A', '#4A8BFF'],
+  ['자두 · 민트', '#4A1A3A', '#2A0A20', '#3DFFC2', '#FF4FA0', '#7A5BFF', '#BFFF6A'], ['회색 · 옅은 무지갯빛', '#2A2C33', '#15161A', '#A8B8FF', '#FFB8D8', '#B8FFE0', '#FFF0B0'],
+  ['연한 분홍 · 하늘', '#F4E6EA', '#FBF5F6', '#8FB0FF', '#FF9CC2', '#FFD08A', '#9FE8C8'], ['아이보리 · 보라', '#F3EEE4', '#FAF8F3', '#B99BFF', '#FFB48A', '#7FD0E0', '#F28AB0'],
+];
+export const eclipsePal = (seed, pal) => pal != null && ECLIPSE_PAL[+pal] ? +pal : ((seed >>> 0) || 1) % ECLIPSE_PAL.length;
+export const eclipseLight = (seed, pal) => { const [r, g, b] = hx3(ECLIPSE_PAL[eclipsePal(seed, pal)][1]); return .2126 * r + .7152 * g + .0722 * b > .5; };
+const eclipseCache = new Map();
+function eclipseOf(seed) {
+  if (eclipseCache.has(seed)) return eclipseCache.get(seed);
+  const r = rng(seed ^ 0xec1195), p = { r1: .42 + r() * .06, of: .045 + r() * .08, dir: r() * 6.2832, c0: r(), t0: r() * 40, s: (seed >>> 0) % 89 };
+  if (eclipseCache.size > 60) eclipseCache.delete(eclipseCache.keys().next().value);
+  eclipseCache.set(seed, p); return p;
+}
+const EC_GLSL = `precision highp float;
+uniform vec2 uRes; uniform float uT, uS, uR1, uOf, uDir, uC, uBl, uCy, uGrain; uniform vec3 uBg, uDk, uC0, uC1, uC2, uC3;
+float grain(vec2 p) { vec3 q = fract(vec3(p.xyx) * .1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }
+vec3 ringCol(float u) { float p = fract(u) * 4., f = smoothstep(0., 1., fract(p)), i = floor(p);
+  if (i < 1.) return mix(uC0, uC1, f); if (i < 2.) return mix(uC1, uC2, f); if (i < 3.) return mix(uC2, uC3, f); return mix(uC3, uC0, f); }
+void main() {
+  float U = min(uRes.x, uRes.y * .8);   // 세로 카드는 폭, 가로 카드는 높이에 맞춰 고리 크기
+  vec2 uv = (gl_FragCoord.xy - .5 * uRes) / U - vec2(0., uCy);
+  float light = step(.5, dot(uBg, vec3(.2126, .7152, .0722)));
+  vec2 dv = vec2(cos(uDir), sin(uDir)) * uOf * (1. + .18 * sin(uT * .7 + uS));   // 숨 쉬듯 두께가 살짝
+  float r = length(uv), a = atan(uv.y, uv.x), R0 = uR1 * .74;
+  float outer = 1. - smoothstep(uR1 - uBl, uR1 + uBl, r), inner = smoothstep(R0 - uBl * .8, R0 + uBl * .8, length(uv - dv));
+  vec3 rc = ringCol(a / 6.28318 + uC + uT * .025);
+  vec3 c = mix(uBg, uBg * (light > .5 ? .96 : .8), smoothstep(.25, .9, r));
+  float halo = exp(-pow(max(r - uR1, 0.) / .11, 2.)) * (1. - outer);   // 바깥 은은한 빛 번짐
+  c = light > .5 ? mix(c, rc, halo * .18) : c + rc * halo * .12;
+  c = mix(c, rc, outer * inner * (light > .5 ? .85 : .95));
+  vec3 dc = mix(uDk, uDk * (light > .5 ? 1. : 1.25) + rc * .05, smoothstep(R0, 0., length(uv - dv)));   // 안쪽 원 (가운데가 아주 살짝 밝게)
+  c = mix(c, dc, (1. - inner) * outer);
+  if (uGrain > 0.) c += (grain(gl_FragCoord.xy) + grain(gl_FragCoord.xy + vec2(37., 91.)) - 1.) * uGrain;
+  gl_FragColor = vec4(clamp(c, 0., 1.), 1.);
+}`;
+let EG = null;
+function ecGl() {
+  if (EG !== null) return EG;
+  EG = false;
+  try {
+    const cv = document.createElement('canvas'), g = cv.getContext('webgl', { premultipliedAlpha: false, antialias: false });
+    if (!g) return EG;
+    const sh = (type, src) => { const o = g.createShader(type); g.shaderSource(o, src); g.compileShader(o); if (!g.getShaderParameter(o, g.COMPILE_STATUS)) throw new Error(g.getShaderInfoLog(o)); return o; };
+    const pr = g.createProgram();
+    g.attachShader(pr, sh(g.VERTEX_SHADER, 'attribute vec2 a; void main() { gl_Position = vec4(a, 0., 1.); }'));
+    g.attachShader(pr, sh(g.FRAGMENT_SHADER, EC_GLSL)); g.linkProgram(pr); g.useProgram(pr);
+    const buf = g.createBuffer(); g.bindBuffer(g.ARRAY_BUFFER, buf); g.bufferData(g.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), g.STATIC_DRAW);
+    const a = g.getAttribLocation(pr, 'a'); g.enableVertexAttribArray(a); g.vertexAttribPointer(a, 2, g.FLOAT, false, 0, 0);
+    const u = {}; ['uRes', 'uT', 'uS', 'uR1', 'uOf', 'uDir', 'uC', 'uBl', 'uCy', 'uGrain', 'uBg', 'uDk', 'uC0', 'uC1', 'uC2', 'uC3'].forEach(k => { u[k] = g.getUniformLocation(pr, k); });
+    EG = { cv, g, u };
+  } catch (e) { console.warn('eclipse gl', e); EG = false; }
+  return EG;
+}
+const ecCy = (W, H) => H / W > 1.6 ? .08 : 0;   // 9:16은 글 자리(위 28 · 아래 44)에 맞춰 고리를 살짝 위로
+// WebGL이 없을 때: 캔버스로 비슷하게 (바탕 · 원뿔 그라데이션 고리 · 비켜선 안쪽 원)
+function eclipseCpu(cv, P, pal, t) {
+  const W = cv.width, H = cv.height, g = cv.getContext('2d'), U = Math.min(W, H * .8), [, bg, dk, ...cs] = ECLIPSE_PAL[pal];
+  const cx = W / 2, cy = H / 2 - ecCy(W, H) * U, R1 = P.r1 * U, k = 1 + .18 * Math.sin(t * .7 + P.s), dx = Math.cos(P.dir) * P.of * U * k, dy = -Math.sin(P.dir) * P.of * U * k;
+  g.fillStyle = bg; g.fillRect(0, 0, W, H);
+  if (g.createConicGradient) { const cg = g.createConicGradient(-(P.c0 + t * .025) * 6.2832, cx, cy); [...cs, cs[0]].forEach((c, i) => cg.addColorStop(i / 4, c)); g.fillStyle = cg; } else g.fillStyle = cs[0];
+  g.beginPath(); g.arc(cx, cy, R1, 0, 6.2832); g.fill();
+  const rg = g.createRadialGradient(cx + dx, cy + dy, 0, cx + dx, cy + dy, R1 * .78); rg.addColorStop(0, dk); rg.addColorStop(.9, dk); rg.addColorStop(1, dk + '00');
+  g.fillStyle = rg; g.beginPath(); g.arc(cx + dx, cy + dy, R1 * .78, 0, 6.2832); g.fill();
+}
+function drawEclipse(cv, seed, t, grainAmt) {
+  const W = cv.width, H = cv.height, P = eclipseOf(seed), pal = eclipsePal(seed, cv.dataset.pal), R = ecGl();
+  if (!R) return eclipseCpu(cv, P, pal, t);
+  const { cv: gc, g, u } = R, k = t > 0 ? Math.min(1, 540 / W) : 1, w = Math.round(W * k), h = Math.round(H * k), C = ECLIPSE_PAL[pal];   // 움직일 땐 폭 540까지만 (번진 그림이라 충분)
+  if (gc.width !== w || gc.height !== h) { gc.width = w; gc.height = h; }
+  g.viewport(0, 0, w, h);
+  g.uniform2f(u.uRes, w, h); g.uniform1f(u.uT, P.t0 + t); g.uniform1f(u.uS, P.s); g.uniform1f(u.uR1, P.r1); g.uniform1f(u.uOf, P.of); g.uniform1f(u.uDir, P.dir); g.uniform1f(u.uC, P.c0);
+  g.uniform1f(u.uBl, .05); g.uniform1f(u.uCy, ecCy(W, H)); g.uniform1f(u.uGrain, grainAmt * .5);
+  ['uBg', 'uDk', 'uC0', 'uC1', 'uC2', 'uC3'].forEach((n, i) => g.uniform3fv(u[n], hx3(C[i + 1])));
+  g.drawArrays(g.TRIANGLES, 0, 3);
+  cv.getContext('2d').drawImage(gc, 0, 0, W, H);
+}
 export function drawCode(cv, seed, shift = 0, t = 0, grainAmt = cv.dataset.gr === '0' ? .01 : .09) {   // 노이즈 끄면 맑게(.01은 색 줄 생김만 막는 정도)
   const W = cv.width, H = cv.height; if (!W || !H) return;
   if (cv.dataset.code === 'slit') return drawSlit(cv, seed, shift, t, cv.dataset.gr === '0' ? 0 : .035);
   if (cv.dataset.code === 'swirl') return drawSwirl(cv, seed, t, cv.dataset.gr === '0' ? 0 : .05);
   if (cv.dataset.code === 'neon') return drawNeon(cv, seed, t, cv.dataset.gr === '0' ? 0 : .05);
+  if (cv.dataset.code === 'eclipse') return drawEclipse(cv, seed, t, cv.dataset.gr === '0' ? 0 : .05);
   if (cv.dataset.code === 'tunnel') return drawTunnel(cv, seed, t, cv.dataset.gr === '0' ? 0 : .05);
   const P = auroraOf(seed), full = W * 16 / 9, off = Math.max(0, full - H) * shift;
   const R = gl();

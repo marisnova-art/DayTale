@@ -93,7 +93,7 @@ async function textPages(c, W, ratio, ar) {
   });
   // 장마다 따로 된 카드 틀에 넣고, 배경은 장마다 보이는 부분을 위 → 아래로 옮겨요
   const nodes = out.map((pg, i) => {
-    const wrap = shape(document.createElement('div'), ar); wrap.classList.add('cd', 'text', 'one'); wrap.appendChild(pg); h.appendChild(wrap);
+    const wrap = shape(document.createElement('div'), ar); wrap.classList.add('cd', 'text', 'one', ...(FORMATS[c.fmt]?.cls || '').split(' ').filter(Boolean)); wrap.appendChild(pg); h.appendChild(wrap);   // 틀 모양(cls)도 같이 (빛 고리: 좁은 글 폭, 103차)
     const shift = out.length > 1 ? i / (out.length - 1) : .5;
     pg.querySelectorAll('.bgi:not(.ph)').forEach(b => { if (b.style.backgroundImage) b.style.backgroundPosition = `50% ${Math.round(shift * 100)}%`; });
     pg.querySelectorAll('canvas.bgc').forEach(cv => { cv.width = Math.round(W * ratio); cv.height = Math.round(H * ratio); cv.dataset.shift = shift; drawCode(cv, +cv.dataset.seed, shift); });
