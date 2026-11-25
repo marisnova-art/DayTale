@@ -492,7 +492,7 @@ function drawNeon(cv, seed, t, grainAmt) {
   g.drawArrays(g.TRIANGLES, 0, 3);
   cv.getContext('2d').drawImage(gc, 0, 0, W, H);
 }
-// 빛 터널 (11-25 101차, 앤드류 레퍼런스(사진을 붙인 3D 터널)의 느낌만 · 사진 없이 코드로 새로 작성). 가운데 한 점으로 빨려 드는
+// 빛 터널 (11-25 101차, 앤드류 레퍼런스(사진을 붙인 3D 터널)의 느낌만 · 사진 없이 코드로 새로 작성). 가운데 한 점에서 밖으로 뻗어 나오는 (102차 방향 바꿈)
 // 가는 빛줄기 + 색 다른 큰 부채꼴 면 3~5개 + 별가루. 가운데는 빛줄기가 옅어지는 글 자리. 색 묶음 10가지(어두운 8 · 연한 2),
 // 칩으로 고르면(pb.pal) 고정, 아니면 씨앗 % 10. 셔플 = 부채꼴 수 · 빛줄기 밀도 · 소실점(가운데/살짝 위) · 도는 방향. t = 초(0이면 멈춘 그림)
 export const TUNNEL_PAL = [   // [이름, 바탕, 가운데 어둠, 면1, 면2, 빛줄기]
@@ -526,11 +526,11 @@ void main() {
     float d = ad(a, h(fi + 10.) * 6.2832), w = .12 + .25 * h(fi + 20.);
     c = mix(c, mod(fi, 2.) < .5 ? uF0 : uF1, exp(-d * d / (w * w)) * smoothstep(.02, .35, r) * (.5 + .5 * h(fi + 30.)) * (light > .5 ? .5 : .75));
   }
-  float N = 260., k = (a + 3.14159) / 6.28318 * N, ai = floor(k), af = fract(k);   // 가는 빛줄기: 칸마다 길이 · 속도 · 밝기, 안쪽으로 흘러요
+  float N = 260., k = (a + 3.14159) / 6.28318 * N, ai = floor(k), af = fract(k);   // 가는 빛줄기: 칸마다 길이 · 속도 · 밝기, 밖으로 뻗어 나와요 (바깥 끝이 밝은 머리)
   float on = step(1. - uDen, h(ai + 40.)), sp = .25 + .5 * h(ai + 50.), ln = .25 + .6 * h(ai + 60.);
-  float u = fract(lr * .9 + uT * sp * .35 + h(ai + 70.));
-  float st = on * smoothstep(0., .08, u) * smoothstep(ln, ln - .25, u) * step(u, ln) * (1. - smoothstep(.15, .5, abs(af - .5))) * smoothstep(.1, .45, r) * (.35 + .65 * h(ai + 80.));
-  vec2 g = vec2(floor((a + 3.14159) * 30.), floor(lr * 14. + uT * .5)), gf = vec2(fract((a + 3.14159) * 30.), fract(lr * 14. + uT * .5));   // 별가루
+  float u = fract(lr * .9 - uT * sp * .35 + h(ai + 70.));   // 102차: 가운데서 밖으로 (내가 터널 안으로 들어가는 느낌, 밖으로 갈수록 빨라 보여요)
+  float st = on * smoothstep(0., ln * .85, u) * (1. - smoothstep(ln - .04, ln, u)) * (1. - smoothstep(.15, .5, abs(af - .5))) * smoothstep(.1, .45, r) * (.35 + .65 * h(ai + 80.));
+  vec2 g = vec2(floor((a + 3.14159) * 30.), floor(lr * 14. - uT * .5)), gf = vec2(fract((a + 3.14159) * 30.), fract(lr * 14. - uT * .5));   // 별가루
   float dust = step(.9, h2(g)) * exp(-dot(gf - .5, gf - .5) * 60.) * smoothstep(.02, .25, r);
   if (light > .5) c = mix(c, uSk, st * .55 + dust * .3); else c += uSk * (st * .42 + dust * .4);
   c = mix(c, uDk, (1. - smoothstep(0., .3, r)) * .35 * (1. - light));   // 가운데 글 자리는 조금 더 차분하게
