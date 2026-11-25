@@ -1,5 +1,5 @@
 // 포맷 = 데이터 + 그리기. 카드는 가로 1080 기준으로 디자인하고 cqw 단위로 그려서, 화면 크기와 저장 이미지가 같은 모양이에요
-import { find as findBg, dimCss, drawCode, slitLum, swirlLight, neonLight, tunnelLight, eclipseLight, meshLight, pixelLight } from './bg.js';
+import { find as findBg, dimCss, drawCode, slitLum, swirlLight, neonLight, tunnelLight, eclipseLight, meshLight, pixelLight, plasmaLight } from './bg.js';
 import { bgUrl, keyOf, fidOf, grainLv, GRAPHIC } from './filters.js';
 import { rangeAt } from './rich.js';
 import { hydrate } from './stickers.js';
@@ -98,6 +98,7 @@ function bgLayer(c, page, pages) {
   if (ex >= .4 && tink !== '#fff') tink = '#fff';   // 파스텔 · 밝은 색도 딤 강이면 흰 글
   const more = ex ? `<div class="dimL" style="background:rgba(0,0,0,${ex})"></div>` : '';   // 딤은 늘 어둡게 덮어요 (앤드류 10-28)
   if (b.code === 'slit' && cb?.dim !== 'light') { const sl = slitLayer(c, page, shift, cb.seed || 1, ex); return { html: base + sl.html + more, ink: sl.ink, bink: sl.bink }; }
+  if (b.code === 'plasma' && cb?.dim !== 'light') { const lt = plasmaLight(cb.seed || 1, cb.pal) && ex < .4; return { html: base + more, ink: lt ? '#1E1B18' : '#fff' }; }   // 플라즈마 (106차): 글 둘레는 셰이더가 글자색에 맞춰 옅게
   if (b.code === 'pixel' && cb?.dim !== 'light') { const lt = pixelLight(cb.seed || 1, cb.pal) && ex < .4; return { html: base + more, ink: lt ? '#1E1B18' : '#fff' }; }   // 픽셀 체크 (105차): 글 둘레는 셰이더가 글자색에 맞춰 연하게
   if (b.code === 'mesh' && cb?.dim !== 'light') { const lt = meshLight(cb.seed || 1, cb.pal) && ex < .4; return { html: base + more, ink: lt ? '#1E1B18' : '#fff' }; }   // 형광 물결망 (104차): 가운데는 셰이더가 옅게 비워 둬요
   if (b.code === 'eclipse' && cb?.dim !== 'light') {   // 빛 고리 (103차): 글 뒤를 옅게 (어두운 바탕 = 어두운 막, 연한 바탕 = 흰 막)
@@ -246,7 +247,7 @@ export function ensure(f) {
 export const missing = fmts => [...new Set(fmts)].filter(f => f && !FORMATS[f] && !BAD.has(f));
 export const ORDER = ['rebus', 'art', 'text'];
 // 피드 · 쓰기 위에 보이는 '종류 · 템플릿'
-export const LABEL = { text: '기본', rebus: '디자인 · 멤피스 문장', art: '아트 · 오로라 커튼', hilite: '디자인 · 하이라이트 문장', slit: '아트 · 노을 띠', swirl: '아트 · 빛 소용돌이', neon: '아트 · 네온 흐름', tunnel: '아트 · 빛 터널', eclipse: '아트 · 빛 고리', mesh: '아트 · 형광 물결망', pixel: '아트 · 픽셀 체크', pill: '디자인 · 그라데이션 알약', dots: '디자인 · 동그라미 목차', wave: '디자인 · 물결 문장', tower: '디자인 · 글 탑', symbol: '디자인 · 기호 문장', label: '디자인 · 라벨 조각', typer: '디자인 · 타자 메모', vset: '디자인 · 비디오 세팅' };
+export const LABEL = { text: '기본', rebus: '디자인 · 멤피스 문장', art: '아트 · 오로라 커튼', hilite: '디자인 · 하이라이트 문장', slit: '아트 · 노을 띠', swirl: '아트 · 빛 소용돌이', neon: '아트 · 네온 흐름', tunnel: '아트 · 빛 터널', eclipse: '아트 · 빛 고리', mesh: '아트 · 형광 물결망', pixel: '아트 · 픽셀 체크', plasma: '아트 · 플라즈마', pill: '디자인 · 그라데이션 알약', dots: '디자인 · 동그라미 목차', wave: '디자인 · 물결 문장', tower: '디자인 · 글 탑', symbol: '디자인 · 기호 문장', label: '디자인 · 라벨 조각', typer: '디자인 · 타자 메모', vset: '디자인 · 비디오 세팅' };
 
 export function blank(fmt, date) {
   const d = FORMATS[fmt];

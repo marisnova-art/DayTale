@@ -34,6 +34,7 @@ export const PAID = [
   { id: 'bands', code: 'bands', tone: '#a35cff', ink: '#fff', dim: ['center', '40,16,70', .55] },
   { id: 'slit', code: 'slit', tone: '#F07F3C', ink: '#fff', dim: ['all', '10,8,14', 0] },
   { id: 'pixel', code: 'pixel', tone: '#DCCB2A', ink: '#1E1B18', dim: ['center', '0,0,0', 0] },   // 픽셀 체크 (105차): 글자색은 바탕 밝기로 (formats.js)
+  { id: 'plasma', code: 'plasma', tone: '#0A6E8C', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 플라즈마 (106차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'mesh', code: 'mesh', tone: '#A8F03C', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 형광 물결망 (104차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'eclipse', code: 'eclipse', tone: '#6E3A44', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 빛 고리 (103차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'tunnel', code: 'tunnel', tone: '#2A1F7A', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 빛 터널 (101차): 글자색은 바탕 밝기로 (formats.js)
@@ -826,11 +827,102 @@ function drawPixel(cv, seed, t, grainAmt) {
   g.drawArrays(g.TRIANGLES, 0, 3);
   const x = cv.getContext('2d'); x.imageSmoothingEnabled = false; x.drawImage(gc, 0, 0, W, H);
 }
+// 플라즈마 (11-26 106차, 앤드류 레퍼런스(셰이더 효과 모음 중 플라즈마)의 원리만 · 코드는 셰이더로 새로 작성). 가로 · 세로 · 대각선 물결과
+// 떠다니는 한 점의 둥근 물결을 더한 값을 휜 좌표 위에서 계산 → 큰 덩어리 2~3개만, 세 색을 한 방향으로 넓게 섞어 바다 · 숲처럼 매끈하게 번져요.
+// 밝은 쪽엔 빛 번짐(스크린 섞기), 가장자리는 살짝 깊게, 글 둘레는 넓고 옅게 (짙은 글이면 밝게, 흰 글이면 어둡게). 색 11가지(깊은 9 · 연한 2, 불꽃은 앤드류 요청).
+// 셔플 = 물결 크기 · 방향 · 빛 번짐 세기 · 모양
+export const PLASMA_PAL = [   // [이름, 색1, 색2, 색3]
+  ['바다', '#031B3A', '#0A6E8C', '#7FD3D8'], ['숲', '#0B2418', '#2F6B45', '#B7D98B'], ['새벽', '#1B1740', '#5B5BA8', '#F2B8C6'], ['노을', '#3A0E2A', '#C2453E', '#F7C873'],
+  ['호수', '#062A2A', '#1F8A82', '#D6F0D8'], ['자두', '#24082E', '#7B2A6E', '#F09AB8'], ['밤', '#05060F', '#1D2B64', '#6FA8DC'], ['오로라', '#04121C', '#14806A', '#B6F5A0'], ['불꽃', '#2A0508', '#C0200E', '#FFB703'],
+  ['안개', '#DDE6EC', '#B9CFDC', '#F7F4EE'], ['복숭아', '#FBE3D6', '#F3C1B5', '#FFF6E4'],
+];
+export const plasmaPal = (seed, pal) => pal != null && PLASMA_PAL[+pal] ? +pal : ((seed >>> 0) || 1) % PLASMA_PAL.length;
+export const plasmaLight = (seed, pal) => { const C = PLASMA_PAL[plasmaPal(seed, pal)]; return [1, 2, 3].reduce((a, i) => { const [r, g, b] = hx3(C[i]); return a + .2126 * r + .7152 * g + .0722 * b; }, 0) / 3 > .5; };   // 셰이더의 글자색 판단과 같은 기준
+const plasmaCache = new Map();
+function plasmaOf(seed) {
+  if (plasmaCache.has(seed)) return plasmaCache.get(seed);
+  const r = rng(seed ^ 0x51a5), p = { sc: 2 + r() * 1.4, di: r() * 6.28, gl: .25 + r() * .65, s: r() * 7.7, t0: r() * 40 };
+  if (plasmaCache.size > 60) plasmaCache.delete(plasmaCache.keys().next().value);
+  plasmaCache.set(seed, p); return p;
+}
+const PL_GLSL = `precision highp float;
+uniform vec2 uRes; uniform float uT, uS, uSc, uDi, uGl, uInk, uCy, uGrain; uniform vec3 uC0, uC1, uC2;
+float hh(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+float field(vec2 p, float t) {
+  vec2 q = p + .75 * vec2(sin(p.y * .8 + t * .5 + uS), cos(p.x * .7 - t * .4 + uS * 1.3));   // 좌표를 휘게 → 물처럼
+  vec2 cc = vec2(sin(t * .37 + uS) * .8, cos(t * .29 + uS * 2.));
+  float v = sin(q.x * 1.1 + t + uS) + sin(q.y * .8 - t * .7 + uS * .7) + sin((q.x * cos(uDi) + q.y * sin(uDi)) * .9 + t * .5) + sin(length(q - cc) * 1.3 - t * .9);
+  return v * .125 + .5;
+}
+void main() {
+  vec2 uv = (gl_FragCoord.xy - .5 * uRes) / uRes.x, p = uv * uSc;
+  float t = uT * .2, n = smoothstep(.08, .92, field(p, t));
+  vec3 c = n < .5 ? mix(uC0, uC1, smoothstep(0., 1., n * 2.)) : mix(uC1, uC2, smoothstep(0., 1., n * 2. - 1.));
+  float g = pow(smoothstep(.45, 1., field(p * .7 + 3.1, t * .8 + 1.7)), 1.6);   // 빛 번짐
+  vec3 lt = mix(max(max(uC0, uC1), uC2), vec3(1.), .35);
+  c = 1. - (1. - c) * (1. - lt * g * uGl);
+  c *= 1. - .18 * smoothstep(.45, 1.1, length(uv * vec2(1., uRes.x / uRes.y * 1.25)));   // 가장자리 살짝 깊게
+  float soft = 1. - smoothstep(.2, 1.4, length((uv - vec2(0., uCy)) / vec2(.5, .32 * uRes.y / uRes.x / 1.25)));
+  c = mix(c, uInk > .5 ? vec3(1.) : vec3(0.), soft * (uInk > .5 ? .34 : .22));   // 글 둘레: 넓고 옅게
+  if (uGrain > 0.) c += (hh(gl_FragCoord.xy + uS) - .5) * uGrain;
+  gl_FragColor = vec4(clamp(c, 0., 1.), 1.);
+}`;
+let PLG = null;
+function plGl() {
+  if (PLG !== null) return PLG;
+  PLG = false;
+  try {
+    const cv = document.createElement('canvas'), g = cv.getContext('webgl', { premultipliedAlpha: false });
+    if (!g) return PLG;
+    const sh = (type, src) => { const o = g.createShader(type); g.shaderSource(o, src); g.compileShader(o); if (!g.getShaderParameter(o, g.COMPILE_STATUS)) throw new Error(g.getShaderInfoLog(o)); return o; };
+    const pr = g.createProgram();
+    g.attachShader(pr, sh(g.VERTEX_SHADER, 'attribute vec2 a; void main() { gl_Position = vec4(a, 0., 1.); }'));
+    g.attachShader(pr, sh(g.FRAGMENT_SHADER, PL_GLSL)); g.linkProgram(pr); g.useProgram(pr);
+    const buf = g.createBuffer(); g.bindBuffer(g.ARRAY_BUFFER, buf); g.bufferData(g.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), g.STATIC_DRAW);
+    const a = g.getAttribLocation(pr, 'a'); g.enableVertexAttribArray(a); g.vertexAttribPointer(a, 2, g.FLOAT, false, 0, 0);
+    const u = {}; ['uRes', 'uT', 'uS', 'uSc', 'uDi', 'uGl', 'uInk', 'uCy', 'uGrain', 'uC0', 'uC1', 'uC2'].forEach(k => { u[k] = g.getUniformLocation(pr, k); });
+    PLG = { cv, g, u };
+  } catch (e) { console.warn('plasma gl', e); PLG = false; }
+  return PLG;
+}
+// WebGL이 없을 때: 작은 캔버스에 같은 식을 계산하고 부드럽게 키워요 (매끈한 그림이라 거의 같아요)
+function plasmaCpu(cv, P, pal, t) {
+  const W = cv.width, H = cv.height, C = PLASMA_PAL[pal].slice(1).map(hx3), ink = plasmaLight(0, pal), w = 90, h = Math.round(90 * H / W), sc = document.createElement('canvas'); sc.width = w; sc.height = h;
+  const x = sc.getContext('2d'), im = x.createImageData(w, h), cy = H / W > 1.6 ? .08 : 0, tt = t * .2, ss = (a, b, v) => { const k = Math.min(1, Math.max(0, (v - a) / (b - a))); return k * k * (3 - 2 * k); };
+  const field = (px, py, t) => {
+    const qx = px + .75 * Math.sin(py * .8 + t * .5 + P.s), qy = py + .75 * Math.cos(px * .7 - t * .4 + P.s * 1.3), cx = Math.sin(t * .37 + P.s) * .8, cyy = Math.cos(t * .29 + P.s * 2);
+    const v = Math.sin(qx * 1.1 + t + P.s) + Math.sin(qy * .8 - t * .7 + P.s * .7) + Math.sin((qx * Math.cos(P.di) + qy * Math.sin(P.di)) * .9 + t * .5) + Math.sin(Math.hypot(qx - cx, qy - cyy) * 1.3 - t * .9);
+    return v * .125 + .5;
+  };
+  const lt = [0, 1, 2].map(q => Math.max(C[0][q], C[1][q], C[2][q]) * .65 + .35);
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+    const ux = (i + .5) / w - .5, uy = ((h - j - .5) / h - .5) * H / W, n = ss(.08, .92, field(ux * P.sc, uy * P.sc, tt));
+    const [A, B, k] = n < .5 ? [C[0], C[1], ss(0, 1, n * 2)] : [C[1], C[2], ss(0, 1, n * 2 - 1)];
+    const g = Math.pow(ss(.45, 1, field(ux * P.sc * .7 + 3.1, uy * P.sc * .7 + 3.1, tt * .8 + 1.7)), 1.6) * P.gl;
+    const edge = 1 - .18 * ss(.45, 1.1, Math.hypot(ux, uy * W / H * 1.25)), soft = (1 - ss(.2, 1.4, Math.hypot(ux / .5, (uy - cy) / (.32 * H / W / 1.25)))) * (ink ? .34 : .22), o = (j * w + i) * 4;
+    for (let q = 0; q < 3; q++) { let v = A[q] + (B[q] - A[q]) * k; v = 1 - (1 - v) * (1 - lt[q] * g); v *= edge; v += ((ink ? 1 : 0) - v) * soft; im.data[o + q] = Math.round(Math.min(1, Math.max(0, v)) * 255); }
+    im.data[o + 3] = 255;
+  }
+  x.putImageData(im, 0, 0); const g = cv.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(sc, 0, 0, W, H);
+}
+function drawPlasma(cv, seed, t, grainAmt) {
+  const W = cv.width, H = cv.height, P = plasmaOf(seed), pal = plasmaPal(seed, cv.dataset.pal), R = plGl();
+  if (!R) return plasmaCpu(cv, P, pal, t);
+  const { cv: gc, g, u } = R, k = t > 0 ? Math.min(1, 360 / W) : 1, w = Math.round(W * k), h = Math.round(H * k), C = PLASMA_PAL[pal];   // 매끈해서 움직일 땐 폭 360까지만
+  if (gc.width !== w || gc.height !== h) { gc.width = w; gc.height = h; }
+  g.viewport(0, 0, w, h);
+  g.uniform2f(u.uRes, w, h); g.uniform1f(u.uT, P.t0 + t); g.uniform1f(u.uS, P.s); g.uniform1f(u.uSc, P.sc); g.uniform1f(u.uDi, P.di); g.uniform1f(u.uGl, P.gl);
+  g.uniform1f(u.uInk, plasmaLight(seed, cv.dataset.pal) ? 1 : 0); g.uniform1f(u.uCy, H / W > 1.6 ? .08 : 0); g.uniform1f(u.uGrain, grainAmt);
+  ['uC0', 'uC1', 'uC2'].forEach((n, i) => g.uniform3fv(u[n], hx3(C[i + 1])));
+  g.drawArrays(g.TRIANGLES, 0, 3);
+  const x = cv.getContext('2d'); x.imageSmoothingEnabled = true; x.drawImage(gc, 0, 0, W, H);
+}
 export function drawCode(cv, seed, shift = 0, t = 0, grainAmt = cv.dataset.gr === '0' ? .01 : .09) {   // 노이즈 끄면 맑게(.01은 색 줄 생김만 막는 정도)
   const W = cv.width, H = cv.height; if (!W || !H) return;
   if (cv.dataset.code === 'slit') return drawSlit(cv, seed, shift, t, cv.dataset.gr === '0' ? 0 : .035);
   if (cv.dataset.code === 'swirl') return drawSwirl(cv, seed, t, cv.dataset.gr === '0' ? 0 : .05);
   if (cv.dataset.code === 'neon') return drawNeon(cv, seed, t, cv.dataset.gr === '0' ? 0 : .05);
+  if (cv.dataset.code === 'plasma') return drawPlasma(cv, seed, t, cv.dataset.gr === '0' ? 0 : .025);
   if (cv.dataset.code === 'pixel') return drawPixel(cv, seed, t, cv.dataset.gr === '0' ? 0 : .03);
   if (cv.dataset.code === 'mesh') return drawMesh(cv, seed, t, cv.dataset.gr === '0' ? 0 : .04);
   if (cv.dataset.code === 'eclipse') return drawEclipse(cv, seed, t, cv.dataset.gr === '0' ? 0 : .05);
