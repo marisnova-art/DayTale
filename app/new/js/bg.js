@@ -33,6 +33,7 @@ export const PAID = [
   { id: 'stars', img: './bg/stars.webp', tone: '#3a3f7a', ink: '#F3E6C8', dim: ['center', '0,0,0', .55] },
   { id: 'bands', code: 'bands', tone: '#a35cff', ink: '#fff', dim: ['center', '40,16,70', .55] },
   { id: 'slit', code: 'slit', tone: '#F07F3C', ink: '#fff', dim: ['all', '10,8,14', 0] },
+  { id: 'mesh', code: 'mesh', tone: '#A8F03C', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 형광 물결망 (104차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'eclipse', code: 'eclipse', tone: '#6E3A44', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 빛 고리 (103차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'tunnel', code: 'tunnel', tone: '#2A1F7A', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 빛 터널 (101차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'neon', code: 'neon', tone: '#6A3DFF', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 네온 흐름 (100차): 글자색은 바탕 밝기로 (formats.js)
@@ -660,11 +661,95 @@ function drawEclipse(cv, seed, t, grainAmt) {
   g.drawArrays(g.TRIANGLES, 0, 3);
   cv.getContext('2d').drawImage(gc, 0, 0, W, H);
 }
+// 형광 물결망 (11-25 104차, 앤드류 레퍼런스(노이즈 + 네온 색 영상)의 느낌만 · 코드로 새로 작성). 부드러운 무늬 값이 한 높이를 지나는 자리에 굵은 형광 선,
+// 선 한 줄 안에서 두 색이 번지고 선이 만나는 곳은 저절로 두껍게. 정돈 정도(ord)가 셔플마다 랜덤: 두 방향 물결을 겹친 고른 칸 ↔ 자유로운 그물 (대부분 정돈).
+// 가운데 글 자리는 선이 옅어져요. 두 색 묶음 10가지(어두운 8 · 연한 2), 칩으로 고르면(pb.pal) 고정, 아니면 씨앗 % 10. t = 초(0이면 멈춘 그림)
+export const MESH_PAL = [   // [이름, 바탕, 색1, 색2]
+  ['라임 · 분홍', '#000000', '#A8F03C', '#FF1F8A'], ['하늘 · 보라', '#04040A', '#5FD8FF', '#8A4BFF'], ['주황 · 청록', '#050404', '#FF8A2A', '#1FD0C0'], ['노랑 · 빨강', '#050303', '#FFE14A', '#FF3B3B'],
+  ['민트 · 자홍', '#030605', '#3DFFB0', '#E040FF'], ['분홍 · 파랑', '#04030A', '#FF8FC8', '#3A6BFF'], ['연보라 · 살구', '#0A0810', '#C9B5FF', '#FFB48A'], ['흰색 · 회색', '#050505', '#F2F2EC', '#6A707C'],
+  ['종이 · 연두 분홍', '#F4F1EA', '#6BB800', '#E0207A'], ['종이 · 남색 하늘', '#EFF2F6', '#1E3A8A', '#3FA8E0'],
+];
+export const meshPal = (seed, pal) => pal != null && MESH_PAL[+pal] ? +pal : ((seed >>> 0) || 1) % MESH_PAL.length;
+export const meshLight = (seed, pal) => { const [r, g, b] = hx3(MESH_PAL[meshPal(seed, pal)][1]); return .2126 * r + .7152 * g + .0722 * b > .5; };
+const meshCache = new Map();
+function meshOf(seed) {
+  if (meshCache.has(seed)) return meshCache.get(seed);
+  const r = rng(seed ^ 0x3e5a), ord = r() < .65 ? .75 + r() * .25 : r() * .75;   // 대부분 정돈, 가끔 자유롭게
+  const p = { ord, sc: 3.2 + r() * 1.9, w: .032 + r() * .03, ang: r() * 6.2832, t0: r() * 60, s: (seed >>> 0) % 97 };
+  if (meshCache.size > 60) meshCache.delete(meshCache.keys().next().value);
+  meshCache.set(seed, p); return p;
+}
+const ME_GLSL = `precision highp float;
+uniform vec2 uRes; uniform float uT, uS, uSc, uW, uAng, uOrd, uCy, uGrain; uniform vec3 uBg, uC0, uC1;
+float h2(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7)) + uS * 3.17) * 43758.5453); }
+float vn(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * f * (f * (f * 6. - 15.) + 10.);
+  return mix(mix(h2(i), h2(i + vec2(1., 0.)), f.x), mix(h2(i + vec2(0., 1.)), h2(i + vec2(1., 1.)), f.x), f.y); }
+float grain(vec2 p) { vec3 q = fract(vec3(p.xyx) * .1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }
+void main() {
+  vec2 uv = (gl_FragCoord.xy - .5 * uRes) / uRes.x;
+  float ca = cos(uAng), sa = sin(uAng), t = uT * .06;
+  vec2 p = mat2(ca, -sa, sa, ca) * uv * uSc * vec2(1., .7);   // 자유로운 그물
+  p += (vec2(vn(p * .7 + vec2(t, 3.)), vn(p * .7 + vec2(7., -t))) - .5) * .55 + vec2(t * .8, t * .3);
+  float fr = .85 * vn(p) + .15 * vn(p * 1.7 + 11. - t);
+  vec2 q = mat2(ca, -sa, sa, ca) * uv * uSc * 1.25;   // 정돈된 그물: 두 방향 물결을 겹쳐 고른 칸 · 같은 기울기, 살짝만 휘게
+  q += (vec2(vn(q * .35 + vec2(t, 5.)), vn(q * .35 + vec2(9., t))) - .5) * 1.8;
+  float fo = .5 + .14 * (sin(q.x * 1.9 + q.y * .9 + t * 2.2) + sin(q.x * .55 - q.y * 1.6 + t * 1.4 + h2(vec2(3.)) * 6.));
+  float Wd = uW * mix(1., .55, uOrd), d = mix(fr, fo, uOrd) - .5, band = exp(-d * d / (Wd * Wd));
+  float light = step(.5, dot(uBg, vec3(.2126, .7152, .0722)));
+  vec3 lc = mix(uC1, uC0, smoothstep(-Wd * .8, Wd * .8, d));
+  vec2 e = (uv - vec2(0., uCy)) / vec2(.36, .24 * uRes.y / uRes.x * .8);   // 가운데 글 자리는 선이 옅게
+  band *= 1. - (1. - smoothstep(.7, 1.1, length(e))) * .8;
+  vec3 c = light > .5 ? mix(uBg, lc, band * .9) : uBg + lc * band;
+  if (uGrain > 0.) c += (grain(gl_FragCoord.xy) + grain(gl_FragCoord.xy + vec2(37., 91.)) - 1.) * uGrain;
+  gl_FragColor = vec4(clamp(c, 0., 1.), 1.);
+}`;
+let MG = null;
+function meGl() {
+  if (MG !== null) return MG;
+  MG = false;
+  try {
+    const cv = document.createElement('canvas'), g = cv.getContext('webgl', { premultipliedAlpha: false, antialias: false });
+    if (!g) return MG;
+    const sh = (type, src) => { const o = g.createShader(type); g.shaderSource(o, src); g.compileShader(o); if (!g.getShaderParameter(o, g.COMPILE_STATUS)) throw new Error(g.getShaderInfoLog(o)); return o; };
+    const pr = g.createProgram();
+    g.attachShader(pr, sh(g.VERTEX_SHADER, 'attribute vec2 a; void main() { gl_Position = vec4(a, 0., 1.); }'));
+    g.attachShader(pr, sh(g.FRAGMENT_SHADER, ME_GLSL)); g.linkProgram(pr); g.useProgram(pr);
+    const buf = g.createBuffer(); g.bindBuffer(g.ARRAY_BUFFER, buf); g.bufferData(g.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), g.STATIC_DRAW);
+    const a = g.getAttribLocation(pr, 'a'); g.enableVertexAttribArray(a); g.vertexAttribPointer(a, 2, g.FLOAT, false, 0, 0);
+    const u = {}; ['uRes', 'uT', 'uS', 'uSc', 'uW', 'uAng', 'uOrd', 'uCy', 'uGrain', 'uBg', 'uC0', 'uC1'].forEach(k => { u[k] = g.getUniformLocation(pr, k); });
+    MG = { cv, g, u };
+  } catch (e) { console.warn('mesh gl', e); MG = false; }
+  return MG;
+}
+// WebGL이 없을 때: 캔버스로 비슷하게 (같은 방향으로 기운 물결선 두 묶음)
+function meshCpu(cv, P, pal, t) {
+  const W = cv.width, H = cv.height, g = cv.getContext('2d'), [, bg, c0, c1] = MESH_PAL[pal], n = Math.round(P.sc * 1.6), lw = W * P.w * .35;
+  g.fillStyle = bg; g.fillRect(0, 0, W, H);
+  g.save(); g.translate(W / 2, H / 2); g.rotate(P.ang); g.lineCap = 'round';
+  [[c1, lw * 1.8, .5], [c0, lw, .9]].forEach(([c, w, a]) => { g.strokeStyle = c; g.lineWidth = w; g.globalAlpha = a;
+    for (let k = 0; k < 2; k++) for (let i = -n; i <= n; i++) { g.beginPath();
+      for (let s = -1.2; s <= 1.2; s += .04) { const x = i / n * H, y = s * H, o = Math.sin(s * 5 + i + t * .15 + k * 2) * W * .05; k ? g.lineTo(y + o, x) : g.lineTo(x + o, y); }
+      g.stroke(); } });
+  g.restore();
+}
+function drawMesh(cv, seed, t, grainAmt) {
+  const W = cv.width, H = cv.height, P = meshOf(seed), pal = meshPal(seed, cv.dataset.pal), R = meGl();
+  if (!R) return meshCpu(cv, P, pal, t);
+  const { cv: gc, g, u } = R, k = t > 0 ? Math.min(1, 540 / W) : 1, w = Math.round(W * k), h = Math.round(H * k), C = MESH_PAL[pal];   // 움직일 땐 폭 540까지만 (번진 선이라 충분)
+  if (gc.width !== w || gc.height !== h) { gc.width = w; gc.height = h; }
+  g.viewport(0, 0, w, h);
+  g.uniform2f(u.uRes, w, h); g.uniform1f(u.uT, P.t0 + t); g.uniform1f(u.uS, P.s); g.uniform1f(u.uSc, P.sc); g.uniform1f(u.uW, P.w); g.uniform1f(u.uAng, P.ang); g.uniform1f(u.uOrd, P.ord);
+  g.uniform1f(u.uCy, H / W > 1.6 ? .08 : 0); g.uniform1f(u.uGrain, grainAmt * .5);
+  ['uBg', 'uC0', 'uC1'].forEach((n, i) => g.uniform3fv(u[n], hx3(C[i + 1])));
+  g.drawArrays(g.TRIANGLES, 0, 3);
+  cv.getContext('2d').drawImage(gc, 0, 0, W, H);
+}
 export function drawCode(cv, seed, shift = 0, t = 0, grainAmt = cv.dataset.gr === '0' ? .01 : .09) {   // 노이즈 끄면 맑게(.01은 색 줄 생김만 막는 정도)
   const W = cv.width, H = cv.height; if (!W || !H) return;
   if (cv.dataset.code === 'slit') return drawSlit(cv, seed, shift, t, cv.dataset.gr === '0' ? 0 : .035);
   if (cv.dataset.code === 'swirl') return drawSwirl(cv, seed, t, cv.dataset.gr === '0' ? 0 : .05);
   if (cv.dataset.code === 'neon') return drawNeon(cv, seed, t, cv.dataset.gr === '0' ? 0 : .05);
+  if (cv.dataset.code === 'mesh') return drawMesh(cv, seed, t, cv.dataset.gr === '0' ? 0 : .04);
   if (cv.dataset.code === 'eclipse') return drawEclipse(cv, seed, t, cv.dataset.gr === '0' ? 0 : .05);
   if (cv.dataset.code === 'tunnel') return drawTunnel(cv, seed, t, cv.dataset.gr === '0' ? 0 : .05);
   const P = auroraOf(seed), full = W * 16 / 9, off = Math.max(0, full - H) * shift;
