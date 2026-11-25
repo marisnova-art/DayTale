@@ -33,6 +33,7 @@ export const PAID = [
   { id: 'stars', img: './bg/stars.webp', tone: '#3a3f7a', ink: '#F3E6C8', dim: ['center', '0,0,0', .55] },
   { id: 'bands', code: 'bands', tone: '#a35cff', ink: '#fff', dim: ['center', '40,16,70', .55] },
   { id: 'slit', code: 'slit', tone: '#F07F3C', ink: '#fff', dim: ['all', '10,8,14', 0] },
+  { id: 'pixel', code: 'pixel', tone: '#DCCB2A', ink: '#1E1B18', dim: ['center', '0,0,0', 0] },   // 픽셀 체크 (105차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'mesh', code: 'mesh', tone: '#A8F03C', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 형광 물결망 (104차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'eclipse', code: 'eclipse', tone: '#6E3A44', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 빛 고리 (103차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'tunnel', code: 'tunnel', tone: '#2A1F7A', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 빛 터널 (101차): 글자색은 바탕 밝기로 (formats.js)
@@ -744,11 +745,93 @@ function drawMesh(cv, seed, t, grainAmt) {
   g.drawArrays(g.TRIANGLES, 0, 3);
   cv.getContext('2d').drawImage(gc, 0, 0, W, H);
 }
+// 픽셀 체크 (11-26 105차, 앤드류 레퍼런스(물결 바둑판 이미지 · 영상)의 느낌만 · 코드로 새로 작성). 굵은 픽셀 격자 위에 가로 물결 × 세로 물결 =
+// 밝은 칸 · 어두운 칸이 번갈아 놓인 바둑판, 칸 사이는 바탕색 줄, 5단계로 끊어 픽셀 느낌. 글 뒤 박스 없이 대비를 낮춰요: 전체 조금 + 글 둘레는 경계 없이
+// 서서히, 특히 글자색과 부딪히는 칸(짙은 글이면 어두운 칸)을 거의 지워요. 색 10가지(한 색 7 · 무지개 1 · 연한 2). 셔플 = 칸 크기 · 픽셀 크기 · 칸 모양
+export const PIXEL_PAL = [   // [이름, 바탕(줄), 밝은 칸, 어두운 칸, 무지개?]
+  ['노랑', '#DCCB2A', '#FFFBE6', '#0B0A02'], ['분홍', '#E86AA6', '#FFF0F6', '#2A0616'], ['하늘', '#4FA8E8', '#F0F8FF', '#04121F'], ['민트', '#3CC79A', '#ECFFF7', '#031A12'],
+  ['주황', '#F08A2C', '#FFF4E8', '#200C02'], ['보라', '#8A5BE0', '#F4EEFF', '#120624'], ['회색', '#8C8F96', '#FAFAFA', '#101114'], ['무지개', '#7A2A9A', '#FFFFFF', '#000000', 1],
+  ['연한 노랑', '#F4EDC4', '#FFFFFF', '#C2B252'], ['연한 하늘', '#DCEAF8', '#FFFFFF', '#86A9D2'],
+];
+export const pixelPal = (seed, pal) => pal != null && PIXEL_PAL[+pal] ? +pal : ((seed >>> 0) || 1) % PIXEL_PAL.length;
+export const pixelLight = (seed, pal) => { const [r, g, b] = hx3(PIXEL_PAL[pixelPal(seed, pal)][1]); return .2126 * r + .7152 * g + .0722 * b > .45; };   // 셰이더의 글자색 판단과 같은 기준
+const pixelCache = new Map();
+function pixelOf(seed) {
+  if (pixelCache.has(seed)) return pixelCache.get(seed);
+  const r = rng(seed ^ 0x9e1c), p = { np: Math.round(44 + r() * 52), cx: 3.6 + r() * 3, el: 1.05 + r() * .85, ph: r() * 6.28, t0: r() * 30 };
+  if (pixelCache.size > 60) pixelCache.delete(pixelCache.keys().next().value);
+  pixelCache.set(seed, p); return p;
+}
+const PX_GLSL = `precision highp float;
+uniform vec2 uRes; uniform float uT, uPh, uNp, uCx, uEl, uRb, uCy, uGrain; uniform vec3 uBg, uLt, uDk;
+vec3 hsv(float h, float s, float v) { vec3 p = abs(fract(vec3(h) + vec3(1., 2. / 3., 1. / 3.)) * 6. - 3.); return v * mix(vec3(1.), clamp(p - 1., 0., 1.), s); }
+float hh(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+void main() {
+  float ps = uRes.x / uNp; vec2 pi = floor(gl_FragCoord.xy / ps), u = ((pi + .5) * ps - .5 * uRes) / uRes.x;   // 굵은 픽셀
+  float t = uT * .35, v = sin(u.x * 3.14159 * uCx + t + uPh) * sin(u.y * 3.14159 * uCx * uEl - t * .7 + uPh * 1.7);
+  v = sign(v) * max(abs(v) - .14, 0.) / .86;   // 칸 사이 바탕색 줄
+  v = floor(v * 5. + .5) / 5.;   // 5단계
+  float soft = 1. - smoothstep(.4, 1.25, length((u - vec2(0., uCy)) / vec2(.42, .2 * uRes.y / uRes.x / 1.25)));   // 글 둘레 (경계 없이)
+  float inkDark = step(.45, dot(uBg, vec3(.2126, .7152, .0722))), against = inkDark > .5 ? step(v, 0.) : step(0., v);
+  v *= .62 * (1. - soft * mix(.55, .92, against));
+  vec3 c;
+  if (uRb > .5) { float a = abs(v); c = hsv(fract((290. + v * 125.) / 360.), mix(.75, 1., a), mix(.55, 1., a)); }
+  else c = v > 0. ? mix(uBg, uLt, pow(v, .8)) : mix(uBg, uDk, pow(-v, .8));
+  if (uGrain > 0.) c += (hh(pi) - .5) * uGrain;   // 노이즈도 픽셀 단위로
+  gl_FragColor = vec4(clamp(c, 0., 1.), 1.);
+}`;
+let PG = null;
+function pxGl() {
+  if (PG !== null) return PG;
+  PG = false;
+  try {
+    const cv = document.createElement('canvas'), g = cv.getContext('webgl', { premultipliedAlpha: false, antialias: false });
+    if (!g) return PG;
+    const sh = (type, src) => { const o = g.createShader(type); g.shaderSource(o, src); g.compileShader(o); if (!g.getShaderParameter(o, g.COMPILE_STATUS)) throw new Error(g.getShaderInfoLog(o)); return o; };
+    const pr = g.createProgram();
+    g.attachShader(pr, sh(g.VERTEX_SHADER, 'attribute vec2 a; void main() { gl_Position = vec4(a, 0., 1.); }'));
+    g.attachShader(pr, sh(g.FRAGMENT_SHADER, PX_GLSL)); g.linkProgram(pr); g.useProgram(pr);
+    const buf = g.createBuffer(); g.bindBuffer(g.ARRAY_BUFFER, buf); g.bufferData(g.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), g.STATIC_DRAW);
+    const a = g.getAttribLocation(pr, 'a'); g.enableVertexAttribArray(a); g.vertexAttribPointer(a, 2, g.FLOAT, false, 0, 0);
+    const u = {}; ['uRes', 'uT', 'uPh', 'uNp', 'uCx', 'uEl', 'uRb', 'uCy', 'uGrain', 'uBg', 'uLt', 'uDk'].forEach(k => { u[k] = g.getUniformLocation(pr, k); });
+    PG = { cv, g, u };
+  } catch (e) { console.warn('pixel gl', e); PG = false; }
+  return PG;
+}
+// WebGL이 없을 때: 작은 캔버스에 칸마다 직접 계산해서 키워요 (픽셀이라 그대로 같은 그림)
+function pixelCpu(cv, P, pal, t) {
+  const W = cv.width, H = cv.height, C = PIXEL_PAL[pal], w = P.np, h = Math.max(1, Math.round(P.np * H / W)), sc = document.createElement('canvas'); sc.width = w; sc.height = h;
+  const x = sc.getContext('2d'), im = x.createImageData(w, h), [bg, lt, dk] = [C[1], C[2], C[3]].map(hx3), inkDark = .2126 * bg[0] + .7152 * bg[1] + .0722 * bg[2] > .45, cy = H / W > 1.6 ? .08 : 0, tt = t * .35;
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+    const ux = (i + .5) / w - .5, uy = ((h - j - .5) / h - .5) * H / W;
+    let v = Math.sin(ux * Math.PI * P.cx + tt + P.ph) * Math.sin(uy * Math.PI * P.cx * P.el - tt * .7 + P.ph * 1.7);
+    v = Math.sign(v) * Math.max(Math.abs(v) - .14, 0) / .86; v = Math.floor(v * 5 + .5) / 5;
+    const L = Math.hypot(ux / .42, (uy - cy) / (.2 * H / W / 1.25)), soft = 1 - Math.min(1, Math.max(0, (L - .4) / .85)), against = inkDark ? v <= 0 : v >= 0;
+    v *= .62 * (1 - soft * (against ? .92 : .55));
+    const to = v > 0 ? lt : dk, k = Math.pow(Math.abs(v), .8), o = (j * w + i) * 4;
+    for (let q = 0; q < 3; q++) im.data[o + q] = Math.round((bg[q] + (to[q] - bg[q]) * k) * 255);
+    im.data[o + 3] = 255;
+  }
+  x.putImageData(im, 0, 0); const g = cv.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(sc, 0, 0, W, H);
+}
+function drawPixel(cv, seed, t, grainAmt) {
+  const W = cv.width, H = cv.height, P = pixelOf(seed), pal = pixelPal(seed, cv.dataset.pal), R = pxGl();
+  if (!R) return pixelCpu(cv, P, pal, t);
+  const { cv: gc, g, u } = R, k = t > 0 ? Math.min(1, 540 / W) : 1, w = Math.round(W * k), h = Math.round(H * k), C = PIXEL_PAL[pal];   // 움직일 땐 폭 540까지만 (픽셀 수는 같아요)
+  if (gc.width !== w || gc.height !== h) { gc.width = w; gc.height = h; }
+  g.viewport(0, 0, w, h);
+  g.uniform2f(u.uRes, w, h); g.uniform1f(u.uT, P.t0 + t); g.uniform1f(u.uPh, P.ph); g.uniform1f(u.uNp, P.np); g.uniform1f(u.uCx, P.cx); g.uniform1f(u.uEl, P.el); g.uniform1f(u.uRb, C[4] ? 1 : 0);
+  g.uniform1f(u.uCy, H / W > 1.6 ? .08 : 0); g.uniform1f(u.uGrain, grainAmt);
+  ['uBg', 'uLt', 'uDk'].forEach((n, i) => g.uniform3fv(u[n], hx3(C[i + 1])));
+  g.drawArrays(g.TRIANGLES, 0, 3);
+  const x = cv.getContext('2d'); x.imageSmoothingEnabled = false; x.drawImage(gc, 0, 0, W, H);
+}
 export function drawCode(cv, seed, shift = 0, t = 0, grainAmt = cv.dataset.gr === '0' ? .01 : .09) {   // 노이즈 끄면 맑게(.01은 색 줄 생김만 막는 정도)
   const W = cv.width, H = cv.height; if (!W || !H) return;
   if (cv.dataset.code === 'slit') return drawSlit(cv, seed, shift, t, cv.dataset.gr === '0' ? 0 : .035);
   if (cv.dataset.code === 'swirl') return drawSwirl(cv, seed, t, cv.dataset.gr === '0' ? 0 : .05);
   if (cv.dataset.code === 'neon') return drawNeon(cv, seed, t, cv.dataset.gr === '0' ? 0 : .05);
+  if (cv.dataset.code === 'pixel') return drawPixel(cv, seed, t, cv.dataset.gr === '0' ? 0 : .03);
   if (cv.dataset.code === 'mesh') return drawMesh(cv, seed, t, cv.dataset.gr === '0' ? 0 : .04);
   if (cv.dataset.code === 'eclipse') return drawEclipse(cv, seed, t, cv.dataset.gr === '0' ? 0 : .05);
   if (cv.dataset.code === 'tunnel') return drawTunnel(cv, seed, t, cv.dataset.gr === '0' ? 0 : .05);
