@@ -230,6 +230,8 @@ html:not(.kb-open):not(.pan) .wr.inf.ki { bottom: var(--kbh, 40vh); }   /* 키�
 .g6 .k.bset.g i { background: linear-gradient(180deg, #FFB3A7, #7B4BD6 60%, #26124F); }
 .g6 .k.bset.s i { background: #F3EADB; }
 .st2.flr .swp { grid-column: 2 / span 7; } .st2.flr .sw { flex-basis: calc((100% - 24px) / 7); } .st2.flr .end { flex-basis: calc((100% - 24px) / 7 * 6 + 20px); }   /* ‹ 돌아가기 · 필터 7칸 */
+.st2.cbr .swp { grid-column: 2 / span 7; } .st2.cbr .sw { flex-basis: calc((100% - 24px) / 7); } .st2.cbr .end { flex-basis: calc((100% - 24px) / 7 * 6 + 20px); }   /* 디자인 배경 (91차): 직접 색 · 색 조합 7칸씩 */
+.st2.cbr .k.hue.sel::after { content: ''; position: absolute; inset: 3px; border-radius: 11px; box-shadow: inset 0 0 0 2px #fff, 0 0 0 1px rgba(0,0,0,.25); }
 .st2.fnr .fst { grid-column: 3 / span 6; display: flex; gap: 4px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; -webkit-mask-image: linear-gradient(90deg, #000 78%, transparent); mask-image: linear-gradient(90deg, #000 78%, transparent); }
 .st2.fnr .fst::-webkit-scrollbar { display: none; }
 .st2.fnr .fn { --it: calc((100% - 20px) / 6 * 2 + 4px); flex: 0 0 var(--it); scroll-snap-align: start; border: 0; border-radius: 14px; background: var(--srf); color: #fff; position: relative; display: grid; place-items: center; white-space: nowrap; overflow: hidden; line-height: 1; font-weight: var(--fw); padding: 0 6px; }   /* 이름 하나 = 2칸 */

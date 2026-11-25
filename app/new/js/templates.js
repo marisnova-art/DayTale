@@ -35,6 +35,16 @@ const PREVIEW = [
     tags: ['감성', '밤'], words: ['노을', '슬릿스캔', '띠', '줄무늬', '풍경', '하늘', '저녁', '바다', '숲', '도시', '겨울', '그라데이션', '필름'],
     ex: [['퇴근길 하늘이 이상하게 예뻐서 버스를 한 정거장 일찍 내렸다.', 5, '45'], ['새벽에 눈이 일찍 떠져서 창밖이 밝아오는 걸 오래 봤다.', 21, '916'], ['오늘은 걷기만 했는데도 좋은 하루였다.', 13, '11']],
     preview: true },
+  { id: 'pill', fmt: 'pill', name: '그라데이션 알약', kind: '디자인', pop: 5, added: '2026-11-25', motion: true, paid: true,
+    desc: ['쓴 글의 낱말 몇 개가|두 색 그라데이션 알약에 담겨요.', '셔플할 때마다|알약 자리와 색 · 방향이 새로 바뀌어요.', '배경색은 칩으로 고르거나|직접 고른 색에 맞춰 어울리게.'],
+    tags: ['짧은글', '감성'], words: ['그라데이션', '알약', '캡슐', '태그', '라벨', '파스텔', '컬러', '하이라이트', '키워드', '잡지', '포스터', '타이포'],
+    ex: ['아침에 창문을 열었더니 공기가 차가웠다. 출근길에 따뜻한 라떼를 사서 공원을 한 바퀴 돌았다.', '오늘은 일이 일찍 끝나서 친구랑 저녁을 먹었다. 오랜만에 많이 웃었다.', '주말 내내 방 정리를 했다. 버릴 것과 남길 것을 나누다 보니 마음도 조금 가벼워졌다.'],
+    preview: true },
+  { id: 'dots', fmt: 'dots', name: '동그라미 목차', kind: '디자인', pop: 6, added: '2026-11-25', motion: true, paid: true,
+    desc: ['문장마다 첫 글자가|색 동그라미 안에 들어가요.', '셔플할 때마다|동그라미 색과 줄바꿈이 새로 바뀌어요.', '한글은 한글, 영문은 영문 글자 그대로|잡지 목차처럼.'],
+    tags: ['짧은글', '감성'], words: ['동그라미', '목차', '첫 글자', '이니셜', '잡지', '에디토리얼', '컬러', '원', '점', '타이포', '리스트', '하루 정리'],
+    ex: ['아침에 창문을 열었더니 공기가 차가웠다. 출근길에 라떼를 샀다. 점심은 회사 앞 국숫집. 퇴근길 하늘이 예뻤다.', 'Woke up early and walked to the river. The air was cold but clear. Coffee with Mina at noon. Slept early.', '오늘은 쉬는 날. 늦잠을 잤다. 오후엔 책을 조금 읽었다. 저녁은 엄마랑 김밥.'],
+    preview: true },
 ];
 
 // 테스트용 더미 (10-31 앤드류: 2개로는 전체 볼륨을 몰라요). 같은 두 템플릿을 그림 · 태그 · 날짜만 바꿔 채워요. 오픈 전에 false
@@ -197,7 +207,7 @@ export function sorted(k) {
 // 예시 카드 (작은 칸: 아트는 글 없이, 디자인은 글 그대로). i = 몇 번째 예시
 export function exCard(t, i = 0, bare = false) {
   const c = sampleCard(t.fmt, S.today()); const e = t.ex[i % t.ex.length]; c.tpl = t.id;
-  if (typeof e === 'string') { c.html = e; c.seed = 7 + i * 14; return c; }   // 한 덩어리 글 (디자인)
+  if (typeof e === 'string') { c.html = e; c.seed = 7 + i * 14; if (!bare) c.pal = undefined; return c; }   // 한 덩어리 글 (디자인). 예시마다 색 조합도 달라요, 정지 그림(bare)은 틀이 정한 색 (91차)
   const [txt, seed, ratio] = e;
   c.pages = [bare ? '' : txt]; c.bg = { ...c.bg, seed }; if (!bare && ratio) c.ratio = ratio;
   return c;

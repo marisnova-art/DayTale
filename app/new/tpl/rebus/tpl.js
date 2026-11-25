@@ -3,12 +3,18 @@
 // 볼 때만 불러와요 (formats.js ensure). 지우지 않아요: 이 틀로 쓴 카드가 남아 있어요 (템플릿은 숨김만)
 import { rng, esc, px, soft, htmlOf as rebusHtmlOf, dateChip, weekday, dateOn, placeOn, infoPos, signOf, dhOf, LH, shape, arOf } from '../../js/formats.js';
 import { rangeAt } from '../../js/rich.js';
+import { comboOf, paintCombo, visibleOn } from '../../js/combo.js';
 
-const SAMPLE = { html: '친구랑 통화를 <b>오래</b> 했다. 별일 없는 이야기에 <mark>웃음</mark>이 많은 밤.', seed: 7 };
+const SAMPLE = { html: '친구랑 통화를 <b>오래</b> 했다. 별일 없는 이야기에 <mark>웃음</mark>이 많은 밤.', seed: 7, pal: 0 };
 const V = '#6C4BD8', O = '#F2622E', T = '#12A08F', Y = '#FFC21A', R = '#FF9EB5', K = '#2E2D2B', BG = '#F3F1EC';
-// 종이색 (11-20): 셔플마다 연한 종이색 하나 (어두운 색은 없어요). 그림 속 구멍 · 틈도 종이색을 따라가요
-export const PAPERS = ['#F3F1EC', '#F6EFD9', '#E9F0F6', '#F7E9EA', '#ECECE8', '#E8F2EC'];
-const paperOf = seed => PAPERS[Math.floor(rng((seed || 1) ^ 0x2c1b3c6d)() * PAPERS.length)];
+// 색 (11-25 91차): 카드 색 조합(js/combo.js). 그림 속 구멍 · 틈은 배경색을, 검은 선은 글자색을 따라가요.
+// 그림의 다섯 색(보라 · 주황 · 청록 · 노랑 · 분홍)은 배경에서 잘 보이면 그대로, 묻히면 조합에서 잘 보이는 색으로 (tpl.css가 --oV … 를 써요)
+const OBJ_COL = { V, O, T, Y, R };
+function paintRebus(el, c) {
+  const P = comboOf(c); paintCombo(el, P);
+  Object.entries(OBJ_COL).forEach(([k, x], j) => el.style.setProperty('--o' + k, visibleOn(P, x, j)));
+  return P;
+}
 const sv = (w, b) => `<svg class="i" viewBox="0 0 ${w} 64">${b}</svg>`;
 const rep = (n, f) => Array.from({ length: n }, (_, i) => f(i)).join('');
 const OBJ = [
@@ -81,7 +87,7 @@ function placeObjects(root, seed) {
 function rebus(c, { edit = false } = {}) {
   const el = document.createElement('div');
   el.className = 'cd rebus' + (edit ? ' edit' : '');
-  el.style.setProperty('--paper', paperOf(c.seed));
+  paintRebus(el, c);
   const html = soft(rebusHtmlOf(c), edit), empty = !html.replace(/<[^>]+>/g, '').trim();
   const foot = [dateOn(c) ? `${dateChip(c.date).split(' ')[0]} ${weekday(c.date)}` : '', placeOn(c) ? c.place.trim() : ''].filter(Boolean).map(esc).join(' · ');   // 10.22 목요일 · 장소 (글포맷처럼 날짜 먼저)
   const a = c.align || {}, ta = `text-align:${{ l: 'left', c: 'center', r: 'right' }[a.h || 'l']};line-height:${(1.34 * (LH[c.lh] || 1)).toFixed(3)}`, sg = signOf(c), fz = { xs: 3.2, s: 3.5, m: 3.889, l: 4.4, xl: 4.8 }[c.size] || 3.889;
@@ -134,12 +140,12 @@ function fitRebus(el) {
 export default {
   id: 'rebus', name: '멤피스 문장', info: '짧은 글 · 사진 없음 · 사계절', paid: true, css: true,
   // 쓰기 화면 도구: style = 서식 줄(글꼴·크기·좌우·위아래), bg = 배경 줄, dp = 날짜 위치. 디자인은 모양이 정해져 있어 대부분 꺼요
-  tools: { photo: false, emo: false, page: false, shuf: true, style: true, font: false, bg: false, dp: true },
+  tools: { photo: false, emo: false, page: false, shuf: true, style: true, font: false, bg: 'combo', dp: true },   // bg combo = 색 조합 칩 + 직접 색 (91차)
   sample: SAMPLE,
   datePos: 'bottom',   // 날짜 줄 기본 자리
   blank: () => ({ html: '', seed: Math.floor(Math.random() * 1e9), size: 'm', align: { h: 'l', v: 't' }, datePos: 'bottom' }),
   render: rebus, fit: fitRebus,
   margins: rbMargins,        // 저장할 때 장을 나누는 위 · 아래 여백
   place: placeObjects,       // 쓰는 중 낱말 사이 그림 붙이기
-  tone: () => V,             // 피드 바탕에 번지는 대표 색
+  tone: c => comboOf(c).bg,   // 피드 바탕에 번지는 대표 색 = 배경색
 };

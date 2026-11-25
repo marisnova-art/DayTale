@@ -1,17 +1,17 @@
 /* 템플릿 틀: 멤피스 문장 — 이 틀만의 모양. 공용(카드 틀 · 날짜 줄 · 서명 · 키프레임)은 app.css. 틀을 처음 볼 때 같이 불러와요 */
-.cd.rebus { aspect-ratio: 4 / 5; overflow: clip; background: var(--paper, #F3F1EC); color: #2E2D2B; display: flow-root; font-family: 'Pretendard Variable', sans-serif; }
+.cd.rebus { aspect-ratio: 4 / 5; overflow: clip; background: var(--paper, #F3F1EC); color: var(--ink, #2E2D2B); display: flow-root; font-family: 'Pretendard Variable', sans-serif; }
 .cd.rebus .rb { outline: none; margin: 6.667cqw 5.185cqw 15.74cqw 5.926cqw; font-size: 7.778cqw; font-weight: 800; line-height: 1.34; letter-spacing: -.03em; overflow-wrap: break-word; }
 .cd.rebus .rb .ph { color: #B9B5AC; }
 .cd.rebus svg.i { height: .9em; vertical-align: -.1em; margin: 0 .06em; }
-.cd.rebus .rb b, .cd.rebus .rb strong { color: #6C4BD8; font-weight: inherit; }   /* 강조 = 보라 */
-.cd.rebus .rb mark { background: none; color: #F2622E; padding: 0; }                /* 형광펜 = 주황 */
+.cd.rebus .rb b, .cd.rebus .rb strong { color: var(--a1, #6C4BD8); font-weight: inherit; }   /* 강조 = 보라 */
+.cd.rebus .rb mark { background: none; color: var(--a2, #F2622E); padding: 0; }                /* 형광펜 = 주황 */
 .cd.rebus .o { display: inline; }
 .cd.rebus .o svg.i { margin: 0 .12em; }
 .cd.rebus .exm { display: none; position: absolute; top: 0; left: 0; right: 0; opacity: .3; pointer-events: none; }
 .cd.rebus.edit.empty .exm { display: block; }
 .cd.rebus.edit .rb { min-height: 1.4em; position: relative; z-index: 1; }
 .cd.rebus.edit .exm { position: absolute; z-index: 0; min-height: 0; }   /* 예시 글은 커서 줄과 같은 자리에 겹쳐요 */
-.cd.rebus .foot { position: absolute; left: 5.926cqw; right: 5.185cqw; bottom: 5.926cqw; display: flex; justify-content: space-between; font-size: 3.889cqw; font-weight: 900; line-height: 1; color: #6C4BD8; }   /* 왼쪽 요일 · 날짜(· 장소), 오른쪽 서명 */
+.cd.rebus .foot { position: absolute; left: 5.926cqw; right: 5.185cqw; bottom: 5.926cqw; display: flex; justify-content: space-between; font-size: 3.889cqw; font-weight: 900; line-height: 1; color: var(--a1, #6C4BD8); }   /* 왼쪽 요일 · 날짜(· 장소), 오른쪽 서명 */
 .cd.rebus.paged { aspect-ratio: auto; }
 .cd.rebus[data-dp=top] .foot { bottom: auto; top: 5.926cqw; }   /* 날짜 위 */
 .cd.rebus.hsg[data-dp=bottom] .foot { bottom: 13.3cqw; }   /* 서명이 있으면 날짜 줄은 서명 한 줄 위 */
@@ -34,7 +34,16 @@
 :is(.fi, .tt, .rp).play:not(.intro) .cd.rebus .o[data-m=rise] svg > :is(rect, path) { transform-origin: bottom; animation: rise 3.6s ease-in-out infinite; }
 :is(.fi, .tt, .rp).play:not(.intro) .cd.rebus .o[data-m=rise] svg > :nth-child(2n) { animation-delay: -1.2s; } :is(.fi, .tt, .rp).play:not(.intro) .cd.rebus .o[data-m=rise] svg > :nth-child(3n) { animation-delay: -2.4s; }
 .wr .cd.rebus { width: var(--cw); margin: 0 auto; border-radius: 14px; }
-.cd.rebus .sgn { bottom: 5.926cqw; font-weight: 900; line-height: 1; color: #6C4BD8; opacity: 1; letter-spacing: 0; }
+.cd.rebus .sgn { bottom: 5.926cqw; font-weight: 900; line-height: 1; color: var(--a1, #6C4BD8); opacity: 1; letter-spacing: 0; }
 .cd.rebus .sgn[data-h=l] { left: 5.926cqw; } .cd.rebus .sgn[data-h=r] { right: 5.185cqw; }
 .cd.rebus.r916 .foot { bottom: 39.1cqw; right: 12cqw; } .cd.rebus.r916[data-dp=top] .foot { top: 23.1cqw; bottom: auto; }
 .cd.rebus.r916.hsg[data-dp=bottom] .foot { bottom: 46.5cqw; }
+/* 색 조합 (91차): 그림의 정해진 색을 카드 조합에 맞춰요. 검은 선 = 글자색 */
+.cd.rebus svg [fill="#6C4BD8"] { fill: var(--oV, #6C4BD8); } .cd.rebus svg [stroke="#6C4BD8"] { stroke: var(--oV, #6C4BD8); }
+.cd.rebus svg [fill="#F2622E"] { fill: var(--oO, #F2622E); } .cd.rebus svg [stroke="#F2622E"] { stroke: var(--oO, #F2622E); }
+.cd.rebus svg [fill="#12A08F"] { fill: var(--oT, #12A08F); } .cd.rebus svg [stroke="#12A08F"] { stroke: var(--oT, #12A08F); }
+.cd.rebus svg [fill="#FFC21A"] { fill: var(--oY, #FFC21A); } .cd.rebus svg [stroke="#FFC21A"] { stroke: var(--oY, #FFC21A); }
+.cd.rebus svg [fill="#FF9EB5"] { fill: var(--oR, #FF9EB5); } .cd.rebus svg [stroke="#FF9EB5"] { stroke: var(--oR, #FF9EB5); }
+.cd.rebus svg [fill="#2E2D2B"] { fill: var(--ink, #2E2D2B); } .cd.rebus svg [stroke="#2E2D2B"] { stroke: var(--ink, #2E2D2B); }
+.cd.rebus.dk .rb .ph { color: rgba(255,255,255,.42); }
+.cd.rebus.dk.edit.empty::after { background: rgba(255,255,255,.16); color: rgba(255,255,255,.75); }

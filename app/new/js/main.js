@@ -17,6 +17,7 @@ import * as V from './video.js';
 import { LOGO } from './logo.js';
 import { weather as wxNow, paint as paintMood, panelCss, MODES as BG_MODES, mode as bgMode, reset as resetMood, PAGE_G, PAGE_S } from './mood.js';
 import * as T from './templates.js';
+import { COMBOS, comboOf, paintCombo, isHex } from './combo.js';
 import * as PC from './pc.js';
 const TPL = T;   // 함수 안에서 T를 다른 뜻(달 · 길이)으로 쓰는 곳용
 
@@ -1172,7 +1173,7 @@ function viewMarks() {
 }
 // 날짜별 2열 (책 · 달력 같이): 날짜 머리 + 2열 칸(더 짧은 열에 차례로) + 칸 아래 [시간 · ⋯] (홈 2열과 같은 줄). 칸은 화면 가까이 올 때 그려요
 // 63 (11-06): 영상 카드 = 영상 아이콘, 움직이는 카드(아트 흐름 · 움직이는 아이콘) = 반짝임 둘. 오른쪽 위 쪽수 알약 안 (쪽수가 없어도 아이콘만)
-const motionKind = it => (it._card && hasVideo(it._card)) ? 'video' : (it._card && T.tplOfCard(it._card)?.motion === false) ? '' : it.querySelector('canvas.bgc, .cd.rebus .o[data-m], .cd.hilite .hm') ? 'spark2' : '';
+const motionKind = it => (it._card && hasVideo(it._card)) ? 'video' : (it._card && T.tplOfCard(it._card)?.motion === false) ? '' : it.querySelector('canvas.bgc, .cd.rebus .o[data-m], .cd.hilite .hm, .cd.gpl .gp.g, .cd.cdots .cdot') ? 'spark2' : '';
 function pcNum(pc, t) { if (!pc) return; let b = $('b', pc); if (!b) { b = document.createElement('b'); pc.appendChild(b); } b.textContent = t; pc.hidden = !t && !$('.kic', pc); }
 function markKind(it) {
   if (it.dataset.kd || !it.querySelector('.cd')) return; it.dataset.kd = 1;
@@ -1980,7 +1981,7 @@ const REC_T = { 밤: '밤에 쓰기 좋은', 비: '비 오는 날엔', 눈: '눈
 const WXK = { sun: '맑음', suncloud: '구름 조금', cloud: '흐림', rain: '비', snow: '눈', thunder: '천둥', fog: '안개' };
 const dayLine = (now = new Date()) => { let w = ''; try { const x = JSON.parse(localStorage.getItem('daytale.wx') || 'null'); if (x && Date.now() - x.at < 3 * 3600e3 && WXK[x.kind]) w = ` · ${WXK[x.kind]}${x.temp != null ? ` ${x.temp}°` : ''}`; } catch {} return `${now.getMonth() + 1}월 ${now.getDate()}일 ${'일월화수목금토'[now.getDay()]}요일${w}`; };
 // 78차: 새 버전 확인. 앱으로 돌아올 때(다른 앱 갔다 오기) version.txt가 지금과 다르면 저절로 새로 고쳐요. 쓰는 중엔 안 해요
-const BUILD = '90', BUILD_TAG = '11-20 90차';
+const BUILD = '91', BUILD_TAG = '11-25 91차';
 let verAt = 0;
 const checkVer = () => {
   if (document.hidden || Date.now() - verAt < 20e3) return; verAt = Date.now();
@@ -2392,7 +2393,7 @@ function viewWrite({ fmt, id, like }) {
   /* 카드 그리기. 글만 바뀌면 그 자리에서 바꾸고(키보드가 내려가지 않게), 장 수·배경·날짜 같은 틀이 바뀔 때만 새로 그려요 */
   let el = null, shape = '';
   const look = () => [card.ratio, card.lh, card.bold, card.ink, card.showDate, card.placeOff, card.sg, card.signTxt, card.dh];
-  const shapeOf = () => JSON.stringify(rich ? [card.pages.length, card.bg, card.align, card.pst, card.datePos, card.date, card.place, card.font, card.size, card.filter, card.leak, ...look()] : [card.date, card.place, card.size, card.align, card.datePos, card.seed, ...look()]);   // 셔플(seed)하면 종이색까지 새로 (11-20)
+  const shapeOf = () => JSON.stringify(rich ? [card.pages.length, card.bg, card.align, card.pst, card.datePos, card.date, card.place, card.font, card.size, card.filter, card.leak, ...look()] : [card.date, card.place, card.size, card.align, card.datePos, card.seed, card.pal, ...look()]);   // 셔플(seed)하면 종이색까지 새로 (11-20)
   const bodies = () => $$('.body', el);
   const pageOf = b => b.closest('.pg') ? +b.closest('.pg').dataset.i : 0;
   const caretIn = b => { const s = getSelection(); return s.rangeCount && b.contains(s.anchorNode) ? offsetsOf(b, s.getRangeAt(0)) : null; };
@@ -2593,7 +2594,8 @@ function viewWrite({ fmt, id, like }) {
   }
   function paintRow() {
     if (st.tab === 'ink') return paintHue('ink');
-    if (st.tab === 'hue') return paintHue('bg');
+    if (st.tab === 'hue') return paintHue(f.tools.bg === 'combo' ? 'pal' : 'bg');
+    if (st.tab === 'bg' && f.tools.bg === 'combo') return paintComboRow();
     if (st.tab === 'bg' && f.tools.bg === 'art') return paintArtRow();
     if (st.tab === 'img' && f.tools.filter) return paintPhotoRow();
     if (st.tab === 'filter' && f.tools.filter) return paintFilterRow();
@@ -2623,7 +2625,7 @@ function viewWrite({ fmt, id, like }) {
   }
   // 색 막대: ‹ (돌아가기) · (글자색은 자동) · 막대. 밀면 바로 바뀌고, 손을 떼면 기록해요. 흰색 → 색들 → 검정
   function paintHue(what) {
-    const pb = ps().bg, ink = what === 'ink', pos = ink ? card.inkPos : pb.id === 'hex' ? pb.pos : null;
+    const pal = what === 'pal', pb = pal ? {} : ps().bg, ink = what === 'ink', pos = ink ? card.inkPos : pal ? (isHex(card.pal) ? card.palPos : null) : pb.id === 'hex' ? pb.pos : null;
     row2.className = 'st2 g6 hur';
     row2.innerHTML = `<button class="k" data-x="back" aria-label="돌아가기">${ic('back')}</button>${ink ? `<button class="k rt ${card.ink ? '' : 'on'}" data-x="auto">자동</button>` : ''}<div class="hbar" style="grid-column:span ${ink ? 6 : 7}"><i ${pos == null ? 'hidden' : ''} style="left:${Math.max(0, Math.min(1, pos ?? .5)) * 100}%"></i></div>`;
     $$('button', row2).forEach(x => x.addEventListener('pointerdown', e => e.preventDefault()));
@@ -2634,7 +2636,8 @@ function viewWrite({ fmt, id, like }) {
     const at = e => { const r = bar.getBoundingClientRect(); return (e.clientX - r.left) / r.width; };
     const live = p => {
       const c = hueAt(p); knob.hidden = false; knob.style.left = Math.max(0, Math.min(1, p)) * 100 + '%';
-      if (ink) $$('.pg', el).forEach(pg => { pg.style.color = c; });
+      if (pal) { const P = comboOf({ pal: c }); paintCombo(el, P); el.style.color = P.ink; }   // 디자인 템플릿: 손을 떼면 표시 색까지 다시 그려요
+      else if (ink) $$('.pg', el).forEach(pg => { pg.style.color = c; });
       else { const pg = $(`.pg[data-i="${st.pg}"]`, el); if (pg) { $$('.bgi, .dimL, canvas.bgc', pg).forEach((x, j) => { if (j) x.style.display = 'none'; else { x.className = 'bgi'; x.style.background = c; } }); if (!card.ink) pg.style.color = inkOn(c); } }
       return c;
     };
@@ -2642,9 +2645,10 @@ function viewWrite({ fmt, id, like }) {
     bar.addEventListener('pointermove', e => { if (d && e.pointerId === d.id) d.c = live(d.p = at(e)); });
     const end = () => {
       if (!d) return; const { c, p } = d; d = null; flush();
-      if (ink) { card.ink = c; card.inkPos = Math.max(0, Math.min(1, p)); }   // 막대 끝 밖으로 밀어도 끝에
+      if (pal) { card.pal = c; card.palPos = Math.max(0, Math.min(1, p)); }   // 직접 색: 배경은 이 색, 나머지는 가장 가까운 조합 (91차)
+      else if (ink) { card.ink = c; card.inkPos = Math.max(0, Math.min(1, p)); }   // 막대 끝 밖으로 밀어도 끝에
       else { clearPhoto(pb); pb.id = 'hex'; pb.hex = c; pb.pos = Math.max(0, Math.min(1, p)); S.setPref('hexes', [c, ...S.pref('hexes', []).filter(x => x !== c)].slice(0, 6)); syncFirst(); }
-      push(); draw(); paintRow2(); pop(ink ? '글자색' : '직접 색', null, ink ? null : pgLab());
+      push(); draw(); paintRow2(); pop(ink ? '글자색' : '직접 색', null, ink || pal ? null : pgLab());
     };
     bar.addEventListener('pointerup', end); bar.addEventListener('pointercancel', end);
   }
@@ -2770,6 +2774,23 @@ function viewWrite({ fmt, id, like }) {
   const grainOn = (pb, repaint) => { $('[data-x=grain]', row2).onclick = () => { flush(); const n = (grainLv(pb) + 1) % 4; if (n) pb.grain = n; else delete pb.grain; syncFirst(); push(); draw(); repaint(); pop(n ? DIMN[n] : '끔', null, ['노이즈', pgLab()].filter(Boolean).join(' · ')); }; };
   const dimBtn = pb => `<button class="k" data-x="dim" aria-label="딤">${ic('d' + dimLv(pb.dim))}</button>`;
   const dimOn = (pb, repaint) => { $('[data-x=dim]', row2).onclick = () => { flush(); const n = dimLv(pb.dim) % 3 + 1; pb.dim = n === 1 ? 'dark' : 'd' + n; syncFirst(); push(); draw(); repaint(); pop(DIMN[n], null, ['딤', pgLab()].filter(Boolean).join(' · ')); }; };
+  // 배경 줄(디자인 템플릿, 91차): 컬러칩(직접 색) · 색 조합 14개. 칩을 고르면 색은 그대로 두고 셔플은 표시만 바꿔요.
+  // 고른 칩을 한 번 더 누르면 풀려서 다시 셔플마다 색도 바뀌어요
+  function paintComboRow() {
+    const keep = $('.swp', row2)?.scrollLeft, own = isHex(card.pal);
+    row2.className = 'st2 g6 bgr cbr';
+    row2.innerHTML = `<button class="k hue ${own ? 'sel' : ''}" data-x="hue" aria-label="직접 색"><i></i></button>
+      <div class="swp">${COMBOS.map((c, i) => `<button class="k sw ${card.pal === i ? 'sel' : ''}" data-p="${i}" aria-label="${c[0]}" style="background:${c[1]}"></button>`).join('')}<span class="end"></span></div>`;
+    const sw = $('.swp', row2), sel = $('.sel', sw);
+    if (keep != null) sw.scrollLeft = keep; else if (sel) sw.scrollLeft = Math.max(0, sel.offsetLeft - sw.offsetLeft);
+    $$('button', row2).forEach(x => x.addEventListener('pointerdown', e => e.preventDefault()));
+    $('[data-x=hue]', row2).onclick = () => { st.tab = 'hue'; paintRow2(); };
+    $$('[data-p]', row2).forEach(t => t.onclick = () => {
+      flush(); const i = +t.dataset.p, off = card.pal === i;
+      card.pal = off ? undefined : i; card.palPos = undefined;
+      push(); draw(); paintComboRow(); pop(off ? '셔플마다 바뀌어요' : COMBOS[i][0], null, '배경색');
+    });
+  }
   // 배경 줄(글): 내 사진 · 딤 · 컬러칩(색 막대) · 색 칸(최근 직접 고른 색이 맨 앞, 옆으로 밀어요)
   function paintBgRow() {
     const pb = ps().bg, keep = $('.swp', row2)?.scrollLeft;

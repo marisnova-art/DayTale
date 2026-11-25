@@ -5,30 +5,17 @@
 // 날짜 줄 · 서명 · 비율 · 장 나누기 · 저장 · 셔플 · 도구 줄은 공용 틀(js/formats.js · main.js)이 해요
 import { rng, esc, px, soft, htmlOf, dateChip, weekday, dateOn, placeOn, infoPos, signOf, dhOf, LH, shape, arOf } from '../../js/formats.js';
 import { rangeAt } from '../../js/rich.js';
+import { comboOf, paintCombo } from '../../js/combo.js';
 
-const SAMPLE = { html: '오늘 7시에 일어나서 강변까지 천천히 걸었다. 바람은 차가웠지만 머리가 맑아지는 아침이었다.', seed: 11 };
-// 형광펜 8색 중 4색 · 펜 6색 중 3색을 씨앗마다 골라요. 박스는 검정 (가끔 파랑 · 초록 · 보라)
-const HL = ['#FFE34F', '#FF9CC2', '#7CE3C2', '#8CD2FF', '#C6A6FF', '#FFAE5E', '#C3EF62', '#FFBFA3'];
-const INK = ['#22201D', '#2B59E0', '#E2463C', '#16996A', '#7640DE', '#EC7614'];
-const BOX = ['#2B59E0', '#16996A', '#7640DE'];
-const K = '#22201D';
-// 종이색 (11-20): 셔플마다 연한 종이 하나 (흰색 · 크림 · 연하늘 · 연분홍 · 연회색 · 연민트). 어두운 종이는 없어요 (표시가 묻혀요)
-const PAPER = ['#FBF9F4', '#F7F0DC', '#EAF1F8', '#F8ECEE', '#EEEEEA', '#EAF4EE'];
+const SAMPLE = { html: '오늘 7시에 일어나서 강변까지 천천히 걸었다. 바람은 차가웠지만 머리가 맑아지는 아침이었다.', seed: 11, pal: 2 };
+// 색 (11-25 91차): 카드 색 조합(js/combo.js)에서 와요. 표시는 색 이름(h1~h4 형광펜 · ink/a1/a2 펜 · box)만 정하고,
+// 실제 색은 카드에 입힌 CSS 값(--h1 …)이 정해요. 그래서 칩을 고른 뒤 셔플하면 색은 그대로, 표시만 바뀌어요
 const KINDS = ['hl', 'hh', 'box', 'ul', 'wv', 'dt', 'ink', 'cir', 'box', 'ul'];
-
-function shuffle(r, a) { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; }
-// 씨앗 하나로 정해지는 카드 색 (종이 · 형광펜 4 · 펜 3)
-export function palette(seed) {
-  const r = rng((seed || 1) ^ 0x5f3759df);
-  const hls = shuffle(r, HL).slice(0, 4), inks = shuffle(r, INK).slice(0, 3), paper = PAPER[Math.floor(r() * PAPER.length)];
-  if (!inks.includes(K)) inks[0] = K;
-  return { hls, inks, paper };
-}
-
+const PEN = ['ink', 'a1', 'a2'];
 // 표시할 자리: [시작, 끝, 종류, 색, 기울기]. 낱말 끝 문장부호(. , ! ? …)는 표시 밖에 둬요.
 // done = 쓰는 중이면 아직 띄어 쓰지 않은 마지막 낱말은 빼요
 export function marks(text, seed, done = true) {
-  const r = rng(seed || 1), P = palette(seed), out = [];
+  const r = rng(seed || 1), out = [];
   let gap = 1 + Math.floor(r() * 2), run = 0, n = 0, boxed = false;
   for (const m of text.matchAll(/\S+/g)) {
     const a = m.index, w = m[0].replace(/[.,!?…·~"'”’)\]]+$/, ''), b = a + w.length;
@@ -42,7 +29,7 @@ export function marks(text, seed, done = true) {
     n++; run = 0; gap = 1 + Math.floor(x[1] * 3);
     if (!boxed && n === 2 && !/\d/.test(w)) k = 'box';
     if (k === 'box') boxed = true;
-    const c = k === 'hl' || k === 'hh' ? P.hls[Math.floor(x[2] * 4)] : k === 'box' ? (x[2] < .7 ? K : BOX[Math.floor(x[3] * BOX.length)]) : P.inks[Math.floor(x[2] * 3)];
+    const c = k === 'hl' || k === 'hh' ? 'h' + (1 + Math.floor(x[2] * 4)) : k === 'box' ? 'box' : PEN[Math.floor(x[2] * 3)];
     if (!done && a + m[0].length >= text.length) break;   // 쓰는 중인 낱말
     out.push([a, b, k, c, (x[4] * 3 - 1.8).toFixed(2)]);
   }
@@ -60,7 +47,7 @@ function place(root, seed) {
     const [a, b, k, c, rot] = want[i], rg = rangeAt(root, a, b);
     if (rg.startContainer !== rg.endContainer || rg.startContainer.nodeType !== 3) continue;   // 굵게 · 이모티콘 경계를 넘는 낱말은 그냥 둬요
     const s = document.createElement('span');
-    s.className = 'hm'; s.dataset.k = k; s.dataset.c = c; s.style.cssText = `--c:${c};--r:${rot}deg;animation-delay:${((i % 16) * .28).toFixed(2)}s`;   // 모션에서 그어지는 차례 (아이폰은 calc(var()) 지연을 못 읽어서 숫자로)
+    s.className = 'hm'; s.dataset.k = k; s.dataset.c = c; s.style.cssText = `--c:var(--${c});--r:${rot}deg;animation-delay:${((i % 16) * .28).toFixed(2)}s`;   // 모션에서 그어지는 차례 (아이폰은 calc(var()) 지연을 못 읽어서 숫자로)
     rg.surroundContents(s);
   }
   return true;
@@ -69,8 +56,7 @@ function place(root, seed) {
 function hilite(c, { edit = false } = {}) {
   const el = document.createElement('div');
   el.className = 'cd hilite' + (edit ? ' edit' : '');
-  const P = palette(c.seed);
-  el.style.setProperty('--paper', P.paper);
+  paintCombo(el, comboOf(c));
   const html = soft(htmlOf(c), edit), empty = !html.replace(/<[^>]+>/g, '').trim();
   const foot = [dateOn(c) ? `${dateChip(c.date).split(' ')[0]} ${weekday(c.date)}` : '', placeOn(c) ? c.place.trim() : ''].filter(Boolean).map(esc).join(' · ');
   const a = c.align || {}, lh = (1.62 * (LH[c.lh] || 1)).toFixed(3), sg = signOf(c), fz = { xs: 3.2, s: 3.5, m: 3.7, l: 4.2, xl: 4.6 }[c.size] || 3.7;
@@ -123,11 +109,11 @@ function fit(el) {
 
 export default {
   id: 'hilite', name: '하이라이트 문장', info: '모든 길이 · 사진 없음 · 셔플마다 새 표시', paid: true, css: true,
-  tools: { photo: false, emo: false, page: false, shuf: true, style: true, font: false, bg: false, dp: true },
+  tools: { photo: false, emo: false, page: false, shuf: true, style: true, font: false, bg: 'combo', dp: true },
   sample: SAMPLE,
   datePos: 'bottom',
   blank: () => ({ html: '', seed: Math.floor(Math.random() * 1e9), size: 'm', align: { h: 'l', v: 't' }, datePos: 'bottom' }),
   render: (c, o) => { const el = hilite(c, o); el.dataset.size = c.size || 'm'; return el; },
   fit, margins, place,
-  tone: c => palette(c.seed).hls[0],
+  tone: c => comboOf(c).bg,
 };

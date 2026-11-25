@@ -1,0 +1,44 @@
+/* 템플릿 틀: 동그라미 목차 (91차) — 이 틀만의 모양. 공용(카드 틀 · 날짜 줄 · 서명)은 app.css. 틀을 처음 볼 때 같이 불러와요 */
+.cd.cdots { aspect-ratio: 4 / 5; overflow: clip; background: var(--paper, #FBF9F4); color: var(--ink, #22201D); display: flow-root; font-family: 'Pretendard Variable', sans-serif; }
+.cd.cdots.r916 { aspect-ratio: 9 / 16; } .cd.cdots.r11 { aspect-ratio: 1; } .cd.cdots.r32 { aspect-ratio: 3 / 2; } .cd.cdots.r169 { aspect-ratio: 16 / 9; }
+/* 글 상자 */
+.cd.cdots .rb { outline: none; margin: 7.96cqw 7cqw 7.96cqw 7cqw; font-size: 8.5cqw; font-weight: 600; letter-spacing: -.02em; overflow-wrap: break-word; word-break: keep-all; position: relative; isolation: isolate; padding-bottom: .2em; }
+.cd.cdots .rb .ph { color: #B9B5AC; }
+.cd.cdots .rb b, .cd.cdots .rb strong { font-weight: 800; }
+.cd.cdots .rb mark { background: none; color: inherit; }
+.cd.cdots.dk .rb .ph { color: rgba(255,255,255,.42); }
+.cd.cdots.dk.edit.empty::after { background: rgba(255,255,255,.16); color: rgba(255,255,255,.75); }
+/* 쓰기: 빈 카드엔 흐린 예시 글 */
+.cd.cdots .exm { display: none; position: absolute; top: 0; left: 0; right: 0; opacity: .3; pointer-events: none; background: none; }
+.cd.cdots.edit.empty .exm { display: block; }
+.cd.cdots.edit .rb { min-height: 1.4em; z-index: 1; }
+.cd.cdots.edit .exm { position: absolute; z-index: 0; min-height: 0; }
+.cd.cdots.edit.empty .rb { background: none; }
+.cd.cdots.edit.empty::after { content: '예시'; position: absolute; font: 700 2.8cqw/1 var(--ui); padding: 1cqw 2.4cqw; border-radius: 99px; background: rgba(34,32,29,.12); color: #6b6862; top: 3cqw; right: 4cqw; pointer-events: none; }
+.wr .cd.cdots .rb { transition: margin-top .25s ease; }
+.wr .cd.cdots { width: var(--cw); margin: 0 auto; border-radius: 14px; }
+/* 날짜 줄 · 서명 */
+.cd.cdots .foot { position: absolute; left: 7cqw; right: 7cqw; bottom: 6.5cqw; display: flex; justify-content: space-between; font-weight: 600; line-height: 1; letter-spacing: .02em; color: var(--ink, #22201D); }
+.cd.cdots[data-dp=top] .foot { bottom: auto; top: 6.5cqw; }
+.cd.cdots.hsg[data-dp=bottom] .foot { bottom: 13.3cqw; }
+.cd.cdots[data-dp=none] .foot { display: none; }
+.cd.cdots .sgn { bottom: 6.5cqw; font-weight: 600; line-height: 1; color: var(--ink, #22201D); opacity: 1; letter-spacing: 0; }
+.cd.cdots .sgn[data-h=l] { left: 7cqw; } .cd.cdots .sgn[data-h=r] { right: 7cqw; }
+.cd.cdots.r916 .foot { bottom: 39.1cqw; right: 12cqw; left: 6cqw; } .cd.cdots.r916[data-dp=top] .foot { top: 23.1cqw; bottom: auto; }
+.cd.cdots.r916.hsg[data-dp=bottom] .foot { bottom: 46.5cqw; }
+.cd.cdots.r916 .rb { margin-left: 6cqw; margin-right: 12cqw; }
+/* 저장할 때 장으로 나뉜 카드 */
+.cd.cdots.paged { aspect-ratio: auto; }
+.cd.cdots .pgbox { margin: 7.96cqw 7cqw 0 7cqw; }
+.cd.cdots.r916 .pgbox { margin-left: 6cqw; margin-right: 12cqw; }
+.cd.cdots .pgbox .rb { margin: 0; }
+
+/* 문장 첫 글자 동그라미: 글자는 제자리(쓰기 편하게), 뒤에 둥근 판을 깔아요. 줄바꿈은 가끔 (span.br) */
+.cd.cdots .cdot { position: relative; color: var(--t, #fff); margin: 0 .2em 0 .16em; }
+.cd.cdots .cdot::before { content: ''; position: absolute; z-index: -1; left: 50%; top: 52%; width: 1.3em; height: 1.3em; translate: -50% -50%; border-radius: 50%; background: var(--c); }
+.cd.cdots .hbk { display: block; height: 0; }
+.cd.cdots.dk .rb .ph { color: rgba(255,255,255,.42); }
+.cd.cdots.dk.edit.empty::after { background: rgba(255,255,255,.16); color: rgba(255,255,255,.75); }
+/* 모션 (피드 가운데 카드만): 동그라미가 차례로 톡 */
+:is(.fi, .tt, .rp).play:not(.intro) .cd.cdots .cdot::before { animation: dt-pop 7s ease-in-out infinite both; animation-delay: inherit; }
+@keyframes dt-pop { 0% { scale: .7; } 6%, 84% { scale: 1; } 90%, 100% { scale: .7; } }
