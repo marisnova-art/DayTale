@@ -52,7 +52,7 @@ function place(root, seed) {
     s.className = 'gp ' + k; s.dataset.s = sig(want[i]);
     if (k === 'g') {   // 글자색: 두 색 모두에서 잘 보이는 쪽 (style에 'background' 글자를 쓰지 않아요: clean이 형광펜으로 바꿔요)
       const c1 = col(n1), c2 = col(n2), t = Math.min(contrast(c1, DK), contrast(c2, DK)) >= Math.min(contrast(c1, WH), contrast(c2, WH)) ? DK : WH;
-      s.style.cssText = `--g1:var(--${n1});--g2:var(--${n2});--ga:${ang}deg;--gs:${stop}%;--t:${t};animation-delay:${-((i * 1.3) % 6).toFixed(1)}s`;
+      s.style.cssText = `--g1:var(--${n1});--g2:var(--${n2});--ga:${ang}deg;--gs:${stop}%;--t:${t};animation-delay:${((i % 16) * .32).toFixed(2)}s`;
     }
     rg.surroundContents(s);
   }

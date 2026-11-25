@@ -54,12 +54,14 @@ function sheet(head, groups0) {
 }
 
 // 템플릿 견본 칸 (11-06 템플릿 틀): 정지 그림(t.thumb)이 있으면 그림만, 없으면 진짜 카드. 1,000개가 넘어도 목록이 가볍게.
+// 92차 (앤드류): 템플릿 칸은 진짜 카드로, 칸마다 랜덤 씨앗 = 볼 때마다 다른 색 조합 · 그림 (칸은 화면 가까이 올 때만 그려요)
 // 정지 그림 칸은 화면 가운데 하나만 진짜 카드로 바꿔 움직여요 (liveMid → liveThumb). bare = 글 없이(아트), r45 = 4:5로
 function tplTile(host, t, bare = true, r45 = false) {
   if (!host || !t) return;
   host.querySelectorAll(':scope > .cd, :scope > img.tth').forEach(x => x.remove());   // 잠금 표시 등은 그대로
-  if (t.thumb && !host._live) { Object.assign(host.dataset, { th: t.id, bare: bare ? 1 : 0, r45: r45 ? 1 : 0 }); host.insertAdjacentHTML('beforeend', `<img class="tth" src="${esc(t.thumb)}" alt="" loading="lazy" decoding="async">`); return; }
-  const c = T.exCard(t, 0, bare); if (r45 && c.ratio) c.ratio = '45'; mount(host, c);
+  const rnd = host._rnd ||= newSeed();
+  if (t.thumb && !host._live && !rnd) { Object.assign(host.dataset, { th: t.id, bare: bare ? 1 : 0, r45: r45 ? 1 : 0 }); host.insertAdjacentHTML('beforeend', `<img class="tth" src="${esc(t.thumb)}" alt="" loading="lazy" decoding="async">`); return; }
+  const c = T.exCard(t, 0, bare, rnd); if (r45 && c.ratio) c.ratio = '45'; mount(host, c);
 }
 let liveTh = null;
 function liveThumb(list) {
@@ -95,7 +97,7 @@ const hueAt = p => {
 function fmtsFor(r, a) {
   const out = [...ORDER, ...S.cards().map(c => c.fmt)];   // 앱 안 기본 템플릿 틀(ORDER)은 늘: 피드 견본 카드에 써요
   S.drafts().forEach(d => d.card && out.push(d.card.fmt)); S.trash().forEach(c => out.push(c.fmt));
-  if (r === 'tpl' || r === 'pick' || r === 'ti' || r === 'mark') { T.TEMPLATES.forEach(t => { if (!t.thumb) out.push(t.fmt); }); T.heroes().forEach(h => out.push(h.t?.fmt)); }   // 위 판은 늘 진짜 카드
+  if (r === 'tpl' || r === 'pick' || r === 'ti' || r === 'mark') { T.TEMPLATES.forEach(t => out.push(t.fmt)); T.heroes().forEach(h => out.push(h.t?.fmt)); }   // 위 판은 늘 진짜 카드
   if (r === 'ti' && a) out.push(T.tpl(a)?.fmt);
   if (r === 'write' && a?.startsWith('t-')) out.push(T.tpl(a.slice(2))?.fmt);
   else if (r === 'write' && a && !a.startsWith('draft-')) out.push(a);
@@ -1852,7 +1854,7 @@ function viewTpl() {
   const tq = new IntersectionObserver(es => es.forEach(e => { if (!e.isIntersecting) return; tq.unobserve(e.target); const b = e.target; if (b.isConnected && !$('.tc .cd', b)) tplTile($('.tc', b), T.tpl(b.dataset.t)); }), { rootMargin: '600px 400px' });
   let timer = 0;
   // 위 (늘 그대로): 바로 쓰기 판 + 오늘의 무료 · 추천 판. 옆으로 넘기기 + 5초마다 저절로 (손대면 멈춤)
-  const cardOf = t => T.exCard(t, 0, true);
+  const cardOf = t => T.exCard(t, 0, true, newSeed());
   const top = () => {
     const box = $('.ttop');
     const hs = T.heroes().map(h => ({ ...h, label: h.k === 'free' ? (paid ? '오늘 추천' : '오늘 무료') : h.k === 'now' ? '지금 추천' : '새로 나온' }));
@@ -1981,7 +1983,7 @@ const REC_T = { 밤: '밤에 쓰기 좋은', 비: '비 오는 날엔', 눈: '눈
 const WXK = { sun: '맑음', suncloud: '구름 조금', cloud: '흐림', rain: '비', snow: '눈', thunder: '천둥', fog: '안개' };
 const dayLine = (now = new Date()) => { let w = ''; try { const x = JSON.parse(localStorage.getItem('daytale.wx') || 'null'); if (x && Date.now() - x.at < 3 * 3600e3 && WXK[x.kind]) w = ` · ${WXK[x.kind]}${x.temp != null ? ` ${x.temp}°` : ''}`; } catch {} return `${now.getMonth() + 1}월 ${now.getDate()}일 ${'일월화수목금토'[now.getDay()]}요일${w}`; };
 // 78차: 새 버전 확인. 앱으로 돌아올 때(다른 앱 갔다 오기) version.txt가 지금과 다르면 저절로 새로 고쳐요. 쓰는 중엔 안 해요
-const BUILD = '91', BUILD_TAG = '11-25 91차';
+const BUILD = '92', BUILD_TAG = '11-25 92차';
 let verAt = 0;
 const checkVer = () => {
   if (document.hidden || Date.now() - verAt < 20e3) return; verAt = Date.now();
@@ -2023,7 +2025,7 @@ const lastColor = () => { const b = S.pref('lastBg', null); return b && b.id && 
 function viewPick(sub) {
   pickEx = exampleText();
   const L = pickLists();
-  const cardFor = t => { const c = T.exCard(t, 0); if (c.ratio) c.ratio = '45'; return c; };
+  const cardFor = t => { const c = T.exCard(t, 0, false, newSeed()); if (c.ratio) c.ratio = '45'; return c; };
   const tile = t => `<button class="wt" data-t="${t.id}"><div class="wc"></div><div class="wl">${esc(t.name)}<small>${esc(t.kind)}</small></div></button>`;
   if (sub?.startsWith('all:') && L[sub.slice(4)]) {   // 모두 보기: 같은 화면 안 2열
     const k = sub.slice(4);

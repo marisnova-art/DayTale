@@ -205,11 +205,12 @@ export function sorted(k) {
 }
 
 // 예시 카드 (작은 칸: 아트는 글 없이, 디자인은 글 그대로). i = 몇 번째 예시
-export function exCard(t, i = 0, bare = false) {
+// rnd (92차, 앤드류): 템플릿 홈 · 고르기 칸은 볼 때마다 다른 색 조합 · 그림 (씨앗을 바꿔요)
+export function exCard(t, i = 0, bare = false, rnd = 0) {
   const c = sampleCard(t.fmt, S.today()); const e = t.ex[i % t.ex.length]; c.tpl = t.id;
-  if (typeof e === 'string') { c.html = e; c.seed = 7 + i * 14; if (!bare) c.pal = undefined; return c; }   // 한 덩어리 글 (디자인). 예시마다 색 조합도 달라요, 정지 그림(bare)은 틀이 정한 색 (91차)
+  if (typeof e === 'string') { c.html = e; c.seed = rnd || 7 + i * 14; if (!bare || rnd) c.pal = undefined; return c; }   // 한 덩어리 글 (디자인). 예시마다 색 조합도 달라요, 정지 그림(bare)은 틀이 정한 색 (91차)
   const [txt, seed, ratio] = e;
-  c.pages = [bare ? '' : txt]; c.bg = { ...c.bg, seed }; if (!bare && ratio) c.ratio = ratio;
+  c.pages = [bare ? '' : txt]; c.bg = { ...c.bg, seed: rnd || seed }; if (!bare && ratio) c.ratio = ratio;
   return c;
 }
 // 소개 줄의 | = 줄이 넘칠 때 내려갈 자리 (뜻이 끊기지 않게). 화면에선 안 보여요

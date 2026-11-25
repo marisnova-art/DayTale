@@ -3,7 +3,6 @@
 // 줄바꿈 · 계단 들여쓰기는 가끔만 (씨앗 = 셔플마다 다르게). 동그라미 색은 카드 색 조합(js/combo.js)의 강조 · 표시 색에서.
 // 동그라미(span.cdot) · 줄바꿈(span.hbk)은 저장하지 않아요 (rich.js clean이 벗겨요). 크기 · 여백 · 장 나누기는 하이라이트 문장과 같아요
 import { rng, esc, soft, htmlOf, dateChip, weekday, dateOn, placeOn, infoPos, signOf, dhOf, LH, shape, arOf } from '../../js/formats.js';
-import { rangeAt } from '../../js/rich.js';
 import { comboOf, paintCombo, textOn } from '../../js/combo.js';
 import H from '../hilite/tpl.js';
 
@@ -12,33 +11,65 @@ const POOL = ['a1', 'a2', 'h1', 'h2', 'h3', 'h4'];
 const IND = [1.4, 2.8, .8, 2];
 
 // 문장 첫 글자 자리: [자리, 색, 줄바꿈, 들여쓰기(em)]. 쓰는 중이면 첫 글자 뒤에 한 글자가 더 있어야 붙어요 (커서가 동그라미 안에 갇히지 않게)
-export function heads(text, seed, editing = false) {
-  const r = rng((seed || 1) ^ 0x68e31da4), out = [];
-  const starts = [], re = /(^|[.!?…。？！]+["'”’)]*\s+)(\S)/g;
-  for (const m of text.matchAll(re)) starts.push(m.index + m[1].length);
-  let prev = -1;
-  starts.forEach((s, i) => {
-    const x = [r(), r(), r(), r()];   // 문장마다 늘 4번
-    if (!/[\p{L}\p{N}]/u.test(text[s])) return;   // 이모티콘 · 기호로 시작하면 동그라미 없이
-    if (editing && s + 1 >= text.length) return;
+// 새 문장 (92차, 앤드류 '2개만 생겨요'): 글 처음 · . ! ? 다음 · 줄바꿈(엔터) 다음 · '~다 · ~요'로 끝난 어절 다음. 그래도 7어절 넘게 없으면 하나 더.
+// 어절마다 늘 같은 수의 씨앗을 써서, 뒤에 글을 더 써도 앞 동그라미는 그대로예요. brks = 줄바꿈 자리 (글자 위치)
+const END = /[.!?…。？！]["'”’)]*$/, KEND = /[가-힣][다요죠]$/, NOT = /(마다|바다|보다|부터|까지)$/;
+export function heads(text, seed, editing = false, brks = []) {
+  const r = rng((seed || 1) ^ 0x68e31da4), out = [], ws = [];
+  for (const m of text.matchAll(/\S+/g)) {   // 줄바꿈 자리에서 어절을 나눠요 (줄바꿈은 글에 띄어쓰기가 없어서)
+    let a = m.index; const e = a + m[0].length;
+    for (const k of brks) if (k > a && k < e) { ws.push([a, k, false]); a = k; }
+    ws.push([a, e, false]);
+  }
+  ws.forEach(w => { w[2] = brks.includes(w[0]); });
+  let prev = -1, run = 0, n = 0;
+  ws.forEach(([a, e, afterBr], i) => {
+    const x = [r(), r(), r(), r()];   // 어절마다 늘 4번
+    const pw = i ? text.slice(ws[i - 1][0], ws[i - 1][1]) : '';
+    const head = i === 0 || afterBr || END.test(pw) || (KEND.test(pw) && !NOT.test(pw)) || run >= 7;
+    run++;
+    if (!head || !/[\p{L}\p{N}]/u.test(text[a])) return;   // 이모티콘 · 기호로 시작하면 동그라미 없이
+    if (editing && a + 1 >= text.length) return;
+    run = 0;
     let ci = Math.floor(x[0] * POOL.length); if (ci === prev) ci = (ci + 1 + Math.floor(x[3] * 3)) % POOL.length; prev = ci;
-    const brk = i > 0 && x[1] < .2, ind = brk && x[2] < .6 ? IND[Math.floor(x[3] * IND.length)] : 0;
-    out.push([s, POOL[ci], brk, ind]);
+    const brk = n > 0 && !afterBr && x[1] < .2, ind = brk && x[2] < .6 ? IND[Math.floor(x[3] * IND.length)] : 0;
+    out.push([a, POOL[ci], brk, ind]); n++;
   });
   return out;
 }
+// 줄바꿈(<br> · 줄 상자) 자리를 글자 위치로
+function breaks(root) {
+  const out = [], walk = (node, pos) => {
+    for (const ch of node.childNodes) {
+      if (ch.nodeType === 3) { pos += ch.data.length; continue; }
+      if (ch.nodeType !== 1 || ch.classList.contains('hbk')) continue;
+      if (ch.tagName === 'BR') { out.push(pos); continue; }
+      const blk = /^(DIV|P|LI|H2|H3)$/.test(ch.tagName);
+      if (blk && pos) out.push(pos);
+      pos = walk(ch, pos);
+    }
+    return pos;
+  };
+  walk(root, 0); return out;
+}
 
+// 글자 하나 자리 (줄바꿈 바로 뒤 글자도 다음 글 조각에서 잡아요: rangeAt은 앞 조각 끝을 잡아요)
+function charAt(root, a) {
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), r = document.createRange(); let n, pos = 0;
+  while ((n = w.nextNode())) { if (a < pos + n.data.length) { r.setStart(n, a - pos); r.setEnd(n, a - pos + 1); return r; } pos += n.data.length; }
+  return r;
+}
 const posOf = (root, s) => { const r = document.createRange(); r.selectNodeContents(root); r.setEndBefore(s); return r.toString().length; };
 const sig = w => w.slice(1).join('|');
 function place(root, seed) {
   const editing = !!root.closest('.edit') && root.classList.contains('body');
   const cd = root.closest('.cd'), col = n => (cd?.style.getPropertyValue('--' + n) || '').trim() || '#888888';
-  const text = root.textContent, want = heads(text, seed, editing), have = [...root.querySelectorAll('span.cdot')];
+  const text = root.textContent, want = heads(text, seed, editing, breaks(root)), have = [...root.querySelectorAll('span.cdot')];
   if (want.length === have.length && have.every((s, i) => s.dataset.s === sig(want[i]) && posOf(root, s) === want[i][0] && s.textContent.length === 1)) return false;
   root.querySelectorAll('span.hbk').forEach(b => b.remove());
   have.forEach(s => s.replaceWith(...s.childNodes)); root.normalize();
   for (let i = want.length - 1; i >= 0; i--) {
-    const [a, n, brk, ind] = want[i], rg = rangeAt(root, a, a + 1);
+    const [a, n, brk, ind] = want[i], rg = charAt(root, a);
     if (rg.startContainer !== rg.endContainer || rg.startContainer.nodeType !== 3) continue;
     const s = document.createElement('span');
     s.className = 'cdot'; s.dataset.s = sig(want[i]);
