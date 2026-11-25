@@ -72,18 +72,19 @@ function tower(c, { edit = false } = {}) {
 
 // 크기: 탑이 카드 높이(9:16은 안전 영역 안)에 들어가고 덩어리가 좌우로 넘치지 않을 만큼 크게. 가장 작아도 넘치면 카드가 길어지고 저장할 때 장으로.
 // 서식 줄 크기(작게 ~ 크게)는 그 위에 곱해요. 위아래 가운데. 다 재고 나면 흐르는 모션용 탑 줄(.twl)을 만들어요
-const MUL = { xs: .8, s: .9, m: 1, l: 1.1, xl: 1.2 };
+// 글자 크기 = 채우는 양 (95차): 꽉 차는 크기를 찾은 뒤 하이라이트와 같은 비율을 곱해요
 function fit(el) {
   if (!el) return;
   const p = el.querySelector('.rb.body'); if (!p) return;
   const W = el.clientWidth; if (!W) return;
   const s = W / 1080, Hh = W * (+el.dataset.ar || 1.25), [mt, mb] = H.margins(el), room = Hh - (mt + mb) * s;
   const ov = ovOf(p), ex = el.querySelector('.exm'), box = el.classList.contains('empty') && ex ? ex : ov || p, tw = box.querySelector('.tw');
-  const mul = MUL[el.dataset.size] || 1, R = el.getBoundingClientRect();
+  const k = H.FILL[el.dataset.size] || H.FILL.m, mul = 1, R = el.getBoundingClientRect();
   const over = () => tw && [...tw.children].some(k => { const q = k.getBoundingClientRect(); return q.left < R.left + W * .05 || q.right > R.right - W * .05; });
-  let f = 150 * mul;
+  let f = 170;
   const set = () => { [box, ov].forEach(x => { if (x) x.style.fontSize = px(f); }); return box.offsetHeight; };
   while ((set() > room || over()) && f > 50) f *= .95;
+  if (k < 1) { f = Math.max(36, f * k); set(); }
   if (ov || ex) p.style.fontSize = px(Math.min(f, 76 * mul));   // 쓰는 중 반듯한 글은 읽기 좋은 크기로
   const h = box.offsetHeight, need = h + (mt + mb) * s;
   let top = mt * s;

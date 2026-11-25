@@ -76,7 +76,10 @@ function hilite(c, { edit = false } = {}) {
 // 글자 크기: 글 길이에 따라 저절로 (짧으면 크게, 길면 작게 빽빽하게). 글자 수 구간으로만 바뀌어서 쓰는 동안 자주 흔들리지 않아요.
 // 서식 줄의 크기(작게 ~ 크게)는 그 위에 곱해요. 한 장을 넘으면 카드가 길어지고 저장할 때 장으로 나뉘어요 (멤피스 문장과 같아요)
 const STEP = [[24, 124], [48, 108], [90, 92], [150, 78], [240, 66], [Infinity, 58]];
-const MUL = { xs: .8, s: .9, m: 1, l: 1.12, xl: 1.24 };
+// 글자 크기 5단계 (95차, 앤드류): 한 장 안에서 '채우는 양'. 먼저 한 장에 들어가는 가장 큰 크기를 찾고(짧은 글은 위 한계까지), 거기에 곱해요.
+// 그래서 글이 길어도 단계마다 늘 눈에 띄게 달라요 (예전엔 크게 해도 넘치면 도로 줄어서 안 바뀌었어요). 기호 문장 · 글 탑 · 라벨 조각도 이 값을 써요
+export const FILL = { xs: .6, s: .72, m: .85, l: .93, xl: 1 };
+const CAP = 1.18;   // 짧은 글 위 한계 = 길이 구간 크기 × 1.18 (가장 크게 = 이 크기)
 const SAFE916 = [186, 358];   // 9:16 스토리 안전 영역 (위 13% · 아래 22%)
 function margins(el) {
   const dp = el.dataset.dp, sg = el.classList.contains('hsg');
@@ -91,12 +94,13 @@ function fit(el) {
   const [mt, mb] = margins(el);
   const ex = el.querySelector('.exm'), box = ex && el.classList.contains('empty') ? ex : p;
   const n = box.textContent.replace(/\s+/g, '').length, sz = el.closest('[data-size]')?.dataset.size;
-  const mul = MUL[el.dataset.size || sz] || 1;
-  let f = STEP.find(([max]) => n <= max)[1] * mul;
+  const k = FILL[el.dataset.size || sz] || FILL.m;
+  let f = STEP.find(([max]) => n <= max)[1] * CAP;
   p.style.marginBottom = px(mb);
   const set = () => { p.style.fontSize = px(f); if (ex) ex.style.fontSize = p.style.fontSize; return box.offsetHeight + (mt + mb) * s; };
   let need = set();
-  while (need > H + 1 && f > 50 * mul) { f = Math.max(50 * mul, f * .94); need = set(); }   // 한 장에 안 들어가면 조금씩 작게 (가장 작은 크기에서도 넘치면 장으로)
+  while (need > H + 1 && f > 50) { f = Math.max(50, f * .94); need = set(); }   // 한 장에 들어가는 가장 큰 크기 (가장 작은 크기에서도 넘치면 장으로)
+  if (k < 1) { f = Math.max(36, f * k); need = set(); }
   let top = mt * s;
   if (need > H + 1) el.style.height = Math.ceil(need) + 'px';
   else {
@@ -114,6 +118,6 @@ export default {
   datePos: 'bottom',
   blank: () => ({ html: '', seed: Math.floor(Math.random() * 1e9), size: 'm', align: { h: 'l', v: 't' }, datePos: 'bottom' }),
   render: (c, o) => { const el = hilite(c, o); el.dataset.size = c.size || 'm'; return el; },
-  fit, margins, place,
+  fit, margins, place, FILL,
   tone: c => comboOf(c).bg,
 };

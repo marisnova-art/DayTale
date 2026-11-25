@@ -92,18 +92,18 @@ function symbol(c, { edit = false } = {}) {
 }
 
 // 크기: 레퍼런스처럼 카드를 꽉 채우게 (크게 시작해 들어갈 때까지 줄여요, 아주 짧은 글도 너무 커지지 않게 위 한계). 기호까지 든 글(쓰는 중엔 위에 깐 한 겹)로 재요
-const MUL = { xs: .8, s: .9, m: 1, l: 1.12, xl: 1.24 };
 function fit(el) {
   const p = el.querySelector('.rb.body'); if (!p) return;
   const W = el.clientWidth; if (!W) return;
   const s = W / 1080, Hh = W * (+el.dataset.ar || 1.25), [mt, mb] = H.margins(el);
   const ov = ovOf(p), ex = el.querySelector('.exm'), empty = el.classList.contains('empty'), box = empty && ex ? ex : ov || p;
-  const mul = MUL[el.dataset.size] || 1;
-  let f = 190 * mul;
+  const k = H.FILL[el.dataset.size] || H.FILL.m;   // 글자 크기 = 채우는 양 (95차)
+  let f = 220;
   p.style.marginBottom = px(mb);
   const set = () => { [p, ov, ex].forEach(x => { if (x) x.style.fontSize = px(f); }); return box.offsetHeight + (mt + mb) * s; };
   let need = set();
-  while (need > Hh + 1 && f > 50 * mul) { f = Math.max(50 * mul, f * .95); need = set(); }
+  while (need > Hh + 1 && f > 50) { f = Math.max(50, f * .95); need = set(); }
+  if (k < 1) { f = Math.max(36, f * k); need = set(); }
   let top = mt * s;
   if (need > Hh + 1) el.style.height = Math.ceil(need) + 'px';
   else {
