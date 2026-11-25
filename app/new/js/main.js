@@ -1943,7 +1943,7 @@ function viewIntro(id) {
   const cards = t.ex.map((_, i) => T.exCard(t, i));
   app.innerHTML = `<div class="tiv"><div class="tip">${cards.map(c => `<div class="tpg${c.ratio === '916' ? ' full' : ''}" style="--ar:${arOf(c)}"><div class="tcd"></div>${c.ratio === '916' ? '<div class="tsh"></div>' : ''}</div>`).join('')}</div>
     <div class="tnum">${cards.map((_, i) => `<button class="gls${i ? '' : ' on'}" data-i="${i}" aria-label="예시 ${i + 1}">${i + 1}</button>`).join('')}</div><button class="tcl gls" data-a="x" aria-label="닫기">${ic('close')}</button>
-    <div class="tlow"><em>${sub}</em><h2>${esc(t.name)}</h2><p>${t.desc.map(d => `<span>${d.split('|').map(x => `<i>${esc(x)}</i>`).join(' ')}</span>`).join('')}</p>
+    <div class="tlow"><em>${sub}</em><h2>${esc(t.name)}</h2><p>${esc(t.desc.map(T.line).join(' '))}</p>
     <div class="tcta"><button class="w" data-a="go">${ic('pen')}이 템플릿으로 쓰기</button><button class="hb gls" data-a="heart" aria-label="즐겨찾기">${HEART}</button></div></div></div>`;
   // 카드 높이 = 위 버튼 아래 ~ 설명 글 위 40px (글 줄 수 · 기기마다 달라서 직접 재요)
   const room = () => { const tv = $('.tiv'), c = $('.tpg:not(.full) .tcd') || $('.tcd'); tv.style.setProperty('--room', Math.max(120, $('.tlow').getBoundingClientRect().top - 40 - c.getBoundingClientRect().top) + 'px'); };
@@ -1983,7 +1983,7 @@ const REC_T = { 밤: '밤에 쓰기 좋은', 비: '비 오는 날엔', 눈: '눈
 const WXK = { sun: '맑음', suncloud: '구름 조금', cloud: '흐림', rain: '비', snow: '눈', thunder: '천둥', fog: '안개' };
 const dayLine = (now = new Date()) => { let w = ''; try { const x = JSON.parse(localStorage.getItem('daytale.wx') || 'null'); if (x && Date.now() - x.at < 3 * 3600e3 && WXK[x.kind]) w = ` · ${WXK[x.kind]}${x.temp != null ? ` ${x.temp}°` : ''}`; } catch {} return `${now.getMonth() + 1}월 ${now.getDate()}일 ${'일월화수목금토'[now.getDay()]}요일${w}`; };
 // 78차: 새 버전 확인. 앱으로 돌아올 때(다른 앱 갔다 오기) version.txt가 지금과 다르면 저절로 새로 고쳐요. 쓰는 중엔 안 해요
-const BUILD = '107', BUILD_TAG = '11-26 107차';
+const BUILD = '108', BUILD_TAG = '11-26 108차';
 let verAt = 0;
 const checkVer = () => {
   if (document.hidden || Date.now() - verAt < 20e3) return; verAt = Date.now();
