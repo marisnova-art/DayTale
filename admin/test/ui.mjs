@@ -237,6 +237,13 @@ await p.click('#ok li[data-name="포토"] [data-rm]'); await p.click('dialog but
 ok(!(await p.$('#ok li[data-name="아트"] [data-rm]')), '종류·태그: 쓰는 종류는 빼기 버튼 없음');
 await p.goto('http://admin.test/#/audit'); await p.waitForSelector('.audit li'); await p.screenshot({ path: `${out}/admin-audit.png` }); ok((await p.textContent('.audit')).includes('테스트 정지'), 'audit shows ban reason');
 
+const w = await page({ width: 1920, height: 1080 });
+await w.goto('http://admin.test/'); await w.fill('input[name=email]', '24story@gmail.com'); await w.fill('input[name=pw]', 'pw'); await w.click('button.primary'); await w.waitForSelector('.cards');
+await w.goto('http://admin.test/#/templates'); await w.waitForSelector('.tcard'); await w.waitForTimeout(400);
+ok(await w.$eval('.tgrid', g => getComputedStyle(g).gridTemplateColumns.split(' ').length === 4) && (await w.textContent('.pager')).includes('20개씩'), '1920: 4열 · 한 페이지 20개 (5줄)');
+await w.click('[data-ck="art"]'); await w.click('[data-ck="rebus"]'); await w.click('[data-bulk="tags"]'); await w.waitForSelector('dialog .tchip'); await w.click('dialog .tchip[data-g="비"]');
+await w.screenshot({ path: `${out}/admin-1920-tags.png` }); await w.click('dialog [value=cancel]'); await w.click('[data-bulk="clear"]');
+await w.screenshot({ path: `${out}/admin-1920.png` });
 const m = await page({ width: 390, height: 844 });
 await m.goto('http://admin.test/'); await m.fill('input[name=email]', '24story@gmail.com'); await m.fill('input[name=pw]', 'pw'); await m.click('button.primary');
 await m.waitForSelector('.cards'); await m.waitForTimeout(400); ok(await m.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'phone: no horizontal page scroll');

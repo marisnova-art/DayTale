@@ -423,7 +423,7 @@ async function act(a: Admin, body: any, { db, env, fetch }: Deps) {
     // ---------- 템플릿 (11-06): 피터가 숨김으로 올리고, 공개는 owner만. 지우기 없음 (숨김만) ----------
     case 'tpl_list': {
       // 11-26: 거르기(상태 · 종류 · 검색)는 DB에서, 정렬(이름 · 올린 날 · 태그)과 50개씩 나누기는 여기서. sel = 거른 결과 전부(id · 이름 · 태그) — 전체 선택 · Shift 범위 · 태그 창이 씀
-      const pg = page(body.page);
+      const pg = page(body.page), per = Number.isInteger(body.per) && body.per >= 5 && body.per <= 100 ? body.per : TPL_PAGE;   // per = 화면 열 수 × 5줄
       let q = db.from('dz_templates').select(TPL_LIST).range(0, 99999);
       if (body.state === 'hidden' || body.state === 'public') q = q.eq('state', body.state);
       if (typeof body.kind === 'string' && body.kind) q = q.eq('kind', body.kind.slice(0, 20));
@@ -443,7 +443,7 @@ async function act(a: Admin, body: any, { db, env, fetch }: Deps) {
       if (all.error) throw new Fail(500, all.error.message);
       const n = { all: 0, hidden: 0, public: 0 } as Record<string, number>, kinds: Record<string, number> = {};
       for (const r of all.data || []) { n.all++; n[r.state]++; kinds[r.kind] = (kinds[r.kind] || 0) + 1; }
-      return { rows: rows.slice(pg * TPL_PAGE, pg * TPL_PAGE + TPL_PAGE).map((t: any) => ({ id: t.id, fmt: t.fmt, kind: t.kind, name: t.name, tags: t.tags, paid: t.paid, added: day10(t.added), state: t.state, author: t.author, thumb: t.assets?.thumb ?? null, missing: tplMissing(t) })), total: rows.length, sel: rows.map((t: any) => ({ id: t.id, name: t.name, tags: t.tags || [], state: t.state })), n, kinds, pageSize: TPL_PAGE };
+      return { rows: rows.slice(pg * per, pg * per + per).map((t: any) => ({ id: t.id, fmt: t.fmt, kind: t.kind, name: t.name, tags: t.tags, paid: t.paid, added: day10(t.added), state: t.state, author: t.author, thumb: t.assets?.thumb ?? null, missing: tplMissing(t) })), total: rows.length, sel: rows.map((t: any) => ({ id: t.id, name: t.name, tags: t.tags || [], state: t.state })), n, kinds, pageSize: per };
     }
 
     // 11-26: 체크한 여러 개를 한꺼번에 공개/숨김. 빈칸 있는 건 공개하지 않고 알려줘요. 관리 기록은 하나씩

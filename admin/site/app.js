@@ -909,6 +909,10 @@ const whenLabel = c => { const k = condKey(c); return (WHEN.find(w => w[0] === k
 //        → 한꺼번에 공개/비공개 · 종류 · 태그(칩으로 더하기/빼기) · 유료/무료
 const tplSel = new Set();
 let tplLast = null;
+// 열 수 (admin.css .tgrid와 같은 경계) → 한 페이지 = 열 수 × 5줄
+const tplCols = () => { const w = innerWidth; return w <= 760 ? 1 : w <= 1300 ? 2 : w < 1700 ? 3 : w < 2400 ? 4 : 5; };
+let tplColsNow = 0;
+addEventListener('resize', () => { if (tplColsNow && location.hash.split('?')[0] === '#/templates' && tplCols() !== tplColsNow) { tplColsNow = tplCols(); route(); } });
 const SORTS = [['name', '이름'], ['added', '올린 날'], ['tag', '태그']];
 const WHY = { incomplete: '빈칸', tags_full: '태그 3개 넘음' };
 // 태그 창: 칩을 누를 때마다 그대로 → ＋더하기 → －빼기 (모두 가졌으면 더하기 건너뜀, 아무도 없으면 빼기 건너뜀)
@@ -936,7 +940,7 @@ async function viewTemplates(q) {
   const sort = SORTS.some(x => x[0] === q.get('sort')) ? q.get('sort') : '', dir = q.get('dir') === 'desc' ? 'desc' : '';
   loading('#/templates');
   const own = me.role === 'owner';
-  let r, tx; try { [r, tx] = await Promise.all([api('tpl_list', { state, kind, q: s, page: pg, sort, dir }), own ? api('tax') : null]); } catch (e) { return failed('#/templates', e); }
+  let r, tx; try { [r, tx] = await Promise.all([api('tpl_list', { state, kind, q: s, page: pg, sort, dir, per: (tplColsNow = tplCols()) * 5 }), own ? api('tax') : null]); } catch (e) { return failed('#/templates', e); }
   const pages = Math.ceil(r.total / r.pageSize) || 1;
   const P = { state, kind, q: s, sort, dir };
   const order = r.sel.map(t => t.id), byId = Object.fromEntries(r.sel.map(t => [t.id, t]));
@@ -960,7 +964,7 @@ async function viewTemplates(q) {
       <span class="grow"></span><form id="tq" class="fsearch" role="search">${I.search}<input name="q" type="search" value="${esc(s)}" placeholder="이름 · 태그 · 검색어" aria-label="템플릿 검색"></form>
       <a class="btn ghost sm" href="#/templates/tax">${I.folder}종류 · 태그</a></div>
     <div class="tgrid">${r.rows.map(card).join('') || `<p class="muted pad">${s ? '찾는 템플릿이 없어요.' : '아직 템플릿이 없어요.'}</p>`}</div>
-    ${pages > 1 ? pager('#/templates', P, pg, pages) : `<div class="row center pager"><span class="muted xs">${num(r.total)}개 · 50개씩 보여요${sort ? '' : ' · 비공개가 먼저 와요'}</span></div>`}
+    ${pages > 1 ? pager('#/templates', P, pg, pages) : `<div class="row center pager"><span class="muted xs">${num(r.total)}개 · ${num(r.pageSize)}개씩 보여요${sort ? '' : ' · 비공개가 먼저 와요'}</span></div>`}
     ${own ? `<div class="selbar" id="selbar" hidden><b id="seln"></b>
       <button type="button" class="btn sm" data-bulk="public">공개</button><button type="button" class="btn sm" data-bulk="hidden">비공개</button>
       <button type="button" class="btn sm" data-bulk="kind">종류 바꾸기</button><button type="button" class="btn sm" data-bulk="tags">태그</button>

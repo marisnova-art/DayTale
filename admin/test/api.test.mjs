@@ -245,6 +245,8 @@ ok(nm.join() === [...nm].sort((a, b) => a.localeCompare(b, 'ko')).join() && nmd.
 const ad1 = (await call('ann', { action: 'tpl_list', sort: 'added', dir: 'desc' })).body;
 ok(ad1.rows[0].id === 'snow-night' && ad1.total === 3 && ad1.pageSize === 50 && ad1.sel.length === 3 && ad1.sel[0].id === 'snow-night' && Array.isArray(ad1.sel[0].tags) && ad1.kinds['아트'] === 2, '정렬: 올린 날 최신 · 100개씩 · 종류 개수');
 ok((await call('ann', { action: 'tpl_list', sort: 'tag', kind: '아트' })).body.total === 2, '정렬: 태그 + 거르기 개수');
+const pp = (await call('ann', { action: 'tpl_list', per: 5, page: 0 })).body, pq = (await call('ann', { action: 'tpl_list', per: 2, page: 1 })).body;
+ok(pp.pageSize === 5 && pq.pageSize === 50 && (await call('ann', { action: 'tpl_list', per: 1000 })).body.pageSize === 50, '한 페이지 개수: 화면이 정함 (5~100)');
 ok((await call('cat', { action: 'tpl_state_many', ids: ['art'], state: 'hidden' })).status === 403 && (await call('cat', { action: 'tpl_bulk', ids: ['art'], op: 'paid', value: true })).status === 403, 'staff는 한꺼번에 못 고침');
 ok((await call('ann', { action: 'tpl_state_many', ids: [], state: 'hidden' })).body.error === 'bad ids' && (await call('ann', { action: 'tpl_state_many', ids: ['X;drop'], state: 'hidden' })).body.error === 'bad ids', '한꺼번에: id 목록 확인');
 await pg.exec(`update dz_templates set words = '{눈}' where id = 'snow-night'`);

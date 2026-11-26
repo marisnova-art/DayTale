@@ -309,10 +309,12 @@ dialog.tagsheet{ width:min(560px, calc(100vw - 32px)) }
 .tchips{ display:flex; flex-wrap:wrap; gap:8px; margin:18px 0 20px }
 .tchip{ display:inline-flex; align-items:center; gap:6px; font:600 13px var(--font); padding:8px 12px; border-radius:999px; border:1.5px solid var(--line-2); background:transparent; color:var(--text); cursor:pointer }
 .tchip small{ font-size:11px; color:var(--text-3) } .tchip i{ font-style:normal; font-weight:700; min-width:0 }
-.tchip.all{ background:var(--raise-2); border-color:var(--raise-2) }
-.tchip.some{ background:linear-gradient(90deg, var(--raise-2) 50%, transparent 50%) }
+.tchip.all{ background:var(--text); border-color:var(--text); color:var(--ink) } .tchip.all small{ color:rgba(0,0,0,.55) }
+.tchip.some{ background:rgba(255,255,255,.22); border-color:rgba(255,255,255,.7) } .tchip.some small{ color:var(--text-2) }
 .tchip.add{ border-color:var(--ok); color:var(--ok); background:rgba(127,212,138,.14) } .tchip.add small{ color:var(--ok) }
 .tchip.rm{ border-color:var(--err); color:var(--err); background:rgba(255,122,98,.1); text-decoration:line-through } .tchip.rm small{ color:var(--err) }
+@media (min-width: 1700px){ .tgrid{ grid-template-columns:repeat(4, minmax(0, 1fr)) } }
+@media (min-width: 2400px){ .tgrid{ grid-template-columns:repeat(5, minmax(0, 1fr)) } }
 @media (max-width: 1300px){ .tgrid{ grid-template-columns:repeat(2, minmax(0, 1fr)) } }
 @media (max-width: 760px){ .tgrid{ grid-template-columns:1fr } .trow .grow{ display:none } .trow .fsearch{ width:100% } .hint{ display:none } }
 @media (max-width: 720px){ .selbar{ bottom:96px } .vbar{ display:none } }
