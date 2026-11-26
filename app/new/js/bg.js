@@ -33,6 +33,7 @@ export const PAID = [
   { id: 'stars', img: './bg/stars.webp', tone: '#3a3f7a', ink: '#F3E6C8', dim: ['center', '0,0,0', .55] },
   { id: 'bands', code: 'bands', tone: '#a35cff', ink: '#fff', dim: ['center', '40,16,70', .55] },
   { id: 'slit', code: 'slit', tone: '#F07F3C', ink: '#fff', dim: ['all', '10,8,14', 0] },
+  { id: 'cube', code: 'cube', tone: '#5BC4BE', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 미니멀 큐브 (111차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'gband', code: 'gband', tone: '#FF3D7F', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 그라데이션 밴드 (110차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'retro', code: 'retro', tone: '#2FE0B4', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 레트로 픽셀 (109차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'pixel', code: 'pixel', tone: '#DCCB2A', ink: '#1E1B18', dim: ['center', '0,0,0', 0] },   // 픽셀 체커 (105차): 글자색은 바탕 밝기로 (formats.js)
@@ -1038,6 +1039,50 @@ function drawGband(cv, seed, t, grain) {
   if (!light) { const b = x.createLinearGradient(0, H * .8, 0, H); b.addColorStop(0, `rgba(${d},0)`); b.addColorStop(.55, `rgba(${d},.32)`); b.addColorStop(1, `rgba(${d},.4)`); x.fillStyle = b; x.fillRect(0, H * .8, W, H * .2); }   // 날짜 자리: 밝은 끝 색을 살짝 눌러요
   if (grain) { x.globalCompositeOperation = 'soft-light'; x.globalAlpha = grain; x.fillStyle = x.createPattern(gbNoise(), 'repeat'); x.fillRect(0, 0, W, H); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; }
 }
+// 미니멀 큐브 (11-26 111차, 앤드류 레퍼런스(바닥 위 큐브 하나)의 느낌만 · 3D 라이브러리 없이 꼭짓점 8개를 직접 투영해 새로 작성). 빈 스튜디오 벽 · 바닥 위에
+// 단색 큐브 하나, 벽엔 바닥선 근처 빛 번짐, 바닥엔 부드러운 그림자. 큐브는 아래 1/3에 작게, 가운데 ~ 오른쪽(날짜가 왼쪽 아래라서, 가운데면 조금 위), 글은 벽 위라 박스 없이.
+// 색 10가지(벽 · 바닥 · 보색 큐브, 어두운 8 · 연한 2). 셔플 = 크기 · 자리 · 각도 · 바닥선 기울기 · 내려다보는 각도. 모션 = 10초에 한 바퀴, 두 번 살짝 떠요
+export const CUBE_PAL = [   // [이름, 벽, 바닥, 큐브]
+  ['버건디 · 민트', '#7A1A2A', '#3E1A24', '#5BC4BE'], ['남색 · 살구', '#1B2A5A', '#121A38', '#FFB38A'], ['숲 · 분홍', '#1E4A36', '#12281F', '#FF9EB8'], ['보라 · 레몬', '#4A2A7A', '#241640', '#F4E36A'],
+  ['먹 · 주황', '#2A2A2E', '#18181B', '#FF7A3D'], ['청록 · 코랄', '#0F4C5C', '#0A2A33', '#FF7F6B'], ['자두 · 하늘', '#5A1E4A', '#2E1028', '#8FD3FF'], ['올리브 · 라일락', '#4A4A1E', '#262612', '#C7A8FF'],
+  ['종이 · 파랑', '#EFE9DE', '#DCD3C3', '#3F6FD8'], ['연분홍 · 초록', '#F6E4E4', '#E6CFCF', '#2F9E7A'],
+];
+export const cubePal = (seed, pal) => pal != null && CUBE_PAL[+pal] ? +pal : ((seed >>> 0) || 1) % CUBE_PAL.length;
+export const cubeLight = (seed, pal) => { const [r, g, b] = hx3(CUBE_PAL[cubePal(seed, pal)][1]); return .2126 * r + .7152 * g + .0722 * b > .5; };
+const cubeCache = new Map();
+function cubeOf(seed) {
+  if (cubeCache.has(seed)) return cubeCache.get(seed);
+  const r = rng(seed ^ 0x51c3), p = { size: .11 + r() * .07, pos: [.5, .62, .74][Math.floor(r() * 3)], tilt: (r() - .5) * .14, a: r() * 6.28, el: .42 + r() * .12 };
+  if (cubeCache.size > 60) cubeCache.delete(cubeCache.keys().next().value);
+  cubeCache.set(seed, p); return p;
+}
+const CB_V = [[-1, -1, -1], [1, -1, -1], [1, 1, -1], [-1, 1, -1], [-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1]];
+const CB_F = [[[0, 1, 2, 3], [0, 0, -1]], [[5, 4, 7, 6], [0, 0, 1]], [[4, 0, 3, 7], [-1, 0, 0]], [[1, 5, 6, 2], [1, 0, 0]], [[3, 2, 6, 7], [0, 1, 0]], [[4, 5, 1, 0], [0, -1, 0]]];
+function drawCube(cv, seed, t, grain) {
+  const W = cv.width, H = cv.height, P = cubeOf(seed), C = CUBE_PAL[cubePal(seed, cv.dataset.pal)], light = cubeLight(seed, cv.dataset.pal), x = cv.getContext('2d');
+  const K = v => v.map(q => q * 255), wall = K(hx3(C[1])), floor = K(hx3(C[2])), cube = K(hx3(C[3])), mix = (A, B, k) => A.map((v, i) => v + (B[i] - v) * k), css = (c, a = 1) => `rgba(${c.map(Math.round).join(',')},${a})`;
+  const tall = H / W > 1.6, mid = P.pos === .5, ang = P.a + t / 10 * Math.PI * 2, lift = (Math.sin(t / 10 * Math.PI * 4) * .5 + .5) * .35 * (t > 0 ? 1 : 0);
+  const fy = H * (tall ? .76 : .66) - (mid && !tall ? H * .03 : 0), y0 = fy - P.tilt * W / 2, y1 = fy + P.tilt * W / 2;
+  x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1;
+  let gr = x.createLinearGradient(0, 0, 0, fy); gr.addColorStop(0, css(mix(wall, [0, 0, 0], light ? .06 : .35))); gr.addColorStop(1, css(mix(wall, [255, 255, 255], light ? .3 : .12)));
+  x.fillStyle = gr; x.fillRect(0, 0, W, H);
+  const gl = x.createRadialGradient(W * P.pos, fy, 0, W * P.pos, fy, W * .8); gl.addColorStop(0, css(mix(wall, [255, 255, 255], light ? .5 : .22), .7)); gl.addColorStop(1, css(wall, 0));
+  x.fillStyle = gl; x.fillRect(0, 0, W, H);
+  x.beginPath(); x.moveTo(0, y0); x.lineTo(W, y1); x.lineTo(W, H); x.lineTo(0, H); x.closePath();
+  gr = x.createLinearGradient(0, fy, 0, H); gr.addColorStop(0, css(mix(floor, wall, .25))); gr.addColorStop(1, css(mix(floor, [0, 0, 0], light ? .04 : .3))); x.fillStyle = gr; x.fill();
+  const S = W * P.size / 1.8, cx = W * P.pos, by = H * (tall ? .91 : .87) - (mid && !tall ? H * .05 : 0), ca = Math.cos(ang), sa = Math.sin(ang), ce = Math.cos(P.el), se = Math.sin(P.el);   // 가운데면 날짜와 떨어지게 조금 위
+  const rot = ([a, b, c]) => [a * ca + c * sa, b, -a * sa + c * ca];
+  const prj = p => { const [a, b, c] = rot(p); return [cx + a * S, by - ((b + 1 + lift) * ce - c * se) * S]; };
+  const sh = x.createRadialGradient(0, 0, 0, 0, 0, 1); sh.addColorStop(0, `rgba(0,0,0,${(light ? .22 : .45) * (1 - lift * .8)})`); sh.addColorStop(1, 'rgba(0,0,0,0)');
+  x.save(); x.translate(cx + S * .35, by + S * .15); x.scale(S * (1.9 + lift), S * (.7 + lift * .3)); x.fillStyle = sh; x.beginPath(); x.arc(0, 0, 1, 0, 7); x.fill(); x.restore();
+  const L = [-.5, .8, .45], ln = Math.hypot(...L);
+  CB_F.map(([ix, n]) => { const rn = rot(n); return { ix, rn, dep: rn[2] * ce + rn[1] * se }; }).filter(f => f.dep > 0).sort((p, q) => p.dep - q.dep).forEach(f => {
+    const k = .5 + .5 * Math.max(0, (f.rn[0] * L[0] + f.rn[1] * L[1] + f.rn[2] * L[2]) / ln);
+    x.fillStyle = css(mix([0, 0, 0], cube, k)); x.beginPath(); f.ix.forEach((i, j) => { const [X, Y] = prj(CB_V[i]); j ? x.lineTo(X, Y) : x.moveTo(X, Y); }); x.closePath(); x.fill();
+    x.strokeStyle = x.fillStyle; x.lineWidth = Math.max(.5, W / 900); x.stroke();   // 면 사이 틈 메우기
+  });
+  if (grain) { x.globalCompositeOperation = 'soft-light'; x.globalAlpha = grain; x.fillStyle = x.createPattern(gbNoise(), 'repeat'); x.fillRect(0, 0, W, H); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; }
+}
 function fractalTile(o, seed) {
   if (o.tile) return o.tile;
   const G = 300, cnt = frDensity(o.P, G, 22000, 34, seed), vals = Float32Array.from(cnt.filter(v => v > 0)).sort(), L = vals.length || 1;
@@ -1069,6 +1114,7 @@ export function drawCode(cv, seed, shift = 0, t = 0, grainAmt = cv.dataset.gr ==
   if (cv.dataset.code === 'neon') return drawNeon(cv, seed, t, cv.dataset.gr === '0' ? 0 : .05);
   if (cv.dataset.code === 'fractal') return drawFractal(cv, seed, t);
   if (cv.dataset.code === 'plasma') return drawPlasma(cv, seed, t, cv.dataset.gr === '0' ? 0 : .025);
+  if (cv.dataset.code === 'cube') return drawCube(cv, seed, t, cv.dataset.gr === '0' ? 0 : .3);
   if (cv.dataset.code === 'gband') return drawGband(cv, seed, t, cv.dataset.gr === '0' ? 0 : .35);
   if (cv.dataset.code === 'retro') return drawRetro(cv, seed, t, cv.dataset.gr === '0' ? 0 : .03);
   if (cv.dataset.code === 'pixel') return drawPixel(cv, seed, t, cv.dataset.gr === '0' ? 0 : .03);
