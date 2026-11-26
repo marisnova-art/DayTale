@@ -1984,7 +1984,7 @@ const REC_T = { 밤: '밤에 쓰기 좋은', 비: '비 오는 날엔', 눈: '눈
 const WXK = { sun: '맑음', suncloud: '구름 조금', cloud: '흐림', rain: '비', snow: '눈', thunder: '천둥', fog: '안개' };
 const dayLine = (now = new Date()) => { let w = ''; try { const x = JSON.parse(localStorage.getItem('daytale.wx') || 'null'); if (x && Date.now() - x.at < 3 * 3600e3 && WXK[x.kind]) w = ` · ${WXK[x.kind]}${x.temp != null ? ` ${x.temp}°` : ''}`; } catch {} return `${now.getMonth() + 1}월 ${now.getDate()}일 ${'일월화수목금토'[now.getDay()]}요일${w}`; };
 // 78차: 새 버전 확인. 앱으로 돌아올 때(다른 앱 갔다 오기) version.txt가 지금과 다르면 저절로 새로 고쳐요. 쓰는 중엔 안 해요
-const BUILD = '137', BUILD_TAG = '11-27 137차';
+const BUILD = '138', BUILD_TAG = '11-27 138차';
 let verAt = 0;
 const checkVer = () => {
   if (document.hidden || Date.now() - verAt < 20e3) return; verAt = Date.now();
@@ -2175,7 +2175,9 @@ function viewWrite({ fmt, id, like }) {
   root.style.setProperty('--kbh', kbh + 'px');
   const kb = () => {
     raf = 0; if (!vv) return;
-    const h = Math.max(0, Math.round(innerHeight - vv.height - vv.offsetTop)), open = h > 80;
+    // 11-27: 열림 판단은 밀린 만큼(offsetTop)을 빼지 않은 높이로도 봐요. 글이 한꺼번에 바뀌면 아이폰이 커서 쪽으로 화면을 밀어 올려서
+    // (offsetTop↑) 키보드가 내려간 것처럼 읽히던 문제 (인용 · 모두 지우기 · ↶ · ↷ 뒤 1차 화면으로 가던 것)
+    const h = Math.max(0, Math.round(innerHeight - vv.height - vv.offsetTop)), open = h > 80 || innerHeight - vv.height > 80;
     root.style.setProperty('--vvh', Math.round(vv.height) + 'px'); root.style.setProperty('--vvt', Math.round(vv.offsetTop) + 'px');
     root.classList.toggle('kb-open', open);
     if (open && h > 160 && Math.abs(h - kbh) > 4) {
@@ -2185,7 +2187,18 @@ function viewWrite({ fmt, id, like }) {
     }
     if (open && st.waitKb) endWait();
     // 아이폰 키보드의 내림 단추로 내려도 스타일 보기로 (글 칸에 커서만 남아 있지 않게)
-    if (wasOpen && !open && !st.panel && !st.waitKb && document.activeElement?.matches?.('.wr .body')) document.activeElement.blur();
+    if (wasOpen && !open && !st.panel && !st.waitKb && document.activeElement?.matches?.('.wr .body')) {
+      // 0.3초 뒤 다시 재서 그래도 내려가 있을 때만 · 도구 줄을 누른 직후(0.8초)는 쉬어요
+      clearTimeout(st.kbT);
+      const check = () => {
+        if (gone || st.panel || st.waitKb || root.classList.contains('kb-open')) return;
+        const wait = 800 - (Date.now() - (st.toolAt || 0));
+        if (wait > 0) { st.kbT = setTimeout(check, wait); return; }
+        if (Math.round(innerHeight - vv.height) > 80) return;
+        if (document.activeElement?.matches?.('.wr .body')) { document.activeElement.blur(); mode(); }
+      };
+      st.kbT = setTimeout(check, 300);
+    }
     if (wasOpen && !open && !st.panel && infOpen() && !document.activeElement?.matches?.('.ipn input')) closeInf();   // 키보드 위 ✓로 내려도 날짜 · 장소 · 서명 화면을 닫아요
     wasOpen = open;
     if (!open && (scrollY || vv.offsetTop)) scrollTo(0, 0);   // 아이폰이 키보드를 내린 뒤 화면을 밀어 둔 채로 두지 않게
@@ -2565,9 +2578,9 @@ function viewWrite({ fmt, id, like }) {
   const shake = b => { b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake'); };
 
   $$('.tb .t').forEach(b => {
-    b.addEventListener('pointerdown', e => e.preventDefault());   // 눌러도 키보드 · 커서가 그대로
+    b.addEventListener('pointerdown', e => { e.preventDefault(); st.toolAt = Date.now(); });   // 눌러도 키보드 · 커서가 그대로
     b.onclick = () => {
-      const k = b.dataset.t;
+      const k = b.dataset.t; st.toolAt = Date.now();
       if (b.classList.contains('off') || b.classList.contains('hid')) return shake(b);
       flush();
       if (k === 'ratio') {   // 4:5 → 9:16 → 1:1. 카드 자체가 그 비율로 (저장 이미지도 그대로)
