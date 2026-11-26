@@ -33,6 +33,7 @@ export const PAID = [
   { id: 'stars', img: './bg/stars.webp', tone: '#3a3f7a', ink: '#F3E6C8', dim: ['center', '0,0,0', .55] },
   { id: 'bands', code: 'bands', tone: '#a35cff', ink: '#fff', dim: ['center', '40,16,70', .55] },
   { id: 'slit', code: 'slit', tone: '#F07F3C', ink: '#fff', dim: ['all', '10,8,14', 0] },
+  { id: 'retro', code: 'retro', tone: '#2FE0B4', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 레트로 픽셀 (109차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'pixel', code: 'pixel', tone: '#DCCB2A', ink: '#1E1B18', dim: ['center', '0,0,0', 0] },   // 픽셀 체커 (105차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'fractal', code: 'fractal', tone: '#1F6F99', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 프랙탈 패턴 (107차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'plasma', code: 'plasma', tone: '#0A6E8C', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 플라즈마 (106차): 글자색은 바탕 밝기로 (formats.js)
@@ -957,6 +958,46 @@ function fractalOf(seed) {
 }
 export const fractalLight = seed => { const o = fractalOf(seed), C = FRACTAL_PAL[o.pal], [r, g, b] = hx3(o.inv ? C[5] : C[1]); return .2126 * r + .7152 * g + .0722 * b > .5; };
 // 타일은 한 번만 계산해서 기억해요 (밝기 순위 → 다섯 색, 고운 결도 같이 구워요)
+// 레트로 픽셀 (11-26 109차, 앤드류 레퍼런스(진동판 마디선 점 격자)의 원리만 · 식과 코드는 새로 작성). 네모 픽셀 격자 위에서 두 진동 모양의 합이
+// 0에 가까운 자리(모래가 모이는 마디선)만 켜고, 밝기는 4단계로 끊어 레트로하게. 색은 가운데 → 바깥으로 세 색(무지개 묶음은 색상환).
+// 글 뒤 박스 없이 가운데 넓은 타원에서 픽셀을 옅게. 모션 = 두 모양 사이를 8초에 한 번 오가요. 셔플 = 대칭 모양 · 픽셀 크기 (+ 칩 안 고르면 색 10가지 중)
+export const RETRO_PAL = [   // [이름, 바탕, 안쪽 색, 가운데 색, 바깥 색, 무지개?]
+  ['무지개', '#07070C', '#FF5A7A', '#FFD25A', '#5AD7FF', 1], ['네온 민트', '#04110F', '#D9FFF1', '#2FE0B4', '#0E8F7A'], ['노을', '#120708', '#FFD08A', '#E8664A', '#9A2340'],
+  ['보라', '#0B0716', '#F0D6FF', '#A47CF4', '#5A34A8'], ['바다', '#03101C', '#CFF4FF', '#3AAEE0', '#155A92'], ['금빛', '#0E0B05', '#FFF0C2', '#E0AE45', '#8A5F18'],
+  ['체리', '#14060C', '#FFD6E8', '#F25596', '#A31F58'], ['모노', '#0B0B0B', '#F4F4F4', '#A8A8A8', '#5A5A5A'], ['종이', '#F3EEE3', '#6B5646', '#9A7A5E', '#B98A64'], ['하늘빛', '#E6F0F7', '#245F96', '#3D7CB8', '#6FA3D6'],
+];
+export const retroPal = (seed, pal) => pal != null && RETRO_PAL[+pal] ? +pal : ((seed >>> 0) || 1) % RETRO_PAL.length;
+export const retroLight = (seed, pal) => { const [r, g, b] = hx3(RETRO_PAL[retroPal(seed, pal)][1]); return .2126 * r + .7152 * g + .0722 * b > .5; };
+const RT_MODES = [[1, 2], [2, 3], [1, 4], [3, 4], [2, 5], [3, 5], [1, 6], [4, 5], [3, 7], [5, 6]];
+const retroCache = new Map();
+function retroOf(seed) {
+  if (retroCache.has(seed)) return retroCache.get(seed);
+  const r = rng(seed ^ 0x3c71), md = () => { const [n, m] = RT_MODES[Math.floor(r() * RT_MODES.length)]; return { n, m, a: r() < .5 ? 1 : -1, b: r() < .5 ? 1 : -1 + r() * .6 }; };
+  const p = { np: [40, 44, 50, 57][Math.floor(r() * 4)], A: md(), B: md(), ph: r() * 6.28, hue: r() * 360 };
+  if (retroCache.size > 60) retroCache.delete(retroCache.keys().next().value);
+  retroCache.set(seed, p); return p;
+}
+function hslRgb(h, s, l) { const a = s * Math.min(l, 1 - l), f = n => { const k = (n + h / 30) % 12; return l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)); }; return [f(0), f(8), f(4)]; }
+function drawRetro(cv, seed, t, grainAmt) {
+  const W = cv.width, H = cv.height, P = retroOf(seed), C = RETRO_PAL[retroPal(seed, cv.dataset.pal)], light = retroLight(seed, cv.dataset.pal);
+  const bg = hx3(C[1]), cI = hx3(C[2]), cM = hx3(C[3]), cO = hx3(C[4]), x = cv.getContext('2d');
+  const cs = W / P.np, cols = P.np, rows = Math.ceil(H / cs), asp = H / W, PI = Math.PI, cy = asp > 1.6 ? .16 : 0;   // 9:16은 글 자리가 조금 위
+  const ph = (Math.sin(t / 8 * PI * 2 + P.ph) + 1) / 2, s = Math.max(1, cs * .72), o = (cs - s) / 2, hr = rng(seed * 7 + 3);
+  const f = (M, X, Y) => M.a * Math.sin(PI * M.n * X) * Math.sin(PI * M.m * Y) + M.b * Math.sin(PI * M.m * X) * Math.sin(PI * M.n * Y);
+  x.fillStyle = C[1]; x.fillRect(0, 0, W, H);
+  for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
+    const X = (i + .5) / cols * 2 - 1, Yh = ((j + .5) * cs / H) * 2 - 1, Y = Yh * asp;   // Yh = 높이 기준 -1~1
+    let v = 1 - Math.min(1, Math.abs(f(P.A, X, Y) + (f(P.B, X, Y) - f(P.A, X, Y)) * ph) / .34); v = v * v * (3 - 2 * v);
+    v = Math.round(v * 4) / 4; const g = grainAmt ? (hr() - .5) * grainAmt : 0;   // 노이즈도 픽셀 단위로 (꺼진 칸에도 같은 순서로 뽑아요)
+    if (v <= 0) continue;
+    const e = Math.hypot(X / .78, (Yh + cy) / (asp > 1.6 ? .46 : .5)), veil = 1 - (light ? .82 : .76) * (1 - Math.min(1, Math.max(0, (e - .55) / .5)));
+    const d = Math.min(1, Math.hypot(X, Yh) / 1.25);
+    const c = C[5] ? hslRgb((d * 300 + t * 12 + P.hue) % 360, .72, .6) : d < .5 ? cI.map((q, k) => q + (cM[k] - q) * d / .5) : cM.map((q, k) => q + (cO[k] - q) * (d - .5) / .5);
+    const a = v * veil * (light ? .78 : 1);
+    x.fillStyle = `rgb(${c.map((q, k) => Math.round(Math.min(1, Math.max(0, bg[k] + (q - bg[k]) * a + g)) * 255)).join(',')})`;
+    x.fillRect(Math.round(i * cs + o), Math.round(j * cs + o), Math.round(s), Math.round(s));
+  }
+}
 function fractalTile(o, seed) {
   if (o.tile) return o.tile;
   const G = 300, cnt = frDensity(o.P, G, 22000, 34, seed), vals = Float32Array.from(cnt.filter(v => v > 0)).sort(), L = vals.length || 1;
@@ -988,6 +1029,7 @@ export function drawCode(cv, seed, shift = 0, t = 0, grainAmt = cv.dataset.gr ==
   if (cv.dataset.code === 'neon') return drawNeon(cv, seed, t, cv.dataset.gr === '0' ? 0 : .05);
   if (cv.dataset.code === 'fractal') return drawFractal(cv, seed, t);
   if (cv.dataset.code === 'plasma') return drawPlasma(cv, seed, t, cv.dataset.gr === '0' ? 0 : .025);
+  if (cv.dataset.code === 'retro') return drawRetro(cv, seed, t, cv.dataset.gr === '0' ? 0 : .03);
   if (cv.dataset.code === 'pixel') return drawPixel(cv, seed, t, cv.dataset.gr === '0' ? 0 : .03);
   if (cv.dataset.code === 'mesh') return drawMesh(cv, seed, t, cv.dataset.gr === '0' ? 0 : .04);
   if (cv.dataset.code === 'eclipse') return drawEclipse(cv, seed, t, cv.dataset.gr === '0' ? 0 : .05);
