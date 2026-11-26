@@ -33,6 +33,7 @@ export const PAID = [
   { id: 'stars', img: './bg/stars.webp', tone: '#3a3f7a', ink: '#F3E6C8', dim: ['center', '0,0,0', .55] },
   { id: 'bands', code: 'bands', tone: '#a35cff', ink: '#fff', dim: ['center', '40,16,70', .55] },
   { id: 'slit', code: 'slit', tone: '#F07F3C', ink: '#fff', dim: ['all', '10,8,14', 0] },
+  { id: 'fold', code: 'fold', tone: '#3A80F8', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 크롬 폴드 (129차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'swarm', code: 'swarm', tone: '#40F0D0', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 스웜 (128차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'dotw', code: 'dotw', tone: '#3A50F0', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 도트 웨이브 (127차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'cloud', code: 'cloud', tone: '#1868F0', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 클라우드 텍스처 (126차): 글자색은 바탕 밝기로 (formats.js)
@@ -1848,6 +1849,86 @@ function drawSwarm(cv, seed, t) {
   for (const q of pts) { const d = Math.max(0, Math.min(1, (q[2] - 2) / 2.4)), R = q[4] * k0 / q[2]; x.globalAlpha = a0 * (1 - d * .7); x.drawImage(SP[q[3]], q[0] - R, q[1] - R, R * 2, R * 2); }
   x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1;
 }
+// 크롬 폴드 (129차): 대각선 띠가 겹겹이 접힌 광택 금속(크롬) 리본 · 한 색 계열 안에서 밝은 반사와 깊은 그림자 · 띠 경계는 날카롭게 꺾여요.
+// 레퍼런스의 원리만(한쪽 방향으로만 계단지는 노이즈를 노이즈로 두 번 휘게 → 접힌 면) · 식과 코드는 새로 작성. 셔플 = 띠 기울기 · 폭 · 반사 무늬 · 색.
+// 모션 = 반사 무늬가 흐르며 띠가 조금씩 다시 접혀요. GPU 쉐이더로 그리고, 안 되면 작은 캔버스 CPU로 대신. 글 뒤를 가리지 않고 전체 밝기만 눌러 주고 글자에 옅은 그림자(.fsh)
+export const FOLD_PAL = [   // [이름, 밝은 색, 깊은 색, 밝은 바탕?]
+  ['라임', '#8EE040', '#063A2A'], ['코발트', '#3A80F8', '#0A1450'], ['로즈 골드', '#F0A090', '#4A1A20'], ['바이올렛', '#B080F8', '#200A48'],
+  ['실버', '#D8E0E8', '#1A2028'], ['앰버', '#F8B040', '#3A1800'], ['아쿠아', '#40E0D0', '#06302E'], ['마젠타', '#F050B0', '#3A0628'],
+  ['펄', '#FFFFFF', '#A8B0C8', 1], ['샴페인', '#FFF8E8', '#C8A880', 1]];
+export const foldPal = (seed, pal) => pal != null && FOLD_PAL[+pal] ? +pal : ((seed >>> 0) || 1) % FOLD_PAL.length;
+export const foldLight = (seed, pal) => !!FOLD_PAL[foldPal(seed, pal)][3];
+const foldCache = new Map();
+function foldOf(seed) {
+  if (foldCache.has(seed)) return foldCache.get(seed);
+  const r = rng(seed ^ 0x0f01), p = { sc: .2 + r() * .18, rot: (r() < .6 ? -.7 : .95) + (r() - .5) * .3, wi: 1.4 + r() * 1.8, t0: r() * 60 };
+  if (foldCache.size > 60) foldCache.delete(foldCache.keys().next().value);
+  foldCache.set(seed, p); return p;
+}
+const FO_GLSL = `precision highp float;
+uniform vec2 uRes; uniform float uT, uSc, uRot, uWi, uBr, uLight; uniform vec3 uC1, uC2;
+float rn(vec2 p) { return fract(sin(dot(p, vec2(-.82, -.84))) * 4757.153); }
+float nz(vec2 p) { vec2 b = floor(p), f = p - b; f = vec2(smoothstep(0., .07, f.x), smoothstep(0., .99, f.y));   // 가로로만 계단 → 접힌 면
+  return mix(mix(rn(b), rn(b + vec2(1., 0.)), f.x), mix(rn(b + vec2(0., 1.)), rn(b + vec2(1., 1.)), f.x), f.y); }
+float fb(vec2 p, float t) { float v = sin(t * .1) * .2, a = .25; mat2 m = mat2(.8776, .3195, -.7782, .9004);
+  for (int i = 0; i < 3; i++) { v += a * nz(p); p = m * p * 2. + 100.; a *= 2.; } return v; }
+void main() {
+  vec2 u0 = (gl_FragCoord.xy * 2. - uRes) / min(uRes.x, uRes.y) * uSc; float cr = cos(uRot), sr = sin(uRot), t = uT;
+  vec2 p = vec2(u0.x * cr - u0.y * sr, u0.x * sr + u0.y * cr), c = p * .2; float ln = 0.;
+  for (int k = 0; k < 3; k++) { ln = length(c); c.x += sin(c.y + t * .1) * uWi; c.y += cos(c.x + t * .3 + cos(ln)); } ln -= 3.;
+  vec2 q = vec2(fb(p, t), fb(p + vec2(-.45, .65), t)), r = vec2(fb(p + q + vec2(.57 + .07 * t, .52), t), fb(p + q + vec2(.34, -.57 + .05 * t), t));
+  float f = fb(p + r, t), sh = (f * f * f + .6 * f * f + .5 * f) * uBr;
+  vec3 base = mix(uC2, uC1, .5 + .5 * cos(ln + vec3(.5, 0., .1)));
+  vec3 col = uLight > .5 ? .35 + base * sh * .8 : base * sh;
+  gl_FragColor = vec4(clamp(col, 0., 1.), 1.);
+}`;
+let FOG = null;
+function foGl() {
+  if (FOG !== null) return FOG;
+  FOG = false;
+  try {
+    const cv = document.createElement('canvas'), g = cv.getContext('webgl', { premultipliedAlpha: false, preserveDrawingBuffer: true });
+    if (!g) return FOG;
+    const sh = (type, src) => { const o = g.createShader(type); g.shaderSource(o, src); g.compileShader(o); if (!g.getShaderParameter(o, g.COMPILE_STATUS)) throw new Error(g.getShaderInfoLog(o)); return o; };
+    const pr = g.createProgram();
+    g.attachShader(pr, sh(g.VERTEX_SHADER, 'attribute vec2 a; void main() { gl_Position = vec4(a, 0., 1.); }'));
+    g.attachShader(pr, sh(g.FRAGMENT_SHADER, FO_GLSL)); g.linkProgram(pr); g.useProgram(pr);
+    const buf = g.createBuffer(); g.bindBuffer(g.ARRAY_BUFFER, buf); g.bufferData(g.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), g.STATIC_DRAW);
+    const a = g.getAttribLocation(pr, 'a'); g.enableVertexAttribArray(a); g.vertexAttribPointer(a, 2, g.FLOAT, false, 0, 0);
+    const u = {}; ['uRes', 'uT', 'uSc', 'uRot', 'uWi', 'uBr', 'uLight', 'uC1', 'uC2'].forEach(k => { u[k] = g.getUniformLocation(pr, k); });
+    FOG = { cv, g, u };
+  } catch (e) { console.warn('fold gl', e); FOG = false; }
+  return FOG;
+}
+// WebGL이 없을 때: 작은 캔버스에 같은 식을 계산하고 키워요
+function foldCpu(cv, P, E, t) {
+  const W = cv.width, H = cv.height, w = t > 0 ? 160 : 300, h = Math.max(1, Math.round(w * H / W)), sc = document.createElement('canvas'); sc.width = w; sc.height = h;
+  const x = sc.getContext('2d'), im = x.createImageData(w, h), D = im.data, C1 = hx3(E[1]), C2 = hx3(E[2]), light = !!E[3], br = light ? .55 : .62;
+  const rn = (a, b) => { const v = Math.sin(a * -.82 + b * -.84) * 4757.153; return v - Math.floor(v); };
+  const nz = (px, py) => { const bx = Math.floor(px), by = Math.floor(py); let fx = Math.min(1, (px - bx) / .07), fy = Math.min(1, (py - by) / .99); fx = fx * fx * (3 - 2 * fx); fy = fy * fy * (3 - 2 * fy); const a = rn(bx, by), b = rn(bx + 1, by), c = rn(bx, by + 1), d = rn(bx + 1, by + 1); return (a + (b - a) * fx) * (1 - fy) + (c + (d - c) * fx) * fy; };
+  const fb = (px, py) => { let v = Math.sin(t2 * .1) * .2, a = .25; for (let i = 0; i < 3; i++) { v += a * nz(px, py); const nx = (.8776 * px - .7782 * py) * 2 + 100, ny = (.3195 * px + .9004 * py) * 2 + 100; px = nx; py = ny; a *= 2; } return v; };
+  const t2 = P.t0 + t * .6, cr = Math.cos(P.rot), sr = Math.sin(P.rot), m = Math.min(w, h);
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+    const u0 = ((i + .5) * 2 - w) / m * P.sc, v0 = ((h - j - .5) * 2 - h) / m * P.sc, X = u0 * cr - v0 * sr, Y = u0 * sr + v0 * cr;
+    let cx = X * .2, cy = Y * .2, ln = 0; for (let k = 0; k < 3; k++) { ln = Math.hypot(cx, cy); cx += Math.sin(cy + t2 * .1) * P.wi; cy += Math.cos(cx + t2 * .3 + Math.cos(ln)); } ln -= 3;
+    const qx = fb(X, Y), qy = fb(X - .45, Y + .65), rx = fb(X + qx + .57 + .07 * t2, Y + qy + .52), ry = fb(X + qx + .34, Y + qy - .57 + .05 * t2), f = fb(X + rx, Y + ry);
+    const shd = (f * f * f + .6 * f * f + .5 * f) * br, o = (j * w + i) * 4, cs = [Math.cos(ln + .5), Math.cos(ln), Math.cos(ln + .1)];
+    for (let z = 0; z < 3; z++) { const base = C2[z] + (C1[z] - C2[z]) * (.5 + .5 * cs[z]); D[o + z] = 255 * Math.min(1, Math.max(0, light ? .35 + base * shd * .8 : base * shd)); }
+    D[o + 3] = 255;
+  }
+  x.putImageData(im, 0, 0); const g = cv.getContext('2d'); g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1; g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'low'; g.drawImage(sc, 0, 0, W, H);
+}
+function drawFold(cv, seed, t) {
+  const W = cv.width, H = cv.height, P = foldOf(seed), E = FOLD_PAL[foldPal(seed, cv.dataset.pal)], R = foGl();
+  if (!R) return foldCpu(cv, P, E, t);
+  const { cv: gc, g, u } = R, k = t > 0 ? Math.min(1, 480 / W) : 1, w = Math.round(W * k), h = Math.round(H * k);   // 움직일 땐 폭 480까지만
+  if (gc.width !== w || gc.height !== h) { gc.width = w; gc.height = h; }
+  g.viewport(0, 0, w, h);
+  g.uniform2f(u.uRes, w, h); g.uniform1f(u.uT, P.t0 + t * .6); g.uniform1f(u.uSc, P.sc); g.uniform1f(u.uRot, P.rot); g.uniform1f(u.uWi, P.wi);
+  g.uniform1f(u.uBr, E[3] ? .55 : .62); g.uniform1f(u.uLight, E[3] ? 1 : 0); g.uniform3fv(u.uC1, hx3(E[1])); g.uniform3fv(u.uC2, hx3(E[2]));
+  g.drawArrays(g.TRIANGLES, 0, 3);
+  const x = cv.getContext('2d'); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; x.imageSmoothingEnabled = true; x.drawImage(gc, 0, 0, W, H);
+}
 function fractalTile(o, seed) {
   if (o.tile) return o.tile;
   const G = 300, cnt = frDensity(o.P, G, 22000, 34, seed), vals = Float32Array.from(cnt.filter(v => v > 0)).sort(), L = vals.length || 1;
@@ -1879,6 +1960,7 @@ export function drawCode(cv, seed, shift = 0, t = 0, grainAmt = cv.dataset.gr ==
   if (cv.dataset.code === 'neon') return drawNeon(cv, seed, t, cv.dataset.gr === '0' ? 0 : .05);
   if (cv.dataset.code === 'fractal') return drawFractal(cv, seed, t);
   if (cv.dataset.code === 'plasma') return drawPlasma(cv, seed, t, cv.dataset.gr === '0' ? 0 : .025);
+  if (cv.dataset.code === 'fold') return drawFold(cv, seed, t);
   if (cv.dataset.code === 'swarm') return drawSwarm(cv, seed, t);
   if (cv.dataset.code === 'dotw') return drawDotw(cv, seed, t);
   if (cv.dataset.code === 'cloud') return drawCloud(cv, seed, t, cv.dataset.gr === '0' ? 0 : .12);
