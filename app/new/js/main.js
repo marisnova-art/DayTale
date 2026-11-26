@@ -496,7 +496,7 @@ function recallOf(mine) {
   const old = TEST_RECALL && mine.filter(m => m.date && m.date < t).at(-1);
   return old ? { c: old, n: 1 } : null;
 }
-const TEST_RECALL = true;
+const TEST_RECALL = false;   // 145차 앤드류: 테스트 카드 끔 (실제로 예전 해 같은 날 카드가 있을 때만)
 // NEW 포맷 카드: 아직 안 써 본 포맷만, 하루에 한 번씩 세서 3번 보면 더는 안 나와요
 function promoFormats(mine) {
   const seen = S.pref('promo', {});
@@ -1984,7 +1984,7 @@ const REC_T = { 밤: '밤에 쓰기 좋은', 비: '비 오는 날엔', 눈: '눈
 const WXK = { sun: '맑음', suncloud: '구름 조금', cloud: '흐림', rain: '비', snow: '눈', thunder: '천둥', fog: '안개' };
 const dayLine = (now = new Date()) => { let w = ''; try { const x = JSON.parse(localStorage.getItem('daytale.wx') || 'null'); if (x && Date.now() - x.at < 3 * 3600e3 && WXK[x.kind]) w = ` · ${WXK[x.kind]}${x.temp != null ? ` ${x.temp}°` : ''}`; } catch {} return `${now.getMonth() + 1}월 ${now.getDate()}일 ${'일월화수목금토'[now.getDay()]}요일${w}`; };
 // 78차: 새 버전 확인. 앱으로 돌아올 때(다른 앱 갔다 오기) version.txt가 지금과 다르면 저절로 새로 고쳐요. 쓰는 중엔 안 해요
-const BUILD = '144', BUILD_TAG = '11-27 144차';
+const BUILD = '145', BUILD_TAG = '11-27 145차';
 let verAt = 0;
 const checkVer = () => {
   if (document.hidden || Date.now() - verAt < 20e3) return; verAt = Date.now();
