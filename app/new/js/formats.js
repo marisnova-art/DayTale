@@ -1,5 +1,5 @@
 // 포맷 = 데이터 + 그리기. 카드는 가로 1080 기준으로 디자인하고 cqw 단위로 그려서, 화면 크기와 저장 이미지가 같은 모양이에요
-import { find as findBg, dimCss, drawCode, slitLum, swirlLight, neonLight, tunnelLight, eclipseLight, meshLight, pixelLight, retroLight, gbandLight, cubeLight, ccompLight, bmodLight, wintLight, specLight, cityLight, blobLight, lensLight, fieldLight, liquidLight, floatLight, cloudLight, dotwLight, swarmLight, foldLight, crainLight, orbLight, valleyLight, plasmaLight, fractalLight } from './bg.js';
+import { find as findBg, dimCss, drawCode, glyphLight, glyphLetters, slitLum, swirlLight, neonLight, tunnelLight, eclipseLight, meshLight, pixelLight, retroLight, gbandLight, cubeLight, ccompLight, bmodLight, wintLight, specLight, cityLight, blobLight, lensLight, fieldLight, liquidLight, floatLight, cloudLight, dotwLight, swarmLight, foldLight, crainLight, orbLight, valleyLight, plasmaLight, fractalLight } from './bg.js';
 import { bgUrl, keyOf, fidOf, grainLv, GRAPHIC } from './filters.js';
 import { rangeAt } from './rich.js';
 import { hydrate } from './stickers.js';
@@ -90,7 +90,7 @@ function bgLayer(c, page, pages) {
     if (u && cb.vd) base += '<canvas class="bgv"></canvas>';   // 영상: 커버 위에서 재생 (재생 중인 카드만 그려요)
   }
   else if (b.img) base = `<div class="bgi" style="background-image:url(${b.img});background-position:50% ${Math.round(shift * 100)}%"></div>`;
-  else if (b.code) base = `<canvas class="bgc" data-code="${b.code}" data-seed="${cb.seed || 1}" data-shift="${shift}"${cb.pal != null ? ` data-pal="${cb.pal}"` : ''}${cb.grain === false ? ' data-gr="0"' : ''}></canvas>`;
+  else if (b.code) base = `<canvas class="bgc" data-code="${b.code}" data-seed="${cb.seed || 1}" data-shift="${shift}"${cb.pal != null ? ` data-pal="${cb.pal}"` : ''}${b.code === 'glyph' ? ` data-lt="${glyphLetters(cardText(c)).join('')}"` : ''}${cb.grain === false ? ' data-gr="0"' : ''}></canvas>`;
   else base = `<div class="bgi" style="background:${b.css}"></div>${grainLayer(cb)}`;   // 색 배경도 노이즈 (사진은 사진에 구워 넣어요)
   const gfx = b.photo && GRAPHIC.has(c.filter) && cb?.dim !== 'light' ? '<div class="dimL" style="background:rgba(0,0,0,.18)"></div>' : '';   // 그래픽 필터는 점이 굵어 글 뒤를 조금 더
   const ex = EXTRA[dimLv(cb?.dim)];
@@ -100,6 +100,7 @@ function bgLayer(c, page, pages) {
   if (b.code === 'slit' && cb?.dim !== 'light') { const sl = slitLayer(c, page, shift, cb.seed || 1, ex); return { html: base + sl.html + more, ink: sl.ink, bink: sl.bink }; }
   if (b.code === 'fractal' && cb?.dim !== 'light') { const lt = fractalLight(cb.seed || 1) && ex < .4; return { html: base + more, ink: lt ? '#1E1B18' : '#fff' }; }   // 프랙탈 패턴 (107차)
   if (b.code === 'plasma' && cb?.dim !== 'light') { const lt = plasmaLight(cb.seed || 1, cb.pal) && ex < .4; return { html: base + more, ink: lt ? '#1E1B18' : '#fff' }; }   // 플라즈마 (106차): 글 둘레는 셰이더가 글자색에 맞춰 옅게
+  if (b.code === 'glyph' && cb?.dim !== 'light') { const lt = glyphLight(cb.seed || 1, cb.pal) && ex < .4; return { html: base + more + `<i class="fsh ${lt ? 'l' : 'd'}"></i>`, ink: lt ? '#1E1B18' : '#fff' }; }   // 글리프 콜라주 (143차): 글 뒤를 가리지 않고 글자에 옅은 그림자만
   if (b.code === 'valley' && cb?.dim !== 'light') { const lt = valleyLight(cb.seed || 1, cb.pal) && ex < .4; return { html: base + more + `<i class="fsh ${lt ? 'l' : 'd'}"></i>`, ink: lt ? '#1E1B18' : '#fff' }; }   // 앱스트랙트 밸리 (132차): 글 뒤를 가리지 않고 글자에 옅은 그림자만
   if (b.code === 'orb' && cb?.dim !== 'light') { const lt = orbLight(cb.seed || 1, cb.pal) && ex < .4; return { html: base + more + `<i class="fsh ${lt ? 'l' : 'd'}"></i>`, ink: lt ? '#1E1B18' : '#fff' }; }   // 루미너스 스피어 (131차): 글 뒤를 가리지 않고 글자에 옅은 그림자만
   if (b.code === 'crain' && cb?.dim !== 'light') { const lt = crainLight(cb.seed || 1, cb.pal) && ex < .4; return { html: base + more + `<i class="fsh ${lt ? 'l' : 'd'}"></i>`, ink: lt ? '#1E1B18' : '#fff' }; }   // 코드 레인 (130차): 글 뒤를 가리지 않고 글자에 옅은 그림자만
@@ -211,7 +212,7 @@ function photoTiles(pg, tx) {
     const m = ph.cloneNode(); m.classList.add('more'); m.style.top = (pad + off) + 'px'; ph.after(m);
   });
 }
-function fitText(el) {
+function fitText(el, c) {
   el.querySelectorAll('.pg').forEach(pg => {
     const tx = pg.querySelector('.tx'); if (!tx) return;
     pg.classList.remove('long', 'over'); pg.querySelectorAll('.brk').forEach(b => b.remove());
@@ -229,10 +230,11 @@ function fitText(el) {
       st.slice(1).forEach((off, k) => pg.insertAdjacentHTML('beforeend', `<div class="brk" style="top:${(pad + off - 4).toFixed(1)}px"><span>${k + 2}</span></div>`));
     }
   });
+  if (c) { const lt = glyphLetters(cardText(c)).join(''); el.querySelectorAll('canvas.bgc[data-code=glyph]').forEach(cv => { cv.dataset.lt = lt; }); }   // 글리프 콜라주: 글을 고치면 그림 속 내 글자도
   el.querySelectorAll('canvas.bgc').forEach(cv => {
     const w = cv.clientWidth; if (!w) return;
     const k = Math.min(3, window.devicePixelRatio || 1), W = Math.round(w * k), H = Math.min(Math.round(cv.clientHeight * k) || Math.round(W * 1.25), Math.round(W * 16 / 9));
-    const key = [cv.dataset.seed, cv.dataset.shift, H, cv.dataset.gr, cv.dataset.pal].join();
+    const key = [cv.dataset.seed, cv.dataset.shift, H, cv.dataset.gr, cv.dataset.pal, cv.dataset.lt].join();
     if (cv.width === W && cv.dataset.done === key) return;
     cv.width = W; cv.height = H; drawCode(cv, +cv.dataset.seed, +cv.dataset.shift); cv.dataset.done = key;
   });
@@ -268,7 +270,7 @@ export function ensure(f) {
 export const missing = fmts => [...new Set(fmts)].filter(f => f && !FORMATS[f] && !BAD.has(f));
 export const ORDER = ['rebus', 'art', 'text'];
 // 피드 · 쓰기 위에 보이는 '종류 · 템플릿'
-export const LABEL = { text: '기본', mag: '포스터 · 잡지 표지', rebus: '디자인 · 멤피스 타이포', art: '아트 · 오로라 커튼', hilite: '디자인 · 하이라이트 노트', slit: '아트 · 슬릿스캔', swirl: '아트 · 라이트 스월', neon: '아트 · 네온 플로우', tunnel: '아트 · 라이트 터널', eclipse: '아트 · 이클립스 링', mesh: '아트 · 네온 메시', pixel: '아트 · 픽셀 체커', retro: '아트 · 레트로 픽셀', gband: '아트 · 그라데이션 밴드', cube: '아트 · 미니멀 큐브', ccomp: '아트 · 큐브 컴포지션', valley: '아트 · 앱스트랙트 밸리', orb: '아트 · 루미너스 스피어', crain: '아트 · 코드 레인', fold: '아트 · 크롬 폴드', swarm: '아트 · 스웜', dotw: '아트 · 도트 웨이브', cloud: '아트 · 클라우드 텍스처', float: '아트 · 플로팅 셰이프', liquid: '아트 · 리퀴드', field: '아트 · 컬러 필드', lens: '아트 · 웨이브 렌즈', blob: '아트 · 컬러 블롭', city: '아트 · 3D 시티', spec: '아트 · 스펙트럼 커브', wint: '아트 · 웨이브 인터퍼런스', bmod: '아트 · 블록 모더니즘', plasma: '아트 · 플라즈마', fractal: '아트 · 프랙탈 패턴', pill: '디자인 · 그라데이션 필', dots: '디자인 · 서클 인덱스', wave: '디자인 · 웨이브 타이포', tower: '디자인 · 타이포 타워', symbol: '디자인 · 심볼 타이포', label: '디자인 · 라벨 콜라주', typer: '디자인 · 타이프라이터', vset: '디자인 · 비디오 세팅' };
+export const LABEL = { text: '기본', mag: '포스터 · 잡지 표지', glyph: '아트 · 글리프 콜라주', rebus: '디자인 · 멤피스 타이포', art: '아트 · 오로라 커튼', hilite: '디자인 · 하이라이트 노트', slit: '아트 · 슬릿스캔', swirl: '아트 · 라이트 스월', neon: '아트 · 네온 플로우', tunnel: '아트 · 라이트 터널', eclipse: '아트 · 이클립스 링', mesh: '아트 · 네온 메시', pixel: '아트 · 픽셀 체커', retro: '아트 · 레트로 픽셀', gband: '아트 · 그라데이션 밴드', cube: '아트 · 미니멀 큐브', ccomp: '아트 · 큐브 컴포지션', valley: '아트 · 앱스트랙트 밸리', orb: '아트 · 루미너스 스피어', crain: '아트 · 코드 레인', fold: '아트 · 크롬 폴드', swarm: '아트 · 스웜', dotw: '아트 · 도트 웨이브', cloud: '아트 · 클라우드 텍스처', float: '아트 · 플로팅 셰이프', liquid: '아트 · 리퀴드', field: '아트 · 컬러 필드', lens: '아트 · 웨이브 렌즈', blob: '아트 · 컬러 블롭', city: '아트 · 3D 시티', spec: '아트 · 스펙트럼 커브', wint: '아트 · 웨이브 인터퍼런스', bmod: '아트 · 블록 모더니즘', plasma: '아트 · 플라즈마', fractal: '아트 · 프랙탈 패턴', pill: '디자인 · 그라데이션 필', dots: '디자인 · 서클 인덱스', wave: '디자인 · 웨이브 타이포', tower: '디자인 · 타이포 타워', symbol: '디자인 · 심볼 타이포', label: '디자인 · 라벨 콜라주', typer: '디자인 · 타이프라이터', vset: '디자인 · 비디오 세팅' };
 
 export function blank(fmt, date) {
   const d = FORMATS[fmt];

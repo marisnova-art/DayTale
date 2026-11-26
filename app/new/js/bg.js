@@ -33,6 +33,7 @@ export const PAID = [
   { id: 'stars', img: './bg/stars.webp', tone: '#3a3f7a', ink: '#F3E6C8', dim: ['center', '0,0,0', .55] },
   { id: 'bands', code: 'bands', tone: '#a35cff', ink: '#fff', dim: ['center', '40,16,70', .55] },
   { id: 'slit', code: 'slit', tone: '#F07F3C', ink: '#fff', dim: ['all', '10,8,14', 0] },
+  { id: 'glyph', code: 'glyph', tone: '#5c4a9c', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 글리프 콜라주 (143차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'valley', code: 'valley', tone: '#2A6AC0', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 앱스트랙트 밸리 (132차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'orb', code: 'orb', tone: '#2FB86A', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 루미너스 스피어 (131차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'crain', code: 'crain', tone: '#2FE070', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 코드 레인 (130차): 글자색은 바탕 밝기로 (formats.js)
@@ -2118,6 +2119,63 @@ function drawFractal(cv, seed, t) {
   g.addColorStop(0, c + '.8)'); g.addColorStop(.55, c + '.56)'); g.addColorStop(1, c + '0)');
   x.save(); x.translate(W / 2, cy); x.scale(1, .62); x.translate(-W / 2, -cy); x.fillStyle = g; x.fillRect(0, -H, W, H * 4); x.restore();
 }
+// 글리프 콜라주 (143차, 앤드류 레퍼런스의 느낌만 · 식과 코드는 새로 작성): 큰 기호 · 내 글자가 겹쳐 흩어진 그림.
+// 기호는 '기호 · 상징'만 (glyphs.js, Noto Sans Symbols OFL, 선 모양이라 기기 · 저장 이미지 모두 같아요). 내 글자 = 글에서 처음 나온 낱글자 최대 8개 (data-lt)
+// 셔플 = 배치 · 크기 · 회전 · 기호 (+ 칩을 안 골랐으면 색 묶음 10). 글자를 고쳐도 배치는 그대로, 글자 자리만 바뀌어요. 모션 = 천천히 떠다니며 조금씩 돌아요
+export const GLYPH_PAL = [   // [이름, 바탕, 비슷한 톤 6, 강조 3, 밝은?]
+  ['바이올렛', '#5c4a9c', ['#6e5bb0', '#4a3e8b', '#7b5aa6', '#584fa0', '#8a6db8', '#3e3380'], ['#1e90e0', '#e2531f', '#a6ecc4']],
+  ['딥 블루', '#1f3a6e', ['#2a4a85', '#183060', '#35568f', '#22407a', '#3d5f9c', '#142a55'], ['#ffcf3d', '#ff6a4d', '#7fe0ff']],
+  ['테라코타', '#b5573a', ['#c2664a', '#a14a30', '#cc7356', '#9a4129', '#d6835f', '#8c3a24'], ['#2b3f8c', '#f5d6a0', '#1b6b5a']],
+  ['올리브', '#5d6630', ['#6b7538', '#505a28', '#788240', '#47502a', '#848e4a', '#3e4522'], ['#f2c14e', '#e86a3a', '#c7e8f5']],
+  ['민트', '#2f8f7c', ['#3a9d89', '#277f6d', '#46aa95', '#22735f', '#53b8a1', '#1c6655'], ['#ff8fb1', '#fff1a8', '#1d3557']],
+  ['로즈', '#c0567a', ['#cb6587', '#b0496c', '#d6739a', '#a33f62', '#de83a6', '#943657'], ['#2d2a6e', '#ffe08a', '#7ee0c8']],
+  ['차콜', '#26262b', ['#33333a', '#1d1d22', '#3d3d45', '#2b2b31', '#474750', '#18181c'], ['#ff5a36', '#e8e3d6', '#3d7bff']],
+  ['크림', '#efe6d4', ['#e4d8c0', '#f5eddc', '#dccfb4', '#e9dfca', '#d3c4a6', '#f8f2e6'], ['#d8452b', '#1f3fbf', '#1d1d1f'], 1],
+  ['버건디', '#5e1f2e', ['#6d2838', '#501a27', '#7a3142', '#461521', '#86394b', '#3c111c'], ['#f2b84b', '#f6e7d8', '#3fa7a0']],
+  ['나이트 틸', '#123c45', ['#184a55', '#0e323a', '#1f5663', '#0b2a31', '#256370', '#08222a'], ['#ff7a59', '#f9e27d', '#c7f0ff']]];
+export const glyphPal = (seed, pal) => pal != null && GLYPH_PAL[+pal] ? +pal : ((seed >>> 0) || 1) % GLYPH_PAL.length;
+export const glyphLight = (seed, pal) => !!GLYPH_PAL[glyphPal(seed, pal)][4];
+export const glyphLetters = t => [...new Set([...(t || '')].filter(ch => /[\p{L}\p{N}]/u.test(ch)))].slice(0, 8);   // 글자 · 숫자만 (문장부호 · 이모지 빼고)
+const GL_FONT = '700 100px "DT Gowun Batang"', GL_KINDS = ['geo', 'arrow', 'math', 'ding', 'orn', 'braille', 'cur'], GL_W = [3, 2, 2, 3, 3, 1, 1];
+let GLY = null, glyLoad = null; const glyCache = new Map(), glyPath = new Map(), glyFont = new Set();
+const glyRedraw = () => document.querySelectorAll('canvas.bgc[data-code=glyph]').forEach(cv => cv.width && drawCode(cv, +cv.dataset.seed, +cv.dataset.shift || 0));
+export const glyphReady = (lt = '') => {   // 기호(따로 불러와요, 54KB) + 내 글자 글꼴. 저장 전에 기다려요
+  glyLoad ||= import('./glyphs.js').then(m => { GLY = m.GLYPHS; glyRedraw(); });
+  return Promise.all([glyLoad, lt && document.fonts?.load(GL_FONT, lt).catch(() => {})]);
+};
+function glyphOf(seed) {   // 배치는 씨앗으로만 (글자 수와 상관없이 같은 자리)
+  if (glyCache.has(seed)) return glyCache.get(seed);
+  const r = rng(seed ^ 0x61f9), n = 34 + Math.floor(r() * 18), it = [];
+  for (let i = 0; i < n; i++) {
+    const big = i < 5, small = i > n - 12, s = big ? .45 + r() * .5 : small ? .06 + r() * .1 : .16 + r() * .26, lq = r() < .3, li = r();
+    let k = r() * 15, j = 0; while ((k -= GL_W[j]) > 0) j++; const L = GLY[GL_KINDS[j]], g = L[Math.floor(r() * L.length)];
+    const acc = !big && r() < (small ? .12 : .2);
+    let y = r() * 1.1 - .05; if (acc && y > .3 && y < .7) y = y < .5 ? .3 - r() * .3 : .7 + r() * .3;   // 강조색은 글 자리(가운데 띠)를 피해요
+    it.push({ x: r() * 1.1 - .05, y, s, a: (r() - .5) * Math.PI * (r() < .3 ? 2 : .9), g, lq, li, ci: Math.floor(r() * 6), ai: Math.floor(r() * 3), acc, sp: (r() - .5) * .25, ph: r() * 6.28, ring: r() < .12 });
+  }
+  it.sort((a, b) => (a.acc - b.acc) || (b.s - a.s));   // 큰 것 뒤, 강조색 앞
+  if (glyCache.size > 40) glyCache.delete(glyCache.keys().next().value);
+  glyCache.set(seed, it); return it;
+}
+function drawGlyph(cv, seed, t) {
+  const W = cv.width, H = cv.height, P = GLYPH_PAL[glyphPal(seed, cv.dataset.pal)], x = cv.getContext('2d');
+  x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1;
+  x.fillStyle = P[1]; x.fillRect(0, 0, W, H);
+  if (!GLY) { x.restore(); glyphReady(); return; }
+  const L = [...(cv.dataset.lt || '')], lt = L.join('');
+  if (lt && document.fonts && !document.fonts.check(GL_FONT, lt) && !glyFont.has(lt)) { glyFont.add(lt); document.fonts.load(GL_FONT, lt).then(glyRedraw, () => {}); }
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  for (const it of glyphOf(seed)) {
+    const s = it.s * W, dx = Math.sin(t * .2 + it.ph) * s * .04, dy = Math.cos(t * .17 + it.ph) * s * .04, ch = it.lq && L.length ? L[Math.floor(it.li * L.length)] : null;
+    x.setTransform(1, 0, 0, 1, it.x * W + dx, it.y * H + dy); x.rotate(it.a + t * it.sp * .3);
+    const col = it.acc ? P[3][it.ai] : P[2][it.ci]; x.fillStyle = col; x.strokeStyle = col;
+    if (ch) { x.font = `700 ${s.toFixed(1)}px "DT Gowun Batang", serif`; x.fillText(ch, 0, 0); continue; }
+    const g = it.g, k = s / Math.max(g[2], g[3]); x.scale(k, k);
+    let p = glyPath.get(g[1]); if (!p) glyPath.set(g[1], p = new Path2D(g[1]));
+    if (it.ring) { x.lineWidth = 25.6; x.stroke(p); } else x.fill(p);
+  }
+  x.restore();
+}
 export function drawCode(cv, seed, shift = 0, t = 0, grainAmt = cv.dataset.gr === '0' ? .01 : .09) {   // 노이즈 끄면 맑게(.01은 색 줄 생김만 막는 정도)
   const W = cv.width, H = cv.height; if (!W || !H) return;
   if (cv.dataset.code === 'slit') return drawSlit(cv, seed, shift, t, cv.dataset.gr === '0' ? 0 : .035);
@@ -2126,6 +2184,7 @@ export function drawCode(cv, seed, shift = 0, t = 0, grainAmt = cv.dataset.gr ==
   if (cv.dataset.code === 'fractal') return drawFractal(cv, seed, t);
   if (cv.dataset.code === 'plasma') return drawPlasma(cv, seed, t, cv.dataset.gr === '0' ? 0 : .025);
   if (cv.dataset.code === 'valley') return drawValley(cv, seed, t);
+  if (cv.dataset.code === 'glyph') return drawGlyph(cv, seed, t);
   if (cv.dataset.code === 'orb') return drawOrb(cv, seed, t);
   if (cv.dataset.code === 'crain') return drawCrain(cv, seed, t);
   if (cv.dataset.code === 'fold') return drawFold(cv, seed, t);
