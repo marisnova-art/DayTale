@@ -33,6 +33,7 @@ export const PAID = [
   { id: 'stars', img: './bg/stars.webp', tone: '#3a3f7a', ink: '#F3E6C8', dim: ['center', '0,0,0', .55] },
   { id: 'bands', code: 'bands', tone: '#a35cff', ink: '#fff', dim: ['center', '40,16,70', .55] },
   { id: 'slit', code: 'slit', tone: '#F07F3C', ink: '#fff', dim: ['all', '10,8,14', 0] },
+  { id: 'liquid', code: 'liquid', tone: '#D8282A', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 리퀴드 (124차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'field', code: 'field', tone: '#1430E0', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 컬러 필드 (123차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'lens', code: 'lens', tone: '#8CF08C', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 웨이브 렌즈 (122차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'blob', code: 'blob', tone: '#E0C040', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 컬러 블롭 (120차): 글자색은 바탕 밝기로 (formats.js)
@@ -1569,6 +1570,61 @@ function drawField(cv, seed, t, grain) {
   }
   if (grain) { x.globalCompositeOperation = 'soft-light'; x.globalAlpha = grain; x.fillStyle = x.createPattern(gbNoise(), 'repeat'); x.fillRect(0, 0, W, H); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; }
 }
+// 리퀴드 (124차): 그라데이션 원(일부 길쭉하게)을 흩뿌린 그림을 노이즈로 크게 휘게 해서 녹아 엉긴 광택 액체 덩어리로. 레퍼런스의 원리만 · p5 · 셰이더 없이 새로 작성.
+// 글 뒤를 가리지 않고 너무 밝은 색만 한 단계 진하게 + 글자에 옅은 그림자(컬러 필드와 같은 .fsh). 모션 = 휘는 흐름이 아주 천천히(20초) · 원들도 조금씩 떠다녀요
+export const LIQUID_PAL = [   // [이름, 바탕, 색 3, 밝은 바탕?]
+  ['레드 · 바이올렛', '#141016', ['#D8282A', '#8A50F0', '#F07070']], ['코발트 · 오렌지', '#0A0C18', ['#2040D8', '#FF7A20', '#60A0FF']],
+  ['마젠타 · 라임', '#100A10', ['#E02AA0', '#B8E030', '#FF80C8']], ['틸 · 코랄', '#071414', ['#10A0A0', '#FF6A5A', '#7AE0D0']],
+  ['골드 · 네이비', '#080C1C', ['#F0B020', '#1A3A9A', '#FFE080']], ['바이올렛 · 시안', '#0C0818', ['#7A30F0', '#20D0F0', '#C090FF']],
+  ['에메랄드 · 핑크', '#06120E', ['#10A070', '#FF5A9A', '#80E0B0']], ['모노 · 레드', '#0E0E0E', ['#D8D8D8', '#D82020', '#808080']],
+  ['피치', '#FFF4EC', ['#FF8A6A', '#FFC86A', '#FF6A9A'], 1], ['스카이', '#EEF6FF', ['#5AA0FF', '#9AE0F0', '#B08AFF'], 1]];
+export const liquidPal = (seed, pal) => pal != null && LIQUID_PAL[+pal] ? +pal : ((seed >>> 0) || 1) % LIQUID_PAL.length;
+export const liquidLight = (seed, pal) => !!LIQUID_PAL[liquidPal(seed, pal)][3];
+const liquidCache = new Map();
+function liquidOf(seed) {
+  if (liquidCache.has(seed)) return liquidCache.get(seed);
+  const r = rng(seed ^ 0x51d7), n = 26 + Math.floor(r() * 26), big = .9 + r() * .6, p = { wp: .1 + r() * .1, fs: 1.6 + r() * 1.4, s: Math.floor(r() * 1e5), O: [] };
+  for (let i = 0; i < n; i++) p.O.push({ x: r(), y: r(), dx: (r() - .5) * .3, dy: (r() - .5) * .3, R: (.08 + r() ** 1.6 * .3) * big, ci: Math.floor(r() * 3), hi: r() < .5, cj: Math.floor(r() * 2), rad: r() < .6, ex: .7 + r() * .6, rot: r() * 3.14 });
+  if (liquidCache.size > 60) liquidCache.delete(liquidCache.keys().next().value);
+  liquidCache.set(seed, p); return p;
+}
+const lqH = (x, y, s) => { let h = Math.imul(x, 374761393) + Math.imul(y, 668265263) + Math.imul(s, 1442695041) | 0; h = Math.imul(h ^ h >>> 13, 1274126177); return ((h ^ h >>> 16) >>> 0) / 4294967296; };
+const lqN = (x, y, s) => { const xi = Math.floor(x), yi = Math.floor(y), fx = x - xi, fy = y - yi, u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy), a = lqH(xi, yi, s), b = lqH(xi + 1, yi, s), c = lqH(xi, yi + 1, s), d = lqH(xi + 1, yi + 1, s); return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v; };
+const lqF = (x, y, s) => lqN(x, y, s) * .6 + lqN(x * 2.03 + 3, y * 2.03 + 7, s + 1) * .28 + lqN(x * 4.1 + 11, y * 4.1 + 5, s + 2) * .12;
+let lqSrc = null, lqOut = null;
+function drawLiquid(cv, seed, t, grain) {
+  const W = cv.width, H = cv.height, P = liquidOf(seed), E = LIQUID_PAL[liquidPal(seed, cv.dataset.pal)], light = !!E[3];
+  const cap = c => { const L = .3 * c[0] + .59 * c[1] + .11 * c[2], k = light ? Math.min(1, .3 / Math.max(.01, 1 - L)) : Math.min(1, .52 / Math.max(.01, L)); return c.map(v => light ? 1 - (1 - v) * k : v * k); };   // 채도는 그대로, 너무 밝은 색만 한 단계 진하게
+  const C = E[2].map(h => cap(hx3(h))), rgb = c => `rgb(${c.map(v => Math.round(v * 255)).join(',')})`, mixc = (a, b, k) => a.map((v, i) => v + (b[i] - v) * k);
+  // 1) 그라데이션 원을 흩뿌린 바탕 그림
+  const sw = 240, sh = Math.max(1, Math.round(sw * H / W));
+  if (!lqSrc) lqSrc = document.createElement('canvas'); if (lqSrc.width !== sw || lqSrc.height !== sh) { lqSrc.width = sw; lqSrc.height = sh; }
+  const g = lqSrc.getContext('2d', { willReadFrequently: true }), fl = t > 0 ? t / 30 : 0;
+  g.globalCompositeOperation = 'source-over'; g.fillStyle = E[1]; g.fillRect(0, 0, sw, sh);
+  for (const o of P.O) {
+    const cx = (o.x + fl * o.dx) * sw, cy = (o.y + fl * o.dy) * sh, R = o.R * sw, c0 = C[o.ci], c1 = o.hi ? mixc(c0, [1, 1, 1], .35) : C[(o.ci + 1 + o.cj) % 3];
+    const gr = o.rad ? g.createRadialGradient(cx - R * .3, cy - R * .3, 0, cx, cy, R) : g.createLinearGradient(cx - R, cy - R, cx + R, cy + R);
+    gr.addColorStop(0, rgb(c1)); gr.addColorStop(.55, rgb(c0)); gr.addColorStop(1, rgb(c0));
+    g.fillStyle = gr; g.beginPath(); g.ellipse(cx, cy, R * o.ex, R, o.rot, 0, 6.283); g.fill();
+  }
+  const S = g.getImageData(0, 0, sw, sh).data;
+  // 2) 노이즈로 좌표를 크게 휘게 해서 녹인 액체처럼 (모션 중엔 낮은 해상도 · 저장은 촘촘히)
+  const ow = Math.min(W, t > 0 ? 160 : 360), oh = Math.max(1, Math.round(ow * H / W));
+  if (!lqOut) lqOut = document.createElement('canvas'); if (lqOut.width !== ow || lqOut.height !== oh) { lqOut.width = ow; lqOut.height = oh; }
+  const og = lqOut.getContext('2d'), im = og.createImageData(ow, oh), D = im.data, tt = t > 0 ? t / 20 : 0, A = P.wp * ow, kx = sw / ow, ky = sh / oh;
+  for (let j = 0; j < oh; j++) for (let i = 0; i < ow; i++) {
+    const nx = i / ow * P.fs, ny = j / ow * P.fs;
+    const qx = lqF(nx + tt * .6, ny - tt * .4, P.s), qy = lqF(nx + 5.2 - tt * .5, ny + 1.3 + tt * .3, P.s + 9);
+    let sx = (i + (lqF(nx + 3 * qx + tt * .3, ny + 3 * qy, P.s + 20) - .5) * 2 * A) * kx, sy = (j + (lqF(nx + 3 * qx + 8, ny + 3 * qy + 2 - tt * .3, P.s + 31) - .5) * 2 * A) * ky;
+    sx = sx < 0 ? 0 : sx > sw - 1.001 ? sw - 1.001 : sx; sy = sy < 0 ? 0 : sy > sh - 1.001 ? sh - 1.001 : sy;
+    const x0 = sx | 0, y0 = sy | 0, fx = sx - x0, fy = sy - y0, o4 = (j * ow + i) * 4, p0 = (y0 * sw + x0) * 4, p1 = p0 + sw * 4;
+    for (let z = 0; z < 3; z++) { const a = S[p0 + z], b = S[p0 + 4 + z], c = S[p1 + z], d = S[p1 + 4 + z]; D[o4 + z] = a + (b - a) * fx + (c - a) * fy + (a - b - c + d) * fx * fy; }
+    D[o4 + 3] = 255;
+  }
+  og.putImageData(im, 0, 0);
+  const x = cv.getContext('2d'); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'low'; x.drawImage(lqOut, 0, 0, W, H);
+  if (grain) { x.globalCompositeOperation = 'soft-light'; x.globalAlpha = grain; x.fillStyle = x.createPattern(gbNoise(), 'repeat'); x.fillRect(0, 0, W, H); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; }
+}
 function fractalTile(o, seed) {
   if (o.tile) return o.tile;
   const G = 300, cnt = frDensity(o.P, G, 22000, 34, seed), vals = Float32Array.from(cnt.filter(v => v > 0)).sort(), L = vals.length || 1;
@@ -1600,6 +1656,7 @@ export function drawCode(cv, seed, shift = 0, t = 0, grainAmt = cv.dataset.gr ==
   if (cv.dataset.code === 'neon') return drawNeon(cv, seed, t, cv.dataset.gr === '0' ? 0 : .05);
   if (cv.dataset.code === 'fractal') return drawFractal(cv, seed, t);
   if (cv.dataset.code === 'plasma') return drawPlasma(cv, seed, t, cv.dataset.gr === '0' ? 0 : .025);
+  if (cv.dataset.code === 'liquid') return drawLiquid(cv, seed, t, cv.dataset.gr === '0' ? 0 : .14);
   if (cv.dataset.code === 'field') return drawField(cv, seed, t, cv.dataset.gr === '0' ? 0 : .1);
   if (cv.dataset.code === 'lens') return drawLens(cv, seed, t, cv.dataset.gr === '0' ? 0 : .1);
   if (cv.dataset.code === 'blob') return drawBlob(cv, seed, t, cv.dataset.gr === '0' ? 0 : .1);
