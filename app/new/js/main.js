@@ -1984,7 +1984,7 @@ const REC_T = { 밤: '밤에 쓰기 좋은', 비: '비 오는 날엔', 눈: '눈
 const WXK = { sun: '맑음', suncloud: '구름 조금', cloud: '흐림', rain: '비', snow: '눈', thunder: '천둥', fog: '안개' };
 const dayLine = (now = new Date()) => { let w = ''; try { const x = JSON.parse(localStorage.getItem('daytale.wx') || 'null'); if (x && Date.now() - x.at < 3 * 3600e3 && WXK[x.kind]) w = ` · ${WXK[x.kind]}${x.temp != null ? ` ${x.temp}°` : ''}`; } catch {} return `${now.getMonth() + 1}월 ${now.getDate()}일 ${'일월화수목금토'[now.getDay()]}요일${w}`; };
 // 78차: 새 버전 확인. 앱으로 돌아올 때(다른 앱 갔다 오기) version.txt가 지금과 다르면 저절로 새로 고쳐요. 쓰는 중엔 안 해요
-const BUILD = '140', BUILD_TAG = '11-27 140차';
+const BUILD = '141', BUILD_TAG = '11-27 141차';
 let verAt = 0;
 const checkVer = () => {
   if (document.hidden || Date.now() - verAt < 20e3) return; verAt = Date.now();
@@ -2122,7 +2122,7 @@ function viewWrite({ fmt, id, like }) {
   if (!card || !FORMATS[card.fmt]) return go('#/');
   const f = { ...FORMATS[card.fmt], tools: T.toolsOf(card) }, rich = !!f.rich;   // 도구 = 틀 기본값 + 템플릿이 바꾼 것   // 장으로 쓰는 포맷(글 · 아트)
   if (!rich && card.html == null) { card.html = renderCard(card).querySelector('.rb').innerHTML; card.html = clean(card.html); delete card.text; }
-  const st = { panel: null, tab: intent?.color ? 'bg' : 'fmt', hist: [clone(card)], hi: 0, timer: 0, pg: 0, sel: null, composing: false };
+  const st = { panel: null, tab: intent?.color ? 'bg' : f.tools.look ? 'img' : 'fmt', hist: [clone(card)], hi: 0, timer: 0, pg: 0, sel: null, composing: false };
   const root = document.documentElement;
   // 장마다 배경 · 글 위치 (글카드). ps() = 보고 있는 장의 값(없으면 카드 값으로 채워요). 첫 장 값은 card.bg · align에도 (피드 색 · 예전 카드)
   const ps = (i = st.pg) => {
@@ -2413,8 +2413,10 @@ function viewWrite({ fmt, id, like }) {
   /* 카드 그리기. 글만 바뀌면 그 자리에서 바꾸고(키보드가 내려가지 않게), 장 수·배경·날짜 같은 틀이 바뀔 때만 새로 그려요 */
   let el = null, shape = '';
   const look = () => [card.ratio, card.lh, card.bold, card.ink, card.showDate, card.placeOff, card.sg, card.signTxt, card.dh];
-  const shapeOf = () => JSON.stringify(rich ? [card.pages.length, card.bg, card.align, card.pst, card.datePos, card.date, card.place, card.font, card.size, card.filter, card.leak, ...look()] : [card.date, card.place, card.size, card.align, card.datePos, card.seed, card.pal, card.bg?.ph, ...look()]);   // 셔플(seed)하면 종이색까지 새로 (11-20)
+  const shapeOf = () => JSON.stringify(rich ? [card.pages.length, card.bg, card.align, card.pst, card.datePos, card.date, card.place, card.font, card.size, card.filter, card.leak, ...look()] : [card.date, card.place, card.size, card.align, card.datePos, card.seed, card.pal, card.bg?.ph, card.bg?.src, card.bg?.vd, card.filter, ...look()]);   // 셔플(seed)하면 종이색까지 새로 (11-20)
   const bodies = () => $$('.body', el);
+  // 글 칸의 값: 장(글 · 아트) · 한 덩어리 글(디자인) · 따로 쓰는 칸(data-f, 잡지 표지 제목 = 글자만)
+  const valOf = (c, b, i) => b.dataset.f ? esc(c[b.dataset.f] ?? '') : rich ? (c.pages[i] ?? '') : c.html;
   const pageOf = b => b.closest('.pg') ? +b.closest('.pg').dataset.i : 0;
   const caretIn = b => { const s = getSelection(); return s.rangeCount && b.contains(s.anchorNode) ? offsetsOf(b, s.getRangeAt(0)) : null; };
   const setCaret = (b, ab) => { const s = getSelection(); s.removeAllRanges(); s.addRange(rangeAt(b, ...ab)); };
@@ -2422,7 +2424,7 @@ function viewWrite({ fmt, id, like }) {
     const s = shapeOf();
     if (el && s === shape) {
       bodies().forEach((b, i) => {
-        const want = rich ? card.pages[i] : card.html, at = caretIn(b);
+        const want = valOf(card, b, i), at = caretIn(b);
         if (clean(b.innerHTML) !== want) { b.innerHTML = want; hydrate(b); }
         if (!rich) placeObjects(b, card.seed, card.fmt);
         if (at && document.activeElement === b) setCaret(b, at);
@@ -2438,7 +2440,7 @@ function viewWrite({ fmt, id, like }) {
   }
   // 영상인 장을 보고 있으면 그 장만 재생 (정지 상태는 기억해요). 다른 장으로 가면 멈추고 커버
   function syncVideo() {
-    const pb = rich && el ? ps(st.pg).bg : null, cv = pb?.vd && $(`.pg[data-i="${st.pg}"] canvas.bgv`, el);
+    const pb = el ? (rich ? ps(st.pg).bg : card.bg) : null, cv = pb?.vd && (rich ? $(`.pg[data-i="${st.pg}"] canvas.bgv`, el) : $('canvas.bgv', el));   // 디자인 틀도 영상 칸이 있으면 (잡지 표지)
     if (cv) V.start(cv, pb, fidOf(card), { paused: !!st.vpause, onTick: tickTL }); else V.stop();
   }
   const step = () => el.querySelector('.pg') ? el.querySelector('.pg').offsetWidth + 12 : 1;
@@ -2471,7 +2473,8 @@ function viewWrite({ fmt, id, like }) {
   function typed(b) {
     const i = pageOf(b); st.pg = i;
     if (!b.textContent.trim() && b.innerHTML && !b.querySelector('li,h2,h3,.stk')) b.innerHTML = '';   // 비우면 예시 글이 다시 보여요
-    if (rich) card.pages[i] = clean(b.innerHTML);
+    if (b.dataset.f) card[b.dataset.f] = b.textContent.replace(/\s+/g, ' ').replace(/^ /, '');   // 따로 쓰는 칸 (잡지 표지 제목: card.title, 글자만)
+    else if (rich) card.pages[i] = clean(b.innerHTML);
     else {
       card.html = clean(b.innerHTML);
       const at = caretIn(b);
@@ -2482,7 +2485,7 @@ function viewWrite({ fmt, id, like }) {
   }
   // 사진이 아직 없는 장(포토 포맷): 가운데 사진 버튼 → 그 장의 사진 고르기 (글쓰기 커서는 안 생겨요)
   stage.addEventListener('pointerdown', e => { if (e.target.closest?.('.phadd')) { e.preventDefault(); e.stopPropagation(); } }, true);
-  stage.addEventListener('click', e => { const b = e.target.closest?.('.phadd'); if (!b) return; e.stopPropagation(); st.pg = +b.closest('.pg').dataset.i || 0; pickPhoto(); }, true);
+  stage.addEventListener('click', e => { const b = e.target.closest?.('.phadd'); if (!b) return; e.stopPropagation(); st.pg = +(b.closest('.pg')?.dataset.i) || 0; pickPhoto(); }, true);
   stage.addEventListener('compositionstart', () => { st.composing = true; });
   stage.addEventListener('compositionend', e => { st.composing = false; const b = e.target.closest?.('.body'); if (b) typed(b); });
   stage.addEventListener('input', e => {
@@ -2511,7 +2514,7 @@ function viewWrite({ fmt, id, like }) {
   stage.addEventListener('click', e => {
     if (e.target.closest('.body')) return;
     const pg = e.target.closest('.pg');
-    if (!rich) return e.target.closest('.cd') && caretEnd(0);
+    if (!rich) return e.target.closest('.cd') && !typingNow() && caretEnd(0);   // 이미 쓰는 칸이 있으면 그대로 (잡지 표지: 제목을 누른 뒤 화면이 바뀌어 같은 자리 클릭이 본문으로 가던 것)
     if (!pg) return;
     const i = +pg.dataset.i; if (i !== st.pg) { st.pg = i; scrollToPage(i); }
     caretEnd(i);
@@ -2528,7 +2531,7 @@ function viewWrite({ fmt, id, like }) {
     const act = document.activeElement;
     st.prog = true;
     bodies().forEach((b, i) => {
-      const html = rich ? (want.pages[i] ?? '') : want.html;
+      const html = valOf(want, b, i);
       if (clean(b.innerHTML) === html) return;
       if (b === act) {
         const r = document.createRange(); r.selectNodeContents(b); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
@@ -2555,7 +2558,8 @@ function viewWrite({ fmt, id, like }) {
 
   /* 도구 줄. 포맷이 안 쓰는 도구는 어둡게, 누르면 살짝 흔들림 */
   const enabled = k => {
-    if (k === 'kb' || k === 'undo' || k === 'redo' || k === 'ratio') return true;
+    if (k === 'ratio') return f.tools.ratio !== false;   // 잡지 표지: 4:5만
+    if (k === 'kb' || k === 'undo' || k === 'redo') return true;
     if (k === 'photo' || k === 'emo' || k === 'page') return !!f.tools[k];
     if (k === 'ai') return true;   // AI 글쓰기: 모든 포맷
     if (k === 'clear') return hasText();   // 모두 지우기: 글이 있을 때만
@@ -2603,7 +2607,7 @@ function viewWrite({ fmt, id, like }) {
         const was = typingNow() || st.hold; paintMeta(); draw(); if (was && !typingNow()) caretEnd(st.pg);
         paintRow2(); return;
       }
-      if (k === 'shuf') { if (rich) { const o = ps().bg.seed || 1; let n = newSeed(); while ((ps().bg.id === 'slit' && n % 5 === o % 5) || (ps().bg.id === 'swirl' && ps().bg.pal == null && n % 20 === o % 20) || ((ps().bg.id === 'neon' || ps().bg.id === 'tunnel' || ps().bg.id === 'eclipse' || ps().bg.id === 'mesh' || ps().bg.id === 'pixel' || ps().bg.id === 'retro' || ps().bg.id === 'gband' || ps().bg.id === 'cube' || ps().bg.id === 'ccomp' || ps().bg.id === 'bmod' || ps().bg.id === 'wint' || ps().bg.id === 'spec' || ps().bg.id === 'city' || ps().bg.id === 'blob' || ps().bg.id === 'lens' || ps().bg.id === 'field' || ps().bg.id === 'liquid' || ps().bg.id === 'float' || ps().bg.id === 'cloud' || ps().bg.id === 'dotw' || ps().bg.id === 'swarm' || ps().bg.id === 'fold' || ps().bg.id === 'crain' || ps().bg.id === 'orb' || ps().bg.id === 'valley') && ps().bg.pal == null && n % 10 === o % 10) || (ps().bg.id === 'plasma' && ps().bg.pal == null && n % 11 === o % 11) || (ps().bg.id === 'fractal' && n % 10 === o % 10)) n = newSeed(); ps().bg.seed = n; syncFirst(); } else card.seed = newSeed(); push(); draw(); paintRow2(); return; }   // 글카드: 보고 있는 장만. 슬릿스캔는 셔플마다 색 묶음도 꼭 바뀌게
+      if (k === 'shuf') { if (rich) { const o = ps().bg.seed || 1; let n = newSeed(); while ((ps().bg.id === 'slit' && n % 5 === o % 5) || (ps().bg.id === 'swirl' && ps().bg.pal == null && n % 20 === o % 20) || ((ps().bg.id === 'neon' || ps().bg.id === 'tunnel' || ps().bg.id === 'eclipse' || ps().bg.id === 'mesh' || ps().bg.id === 'pixel' || ps().bg.id === 'retro' || ps().bg.id === 'gband' || ps().bg.id === 'cube' || ps().bg.id === 'ccomp' || ps().bg.id === 'bmod' || ps().bg.id === 'wint' || ps().bg.id === 'spec' || ps().bg.id === 'city' || ps().bg.id === 'blob' || ps().bg.id === 'lens' || ps().bg.id === 'field' || ps().bg.id === 'liquid' || ps().bg.id === 'float' || ps().bg.id === 'cloud' || ps().bg.id === 'dotw' || ps().bg.id === 'swarm' || ps().bg.id === 'fold' || ps().bg.id === 'crain' || ps().bg.id === 'orb' || ps().bg.id === 'valley') && ps().bg.pal == null && n % 10 === o % 10) || (ps().bg.id === 'plasma' && ps().bg.pal == null && n % 11 === o % 11) || (ps().bg.id === 'fractal' && n % 10 === o % 10)) n = newSeed(); ps().bg.seed = n; syncFirst(); } else { card.seed = newSeed(); f.shuffle?.(card); } push(); draw(); paintRow2(); return; }   // 글카드: 보고 있는 장만. 슬릿스캔는 셔플마다 색 묶음도 꼭 바뀌게
       if (k === 'page') {
         ps(); card.pages.splice(st.pg + 1, 0, ''); card.pst.splice(st.pg + 1, 0, clone(card.pst[st.pg])); st.pg += 1;   // 새 장은 앞 장 배경 · 위치를 이어받아요
         push(); draw(); scrollToPage(st.pg);
@@ -2757,12 +2761,30 @@ function viewWrite({ fmt, id, like }) {
   const PAUSE = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h3.2v14H7zM13.8 5H17v14h-3.2z" fill="currentColor" stroke="none"/></svg>';
   // 이미지 줄 (사진을 받는 디자인 템플릿, 97차): 사진 고르기(넣은 뒤엔 그 사진 썸네일, 누르면 바꾸기) · 빼기. 딤 · 노이즈 · 필터는 틀이 알아서
   function paintImgRow() {
+    if (f.tools.look) return paintLookRow();
     const u = card.bg?.id === 'photo' ? srcOf(card.bg) : '';
     row2.className = 'st2 g6';
     row2.innerHTML = `${u ? `<button class="k cv sel" data-x="photo" aria-label="사진 바꾸기" style="background-image:url(${u})"></button><button class="k" data-x="noph" aria-label="사진 빼기">${ic('trash')}</button>` : `<button class="k" data-x="photo" aria-label="사진 고르기">${ic('album')}</button><span></span>`}<span></span><span></span><span></span><span></span>`;
     $$('button', row2).forEach(x => x.addEventListener('pointerdown', e => e.preventDefault()));
     $('[data-x=photo]', row2).onclick = pickPhoto;
     const np = $('[data-x=noph]', row2); if (np) np.onclick = () => { flush(); card.bg = { id: 'g1', dim: 'dark' }; push(); draw(); paintImgRow(); pop('사진 뺌', null, '이미지'); };
+  }
+  // 잡지 표지 (141차): 사진 · 영상 칸 + 영화 룩 줄 (내 사진으로 미리보기, 옆으로 밀면 12가지). 영상이면 재생/정지 칸
+  function paintLookRow() {
+    const pb = card.bg || {}, u = pb.id === 'photo' ? srcOf(pb) : '', vid = !!pb.vd, cur = f.lookOf(card).id;
+    row2.className = 'st2 g6 bgr ' + (vid ? 'swr' : 'flr');   // 영상이면 재생 칸 하나 더 (룩은 6칸씩)
+    row2.innerHTML = `<button class="k ${u ? 'cv sel' : ''}" data-x="photo" aria-label="사진 · 영상 고르기" ${u ? `style="background-image:url(${P.url(pb.ph) || u})"` : ''}>${u ? '' : ic('album')}</button>${vid ? `<button class="k" data-x="play" aria-label="재생 정지">${st.vpause ? PLAY : PAUSE}</button>` : ''}
+      <div class="swp">${f.looks.map(o => `<button class="k sw ft ${o.id === cur ? 'sel' : ''}" data-lk="${o.id}" aria-label="${o.name}"><span>${o.name}</span></button>`).join('')}<span class="end"></span></div>`;
+    const sw = $('.swp', row2);
+    $$('[data-lk]', row2).forEach(x => f.lookThumb(card, x.dataset.lk).then(t => { if (t) x.style.backgroundImage = `url(${t})`; }));
+    const s0 = $('.sel', sw); if (s0) sw.scrollLeft = Math.max(0, s0.offsetLeft - sw.firstElementChild.offsetLeft);
+    $$('button', row2).forEach(x => x.addEventListener('pointerdown', e => e.preventDefault()));
+    $('[data-x=photo]', row2).onclick = pickPhoto;
+    const pl = $('[data-x=play]', row2); if (pl) pl.onclick = () => { st.vpause = !st.vpause; V.setPaused(st.vpause); pl.innerHTML = st.vpause ? PLAY : PAUSE; };
+    $$('[data-lk]', row2).forEach(x => x.onclick = () => {
+      const o = f.looks.find(l => l.id === x.dataset.lk); flush(); card.filter = 'mag-' + o.id; push(); draw(); pop(o.name, null, '룩');
+      $$('[data-lk]', row2).forEach(y => y.classList.toggle('sel', y === x));
+    });
   }
   function paintPhotoRow() {
     const pb = ps().bg, has = pb.id === 'photo' && !!srcOf(pb), vid = has && !!pb.vd;
@@ -2898,13 +2920,13 @@ function viewWrite({ fmt, id, like }) {
   }
 
   /* 내 사진 배경: 고른 사진이 보고 있는 장의 배경으로. 색 칸을 누르면 사진이 빠져요 */
-  const clearPhoto = b => { ['ph', 'x', 'y', 'z', 'w', 'h', 'tone', 'vd', 'dur', 't0', 'cvt', 'hex', 'pos'].forEach(k => delete b[k]); };
-  const picker = document.createElement('input'); picker.type = 'file'; picker.accept = f.tools.filter ? 'image/*,video/*' : 'image/*'; picker.hidden = true; wr.appendChild(picker);   // 포토 포맷은 영상도
+  const clearPhoto = b => { ['src', 'ph', 'x', 'y', 'z', 'w', 'h', 'tone', 'vd', 'dur', 't0', 'cvt', 'hex', 'pos'].forEach(k => delete b[k]); };
+  const picker = document.createElement('input'); picker.type = 'file'; picker.accept = f.tools.filter || f.tools.video ? 'image/*,video/*' : 'image/*'; picker.hidden = true; wr.appendChild(picker);   // 포토 포맷은 영상도
   function pickPhoto() { picker.value = ''; picker.click(); }
   picker.onchange = () => usePhoto(picker.files?.[0]);
   // PC: 사진 파일을 카드 위에 끌어다 놓거나 붙여 넣어도 그 장의 사진으로 (사진을 쓰는 포맷만)
   if (f.tools.filter || f.tools.photo) {
-    const fileOf = dt => [...(dt?.files || [])].find(x => /^image\//.test(x.type) || (f.tools.filter && (/^video\//.test(x.type) || /\.(mov|mp4|m4v|webm)$/i.test(x.name))));
+    const fileOf = dt => [...(dt?.files || [])].find(x => /^image\//.test(x.type) || ((f.tools.filter || f.tools.video) && (/^video\//.test(x.type) || /\.(mov|mp4|m4v|webm)$/i.test(x.name))));
     const pgAt = e => { const pg = e.target.closest?.('.pg'); if (pg && el?.contains(pg)) st.pg = +pg.dataset.i || 0; };
     const hasFile = e => [...(e.dataTransfer?.types || [])].includes('Files');
     wr.addEventListener('dragover', e => { if (!hasFile(e)) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; stage.classList.add('drop'); });
@@ -2915,17 +2937,18 @@ function viewWrite({ fmt, id, like }) {
   }
   async function usePhoto(file) {
     if (!file) return;
-    let vid = (/^video\//.test(file.type) || /\.(mov|mp4|m4v|webm|3gp|hevc)$/i.test(file.name)) && !!f.tools.filter;   // 아이폰은 종류(type)가 빈 채로 올 때가 있어요
+    let vid = (/^video\//.test(file.type) || /\.(mov|mp4|m4v|webm|3gp|hevc)$/i.test(file.name)) && !!(f.tools.filter || f.tools.video);   // 아이폰은 종류(type)가 빈 채로 올 때가 있어요
     let busy = 0; const wait = () => { pop('영상 읽는 중…'); busy = setInterval(() => pop('영상 읽는 중…'), 1000); };   // 다 읽을 때까지 위에 계속
     try {
       if (vid) wait();
       let p;
       if (vid) p = await V.add(file);
-      else try { p = await P.add(file); } catch (e) { if (!f.tools.filter || /^image\//.test(file.type)) throw e; vid = true; wait(); p = await V.add(file); }   // 사진으로 안 열리면 영상으로 한 번 더
+      else try { p = await P.add(file); } catch (e) { if (!(f.tools.filter || f.tools.video) || /^image\//.test(file.type)) throw e; vid = true; wait(); p = await V.add(file); }   // 사진으로 안 열리면 영상으로 한 번 더
       clearInterval(busy);
       const pb = ps().bg || (ps().bg = {});   // 디자인 템플릿(타이프라이터)은 배경 칸이 없던 카드 (96차)
       flush(); clearPhoto(pb); Object.assign(pb, { id: 'photo', ...p, x: 50, y: 50 }); if (!pb.dim) pb.dim = 'dark';
-      if (f.tools.filter && st.tab !== 'filter') st.tab = 'img';   // 고른 뒤엔 이미지 줄 (필터 · 영상 칸)
+      if (f.tools.filter && st.tab !== 'filter') st.tab = 'img';
+      if (f.tools.look) st.tab = 'img';   // 잡지 표지: 사진 · 룩 줄   // 고른 뒤엔 이미지 줄 (필터 · 영상 칸)
       if (vid) st.vpause = false;
       syncFirst(); push(); draw(); paintRow2(); pop(vid ? '내 영상' : '내 사진', null, pgLab());
     } catch (e) { clearInterval(busy); console.error(e); pop(vid ? '영상을 열지 못했어요' : '사진을 열지 못했어요', null, vid ? String(e?.message || e).slice(0, 40) : null); }   // 원인을 작게 (고칠 때 보려고)

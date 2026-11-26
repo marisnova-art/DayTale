@@ -1,0 +1,19 @@
+/* 템플릿 틀: 잡지 표지 (포스터, 141차) — 틀 · 사진은 한 장의 캔버스, 쓰는 동안만 글 칸이 종이 기울기대로 보여요 */
+.cd.cmag { aspect-ratio: 4 / 5; overflow: clip; background: #2b2a28; display: block; }
+.cd.cmag .mcv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
+.cd.cmag .mvb { position: absolute; left: 0; top: 0; transform-origin: 0 0; overflow: hidden; pointer-events: none; }
+.cd.cmag .mvb canvas.bgv { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; }
+.cd.cmag .msh { position: absolute; inset: 0; width: 100%; height: 100%; mix-blend-mode: multiply; pointer-events: none; }
+/* 글 칸: 종이 위 자리 그대로 (matrix3d). 키보드를 내리면 글자는 캔버스가 그리고 칸은 투명하게 (눌러서 쓰기만) */
+.cd.cmag .mf { position: absolute; left: 0; top: 0; transform-origin: 0 0; box-sizing: border-box; margin: 0; padding: 0; min-height: 0; overflow: hidden; color: transparent; caret-color: #2f7bff; }
+.cd.cmag .mt { font-family: 'DT Black Han Sans', 'Pretendard Variable', sans-serif; text-align: center; white-space: nowrap; }
+.cd.cmag .mb { font-family: 'Pretendard Variable', Pretendard, sans-serif; font-weight: 500; line-height: 1.45; overflow-wrap: anywhere; word-break: keep-all; }
+.cd.cmag .mf:empty::before { content: none; }
+.wr.typ .cd.cmag .mt { color: var(--ink, #d0452f); text-shadow: .03em .04em 0 rgba(0,0,0,.55); }
+.wr.typ .cd.cmag .mb { color: #1d1d1f; }
+.wr.typ .cd.cmag .mf:empty::before { content: attr(data-ph); opacity: .45; color: #1d1d1f; text-shadow: none; }
+.wr.typ .cd.cmag .mf:focus { background: rgba(255,255,255,.16); border-radius: .15em; }
+/* 사진이 없을 때 가운데 버튼 (쓰기메인에서만) */
+.cd.cmag .mpa { position: absolute; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 2cqw; padding: 2.4cqw 4cqw; border-radius: 999px; border: 0; background: rgba(20,20,22,.78); color: #fff; font: 500 3.6cqw 'Pretendard Variable', sans-serif; white-space: nowrap; }
+.cd.cmag .mpa .ic { width: 4.4cqw; height: 4.4cqw; }
+.wr.typ .cd.cmag .mpa { display: none; }

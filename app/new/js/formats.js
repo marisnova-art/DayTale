@@ -268,7 +268,7 @@ export function ensure(f) {
 export const missing = fmts => [...new Set(fmts)].filter(f => f && !FORMATS[f] && !BAD.has(f));
 export const ORDER = ['rebus', 'art', 'text'];
 // 피드 · 쓰기 위에 보이는 '종류 · 템플릿'
-export const LABEL = { text: '기본', rebus: '디자인 · 멤피스 타이포', art: '아트 · 오로라 커튼', hilite: '디자인 · 하이라이트 노트', slit: '아트 · 슬릿스캔', swirl: '아트 · 라이트 스월', neon: '아트 · 네온 플로우', tunnel: '아트 · 라이트 터널', eclipse: '아트 · 이클립스 링', mesh: '아트 · 네온 메시', pixel: '아트 · 픽셀 체커', retro: '아트 · 레트로 픽셀', gband: '아트 · 그라데이션 밴드', cube: '아트 · 미니멀 큐브', ccomp: '아트 · 큐브 컴포지션', valley: '아트 · 앱스트랙트 밸리', orb: '아트 · 루미너스 스피어', crain: '아트 · 코드 레인', fold: '아트 · 크롬 폴드', swarm: '아트 · 스웜', dotw: '아트 · 도트 웨이브', cloud: '아트 · 클라우드 텍스처', float: '아트 · 플로팅 셰이프', liquid: '아트 · 리퀴드', field: '아트 · 컬러 필드', lens: '아트 · 웨이브 렌즈', blob: '아트 · 컬러 블롭', city: '아트 · 3D 시티', spec: '아트 · 스펙트럼 커브', wint: '아트 · 웨이브 인터퍼런스', bmod: '아트 · 블록 모더니즘', plasma: '아트 · 플라즈마', fractal: '아트 · 프랙탈 패턴', pill: '디자인 · 그라데이션 필', dots: '디자인 · 서클 인덱스', wave: '디자인 · 웨이브 타이포', tower: '디자인 · 타이포 타워', symbol: '디자인 · 심볼 타이포', label: '디자인 · 라벨 콜라주', typer: '디자인 · 타이프라이터', vset: '디자인 · 비디오 세팅' };
+export const LABEL = { text: '기본', mag: '포스터 · 잡지 표지', rebus: '디자인 · 멤피스 타이포', art: '아트 · 오로라 커튼', hilite: '디자인 · 하이라이트 노트', slit: '아트 · 슬릿스캔', swirl: '아트 · 라이트 스월', neon: '아트 · 네온 플로우', tunnel: '아트 · 라이트 터널', eclipse: '아트 · 이클립스 링', mesh: '아트 · 네온 메시', pixel: '아트 · 픽셀 체커', retro: '아트 · 레트로 픽셀', gband: '아트 · 그라데이션 밴드', cube: '아트 · 미니멀 큐브', ccomp: '아트 · 큐브 컴포지션', valley: '아트 · 앱스트랙트 밸리', orb: '아트 · 루미너스 스피어', crain: '아트 · 코드 레인', fold: '아트 · 크롬 폴드', swarm: '아트 · 스웜', dotw: '아트 · 도트 웨이브', cloud: '아트 · 클라우드 텍스처', float: '아트 · 플로팅 셰이프', liquid: '아트 · 리퀴드', field: '아트 · 컬러 필드', lens: '아트 · 웨이브 렌즈', blob: '아트 · 컬러 블롭', city: '아트 · 3D 시티', spec: '아트 · 스펙트럼 커브', wint: '아트 · 웨이브 인터퍼런스', bmod: '아트 · 블록 모더니즘', plasma: '아트 · 플라즈마', fractal: '아트 · 프랙탈 패턴', pill: '디자인 · 그라데이션 필', dots: '디자인 · 서클 인덱스', wave: '디자인 · 웨이브 타이포', tower: '디자인 · 타이포 타워', symbol: '디자인 · 심볼 타이포', label: '디자인 · 라벨 콜라주', typer: '디자인 · 타이프라이터', vset: '디자인 · 비디오 세팅' };
 
 export function blank(fmt, date) {
   const d = FORMATS[fmt];
@@ -287,7 +287,7 @@ function waitCard(c, opt) {
 export const placeObjects = (root, seed, fmt) => FORMATS[fmt]?.place?.(root, seed) || false;
 export const rbMargins = (el, fmt) => FORMATS[fmt]?.margins?.(el) || [72, 72];
 export function renderCard(c, opt) { return FORMATS[c.fmt] ? FORMATS[c.fmt].render(c, opt || {}) : waitCard(c, opt); }
-export function fitCard(el, c) { if (!el.classList.contains('wait')) FORMATS[c.fmt]?.fit(el); }
+export function fitCard(el, c) { if (!el.classList.contains("wait")) FORMATS[c.fmt]?.fit(el, c); }
 // 줄(div·h2·h3·li)과 <br>은 줄바꿈으로: 요약 글에서 줄끼리 붙지 않게
 const plain = h => { const d = document.createElement('div'); d.innerHTML = (h || '').replace(/<br\s*\/?>|<\/(div|h2|h3|li|p)>/gi, m => m + '\n'); return d.textContent; };
 export const cardText = c => c.pages ? c.pages.map(plain).join('\n') : plain(rebusHtmlOf(c));

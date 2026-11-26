@@ -10,7 +10,10 @@ export const FILTERS = [
   ['motion', '모션 블러', 18], ['zoom', '줌 블러', 19],
 ].map(([id, name, m]) => ({ id, name, m, d: 0 }));
 // 빛 샘은 네 모서리 중 한 곳에서 (카드에 c.leak 0~3: 왼쪽 위 · 오른쪽 위 · 오른쪽 아래 · 왼쪽 아래). 필터 이름에 붙여 다녀요 ('leak2')
-export const filterOf = id => { const m = /^leak([0-3])$/.exec(id || ''); if (m) return { ...FILTERS.find(f => f.id === 'leak'), d: +m[1] }; return FILTERS.find(f => f.id === id) || FILTERS[0]; };
+// 템플릿이 가진 보정 (141차 잡지 표지 영화 룩): run(캔버스) → 보정한 캔버스. 영상 장면마다도 같은 걸 써요
+const EXT = new Map();
+export const addFilter = (id, o) => EXT.set(id, { id, m: -1, d: 0, ...o });
+export const filterOf = id => { if (EXT.has(id)) return EXT.get(id); const m = /^leak([0-3])$/.exec(id || ''); if (m) return { ...FILTERS.find(f => f.id === 'leak'), d: +m[1] }; return FILTERS.find(f => f.id === id) || FILTERS[0]; };
 export const fidOf = c => c?.filter === 'leak' ? 'leak' + ((c.leak | 0) % 4) : c?.filter;
 // 노이즈: 끔 · 약 · 중 · 강 (b.grain 0~3, 예전 true = 약)
 export const grainLv = b => b?.grain === true ? 1 : Math.max(0, Math.min(3, b?.grain | 0));
@@ -97,11 +100,13 @@ function run(im, f, w, h, grain, crop) {
   const src = document.createElement('canvas'); src.width = w; src.height = h; const sc = src.getContext('2d');
   const { i } = im, s = crop ? Math.max(w / i.naturalWidth, h / i.naturalHeight) : w / i.naturalWidth;
   sc.drawImage(i, (w - i.naturalWidth * s) / 2, (h - i.naturalHeight * s) / 2, i.naturalWidth * s, i.naturalHeight * s);
+  if (f.run) { out.getContext('2d').drawImage(f.run(src) || src, 0, 0); return out; }
   if (!R || (f.m === 0 && !grain)) { out.getContext('2d').drawImage(src, 0, 0); return out; }
   out.getContext('2d').drawImage(apply(src, f, grain, im.lo, im.hi), 0, 0); return out;
 }
 // 그려 둔 캔버스(src)에 필터를 걸어 그래픽 칩 캔버스를 돌려줘요 (영상은 장면마다 이걸 불러요). GL이 없으면 null
 export function apply(src, f, grain, lo = 0, hi = 1) {
+  if (f.run) return f.run(src);
   const R = gl(); if (!R) return null;
   const { cv, g, u } = R, w = src.width, h = src.height;
   if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
@@ -140,7 +145,7 @@ function make(b, fid) {
 }
 // 저장 전에: 카드가 쓰는 필터 사진을 모두 만들어 둬요
 export async function prep(c) {
-  if (c.fmt === 'rebus') return;
+  if (c.fmt === 'rebus' || filterOf(fidOf(c)).run) return;   // 템플릿이 스스로 보정해서 그리는 카드 (잡지 표지)
   const bs = [c.bg, ...(c.pst || []).map(p => p.bg)].filter(b => b && srcOf(b) && ((c.filter && c.filter !== 'none') || grainLv(b)));
   await Promise.all(bs.map(b => make(b, fidOf(c))));
 }

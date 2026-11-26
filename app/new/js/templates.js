@@ -215,6 +215,12 @@ const PREVIEW = [
     tags: ['짧은글', '감성'], words: ['비디오', '레트로', '픽셀', '화면', '메뉴', '설정', '테이프', '파랑', '녹화', '재생', '게임', '도트'],
     ex: ['아침에 창문을 열었더니 공기가 차가웠다. 출근길에 따뜻한 라떼를 샀다. 퇴근길 하늘이 분홍색이었다.', '친구랑 오래 통화했다. 별일 없는 이야기에 많이 웃었다.', 'Slow Sunday. Coffee by the window and a long walk by the river.'],
     preview: true },
+  // 포스터 (11-27 141차, 새 종류): 잡지 표지 — 앤드류의 잡지 틀 + 내 사진 · 영상(영화 룩 12) + 제목 두 단어 + 짧은 글
+  { id: 'mag', fmt: 'mag', name: '잡지 표지', kind: '포스터', pop: 41, added: '2026-11-27', motion: false, paid: true,
+    desc: ['벽에 기댄 잡지 표지에 내 사진과 제목을 얹은 포스터.', '셔플마다 영화 룩 · 배치 · 제목 색,', '사진도 영상도 종이를 따라 휘어져요.'],
+    tags: ['감성', '짧은글'], words: ['잡지', '표지', '포스터', '영화', '필름', '레트로', '90년대', '사진', '영상', '인물', '여행', '빈티지', '시네마'],
+    ex: ['잎 사이로 들어온 빛이 얼굴에 내려앉았다. 오늘은 이 장면 하나면 충분했다.', '오래된 동네를 걸었다. 간판 불빛이 하나씩 켜졌다.', 'A slow afternoon, film grain and warm light.'],
+    preview: true },
 ];
 
 // 테스트용 더미 (10-31 앤드류: 2개로는 전체 볼륨을 몰라요). 같은 두 템플릿을 그림 · 태그 · 날짜만 바꿔 채워요. 오픈 전에 false
@@ -294,7 +300,7 @@ export async function refresh() {
 // 종류 (11-06): 디자인 · 아트 … 관리자가 정하는 목록 (서버 표 dz_kinds: 이름 · 순서). 새 종류를 넣으면 칩 · 홈 줄 · 프로필 그래프가 저절로 따라와요.
 // 보이는 건 공개 템플릿이 1개 이상 있는 종류만. 목록에 없는 종류를 쓴 템플릿은 맨 뒤에 붙어요
 const KK = 'dz.kinds.v1';
-let KORDER = ['디자인', '아트'];
+let KORDER = ['아트', '디자인', '포스터'];   // 11-27 앤드류: 아트 · 디자인 · 포스터
 try { const k = JSON.parse(localStorage.getItem(KK) || 'null'); if (Array.isArray(k) && k.length) KORDER = k; } catch {}
 export function kinds() {
   const used = [...new Set(TEMPLATES.map(t => t.kind).filter(Boolean))];
