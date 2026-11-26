@@ -951,14 +951,14 @@ async function viewTemplates(q) {
         <span class="ttags">${(t.tags || []).map(g => `<span class="tag">${esc(g)}</span>`).join(' ') || '<span class="muted xs">태그 없음</span>'}</span>
         ${t.state === 'hidden' ? `<small class="xs ${t.missing.length ? 'warn-t' : 'muted'}">${t.missing.length ? `빈칸 ${t.missing.length}개` : '다 채움'}</small>` : ''}</div>
       <div class="tside">${tplBadge(t)}${sw(t.state === 'public', `data-st="${esc(t.id)}" ${!own || (t.state === 'hidden' && t.missing.length) ? 'disabled' : ''} title="${!own ? '공개는 최고 관리자만' : t.missing.length && t.state === 'hidden' ? '빈칸을 먼저 채워 주세요' : ''}"`)}</div></div>`;
-  shell('#/templates', `<div class="ttop">
-      <div class="trow"><h1 class="ttl">템플릿</h1>
-        <div class="ranges left">${[['all', '전체', r.n.all], ['public', '공개', r.n.public], ['hidden', '비공개', r.n.hidden]].map(([k, l, n]) => `<a href="${link('#/templates', { ...P, state: k, page: 0 })}" class="${k === state ? 'on' : ''}">${l} ${num(n)}</a>`).join('')}
-        <span class="vbar"></span>${Object.entries(r.kinds).map(([k, n]) => `<a href="${link('#/templates', { ...P, kind: k === kind ? '' : k, page: 0 })}" class="${k === kind ? 'on' : ''}">${esc(k)} ${num(n)}</a>`).join('')}</div>
-        <span class="grow"></span><form id="tq" class="fsearch" role="search">${I.search}<input name="q" type="search" value="${esc(s)}" placeholder="이름 · 태그 · 검색어" aria-label="템플릿 검색"></form>
-        <a class="btn ghost sm" href="#/templates/tax">${I.folder}종류 · 태그</a></div>
-      <div class="trow"><div class="ranges left sorts"><a href="${link('#/templates', { ...P, sort: '', dir: '', page: 0 })}" class="${!sort ? 'on' : ''}">기본</a>${SORTS.map(([k, l]) => `<a href="${sortLink(k)}" class="${sort === k ? 'on' : ''}">${l}${arrow(k)}</a>`).join('')}</div>
-        ${own && order.length ? `<button type="button" id="ckall" class="btn ghost sm">${I.check}전체 선택 ${num(order.length)}</button><span class="muted xs hint">Shift+클릭 = 범위</span>` : ''}</div></div>
+  shell('#/templates', `${head('템플릿', big(num(r.n.all)) + '<span class="unit">개</span>')}
+    <div class="trow">
+      <div class="ranges left">${[['all', '전체', r.n.all], ['public', '공개', r.n.public], ['hidden', '비공개', r.n.hidden]].map(([k, l, n]) => `<a href="${link('#/templates', { ...P, state: k, page: 0 })}" class="${k === state ? 'on' : ''}">${l} ${num(n)}</a>`).join('')}
+      <span class="vbar"></span>${Object.entries(r.kinds).map(([k, n]) => `<a href="${link('#/templates', { ...P, kind: k === kind ? '' : k, page: 0 })}" class="${k === kind ? 'on' : ''}">${esc(k)} ${num(n)}</a>`).join('')}
+      <span class="vbar"></span><span class="sorts"><a href="${link('#/templates', { ...P, sort: '', dir: '', page: 0 })}" class="${!sort ? 'on' : ''}">기본</a>${SORTS.map(([k, l]) => `<a href="${sortLink(k)}" class="${sort === k ? 'on' : ''}">${l}${arrow(k)}</a>`).join('')}</span>
+      ${own && order.length ? `<button type="button" id="ckall" class="btn ghost sm">${I.check}전체 선택 ${num(order.length)}</button>` : ''}</div>
+      <span class="grow"></span><form id="tq" class="fsearch" role="search">${I.search}<input name="q" type="search" value="${esc(s)}" placeholder="이름 · 태그 · 검색어" aria-label="템플릿 검색"></form>
+      <a class="btn ghost sm" href="#/templates/tax">${I.folder}종류 · 태그</a></div>
     <div class="tgrid">${r.rows.map(card).join('') || `<p class="muted pad">${s ? '찾는 템플릿이 없어요.' : '아직 템플릿이 없어요.'}</p>`}</div>
     ${pages > 1 ? pager('#/templates', P, pg, pages) : `<div class="row center pager"><span class="muted xs">${num(r.total)}개 · 50개씩 보여요${sort ? '' : ' · 비공개가 먼저 와요'}</span></div>`}
     ${own ? `<div class="selbar" id="selbar" hidden><b id="seln"></b>

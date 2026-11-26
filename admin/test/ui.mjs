@@ -174,7 +174,7 @@ await p.goto('http://admin.test/#/templates'); await p.waitForSelector('.tcard')
 const cards = () => p.$$eval('.tcard', r => r.map(x => x.dataset.id).join());
 ok((await cards()) === 'snow-night,stamp-line,art,rebus', '템플릿: 2열 카드 · 검토 대기가 먼저');
 ok(await p.$eval('.tgrid', g => getComputedStyle(g).gridTemplateColumns.split(' ').length === (innerWidth > 1300 ? 3 : 2)), '템플릿: 넓은 화면은 3열 · 중간 2열');
-ok(await p.$eval('.tgrid', g => g.getBoundingClientRect().top < 260), '템플릿: 위쪽이 낮음 (카드가 바로 보임)');
+ok(await p.$eval('.trow', r => r.getBoundingClientRect().height < 50), '템플릿: 칩 · 정렬 · 검색이 한 줄');
 ok(await p.$eval('.tcard[data-id="art"] img.th', i => i.getBoundingClientRect().height >= 90), '템플릿: 썸네일 크게');
 ok(await p.$eval('[data-st="snow-night"]', b => b.disabled) && !(await p.$eval('[data-st="art"]', b => b.disabled)), '템플릿: 빈칸 있으면 공개 스위치 잠김');
 ok(await p.$eval('.tcard[data-id="art"] img.th', i => i.naturalWidth > 0), '템플릿: 정지 그림 보임');
@@ -204,7 +204,7 @@ await p.goto('http://admin.test/#/templates?x=1'); await p.waitForSelector('.tca
 await p.click('[data-ck="stamp-line"]'); await p.click('[data-bulk="kind"]'); await p.selectOption('dialog select', '아트'); await p.click('dialog button[value=ok]');
 await p.waitForFunction(() => document.querySelector('#selbar')?.hidden); ok((await pg.query(`select kind from dz_templates where id = 'stamp-line'`)).rows[0].kind === '아트', '템플릿: 한꺼번에 종류 바꾸기');
 await pg.exec(`update dz_templates set kind = '디자인' where id = 'stamp-line'`);
-await p.click('.sorts a:has-text("이름")'); await p.waitForFunction(() => location.hash.includes('sort=name')); await p.waitForTimeout(300);
+await p.click('.sorts a:text-is("이름")'); await p.waitForFunction(() => location.hash.includes('sort=name')); await p.waitForTimeout(300);
 const byName = await p.$$eval('.tcard .tname', b => b.map(x => x.textContent));
 ok(byName.join() === [...byName].sort((a, b) => a.localeCompare(b, 'ko')).join() && (await p.textContent('.sorts .on')).includes('▲'), '템플릿: 이름 정렬 ▲');
 await p.click('.sorts a:has-text("이름")'); await p.waitForFunction(() => location.hash.includes('dir=desc')); await p.waitForTimeout(300);
@@ -220,7 +220,7 @@ await p.click('.ck:has(input[value="감성"])'); await p.click('.ck:has(input[va
 ok(await p.$$eval('.ck input:checked', c => c.length) === 3, '상세: 태그 3개까지만');
 await p.fill('.chipin', '함박눈, 겨울'); await p.press('.chipin', 'Enter'); ok((await p.textContent('#wc')) === '11', '상세: 검색어 칩 넣기');
 await p.fill('textarea[name=e2]', '고요한 밤, 따뜻한 차.'); await p.fill('input[name=name]', '눈 오는 밤');
-await p.click('#tf button[value=save]'); await p.waitForFunction(() => !document.querySelector('#pub')?.disabled && document.querySelector('h1').textContent === '눈 오는 밤'); ok(true, '상세: 저장하면 빈칸 없어지고 공개하기 켜짐');
+await p.click('#tf button[value=save]'); await p.waitForFunction(() => !document.querySelector('#pub')?.disabled && document.querySelector('h1')?.textContent === '눈 오는 밤'); ok(true, '상세: 저장하면 빈칸 없어지고 공개하기 켜짐');
 const sv = (await pg.query(`select ex, tags, words from dz_templates where id = 'snow-night'`)).rows[0];
 ok(sv.ex.length === 3 && Array.isArray(sv.ex[2]) && sv.ex[2][0] === '고요한 밤, 따뜻한 차.' && sv.ex[0][1] === 3 && sv.tags.length === 3 && sv.words.includes('함박눈'), '상세: 예시 모양(글 · 셔플 · 비율) 그대로 저장');
 await p.click('#pub'); await p.click('dialog button[value=ok]'); await p.waitForSelector('#hide'); ok((await pg.query(`select state from dz_templates where id = 'snow-night'`)).rows[0].state === 'public', '상세: 공개');

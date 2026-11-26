@@ -285,11 +285,12 @@ td.tcell{ width:60px; padding-right:0 }
 .ttop{ display:flex; flex-direction:column; gap:10px; margin-bottom:4px }
 .trow{ display:flex; align-items:center; gap:10px; flex-wrap:wrap } .trow .grow{ flex:1 }
 .ttl{ font:700 20px var(--display); margin:0 8px 0 0; letter-spacing:.01em }
-.trow .fsearch{ width:240px }
+.trow .fsearch{ width:200px }
+.trow .ranges{ align-items:center; gap:6px } .trow .ranges a{ padding:8px 13px } .sorts{ display:contents }
 .vbar{ width:1px; height:22px; background:var(--line-2); align-self:center; margin:0 6px }
 .sorts{ align-items:center } #ckall svg{ opacity:.45 } #ckall.on{ background:var(--text); color:var(--ink); border-color:var(--text) } #ckall.on svg{ opacity:1 }
 .hint{ margin-left:2px }
-.tgrid{ display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:10px; margin-top:12px }
+.tgrid{ display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:10px; margin-top:16px }
 .tcard{ display:flex; align-items:center; gap:12px; background:var(--box); border:1px solid var(--line); border-radius:var(--r-md); padding:12px 14px 12px 12px; cursor:pointer; min-width:0; user-select:none }
 .tcard:hover{ border-color:var(--line-2) } .tcard.sel{ border-color:var(--text); background:var(--raise) }
 .tck{ width:28px; height:28px; border-radius:8px; border:1.5px solid var(--text-3); background:transparent; color:transparent; display:grid; place-items:center; cursor:pointer; flex:none; padding:0 }
