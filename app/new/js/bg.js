@@ -1167,10 +1167,13 @@ export const bmodLight = (seed, pal) => { const [r, g, b] = hx3(BMOD_PAL[bmodPal
 const bmodCache = new Map();
 function bmodOf(seed) {
   if (bmodCache.has(seed)) return bmodCache.get(seed);
-  const r = rng(seed ^ 0x2b4d), n = 20 + Math.floor(r() * 21), B = [];
-  for (let k = 0; k < n; k++) {
+  const r = rng(seed ^ 0x2b4d), n = 20 + Math.floor(r() * 21), B = [], BR = 1.15, GAP = .04;
+  const ext = (p, sz, ax) => [0, 1, 2].map(i => (i === ax ? sz[i] * BR : sz[i]) / 2 + GAP / 2);   // 숨쉬기로 가장 길어졌을 때의 반 크기
+  const hit = (p, e) => B.some(q => [0, 1, 2].every(i => Math.abs(p[i] - q.p[i]) < e[i] + q.e[i]));
+  for (let k = 0, tries = 0; B.length < n && tries < n * 40; tries++) {   // 상자끼리 파고들지 않게 놓아요
     const ax = Math.floor(r() * 3), sz = [0, 0, 0].map(() => .25 + r() * .55); sz[ax] = 1.4 + r() * 1.8; if (r() < .35) sz[(ax + 1) % 3] = .9 + r() * .9;
-    B.push({ p: [0, 0, 0].map(() => (Math.floor(r() * 4) - 1.5) * 1.15 + (r() - .5) * .4), sz, ax, ph: r() * 6.28, c: Math.floor(r() * 5) });
+    const p = [0, 0, 0].map(() => (Math.floor(r() * 4) - 1.5) * 1.15 + (r() - .5) * .4), ph = r() * 6.28, c = Math.floor(r() * 5);
+    for (let sh = 0; sh < 4; sh++, sz[ax] *= .78) { const e = ext(p, sz, ax); if (!hit(p, e)) { B.push({ p, sz: sz.slice(), ax, ph, c, e }); break; } }
   }
   const p = { B, yaw: r() * 6.28, pitch: .5 + r() * .25 };
   if (bmodCache.size > 60) bmodCache.delete(bmodCache.keys().next().value);
@@ -1185,8 +1188,28 @@ function drawBmod(cv, seed, t, grain) {
   const css = c => { const gr = (c[0] + c[1] + c[2]) / 3; return `rgb(${c.map(v => { v += (gr - v) * .32; return Math.round(Math.max(0, Math.min(255, (lo + Math.max(0, Math.min(1, v / 255)) * (hi - lo)) * 255))); }).join(',')})`; };   // 전체 채도 · 밝기 폭을 고르게 낮춰요
   x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; x.fillStyle = css(K(C[1])); x.fillRect(0, 0, W, H);
   const L = [-.45, .8, .4], ln = Math.hypot(...L), lw = Math.max(.5, W / 700);
-  P.B.map(b => { const br = t > 0 ? 1 + .14 * Math.sin(t / 10 * Math.PI * 2 + b.ph) : 1, sz = b.sz.map((v, i) => i === b.ax ? v * br : v);
-    return { b, Pp: BM_V.map(v => view(v.map((q, i) => b.p[i] + q * sz[i] / 2))), dep: view(b.p)[2] }; }).sort((p, q) => p.dep - q.dep).forEach(it => {
+  const D = [-sy * cp, sp, cy * cp];   // 보는 쪽 방향(세계 좌표)
+  const its = P.B.map(b => { const br = t > 0 ? 1 + .14 * Math.sin(t / 10 * Math.PI * 2 + b.ph) : 1, sz = b.sz.map((v, i) => i === b.ax ? v * br : v);
+    const Pp = BM_V.map(v => view(v.map((q, i) => b.p[i] + q * sz[i] / 2)));
+    return { b, Pp, lo: b.p.map((v, i) => v - sz[i] / 2), hi: b.p.map((v, i) => v + sz[i] / 2), dep: view(b.p)[2],
+      x0: Math.min(...Pp.map(q => q[0])), x1: Math.max(...Pp.map(q => q[0])), y0: Math.min(...Pp.map(q => q[1])), y1: Math.max(...Pp.map(q => q[1])) }; });
+  // 앞뒤 순서: 화면에서 겹치는 상자 쌍만, 서로 떨어진 축으로 어느 쪽이 앞인지 정해요(가운데 깊이로 정하면 돌다가 한 번에 뒤집혀 튀어요)
+  const N = its.length, after = its.map(() => []), deg = new Array(N).fill(0);
+  for (let i = 0; i < N; i++) for (let j = i + 1; j < N; j++) {
+    const A = its[i], Bq = its[j]; if (A.x1 <= Bq.x0 || Bq.x1 <= A.x0 || A.y1 <= Bq.y0 || Bq.y1 <= A.y0) continue;
+    let best = -1, sgn = 0, gap = -Infinity;
+    for (let a = 0; a < 3; a++) { const g1 = Bq.lo[a] - A.hi[a], g2 = A.lo[a] - Bq.hi[a];
+      if (g1 > gap && Math.abs(D[a]) > 1e-4) { gap = g1; best = a; sgn = 1; } if (g2 > gap && Math.abs(D[a]) > 1e-4) { gap = g2; best = a; sgn = -1; } }
+    const jFront = best < 0 ? Bq.dep > A.dep : (sgn * D[best] > 0);   // B가 축의 + 쪽에 있고 그 쪽이 보는 쪽이면 B가 앞
+    if (jFront) { after[i].push(j); deg[j]++; } else { after[j].push(i); deg[i]++; }
+  }
+  const order = [], ready = its.map((_, i) => i).filter(i => !deg[i]);
+  while (order.length < N) {
+    if (!ready.length) { let m = -1; for (let i = 0; i < N; i++) if (deg[i] > 0 && (m < 0 || its[i].dep < its[m].dep)) m = i; deg[m] = 0; ready.push(m); }   // 고리가 생기면 가장 뒤 상자부터
+    ready.sort((p, q) => its[q].dep - its[p].dep); const i = ready.pop(); if (deg[i] < 0) continue; deg[i] = -1; order.push(i);
+    for (const j of after[i]) if (deg[j] > 0 && !--deg[j]) ready.push(j);
+  }
+  order.map(i => its[i]).forEach(it => {
     const base = PAL[it.b.c];
     for (const [ix, nr] of BM_F) {
       if (view(nr)[2] <= 0) continue;
