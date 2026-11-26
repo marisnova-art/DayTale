@@ -33,6 +33,7 @@ export const PAID = [
   { id: 'stars', img: './bg/stars.webp', tone: '#3a3f7a', ink: '#F3E6C8', dim: ['center', '0,0,0', .55] },
   { id: 'bands', code: 'bands', tone: '#a35cff', ink: '#fff', dim: ['center', '40,16,70', .55] },
   { id: 'slit', code: 'slit', tone: '#F07F3C', ink: '#fff', dim: ['all', '10,8,14', 0] },
+  { id: 'city', code: 'city', tone: '#E048E8', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 3D 시티 (118차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'spec', code: 'spec', tone: '#E040C0', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 스펙트럼 커브 (117차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'wint', code: 'wint', tone: '#7A4BF0', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 웨이브 인터퍼런스 (116차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'bmod', code: 'bmod', tone: '#E3A82B', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 블록 모더니즘 (114차): 글자색은 바탕 밝기로 (formats.js)
@@ -1337,6 +1338,77 @@ function drawSpec(cv, seed, t, grain) {
   const x = cv.getContext('2d'); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high'; x.drawImage(specCv, 0, 0, W, H);
   if (grain) { x.globalCompositeOperation = 'soft-light'; x.globalAlpha = grain; x.fillStyle = x.createPattern(gbNoise(), 'repeat'); x.fillRect(0, 0, W, H); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; }
 }
+// 3D 시티 (118차): 높낮이가 다른 네모 빌딩 숲을 위에서 비스듬히 내려다봐요. 레퍼런스의 원리만 · 3D 라이브러리 없이 꼭짓점 투영으로 새로 작성.
+// 윗면은 가장 밝고 아래로 갈수록 안개(바탕색)에 묻혀요. 셔플마다 가까이 크게 / 넓게가 섞여요. 앞뒤는 겹치는 쌍만 떨어진 축 평면으로 정해요(튐 없음)
+export const CITY_PAL = [   // [이름, 안개(바탕), 빌딩 어두운 색, 빌딩 밝은 색]
+  ['보라 네온', '#2A3AB8', '#3A1060', '#E048E8'], ['노을', '#C0404A', '#3A0C1E', '#FFB060'], ['심해', '#0A3A6A', '#04121E', '#40D0E0'], ['민트', '#106A5A', '#062A22', '#B0FFD8'],
+  ['체리', '#7A1040', '#22040E', '#FF8AB8'], ['앰버', '#7A4A10', '#201004', '#FFD080'], ['모노', '#4A4A4E', '#0E0E10', '#E8E8EC'], ['오로라', '#1A2A6A', '#0A0E24', '#7AF0C0'],
+  ['흰 도시', '#C8CCD2', '#8A9098', '#FFFFFF'], ['하늘빛', '#B8D4EA', '#6A94BA', '#F4FAFF']];
+export const cityPal = (seed, pal) => pal != null && CITY_PAL[+pal] ? +pal : ((seed >>> 0) || 1) % CITY_PAL.length;
+export const cityLight = (seed, pal) => { const [r, g, b] = hx3(CITY_PAL[cityPal(seed, pal)][1]); return .3 * r + .59 * g + .11 * b > .6; };
+const cityCache = new Map();
+function cityOf(seed) {
+  if (cityCache.has(seed)) return cityCache.get(seed);
+  const r = rng(seed ^ 0x71c3), N = 11, B = [];
+  for (let i = 0; i < N; i++) for (let k = 0; k < N; k++) { if (r() < .14) continue;
+    const s = .5 + r() * .38, x = i - (N - 1) / 2 + (r() - .5) * (1 - s) * .8, z = k - (N - 1) / 2 + (r() - .5) * (1 - s) * .8, h = .25 + Math.pow(r(), 2.2) * 4.2, d = r();
+    B.push({ x, z, sx: s, sz: s * (.8 + r() * .4), h, ph: r() * 6.28 });
+    if (d < .2 && h > 1) B.push({ x: x + (r() - .5) * s * .3, z: z + (r() - .5) * s * .3, sx: s * .35, sz: s * .2, h: .12, top: B.length - 1 });   // 옥상 상자
+    else if (d < .28 && h > 1.5) B.push({ x, z, sx: .05, sz: .05, h: .6 + r() * .8, top: B.length - 1 }); }   // 안테나
+  const p = { B, yaw: r() * 6.28, pitch: .62 + r() * .32, zoom: r() < .5 ? 1 : 0 };
+  if (cityCache.size > 60) cityCache.delete(cityCache.keys().next().value);
+  cityCache.set(seed, p); return p;
+}
+const CITY_F = [[[0, 2, 6, 4], [-1, 0, 0]], [[1, 3, 7, 5], [1, 0, 0]], [[0, 1, 5, 4], [0, -1, 0]], [[2, 3, 7, 6], [0, 1, 0]], [[0, 1, 3, 2], [0, 0, -1]], [[4, 5, 7, 6], [0, 0, 1]]];   // 꼭짓점 번호: 1=x, 2=y, 4=z
+function drawCity(cv, seed, t, grain) {
+  const W = cv.width, H = cv.height, P = cityOf(seed), E = CITY_PAL[cityPal(seed, cv.dataset.pal)], light = cityLight(seed, cv.dataset.pal), x = cv.getContext('2d');
+  const fog = hx3(E[1]), A = hx3(E[2]), Bc = hx3(E[3]), tall = H / W > 1.6;
+  const lo = light ? .42 : .02, hi = light ? .98 : .76, ds = light ? .1 : .22;   // 카드 전체 채도 · 밝기 폭을 고르게 낮춰서 글이 읽혀요
+  const css = (c, a) => { const g = (c[0] + c[1] + c[2]) / 3, v = c.map(q => Math.round((lo + Math.max(0, Math.min(1, q + (g - q) * ds)) * (hi - lo)) * 255)); return a == null ? `rgb(${v.join(',')})` : `rgba(${v.join(',')},${a})`; };
+  const mix = (a, b, k) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k];
+  const yaw = P.yaw + t / 60 * Math.PI * 2, pit = P.pitch, D = P.zoom ? 6.2 : 10, cy = Math.cos(yaw), sy = Math.sin(yaw), cp = Math.cos(pit), sp = Math.sin(pit);   // 카메라가 60초에 한 바퀴
+  const F = W * (tall ? 1.9 : 1.6) * (P.zoom ? .95 : 1), Y0 = P.zoom ? 1.6 : 1.0, cam = [sy * cp * D, Y0 + sp * D, cy * cp * D];
+  const proj = (px, py, pz) => { const X = px * cy - pz * sy, Z0 = px * sy + pz * cy, Yr = py - Y0, yc = Yr * cp - Z0 * sp, zc = Yr * sp + Z0 * cp, dz = D - zc; return [W / 2 + X / dz * F, H / 2 - yc / dz * F, dz]; };
+  x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; x.fillStyle = css(fog); x.fillRect(0, 0, W, H);
+  const pul = b => t > 0 ? 1 + .08 * Math.sin(t / 8 * Math.PI * 2 + b.ph) : 1;   // 빌딩 높이가 살짝 숨 쉬어요
+  const its = [];
+  for (const b of P.B) {
+    const base = b.top != null ? P.B[b.top].h * pul(P.B[b.top]) : 0, h = b.top != null ? b.h : b.h * pul(b);
+    const lo3 = [b.x - b.sx / 2, base, b.z - b.sz / 2], hi3 = [b.x + b.sx / 2, base + h, b.z + b.sz / 2], V = [];
+    let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9, ok = true;
+    for (let q = 0; q < 8; q++) { const v = proj(q & 1 ? hi3[0] : lo3[0], q & 2 ? hi3[1] : lo3[1], q & 4 ? hi3[2] : lo3[2]); if (v[2] <= .5) ok = false; V.push(v); x0 = Math.min(x0, v[0]); x1 = Math.max(x1, v[0]); y0 = Math.min(y0, v[1]); y1 = Math.max(y1, v[1]); }
+    if (!ok || x1 < -W * .05 || x0 > W * 1.05 || y1 < -H * .05 || y0 > H * 1.05) continue;
+    its.push({ lo3, hi3, V, x0, x1, y0, y1, dist: Math.hypot(b.x - cam[0], base + h / 2 - cam[1], b.z - cam[2]) });
+  }
+  const N = its.length, aft = its.map(() => []), deg = new Array(N).fill(0);
+  for (let i = 0; i < N; i++) for (let j = i + 1; j < N; j++) {
+    const Pq = its[i], Q = its[j]; if (Pq.x1 <= Q.x0 || Q.x1 <= Pq.x0 || Pq.y1 <= Q.y0 || Q.y1 <= Pq.y0) continue;
+    let best = -1, gap = -1e9, pl = 0, qHi = false;
+    for (let a = 0; a < 3; a++) { const g1 = Q.lo3[a] - Pq.hi3[a], g2 = Pq.lo3[a] - Q.hi3[a]; if (g1 > gap) { gap = g1; best = a; pl = (Q.lo3[a] + Pq.hi3[a]) / 2; qHi = true; } if (g2 > gap) { gap = g2; best = a; pl = (Pq.lo3[a] + Q.hi3[a]) / 2; qHi = false; } }
+    const qFront = gap > -1e-6 ? (cam[best] > pl) === qHi : Q.dist < Pq.dist;   // 떨어진 축 평면에서 카메라 쪽 상자가 앞
+    if (qFront) { aft[i].push(j); deg[j]++; } else { aft[j].push(i); deg[i]++; }
+  }
+  const ord = [], ready = its.map((_, i) => i).filter(i => !deg[i]);
+  while (ord.length < N) {
+    if (!ready.length) { let m = -1; for (let i = 0; i < N; i++) if (deg[i] > 0 && (m < 0 || its[i].dist > its[m].dist)) m = i; deg[m] = 0; ready.push(m); }
+    ready.sort((p, q) => its[p].dist - its[q].dist); const i = ready.pop(); if (deg[i] < 0) continue; deg[i] = -1; ord.push(i); for (const j of aft[i]) if (deg[j] > 0 && !--deg[j]) ready.push(j);
+  }
+  const L = [-.5, .8, .35], near = P.zoom ? 4 : 6, far = P.zoom ? 14 : 18, lw = Math.max(.5, W / 660);
+  for (const i of ord) {
+    const it = its[i], fd = Math.max(0, Math.min(1, (it.dist - near) / (far - near))) * .5;
+    for (const [ix, nr] of CITY_F) {
+      const fx = nr[0] > 0 ? it.hi3[0] : it.lo3[0], fy = nr[1] > 0 ? it.hi3[1] : it.lo3[1], fz = nr[2] > 0 ? it.hi3[2] : it.lo3[2];
+      if ((cam[0] - fx) * nr[0] + (cam[1] - fy) * nr[1] + (cam[2] - fz) * nr[2] <= 0) continue;
+      const k = Math.max(0, nr[0] * L[0] + nr[1] * L[1] + nr[2] * L[2]), topC = nr[1] > 0 ? mix(Bc, [1, 1, 1], .08) : mix(A, Bc, .1 + .8 * Math.pow(k, 1.3));   // 윗면은 가장 밝게
+      if (nr[1] > 0) x.fillStyle = css(mix(topC, fog, fd));
+      else { const mx = (it.lo3[0] + it.hi3[0]) / 2, mz = (it.lo3[2] + it.hi3[2]) / 2, pT = proj(mx, it.hi3[1], mz), pB = proj(mx, it.lo3[1], mz), g = x.createLinearGradient(pT[0], pT[1], pB[0], pB[1]);
+        g.addColorStop(0, css(mix(topC, fog, fd))); g.addColorStop(1, css(mix(topC, fog, Math.min(1, fd + .42 + .2 * (1 - Math.min(1, it.lo3[1] / 2)))))); x.fillStyle = g; }   // 아래로 갈수록 안개에 묻혀요
+      x.beginPath(); for (let q = 0; q < 4; q++) { const v = it.V[ix[q]]; q ? x.lineTo(v[0], v[1]) : x.moveTo(v[0], v[1]); } x.closePath(); x.fill(); x.strokeStyle = x.fillStyle; x.lineWidth = lw; x.stroke();
+    }
+  }
+  const dg = x.createRadialGradient(0, H, 0, 0, H, W * .55); dg.addColorStop(0, css(fog, .55)); dg.addColorStop(1, css(fog, 0)); x.fillStyle = dg; x.fillRect(0, 0, W, H);   // 날짜 자리는 안개 조금 더
+  if (grain) { x.globalCompositeOperation = 'soft-light'; x.globalAlpha = grain; x.fillStyle = x.createPattern(gbNoise(), 'repeat'); x.fillRect(0, 0, W, H); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; }
+}
 function fractalTile(o, seed) {
   if (o.tile) return o.tile;
   const G = 300, cnt = frDensity(o.P, G, 22000, 34, seed), vals = Float32Array.from(cnt.filter(v => v > 0)).sort(), L = vals.length || 1;
@@ -1368,6 +1440,7 @@ export function drawCode(cv, seed, shift = 0, t = 0, grainAmt = cv.dataset.gr ==
   if (cv.dataset.code === 'neon') return drawNeon(cv, seed, t, cv.dataset.gr === '0' ? 0 : .05);
   if (cv.dataset.code === 'fractal') return drawFractal(cv, seed, t);
   if (cv.dataset.code === 'plasma') return drawPlasma(cv, seed, t, cv.dataset.gr === '0' ? 0 : .025);
+  if (cv.dataset.code === 'city') return drawCity(cv, seed, t, cv.dataset.gr === '0' ? 0 : .1);
   if (cv.dataset.code === 'spec') return drawSpec(cv, seed, t, cv.dataset.gr === '0' ? 0 : .1);
   if (cv.dataset.code === 'wint') return drawWint(cv, seed, t, cv.dataset.gr === '0' ? 0 : .1);
   if (cv.dataset.code === 'bmod') return drawBmod(cv, seed, t, cv.dataset.gr === '0' ? 0 : .42);
