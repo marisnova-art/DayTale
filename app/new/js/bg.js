@@ -33,6 +33,7 @@ export const PAID = [
   { id: 'stars', img: './bg/stars.webp', tone: '#3a3f7a', ink: '#F3E6C8', dim: ['center', '0,0,0', .55] },
   { id: 'bands', code: 'bands', tone: '#a35cff', ink: '#fff', dim: ['center', '40,16,70', .55] },
   { id: 'slit', code: 'slit', tone: '#F07F3C', ink: '#fff', dim: ['all', '10,8,14', 0] },
+  { id: 'field', code: 'field', tone: '#1430E0', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 컬러 필드 (123차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'lens', code: 'lens', tone: '#8CF08C', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 웨이브 렌즈 (122차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'blob', code: 'blob', tone: '#E0C040', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 컬러 블롭 (120차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'city', code: 'city', tone: '#FFD640', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 3D 시티 (118차): 글자색은 바탕 밝기로 (formats.js)
@@ -1522,6 +1523,52 @@ function drawLens(cv, seed, t, grain) {
   x.beginPath(); x.arc(CX, CY, R, 0, 6.283); x.stroke(); x.shadowBlur = 0; x.globalAlpha = 1;
   if (grain) { x.globalCompositeOperation = 'soft-light'; x.globalAlpha = grain; x.fillStyle = x.createPattern(gbNoise(), 'repeat'); x.fillRect(0, 0, W, H); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; }
 }
+// 컬러 필드 (123차): 크고 작은 직사각형(1~4칸)이 빈틈없이 맞물려 카드를 채우고, 블록마다 두 색이 다른 방향으로 그라데이션(가끔 스트라이프 · 방사형). 레퍼런스의 원리만 · 식과 코드는 새로 작성.
+// 앤드류(시안 v4): 글 뒤를 가리거나 따로 칠하는 것 없이 카드 전체가 한 규칙 · 채도는 쨍하게, 너무 밝은 색만 한 단계 진하게(밝은 묶음은 어두운 색만 옅게) · 글자엔 아주 옅은 그림자(app.css .fsh)
+// 모션 = 블록은 그대로, 블록마다 그라데이션 방향이 다른 때에 천천히 돌고 흔들려요(10초)
+export const FIELD_PAL = [   // [이름, 색 5, 밝은 바탕?]
+  ['코발트 · 라임', ['#1430E0', '#B8F020', '#20C0F0', '#6A20D0', '#F0F0F0']], ['마젠타 · 오렌지', ['#E0108A', '#FF7A10', '#FFD020', '#7A10C0', '#FF3A3A']],
+  ['비비드 원색', ['#E82020', '#1A40E0', '#FFD010', '#10A050', '#F0F0F0']], ['네온', ['#FF2AD0', '#2AF0F0', '#7A2AFF', '#F0FF2A', '#2A50FF']],
+  ['에메랄드 · 핑크', ['#00A880', '#FF5AA0', '#10D0C0', '#C02070', '#F8C0D0']], ['선셋', ['#FF4A1A', '#FFB01A', '#E0105A', '#7A1AA0', '#2A1A80']],
+  ['딥 블루 · 골드', ['#0A1A80', '#2A60F0', '#F0B020', '#FFE070', '#10308A']], ['레드 · 블랙', ['#E01A1A', '#1A1A1A', '#FF6A3A', '#5A0A0A', '#F0F0F0']],
+  ['색종이', ['#FFD23A', '#FF7AA8', '#4AC8F0', '#7AE07A', '#FFFFFF'], 1], ['시트러스', ['#FFE04A', '#B8F04A', '#FF9A3A', '#FFF4C0', '#6AE0C0'], 1]];
+export const fieldPal = (seed, pal) => pal != null && FIELD_PAL[+pal] ? +pal : ((seed >>> 0) || 1) % FIELD_PAL.length;
+export const fieldLight = (seed, pal) => !!FIELD_PAL[fieldPal(seed, pal)][2];
+const fieldCache = new Map();
+function fieldOf(seed, asp) {   // 블록 배치는 격자 단위라 카드 비율마다 한 번만
+  const key = seed + ':' + asp.toFixed(2);
+  if (fieldCache.has(key)) return fieldCache.get(key);
+  const r = rng(seed ^ 0x3f1e), N = 5 + Math.floor(r() * 4), mix = r() < .5 ? 0 : .15 + r() * .15, M = Math.ceil(asp * N), occ = Array.from({ length: M }, () => Array(N).fill(0)), B = [];
+  for (let j = 0; j < M; j++) for (let i = 0; i < N; i++) {
+    if (occ[j][i]) continue;
+    let w = 1 + Math.floor(r() ** 1.4 * 4), h = 1 + Math.floor(r() ** 1.4 * 4);
+    while (w > 1 && (i + w > N || occ[j].slice(i, i + w).some(Boolean))) w--;
+    h = Math.min(h, M - j);
+    for (let y = j; y < j + h; y++) for (let k = i; k < i + w; k++) occ[y][k] = 1;
+    const a = Math.floor(r() * 5); let b = Math.floor(r() * 4); if (b >= a) b++;
+    B.push({ i, j, w, h, a, b, ang: r() * 6.283, ph: r() * 6.283, dir: r() < .5 ? -1 : 1, kind: r() < mix ? (r() < .5 ? 1 : 2) : 0, sw: 6 + Math.floor(r() * 8), rx: r(), ry: r() });
+  }
+  const p = { N, M, B };
+  if (fieldCache.size > 60) fieldCache.delete(fieldCache.keys().next().value);
+  fieldCache.set(key, p); return p;
+}
+function drawField(cv, seed, t, grain) {
+  const W = cv.width, H = cv.height, P = fieldOf(seed, H / W), E = FIELD_PAL[fieldPal(seed, cv.dataset.pal)], light = !!E[2], x = cv.getContext('2d'), u = W / P.N;
+  const C = E[1].map(h => { const c = hx3(h), L = .3 * c[0] + .59 * c[1] + .11 * c[2], k = light ? Math.min(1, .28 / Math.max(.01, 1 - L)) : Math.min(1, .5 / Math.max(.01, L)); return 'rgb(' + c.map(v => Math.round((light ? 1 - (1 - v) * k : v * k) * 255)).join(',') + ')'; });   // 채도는 그대로, 밝기만
+  x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1;
+  const T = t > 0 ? t / 10 * 6.283 : 0;
+  for (const q of P.B) {
+    const bx = q.i * u, by = q.j * u, bw = q.w * u, bh = q.h * u, cx = bx + bw / 2, cy = by + bh / 2, CA = C[q.a], CB = C[q.b];
+    const ang = q.ang + (t > 0 ? q.dir * T * .25 + .5 * Math.sin(T + q.ph) : 0), L = Math.hypot(bw, bh) / 2, dx = Math.cos(ang) * L, dy = Math.sin(ang) * L;
+    let g;
+    if (q.kind === 2) { const px = bx + bw * q.rx, py = by + bh * q.ry; g = x.createRadialGradient(px, py, 0, px, py, Math.hypot(bw, bh) * (.8 + (t > 0 ? .15 * Math.sin(T + q.ph) : 0))); }
+    else g = x.createLinearGradient(cx - dx, cy - dy, cx + dx, cy + dy);
+    if (q.kind === 1) for (let k = 0; k <= q.sw; k++) { const ca = k % 2 ? CA : CB; g.addColorStop(Math.min(1, k / q.sw), ca); g.addColorStop(Math.min(1, (k + .999) / q.sw), ca); }
+    else { g.addColorStop(0, CA); g.addColorStop(1, CB); }
+    x.fillStyle = g; x.fillRect(bx, by, bw + 1, bh + 1);
+  }
+  if (grain) { x.globalCompositeOperation = 'soft-light'; x.globalAlpha = grain; x.fillStyle = x.createPattern(gbNoise(), 'repeat'); x.fillRect(0, 0, W, H); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; }
+}
 function fractalTile(o, seed) {
   if (o.tile) return o.tile;
   const G = 300, cnt = frDensity(o.P, G, 22000, 34, seed), vals = Float32Array.from(cnt.filter(v => v > 0)).sort(), L = vals.length || 1;
@@ -1553,6 +1600,7 @@ export function drawCode(cv, seed, shift = 0, t = 0, grainAmt = cv.dataset.gr ==
   if (cv.dataset.code === 'neon') return drawNeon(cv, seed, t, cv.dataset.gr === '0' ? 0 : .05);
   if (cv.dataset.code === 'fractal') return drawFractal(cv, seed, t);
   if (cv.dataset.code === 'plasma') return drawPlasma(cv, seed, t, cv.dataset.gr === '0' ? 0 : .025);
+  if (cv.dataset.code === 'field') return drawField(cv, seed, t, cv.dataset.gr === '0' ? 0 : .1);
   if (cv.dataset.code === 'lens') return drawLens(cv, seed, t, cv.dataset.gr === '0' ? 0 : .1);
   if (cv.dataset.code === 'blob') return drawBlob(cv, seed, t, cv.dataset.gr === '0' ? 0 : .1);
   if (cv.dataset.code === 'city') return drawCity(cv, seed, t, cv.dataset.gr === '0' ? 0 : .1);

@@ -2144,3 +2144,8 @@ html.hd .tmv .tstk { transform: none; }
 .aip input { flex: 1; min-width: 0; background: none; border: 0; outline: none; color: #fff; font: var(--fw) var(--fs-m) var(--ui); }
 .aip input::placeholder { color: var(--mut); }
 html:not(.kb-open):not(.pan) .wr.aiw:not(.ki) .aip { padding-bottom: max(8px, var(--safe-b)); }
+
+/* 컬러 필드 (123차): 글 뒤를 가리지 않고 글자에 아주 옅은 그림자만 (앤드류 시안 v4) */
+.pg:has(> .fsh.d) .tx { text-shadow: 0 0 .6em rgba(0,0,0,.45); }
+.pg:has(> .fsh.l) .tx { text-shadow: 0 0 .6em rgba(255,255,255,.55); }
+.fsh { display: none; }
