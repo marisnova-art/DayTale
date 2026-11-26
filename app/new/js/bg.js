@@ -33,6 +33,7 @@ export const PAID = [
   { id: 'stars', img: './bg/stars.webp', tone: '#3a3f7a', ink: '#F3E6C8', dim: ['center', '0,0,0', .55] },
   { id: 'bands', code: 'bands', tone: '#a35cff', ink: '#fff', dim: ['center', '40,16,70', .55] },
   { id: 'slit', code: 'slit', tone: '#F07F3C', ink: '#fff', dim: ['all', '10,8,14', 0] },
+  { id: 'bmod', code: 'bmod', tone: '#E3A82B', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 블록 모더니즘 (114차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'ccomp', code: 'ccomp', tone: '#E4572E', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 큐브 컴포지션 (113차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'cube', code: 'cube', tone: '#5BC4BE', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 미니멀 큐브 (111차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'gband', code: 'gband', tone: '#FF3D7F', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 그라데이션 밴드 (110차): 글자색은 바탕 밝기로 (formats.js)
@@ -1151,6 +1152,52 @@ function drawCcomp(cv, seed, t, grain) {
   }
   if (grain) { x.globalCompositeOperation = 'soft-light'; x.globalAlpha = grain; x.fillStyle = x.createPattern(gbNoise(), 'repeat'); x.fillRect(0, 0, W, H); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; }
 }
+// 블록 모더니즘 (11-26 114차, 앤드류 레퍼런스(3차원 격자 박스)의 원리만 · 3D 라이브러리 없이 꼭짓점 투영으로 새로 작성). 3차원 격자 위 판 · 기둥 모양 박스가
+// 겹겹이 카드를 꽉 채우고, 박스마다 한 색의 어둡고 밝은 톤으로 면을 칠하고 면 안은 그라데이션, 입자 질감(앤드류 T3: 적당히). 글 뒤엔 아무것도 없이 카드 전체의
+// 채도와 밝기 폭을 고르게 낮춰요(앤드류). 색 10가지(어두운 8 · 연한 2). 셔플 = 박스 배치 · 개수 · 보는 각도. 모션 = 묶음이 40초에 한 바퀴, 박스 길이가 10초 주기로 숨 쉬어요
+export const BMOD_PAL = [   // [이름, 바탕, 다섯 색]
+  ['금 · 자주', '#1A1024', ['#E3A82B', '#8E1F6E', '#3FA7B5', '#3A3F9E', '#EDE4D3']], ['바다', '#0A1A2A', ['#2D6CDF', '#45C4D9', '#F2C14E', '#E9EEF2', '#16325C']],
+  ['노을', '#1C0D0D', ['#E85D3A', '#F2A541', '#7A2E5C', '#F5E1C8', '#3B1F4A']], ['숲', '#0F1A14', ['#3E8E5A', '#A7C957', '#F2E8CF', '#BC4749', '#386641']],
+  ['네온', '#0C0818', ['#FF3D9A', '#6A4CFF', '#22D3C5', '#FFD23F', '#F1EEFF']], ['먹', '#121212', ['#5A5A5A', '#9A9A9A', '#D9D9D9', '#E4572E', '#2E2E2E']],
+  ['청록 · 산호', '#08201F', ['#14877F', '#5FD1C1', '#FF7A5C', '#FFD7A8', '#1D3B53']], ['보라 · 레몬', '#150F24', ['#6C4AB6', '#B9A2FF', '#F4E04D', '#E85D75', '#2B2350']],
+  ['종이', '#EFE8DC', ['#D1495B', '#EDAE49', '#00798C', '#30638E', '#3B3B58']], ['민트 종이', '#E6F2EE', ['#2A9D8F', '#E9C46A', '#F4A261', '#E76F51', '#264653']],
+];
+export const bmodPal = (seed, pal) => pal != null && BMOD_PAL[+pal] ? +pal : ((seed >>> 0) || 1) % BMOD_PAL.length;
+export const bmodLight = (seed, pal) => { const [r, g, b] = hx3(BMOD_PAL[bmodPal(seed, pal)][1]); return .2126 * r + .7152 * g + .0722 * b > .5; };
+const bmodCache = new Map();
+function bmodOf(seed) {
+  if (bmodCache.has(seed)) return bmodCache.get(seed);
+  const r = rng(seed ^ 0x2b4d), n = 20 + Math.floor(r() * 21), B = [];
+  for (let k = 0; k < n; k++) {
+    const ax = Math.floor(r() * 3), sz = [0, 0, 0].map(() => .25 + r() * .55); sz[ax] = 1.4 + r() * 1.8; if (r() < .35) sz[(ax + 1) % 3] = .9 + r() * .9;
+    B.push({ p: [0, 0, 0].map(() => (Math.floor(r() * 4) - 1.5) * 1.15 + (r() - .5) * .4), sz, ax, ph: r() * 6.28, c: Math.floor(r() * 5) });
+  }
+  const p = { B, yaw: r() * 6.28, pitch: .5 + r() * .25 };
+  if (bmodCache.size > 60) bmodCache.delete(bmodCache.keys().next().value);
+  bmodCache.set(seed, p); return p;
+}
+const BM_V = CB_V, BM_F = CB_F;
+function drawBmod(cv, seed, t, grain) {
+  const W = cv.width, H = cv.height, P = bmodOf(seed), C = BMOD_PAL[bmodPal(seed, cv.dataset.pal)], light = bmodLight(seed, cv.dataset.pal), x = cv.getContext('2d');
+  const K = h => hx3(h).map(v => v * 255), PAL = C[2].map(K), tall = H / W > 1.6, yaw = P.yaw + t / 40 * Math.PI * 2, cy = Math.cos(yaw), sy = Math.sin(yaw), cp = Math.cos(P.pitch), sp = Math.sin(P.pitch), S = W / (tall ? 3.6 : 4.2);
+  const view = ([a, b, c]) => { const a1 = a * cy + c * sy, c1 = -a * sy + c * cy; return [a1, b * cp - c1 * sp, b * sp + c1 * cp]; };   // [화면 x, 화면 위, 깊이(클수록 앞)]
+  const lo = light ? .52 : .05, hi = light ? .98 : .62;
+  const css = c => { const gr = (c[0] + c[1] + c[2]) / 3; return `rgb(${c.map(v => { v += (gr - v) * .32; return Math.round(Math.max(0, Math.min(255, (lo + Math.max(0, Math.min(1, v / 255)) * (hi - lo)) * 255))); }).join(',')})`; };   // 전체 채도 · 밝기 폭을 고르게 낮춰요
+  x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; x.fillStyle = css(K(C[1])); x.fillRect(0, 0, W, H);
+  const L = [-.45, .8, .4], ln = Math.hypot(...L), lw = Math.max(.5, W / 700);
+  P.B.map(b => { const br = t > 0 ? 1 + .14 * Math.sin(t / 10 * Math.PI * 2 + b.ph) : 1, sz = b.sz.map((v, i) => i === b.ax ? v * br : v);
+    return { b, Pp: BM_V.map(v => view(v.map((q, i) => b.p[i] + q * sz[i] / 2))), dep: view(b.p)[2] }; }).sort((p, q) => p.dep - q.dep).forEach(it => {
+    const base = PAL[it.b.c];
+    for (const [ix, nr] of BM_F) {
+      if (view(nr)[2] <= 0) continue;
+      const k = .42 + .58 * Math.max(0, (nr[0] * L[0] + nr[1] * L[1] + nr[2] * L[2]) / ln), tone = base.map(v => v * (.35 + .85 * k));
+      const pts = ix.map(i => [W / 2 + it.Pp[i][0] * S, H / 2 - it.Pp[i][1] * S]);
+      const gr = x.createLinearGradient(pts[0][0], pts[0][1], pts[2][0], pts[2][1]); gr.addColorStop(0, css(tone.map(v => v * 1.12))); gr.addColorStop(1, css(tone.map(v => v * .62)));
+      x.beginPath(); pts.forEach(([a, c], j) => j ? x.lineTo(a, c) : x.moveTo(a, c)); x.closePath(); x.fillStyle = gr; x.fill(); x.strokeStyle = gr; x.lineWidth = lw; x.stroke();   // 면 사이 틈 메우기
+    }
+  });
+  if (grain) { x.globalCompositeOperation = 'soft-light'; x.globalAlpha = grain; x.fillStyle = x.createPattern(gbNoise(), 'repeat'); x.fillRect(0, 0, W, H); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; }
+}
 function fractalTile(o, seed) {
   if (o.tile) return o.tile;
   const G = 300, cnt = frDensity(o.P, G, 22000, 34, seed), vals = Float32Array.from(cnt.filter(v => v > 0)).sort(), L = vals.length || 1;
@@ -1182,6 +1229,7 @@ export function drawCode(cv, seed, shift = 0, t = 0, grainAmt = cv.dataset.gr ==
   if (cv.dataset.code === 'neon') return drawNeon(cv, seed, t, cv.dataset.gr === '0' ? 0 : .05);
   if (cv.dataset.code === 'fractal') return drawFractal(cv, seed, t);
   if (cv.dataset.code === 'plasma') return drawPlasma(cv, seed, t, cv.dataset.gr === '0' ? 0 : .025);
+  if (cv.dataset.code === 'bmod') return drawBmod(cv, seed, t, cv.dataset.gr === '0' ? 0 : .42);
   if (cv.dataset.code === 'ccomp') return drawCcomp(cv, seed, t, cv.dataset.gr === '0' ? 0 : .25);
   if (cv.dataset.code === 'cube') return drawCube(cv, seed, t, cv.dataset.gr === '0' ? 0 : .3);
   if (cv.dataset.code === 'gband') return drawGband(cv, seed, t, cv.dataset.gr === '0' ? 0 : .35);
