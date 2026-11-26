@@ -33,6 +33,7 @@ export const PAID = [
   { id: 'stars', img: './bg/stars.webp', tone: '#3a3f7a', ink: '#F3E6C8', dim: ['center', '0,0,0', .55] },
   { id: 'bands', code: 'bands', tone: '#a35cff', ink: '#fff', dim: ['center', '40,16,70', .55] },
   { id: 'slit', code: 'slit', tone: '#F07F3C', ink: '#fff', dim: ['all', '10,8,14', 0] },
+  { id: 'blob', code: 'blob', tone: '#E0C040', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 컬러 블롭 (120차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'city', code: 'city', tone: '#FFD640', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 3D 시티 (118차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'spec', code: 'spec', tone: '#E040C0', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 스펙트럼 커브 (117차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'wint', code: 'wint', tone: '#7A4BF0', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 웨이브 인터퍼런스 (116차): 글자색은 바탕 밝기로 (formats.js)
@@ -1412,6 +1413,46 @@ function drawCity(cv, seed, t, grain) {
   const dg = x.createRadialGradient(0, H, 0, 0, H, W * .55); dg.addColorStop(0, css(fog, .55)); dg.addColorStop(1, css(fog, 0)); x.fillStyle = dg; x.fillRect(0, 0, W, H);   // 날짜 자리는 안개 조금 더
   if (grain) { x.globalCompositeOperation = 'soft-light'; x.globalAlpha = grain; x.fillStyle = x.createPattern(gbNoise(), 'repeat'); x.fillRect(0, 0, W, H); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; }
 }
+// 컬러 블롭 (120차): 격자 위 무작위 값을 부드럽게 이은 얼룩이 색 바퀴를 돌며 색띠가 생겨요(열화상 느낌). 레퍼런스의 원리만 · 식과 코드는 새로 작성.
+// 모션: 아주 느린 흐름(30초에 한 칸) + 덩어리마다 다른 때에 부풀었다 가라앉는 펌핑(7초). 매끈해서 낮은 해상도로 그리고 부드럽게 늘려요
+export const BLOB_PAL = [   // [이름, 색들(돌아가며 이어짐), 무지개?]
+  ['열화상', ['#E04848', '#E0C040', '#40C080', '#3070E0', '#A040D0'], 1], ['노을', ['#2B0A3D', '#A3214F', '#EE6A3C', '#F6B851']], ['바다', ['#041F3D', '#0C5C8C', '#22A6C8', '#7FE0D8']], ['네온', ['#1A0B52', '#5B2BE0', '#E032C8', '#29D3F0']],
+  ['숲', ['#06241A', '#1C6B47', '#6DBF6A', '#D8E58A']], ['베리', ['#2A0630', '#7A1A6E', '#D2448E', '#F49AC0']], ['앰버', ['#2A1402', '#8A3E0A', '#E08A1E', '#F8D27A']], ['모노', ['#0E0E10', '#4A4A50', '#9A9AA0', '#E8E8EC']],
+  ['파스텔', ['#F6B8CC', '#F4DC94', '#A8E4C4', '#A8C0F4']], ['라벤더', ['#CDB8F4', '#F4B8D0', '#B0DCF0', '#F0E2A8']]];
+export const blobPal = (seed, pal) => pal != null && BLOB_PAL[+pal] ? +pal : ((seed >>> 0) || 1) % BLOB_PAL.length;
+export const blobLight = (seed, pal) => { const C = BLOB_PAL[blobPal(seed, pal)][1].map(hx3); return C.reduce((s, c) => s + .3 * c[0] + .59 * c[1] + .11 * c[2], 0) / C.length > .6; };
+const blobCache = new Map();
+function blobOf(seed) {
+  if (blobCache.has(seed)) return blobCache.get(seed);
+  const r = rng(seed ^ 0x6b10), p = { n: 4 + Math.floor(r() * 6), cyc: .8 + r() * .7, off: r(), s: Math.floor(r() * 1e6), dx: .7 + r() * .3, dy: .4 + r() * .4 };
+  if (blobCache.size > 60) blobCache.delete(blobCache.keys().next().value);
+  blobCache.set(seed, p); return p;
+}
+const blobH = (x, y, s) => { let h = Math.imul(x, 374761393) + Math.imul(y, 668265263) + Math.imul(s, 1442695041) | 0; h = Math.imul(h ^ h >>> 13, 1274126177); return ((h ^ h >>> 16) >>> 0) / 4294967296; };
+const blobN = (x, y, s) => { const xi = Math.floor(x), yi = Math.floor(y), fx = x - xi, fy = y - yi, u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy), a = blobH(xi, yi, s), b = blobH(xi + 1, yi, s), c = blobH(xi, yi + 1, s), d = blobH(xi + 1, yi + 1, s);
+  return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v; };
+let blobCv = null;
+function drawBlob(cv, seed, t, grain) {
+  const W = cv.width, H = cv.height, P = blobOf(seed), E = BLOB_PAL[blobPal(seed, cv.dataset.pal)], light = blobLight(seed, cv.dataset.pal), C = E[1].map(hx3), rainbow = !!E[2], n = C.length;
+  const rw = Math.min(W, t > 0 ? 200 : 360), rh = Math.max(1, Math.round(H * rw / W));   // 저장 그림은 더 촘촘히
+  if (!blobCv) blobCv = document.createElement('canvas'); if (blobCv.width !== rw || blobCv.height !== rh) { blobCv.width = rw; blobCv.height = rh; }
+  const g = blobCv.getContext('2d'), im = g.createImageData(rw, rh), D = im.data;
+  const lo = light ? .45 : .03, hi = light ? .98 : .72, ds = light ? .05 : .3, fl = t / 30, c = [0, 0, 0];   // 카드 전체 채도 · 밝기 폭을 고르게 낮춰서 글이 읽혀요
+  for (let j = 0; j < rh; j++) for (let i = 0; i < rw; i++) {
+    const x = i / rw * P.n + fl * P.dx, y = j / rw * P.n + fl * P.dy;
+    let v = blobN(x, y, P.s) * .78 + blobN(x * 2.1 + 5, y * 2.1 + 9, P.s + 7) * .22;
+    if (t > 0) v += .07 * Math.sin(t / 7 * Math.PI * 2 + blobN(x * .5, y * .5, P.s + 3) * Math.PI * 2);   // 덩어리마다 다른 때에 부풀었다 가라앉아요
+    let q = v * P.cyc + P.off; q -= Math.floor(q);
+    if (rainbow) { c[0] = .5 + .5 * Math.cos(q * 6.283); c[1] = .5 + .5 * Math.cos(q * 6.283 + 2); c[2] = .5 + .5 * Math.cos(q * 6.283 + 4); }
+    else { const xq = q * n, k = Math.floor(xq), f = xq - k, sm = f * f * (3 - 2 * f), A = C[k % n], B = C[(k + 1) % n]; c[0] = A[0] + (B[0] - A[0]) * sm; c[1] = A[1] + (B[1] - A[1]) * sm; c[2] = A[2] + (B[2] - A[2]) * sm; }
+    const gr = (c[0] + c[1] + c[2]) / 3, o = (j * rw + i) * 4;
+    for (let z = 0; z < 3; z++) D[o + z] = (lo + Math.max(0, Math.min(1, c[z] + (gr - c[z]) * ds)) * (hi - lo)) * 255;
+    D[o + 3] = 255;
+  }
+  g.putImageData(im, 0, 0);
+  const x = cv.getContext('2d'); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'low'; x.drawImage(blobCv, 0, 0, W, H);
+  if (grain) { x.globalCompositeOperation = 'soft-light'; x.globalAlpha = grain; x.fillStyle = x.createPattern(gbNoise(), 'repeat'); x.fillRect(0, 0, W, H); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; }
+}
 function fractalTile(o, seed) {
   if (o.tile) return o.tile;
   const G = 300, cnt = frDensity(o.P, G, 22000, 34, seed), vals = Float32Array.from(cnt.filter(v => v > 0)).sort(), L = vals.length || 1;
@@ -1443,6 +1484,7 @@ export function drawCode(cv, seed, shift = 0, t = 0, grainAmt = cv.dataset.gr ==
   if (cv.dataset.code === 'neon') return drawNeon(cv, seed, t, cv.dataset.gr === '0' ? 0 : .05);
   if (cv.dataset.code === 'fractal') return drawFractal(cv, seed, t);
   if (cv.dataset.code === 'plasma') return drawPlasma(cv, seed, t, cv.dataset.gr === '0' ? 0 : .025);
+  if (cv.dataset.code === 'blob') return drawBlob(cv, seed, t, cv.dataset.gr === '0' ? 0 : .1);
   if (cv.dataset.code === 'city') return drawCity(cv, seed, t, cv.dataset.gr === '0' ? 0 : .1);
   if (cv.dataset.code === 'spec') return drawSpec(cv, seed, t, cv.dataset.gr === '0' ? 0 : .1);
   if (cv.dataset.code === 'wint') return drawWint(cv, seed, t, cv.dataset.gr === '0' ? 0 : .1);
