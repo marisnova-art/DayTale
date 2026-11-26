@@ -33,6 +33,7 @@ export const PAID = [
   { id: 'stars', img: './bg/stars.webp', tone: '#3a3f7a', ink: '#F3E6C8', dim: ['center', '0,0,0', .55] },
   { id: 'bands', code: 'bands', tone: '#a35cff', ink: '#fff', dim: ['center', '40,16,70', .55] },
   { id: 'slit', code: 'slit', tone: '#F07F3C', ink: '#fff', dim: ['all', '10,8,14', 0] },
+  { id: 'dotw', code: 'dotw', tone: '#3A50F0', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 도트 웨이브 (127차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'cloud', code: 'cloud', tone: '#1868F0', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 클라우드 텍스처 (126차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'float', code: 'float', tone: '#8EE0D0', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 플로팅 셰이프 (125차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'liquid', code: 'liquid', tone: '#D8282A', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 리퀴드 (124차): 글자색은 바탕 밝기로 (formats.js)
@@ -1760,6 +1761,47 @@ function drawCloud(cv, seed, t, grain) {
   const x = cv.getContext('2d'); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'low'; x.drawImage(clOut, 0, 0, W, H);
   if (grain) { x.globalCompositeOperation = 'soft-light'; x.globalAlpha = grain; x.fillStyle = x.createPattern(gbNoise(), 'repeat'); x.fillRect(0, 0, W, H); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; }
 }
+// 도트 웨이브 (127차): 촘촘한 점 격자 전체가 물결로 휘고, 색은 5~6색 띠로 이어져요(점 사이로 바탕이 비쳐 질감). 레퍼런스의 원리만 · 식과 코드는 새로 작성.
+// 셔플 = 점 크기 · 촘촘함 · 휘는 방식 4(세로 물결 · 가로 물결 · 흐름 · 동심원) · 색 방향 4(가로 · 세로 · 대각 · 방사) · 가끔 사각 · 육각 점 · 세 번에 한 번쯤 큰 도트(가로 12~16칸 · 틈 얇게 · 네모 위주 · 물결 얕게)
+// 모션 = 물결이 천천히 흐르고 색 띠도 아주 느리게 밀려요. 색을 64단계로 묶어 한 번에 칠해서 가벼워요. 글 뒤를 가리지 않고 너무 밝은 색만 누르고 글자에 옅은 그림자(.fsh)
+export const DOTW_PAL = [   // [이름, 바탕, 색 띠, 밝은 바탕?]
+  ['무지개', '#141414', ['#20E070', '#20A0F0', '#3A50F0', '#F0D020', '#F07A30', '#F03090']], ['선셋', '#140C12', ['#F0D040', '#F09030', '#F05050', '#C03080', '#6A30A0']],
+  ['오션', '#08101A', ['#40F0D0', '#20B0E0', '#2060E0', '#5030C0', '#A0F0F0']], ['캔디', '#141018', ['#F070B0', '#F0A0D0', '#A080F0', '#70D0F0', '#F0E070']],
+  ['네온', '#08060E', ['#20F0F0', '#F020D0', '#7030F0', '#C0F030']], ['포레스트', '#0A120C', ['#C0E050', '#50C070', '#209080', '#E0B040']],
+  ['모노 · 레드', '#0C0C0C', ['#F0F0F0', '#909090', '#E02020', '#505050']], ['오로라', '#060A14', ['#40F0A0', '#30C0E0', '#8060F0', '#E060C0']],
+  ['파스텔', '#F6F2EE', ['#F0A0B8', '#A0C8F0', '#B8E0A0', '#F0D890', '#C8A8F0'], 1], ['종이 · 원색', '#F4EEE4', ['#E04A3A', '#2A5AC0', '#F0B020', '#3AA070'], 1]];
+export const dotwPal = (seed, pal) => pal != null && DOTW_PAL[+pal] ? +pal : ((seed >>> 0) || 1) % DOTW_PAL.length;
+export const dotwLight = (seed, pal) => !!DOTW_PAL[dotwPal(seed, pal)][3];
+const dotwCache = new Map();
+function dotwOf(seed) {
+  if (dotwCache.has(seed)) return dotwCache.get(seed);
+  const r = rng(seed ^ 0x4d07), P = { cell: 9 + r() * 7, fill: .72 + r() * .22, kind: Math.floor(r() * 4), dir: Math.floor(r() * 4), shape: r() < .7 ? 0 : r() < .5 ? 1 : 2, amp: .6 + r() * 1.1, lam: .16 + r() * .2, ph: r() * 6.283, big: r() < .33, bn: 12 + r() * 4, bf: .9 + r() * .06, bsq: r() < .75 };
+  if (P.big) { P.cell = 520 / P.bn; P.fill = P.bf; P.shape = P.bsq ? 1 : 0; P.amp = .1 + (P.amp - .6) * .09; P.lam = .45 + P.lam * .5; if (P.kind === 2) P.kind = 0; }
+  else if (P.kind === 2) P.amp = .35 + (P.amp - .6) * .3;
+  if (dotwCache.size > 60) dotwCache.delete(dotwCache.keys().next().value);
+  dotwCache.set(seed, P); return P;
+}
+function drawDotw(cv, seed, t) {
+  const W = cv.width, H = cv.height, P = dotwOf(seed), E = DOTW_PAL[dotwPal(seed, cv.dataset.pal)], light = !!E[3], x = cv.getContext('2d');
+  const cap = c => { const L = .3 * c[0] + .59 * c[1] + .11 * c[2], k = light ? Math.min(1, .45 / Math.max(.01, 1 - L)) : Math.min(1, .62 / Math.max(.01, L)); return c.map(v => light ? 1 - (1 - v) * k : v * k); };
+  const C = E[2].map(h => cap(hx3(h))), n = C.length, NB = 64, BC = [];
+  for (let b = 0; b < NB; b++) { const v = b / (NB - 1) * (n - 1), k = Math.min(n - 2, Math.floor(v)), f = v - k; BC.push(`rgb(${C[k].map((a, z) => Math.round((a + (C[k + 1][z] - a) * f) * 255)).join(',')})`); }
+  x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; x.fillStyle = E[1]; x.fillRect(0, 0, W, H);
+  const u = W / 520, c = P.cell * u, A = c * P.amp, L = W * P.lam, T = 6.283, tw = t > 0 ? t * T / 8 : 0, sh = t > 0 ? t / 40 : 0, rad = c * P.fill / 2, cx = W / 2, cy = H / 2, dm = Math.hypot(cx, cy), paths = new Array(NB).fill(null);
+  for (let j = -3; j * c < H + 3 * c; j++) for (let i = -3; i * c < W + 3 * c; i++) {
+    const bx = i * c + c / 2, by = j * c + c / 2; let dx = 0, dy = 0;
+    if (P.kind === 0) dx = A * Math.sin(by / L * T + P.ph - tw);
+    else if (P.kind === 1) dy = A * Math.sin(bx / L * T + P.ph - tw);
+    else if (P.kind === 2) { dx = A * Math.sin(by / L * T + P.ph - tw); dy = A * Math.cos(bx / L * T + P.ph - tw); }
+    else { const rr = Math.hypot(bx - cx, by - cy) || 1, w = A * Math.sin(rr / L * T - tw); dx = (bx - cx) / rr * w; dy = (by - cy) / rr * w; }
+    let g = (P.dir === 0 ? bx / W : P.dir === 1 ? by / H : P.dir === 2 ? (bx + by) / (W + H) : Math.hypot(bx - cx, by - cy) / dm) + sh; g = ((g % 2) + 2) % 2; if (g > 1) g = 2 - g;
+    const bi = Math.round(g * (NB - 1)), pa = paths[bi] || (paths[bi] = new Path2D()), px = bx + dx, py = by + dy;
+    if (P.shape === 0) { pa.moveTo(px + rad, py); pa.arc(px, py, rad, 0, T); }
+    else if (P.shape === 1) { const q = P.big ? rad : rad * .9, an = P.big ? (dx + dy) / c * .18 : 0, ca = Math.cos(an) * q, sa = Math.sin(an) * q; pa.moveTo(px - ca + sa, py - sa - ca); pa.lineTo(px + ca + sa, py + sa - ca); pa.lineTo(px + ca - sa, py + sa + ca); pa.lineTo(px - ca - sa, py - sa + ca); pa.closePath(); }
+    else for (let k = 0; k < 6; k++) { const an = k * T / 6 + .52, qx = px + Math.cos(an) * rad * 1.05, qy = py + Math.sin(an) * rad * 1.05; k ? pa.lineTo(qx, qy) : pa.moveTo(qx, qy); if (k === 5) pa.closePath(); }
+  }
+  for (let b = 0; b < NB; b++) if (paths[b]) { x.fillStyle = BC[b]; x.fill(paths[b]); }
+}
 function fractalTile(o, seed) {
   if (o.tile) return o.tile;
   const G = 300, cnt = frDensity(o.P, G, 22000, 34, seed), vals = Float32Array.from(cnt.filter(v => v > 0)).sort(), L = vals.length || 1;
@@ -1791,6 +1833,7 @@ export function drawCode(cv, seed, shift = 0, t = 0, grainAmt = cv.dataset.gr ==
   if (cv.dataset.code === 'neon') return drawNeon(cv, seed, t, cv.dataset.gr === '0' ? 0 : .05);
   if (cv.dataset.code === 'fractal') return drawFractal(cv, seed, t);
   if (cv.dataset.code === 'plasma') return drawPlasma(cv, seed, t, cv.dataset.gr === '0' ? 0 : .025);
+  if (cv.dataset.code === 'dotw') return drawDotw(cv, seed, t);
   if (cv.dataset.code === 'cloud') return drawCloud(cv, seed, t, cv.dataset.gr === '0' ? 0 : .12);
   if (cv.dataset.code === 'float') return drawFloat(cv, seed, t, cv.dataset.gr === '0' ? 0 : .1);
   if (cv.dataset.code === 'liquid') return drawLiquid(cv, seed, t, cv.dataset.gr === '0' ? 0 : .14);
