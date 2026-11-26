@@ -33,6 +33,7 @@ export const PAID = [
   { id: 'stars', img: './bg/stars.webp', tone: '#3a3f7a', ink: '#F3E6C8', dim: ['center', '0,0,0', .55] },
   { id: 'bands', code: 'bands', tone: '#a35cff', ink: '#fff', dim: ['center', '40,16,70', .55] },
   { id: 'slit', code: 'slit', tone: '#F07F3C', ink: '#fff', dim: ['all', '10,8,14', 0] },
+  { id: 'valley', code: 'valley', tone: '#2A6AC0', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 앱스트랙트 밸리 (132차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'orb', code: 'orb', tone: '#2FB86A', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 루미너스 스피어 (131차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'crain', code: 'crain', tone: '#2FE070', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 코드 레인 (130차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'fold', code: 'fold', tone: '#3A80F8', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 크롬 폴드 (129차): 글자색은 바탕 밝기로 (formats.js)
@@ -2045,6 +2046,54 @@ function drawOrb(cv, seed, t) {
   s.globalCompositeOperation = 'source-over'; s.globalAlpha = 1;
   x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'low'; x.drawImage(orbCv, 0, 0, W, H);
 }
+// 앱스트랙트 밸리 (132차): 부드러운 물결 면 10~30층이 위에서 아래로 겹쳐요 · 위는 밝고 아래로 갈수록 깊은 색(OKLab으로 고르게) · 층마다 옆으로 밀려 비스듬한 골짜기.
+// 레퍼런스의 느낌만 · 식과 코드는 새로 작성. 셔플 = 층 수 · 물결 폭/높이 · 둥글게/뾰족하게 · 기우는 방향 · 거친 산맥 50%(앤드류 11-26, 한 장 안에서 섞지 않음) · 선화 20% · 색.
+// 모션 = 층마다 다른 속도로 옆으로 흘러 시차 · 물결 높이가 숨 쉬듯. 글 뒤를 가리지 않고 글자에 옅은 그림자(.fsh)
+export const VALLEY_PAL = [   // [이름, 위, 가운데, 아래, 밝은?]
+  ['오션', '#A8E6F0', '#2A6AC0', '#06102A'], ['선셋', '#FFD08A', '#E0507A', '#1A0A2A'], ['딥 포레스트', '#A8F0D0', '#1A8A7A', '#021A18'], ['아이스', '#F0F8FF', '#6A9AD0', '#0A1A30'],
+  ['갤럭시', '#F0B0F0', '#6A3AC0', '#0A0620'], ['데저트', '#FFE0A8', '#D0703A', '#2A0E06'], ['로즈', '#FFD0DC', '#C0407A', '#1E0614'], ['모노', '#F0F0F0', '#707070', '#0A0A0A'],
+  ['드림 파스텔', '#FFF4F8', '#F0C0D8', '#B0A0E0', 1], ['페이퍼', '#FBF8F0', '#E8DCC8', '#B8A890', 1]];
+export const valleyPal = (seed, pal) => pal != null && VALLEY_PAL[+pal] ? +pal : ((seed >>> 0) || 1) % VALLEY_PAL.length;
+export const valleyLight = (seed, pal) => !!VALLEY_PAL[valleyPal(seed, pal)][4];
+const vaCache = new Map(), vaRamp = new Map();
+const vaH = (a, b) => { let h = (a * 374761393 + b * 668265263) | 0; h = Math.imul(h ^ h >>> 13, 1274126177); return ((h ^ h >>> 16) >>> 0) / 4294967296; };
+const vaLin = c => c <= .04045 ? c / 12.92 : Math.pow((c + .055) / 1.055, 2.4), vaGam = c => c <= .0031308 ? 12.92 * c : 1.055 * Math.pow(c, 1 / 2.4) - .055;
+function vaLab(h) { const [r, g, b] = hx3(h).map(vaLin), l = Math.cbrt(.4122214708 * r + .5363325363 * g + .0514459929 * b), m = Math.cbrt(.2119034982 * r + .6806995451 * g + .1073969566 * b), s = Math.cbrt(.0883024619 * r + .2817188376 * g + .6299787005 * b);
+  return [.2104542553 * l + .793617785 * m - .0040720468 * s, 1.9779984951 * l - 2.428592205 * m + .4505937099 * s, .0259040371 * l + .7827717662 * m - .808675766 * s]; }
+function vaRgb([L, A, B]) { const l = (L + .3963377774 * A + .2158037573 * B) ** 3, m = (L - .1055613458 * A - .0638541728 * B) ** 3, s = (L - .0894841775 * A - 1.291485548 * B) ** 3;
+  return 'rgb(' + [4.0767416621 * l - 3.3077115913 * m + .2309699292 * s, -1.2684380046 * l + 2.6097574011 * m - .3413193965 * s, -.0041960863 * l - .7034186147 * m + 1.707614701 * s].map(v => Math.round(Math.max(0, Math.min(1, vaGam(v))) * 255)).join(',') + ')'; }
+function valleyRamp(pi, n) {   // 위 → 가운데 → 아래, n색
+  const key = pi + '|' + n; let R = vaRamp.get(key); if (R) return R;
+  const E = VALLEY_PAL[pi], A = vaLab(E[1]), B = vaLab(E[2]), C = vaLab(E[3]);
+  R = Array.from({ length: n }, (_, i) => { const u = i / (n - 1), [P, Q, k] = u < .5 ? [A, B, u * 2] : [B, C, u * 2 - 1]; return vaRgb(P.map((v, j) => v + (Q[j] - v) * k)); });
+  if (vaRamp.size > 40) vaRamp.delete(vaRamp.keys().next().value); vaRamp.set(key, R); return R;
+}
+function valleyOf(seed) {
+  if (vaCache.has(seed)) return vaCache.get(seed);
+  const r = rng(seed ^ 0x0a11e), p = { n: 10 + Math.floor(r() * 21), ax: .15 + r() * .35, ay: .02 + r() * .06, sm: 1.5 + r() * 4.5, off: (r() < .5 ? -1 : 1) * (.01 + r() * .03), crazy: r() < .5, line: r() < .2, s: (r() * 1e6) | 0 };
+  if (vaCache.size > 60) vaCache.delete(vaCache.keys().next().value);
+  vaCache.set(seed, p); return p;
+}
+function drawValley(cv, seed, t) {
+  const W = cv.width, H = cv.height, P = valleyOf(seed), pi = valleyPal(seed, cv.dataset.pal), light = !!VALLEY_PAL[pi][4], x = cv.getContext('2d');
+  const N = P.n, C = valleyRamp(pi, N + 2), ax = W * P.ax, ay = W * P.ay;
+  x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1;
+  x.fillStyle = P.line ? (light ? C[0] : C[N + 1]) : C[0]; x.fillRect(0, 0, W, H);
+  if (P.line) { x.lineWidth = W * .004; x.lineJoin = 'round'; }
+  for (let i = 0; i <= N; i++) {
+    const root = H * (i / N) - H * .02, sh = W * P.off * i * 6 + t * W * .012 * (1 + i / N * 1.5), amp = ay * (1 + .15 * Math.sin(t / 4 + i * .3));
+    const j0 = Math.floor((sh - W * .3) / ax) - 1;
+    x.beginPath(); let px = 0, py = 0, first = true, x0 = 0;
+    for (let j = j0; (j - 2) * ax - sh < W; j++) {
+      const h = vaH(P.s + i * 101, j), jit = P.crazy ? (h - .5) * ax * .5 : 0, sg = P.crazy ? (vaH(P.s + i * 31, j + 7) < .5 ? 1 : -1) * (.4 + .6 * h) : (j & 1 ? 1 : -1);
+      const cx = j * ax + jit - sh, cy = root + sg * amp;
+      if (first) { x.moveTo(cx, cy); x0 = cx; first = false; } else { const d = (cx - px) / P.sm; x.bezierCurveTo(px + d, py, cx - d, cy, cx, cy); }
+      px = cx; py = cy;
+    }
+    if (P.line) { x.strokeStyle = light ? C[Math.min(N + 1, Math.max(Math.round(N * .4), i + 1))] : C[i]; x.stroke(); }
+    else { x.lineTo(px, H + 10); x.lineTo(x0, H + 10); x.closePath(); x.fillStyle = C[i + 1]; x.fill(); }
+  }
+}
 function fractalTile(o, seed) {
   if (o.tile) return o.tile;
   const G = 300, cnt = frDensity(o.P, G, 22000, 34, seed), vals = Float32Array.from(cnt.filter(v => v > 0)).sort(), L = vals.length || 1;
@@ -2076,6 +2125,7 @@ export function drawCode(cv, seed, shift = 0, t = 0, grainAmt = cv.dataset.gr ==
   if (cv.dataset.code === 'neon') return drawNeon(cv, seed, t, cv.dataset.gr === '0' ? 0 : .05);
   if (cv.dataset.code === 'fractal') return drawFractal(cv, seed, t);
   if (cv.dataset.code === 'plasma') return drawPlasma(cv, seed, t, cv.dataset.gr === '0' ? 0 : .025);
+  if (cv.dataset.code === 'valley') return drawValley(cv, seed, t);
   if (cv.dataset.code === 'orb') return drawOrb(cv, seed, t);
   if (cv.dataset.code === 'crain') return drawCrain(cv, seed, t);
   if (cv.dataset.code === 'fold') return drawFold(cv, seed, t);
