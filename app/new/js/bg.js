@@ -33,6 +33,7 @@ export const PAID = [
   { id: 'stars', img: './bg/stars.webp', tone: '#3a3f7a', ink: '#F3E6C8', dim: ['center', '0,0,0', .55] },
   { id: 'bands', code: 'bands', tone: '#a35cff', ink: '#fff', dim: ['center', '40,16,70', .55] },
   { id: 'slit', code: 'slit', tone: '#F07F3C', ink: '#fff', dim: ['all', '10,8,14', 0] },
+  { id: 'gband', code: 'gband', tone: '#FF3D7F', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 그라데이션 밴드 (110차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'retro', code: 'retro', tone: '#2FE0B4', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 레트로 픽셀 (109차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'pixel', code: 'pixel', tone: '#DCCB2A', ink: '#1E1B18', dim: ['center', '0,0,0', 0] },   // 픽셀 체커 (105차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'fractal', code: 'fractal', tone: '#1F6F99', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 프랙탈 패턴 (107차): 글자색은 바탕 밝기로 (formats.js)
@@ -998,6 +999,45 @@ function drawRetro(cv, seed, t, grainAmt) {
     x.fillRect(Math.round(i * cs + o), Math.round(j * cs + o), Math.round(s), Math.round(s));
   }
 }
+// 그라데이션 밴드 (11-26 110차, 앤드류 레퍼런스(세로 띠 대칭 그라데이션)의 원리만 · 코드는 새로 작성). 세로 띠마다 위아래 끝 색 → 물결 색 → 수평선 색으로 모이는
+// 대칭 그라데이션, 물결 색 자리가 띠마다 코사인으로 조금씩 밀려 물결처럼. 글 둘레는 박스 없이 수평선 색으로 넓고 옅게, 날짜 자리(아래)도 살짝 눌러요.
+// 색 10가지(어두운 8 · 연한 2). 셔플 = 띠 수 · 물결 폭 · 수평선 높이 · 흐르는 방향. 모션 = 물결이 12초에 한 바퀴 옆으로
+export const GBAND_PAL = [   // [이름, 끝 색, 물결 색, 수평선 색]
+  ['노을', '#FF9A5C', '#FF3D7F', '#1B0A2E'], ['바다', '#7FE6FF', '#1E7BFF', '#031335'], ['오로라', '#3DF0A6', '#4A7BFF', '#14063A'], ['보라 밤', '#F0A8FF', '#7B3CFF', '#0D0624'],
+  ['숲', '#D2EC78', '#2E9E6A', '#06180F'], ['체리', '#FFC0D0', '#E8245A', '#2A0510'], ['금빛', '#FFE59A', '#E09A2A', '#1E1204'], ['먹빛', '#D5D9E0', '#6C7480', '#0C0E12'],
+  ['파스텔 하늘', '#8FBEFA', '#C8DEFF', '#F6F9FF'], ['복숭아', '#FFA47A', '#FFD3BE', '#FFF8F3'],
+];
+export const gbandPal = (seed, pal) => pal != null && GBAND_PAL[+pal] ? +pal : ((seed >>> 0) || 1) % GBAND_PAL.length;
+export const gbandLight = (seed, pal) => { const [r, g, b] = hx3(GBAND_PAL[gbandPal(seed, pal)][3]); return .2126 * r + .7152 * g + .0722 * b > .5; };
+const gbandCache = new Map();
+function gbandOf(seed) {
+  if (gbandCache.has(seed)) return gbandCache.get(seed);
+  const r = rng(seed ^ 0x6b2d), p = { n: 12 + Math.floor(r() * 17), span: .35 + r() * .9, amp: .25 + r() * .2, hz: .46 + r() * .08, ph: r() * 6.28, dir: r() < .5 ? 1 : -1 };
+  if (gbandCache.size > 60) gbandCache.delete(gbandCache.keys().next().value);
+  gbandCache.set(seed, p); return p;
+}
+let GB_NOISE = null;
+function gbNoise() {   // 필름 노이즈 타일 (한 번만 만들어 깔아요)
+  if (GB_NOISE) return GB_NOISE;
+  const c = document.createElement('canvas'); c.width = c.height = 160; const x = c.getContext('2d'), im = x.createImageData(160, 160), r = rng(4242);
+  for (let i = 0; i < im.data.length; i += 4) { const v = 128 + (r() - .5) * 120; im.data[i] = im.data[i + 1] = im.data[i + 2] = v; im.data[i + 3] = 255; }
+  x.putImageData(im, 0, 0); return (GB_NOISE = c);
+}
+function drawGband(cv, seed, t, grain) {
+  const W = cv.width, H = cv.height, P = gbandOf(seed), C = GBAND_PAL[gbandPal(seed, cv.dataset.pal)], light = gbandLight(seed, cv.dataset.pal), x = cv.getContext('2d');
+  const tall = H / W > 1.6, hy = H * P.hz - (tall ? .08 * W : 0), top = hy / H, bot = 1 - top, cw = W / P.n, ph = P.ph + P.dir * t / 12 * Math.PI * 2;
+  x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1;
+  for (let i = 0; i < P.n; i++) {
+    const k = .5 + .5 * Math.cos(P.span * Math.PI * 2 * (i + .5) / P.n - ph), f = .06 + P.amp * 1.9 * k, g = x.createLinearGradient(0, 0, 0, H);   // f = 물결 색 자리 (끝 → 수평선 사이 비율)
+    g.addColorStop(0, C[1]); g.addColorStop(Math.min(top - .02, top * f), C[2]); g.addColorStop(top, C[3]); g.addColorStop(Math.max(top + .02, 1 - bot * f), C[2]); g.addColorStop(1, C[1]);
+    x.fillStyle = g; x.fillRect(Math.floor(i * cw), 0, Math.ceil(cw) + 1, H);
+  }
+  const d = hx3(C[3]).map(v => Math.round(v * 255)).join(','), cy = H / 2 - (tall ? .08 * W : 0), rad = x.createRadialGradient(W / 2, cy, 0, W / 2, cy, W * .62);   // 글 둘레: 박스 없이 수평선 색으로 넓고 옅게
+  rad.addColorStop(0, `rgba(${d},${light ? .55 : tall ? .6 : .5})`); rad.addColorStop(.6, `rgba(${d},${tall ? .32 : .22})`); rad.addColorStop(1, `rgba(${d},0)`);
+  x.save(); x.translate(W / 2, cy); x.scale(1, tall ? 1.05 : .6); x.translate(-W / 2, -cy); x.fillStyle = rad; x.fillRect(-W, -H, W * 3, H * 3); x.restore();
+  if (!light) { const b = x.createLinearGradient(0, H * .8, 0, H); b.addColorStop(0, `rgba(${d},0)`); b.addColorStop(.55, `rgba(${d},.32)`); b.addColorStop(1, `rgba(${d},.4)`); x.fillStyle = b; x.fillRect(0, H * .8, W, H * .2); }   // 날짜 자리: 밝은 끝 색을 살짝 눌러요
+  if (grain) { x.globalCompositeOperation = 'soft-light'; x.globalAlpha = grain; x.fillStyle = x.createPattern(gbNoise(), 'repeat'); x.fillRect(0, 0, W, H); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; }
+}
 function fractalTile(o, seed) {
   if (o.tile) return o.tile;
   const G = 300, cnt = frDensity(o.P, G, 22000, 34, seed), vals = Float32Array.from(cnt.filter(v => v > 0)).sort(), L = vals.length || 1;
@@ -1029,6 +1069,7 @@ export function drawCode(cv, seed, shift = 0, t = 0, grainAmt = cv.dataset.gr ==
   if (cv.dataset.code === 'neon') return drawNeon(cv, seed, t, cv.dataset.gr === '0' ? 0 : .05);
   if (cv.dataset.code === 'fractal') return drawFractal(cv, seed, t);
   if (cv.dataset.code === 'plasma') return drawPlasma(cv, seed, t, cv.dataset.gr === '0' ? 0 : .025);
+  if (cv.dataset.code === 'gband') return drawGband(cv, seed, t, cv.dataset.gr === '0' ? 0 : .35);
   if (cv.dataset.code === 'retro') return drawRetro(cv, seed, t, cv.dataset.gr === '0' ? 0 : .03);
   if (cv.dataset.code === 'pixel') return drawPixel(cv, seed, t, cv.dataset.gr === '0' ? 0 : .03);
   if (cv.dataset.code === 'mesh') return drawMesh(cv, seed, t, cv.dataset.gr === '0' ? 0 : .04);
