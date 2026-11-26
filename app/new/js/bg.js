@@ -33,6 +33,7 @@ export const PAID = [
   { id: 'stars', img: './bg/stars.webp', tone: '#3a3f7a', ink: '#F3E6C8', dim: ['center', '0,0,0', .55] },
   { id: 'bands', code: 'bands', tone: '#a35cff', ink: '#fff', dim: ['center', '40,16,70', .55] },
   { id: 'slit', code: 'slit', tone: '#F07F3C', ink: '#fff', dim: ['all', '10,8,14', 0] },
+  { id: 'cloud', code: 'cloud', tone: '#1868F0', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 클라우드 텍스처 (126차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'float', code: 'float', tone: '#8EE0D0', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 플로팅 셰이프 (125차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'liquid', code: 'liquid', tone: '#D8282A', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 리퀴드 (124차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'field', code: 'field', tone: '#1430E0', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 컬러 필드 (123차): 글자색은 바탕 밝기로 (formats.js)
@@ -1712,6 +1713,53 @@ function drawFloat(cv, seed, t, grain) {
   }
   if (grain) { x.globalCompositeOperation = 'soft-light'; x.globalAlpha = grain; x.fillStyle = x.createPattern(gbNoise(), 'repeat'); x.fillRect(0, 0, W, H); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; }
 }
+// 클라우드 텍스처 (126차): 여러 크기의 노이즈를 겹친 구름 질감 · 큰 얼룩 가장자리에 잔결이 살아 있어요. 레퍼런스의 원리만 · 식과 코드는 새로 작성.
+// 셔플 = 얼룩 크기 · 결 거칠기 · 대비 · 휘는 정도 · 색. 비슷한 색 4단계(깊음 → 밝음)로만 칠해요. 노이즈 두 겹은 셔플할 때 한 번만 만들고(여백 포함),
+// 모션은 두 겹을 서로 다른 방향으로 천천히 밀고 섞기만 해서 가벼워요(구름이 피어나고 스러지듯). 글 뒤를 가리지 않고 너무 밝은 색만 누르고 글자에 옅은 그림자(.fsh)
+export const CLOUD_PAL = [   // [이름, 색 4(깊음 → 밝음), 밝은 바탕?]
+  ['오션', ['#06104A', '#0A2AE0', '#1868F0', '#30E0E0']], ['퍼플 미스트', ['#12062E', '#4A16C0', '#9A50F0', '#F0A0F0']],
+  ['에메랄드', ['#03201A', '#087A52', '#20C090', '#C8F0A0']], ['선셋', ['#2A0620', '#B81E4A', '#F06A3A', '#F8D070']],
+  ['로즈', ['#26061A', '#A01E5A', '#F05A8A', '#F8C8D8']], ['앰버', ['#1C0E04', '#904008', '#E09020', '#F8E8A0']],
+  ['모노', ['#080808', '#2E2E2E', '#7A7A7A', '#E8E8E8']], ['네온', ['#0A0420', '#2410C8', '#D820C0', '#20F0F0']],
+  ['하늘 안개', ['#6A90E0', '#A8C4F0', '#DCE8F8', '#FFFFFF'], 1], ['피치 안개', ['#E8907A', '#F4C0AC', '#FBE4D8', '#FFFFFF'], 1]];
+export const cloudPal = (seed, pal) => pal != null && CLOUD_PAL[+pal] ? +pal : ((seed >>> 0) || 1) % CLOUD_PAL.length;
+export const cloudLight = (seed, pal) => !!CLOUD_PAL[cloudPal(seed, pal)][2];
+const CL_FW = 320, CL_M = 40, cloudCache = new Map();
+const clF = (x, y, s, oct, gain) => { let v = 0, a = .5, sum = 0; for (let k = 0; k < oct; k++) { v += a * lqN(x, y, s + k * 7); sum += a; x = x * 2.03 + 1.7; y = y * 2.03 + 3.1; a *= gain; } return v / sum; };
+function cloudOf(seed, asp) {
+  const key = seed + ':' + asp.toFixed(2);
+  if (cloudCache.has(key)) return cloudCache.get(key);
+  const r = rng(seed ^ 0x6c0d), P = { sc: 2.2 + r() * 2.6, gain: .5 + r() * .12, con: 1.5 + r() * .8, warp: .3 + r() * .6, s: Math.floor(r() * 1e5) };
+  const fw = CL_FW + CL_M * 2, fh = Math.round(CL_FW * asp) + CL_M * 2, A = new Float32Array(fw * fh), B = new Float32Array(fw * fh);
+  for (let j = 0; j < fh; j++) for (let i = 0; i < fw; i++) {
+    const nx = (i - CL_M) / CL_FW * P.sc, ny = (j - CL_M) / CL_FW * P.sc;
+    const qx = clF(nx * .6, ny * .6, P.s + 50, 3, .5), qy = clF(nx * .6 + 4.1, ny * .6, P.s + 80, 3, .5);   // 큰 흐름으로 살짝 휘게 (구불구불한 얼룩)
+    A[j * fw + i] = clF(nx + qx * P.warp * 2, ny + qy * P.warp * 2, P.s, 6, P.gain); B[j * fw + i] = clF(nx * 1.3 + 9, ny * 1.3, P.s + 30, 6, P.gain);
+  }
+  P.A = A; P.B = B; P.fw = fw; P.fh = fh;
+  if (cloudCache.size > 12) cloudCache.delete(cloudCache.keys().next().value);
+  cloudCache.set(key, P); return P;
+}
+let clOut = null;
+function drawCloud(cv, seed, t, grain) {
+  const W = cv.width, H = cv.height, P = cloudOf(seed, H / W), E = CLOUD_PAL[cloudPal(seed, cv.dataset.pal)], light = !!E[2];
+  const cap = c => { const L = .3 * c[0] + .59 * c[1] + .11 * c[2], k = light ? Math.min(1, .34 / Math.max(.01, 1 - L)) : Math.min(1, .6 / Math.max(.01, L)); return c.map(v => light ? 1 - (1 - v) * k : v * k); };   // 너무 밝은(밝은 바탕은 너무 진한) 색만 눌러요
+  const C = E[1].map(h => cap(hx3(h))), LUT = new Uint8ClampedArray(256 * 3);
+  for (let i = 0; i < 256; i++) { const v = i / 255 * 3, k = Math.min(2, Math.floor(v)), f = v - k, e = f * f * (3 - 2 * f); for (let z = 0; z < 3; z++) LUT[i * 3 + z] = (C[k][z] + (C[k + 1][z] - C[k][z]) * e) * 255; }
+  const ow = Math.min(W, t > 0 ? 200 : CL_FW), oh = Math.max(1, Math.round(ow * H / W)), ks = CL_FW / ow, fw = P.fw, fh = P.fh, FA = P.A, FB = P.B, m = CL_M - 2, T = 6.283;
+  const ax = CL_M + (t > 0 ? Math.sin(t / 23 * T) * m : 0), ay = CL_M + (t > 0 ? Math.sin(t / 29 * T + 1) * m : 0), bx = CL_M - (t > 0 ? Math.sin(t / 19 * T + 2) * m : 0), by = CL_M - (t > 0 ? Math.sin(t / 27 * T + 3) * m : 0);
+  const wa = .65 + (t > 0 ? Math.sin(t / 17 * T) * .12 : 0), con = P.con;
+  if (!clOut) clOut = document.createElement('canvas'); if (clOut.width !== ow || clOut.height !== oh) { clOut.width = ow; clOut.height = oh; }
+  const og = clOut.getContext('2d'), im = og.createImageData(ow, oh), D = im.data;
+  const smp = (F, x, y) => { x = x < 0 ? 0 : x > fw - 1.001 ? fw - 1.001 : x; y = y < 0 ? 0 : y > fh - 1.001 ? fh - 1.001 : y; const x0 = x | 0, y0 = y | 0, fx = x - x0, fy = y - y0, p = y0 * fw + x0, a = F[p], b = F[p + 1], c = F[p + fw], d = F[p + fw + 1]; return a + (b - a) * fx + (c - a) * fy + (a - b - c + d) * fx * fy; };
+  for (let j = 0; j < oh; j++) for (let i = 0; i < ow; i++) {
+    const u = i * ks, w = j * ks; let v = (smp(FA, u + ax, w + ay) * wa + smp(FB, u + bx, w + by) * (1 - wa) - .5) * con + .5;
+    const li = (v < 0 ? 0 : v > 1 ? 255 : v * 255 | 0) * 3, o4 = (j * ow + i) * 4; D[o4] = LUT[li]; D[o4 + 1] = LUT[li + 1]; D[o4 + 2] = LUT[li + 2]; D[o4 + 3] = 255;
+  }
+  og.putImageData(im, 0, 0);
+  const x = cv.getContext('2d'); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'low'; x.drawImage(clOut, 0, 0, W, H);
+  if (grain) { x.globalCompositeOperation = 'soft-light'; x.globalAlpha = grain; x.fillStyle = x.createPattern(gbNoise(), 'repeat'); x.fillRect(0, 0, W, H); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; }
+}
 function fractalTile(o, seed) {
   if (o.tile) return o.tile;
   const G = 300, cnt = frDensity(o.P, G, 22000, 34, seed), vals = Float32Array.from(cnt.filter(v => v > 0)).sort(), L = vals.length || 1;
@@ -1743,6 +1791,7 @@ export function drawCode(cv, seed, shift = 0, t = 0, grainAmt = cv.dataset.gr ==
   if (cv.dataset.code === 'neon') return drawNeon(cv, seed, t, cv.dataset.gr === '0' ? 0 : .05);
   if (cv.dataset.code === 'fractal') return drawFractal(cv, seed, t);
   if (cv.dataset.code === 'plasma') return drawPlasma(cv, seed, t, cv.dataset.gr === '0' ? 0 : .025);
+  if (cv.dataset.code === 'cloud') return drawCloud(cv, seed, t, cv.dataset.gr === '0' ? 0 : .12);
   if (cv.dataset.code === 'float') return drawFloat(cv, seed, t, cv.dataset.gr === '0' ? 0 : .1);
   if (cv.dataset.code === 'liquid') return drawLiquid(cv, seed, t, cv.dataset.gr === '0' ? 0 : .14);
   if (cv.dataset.code === 'field') return drawField(cv, seed, t, cv.dataset.gr === '0' ? 0 : .1);
