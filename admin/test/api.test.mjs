@@ -243,7 +243,7 @@ const ord = async x => (await call('ann', { action: 'tpl_list', ...x })).body.ro
 const nm = (await call('ann', { action: 'tpl_list', sort: 'name' })).body.rows.map(r => r.name), nmd = (await call('ann', { action: 'tpl_list', sort: 'name', dir: 'desc' })).body.rows.map(r => r.name);
 ok(nm.join() === [...nm].sort((a, b) => a.localeCompare(b, 'ko')).join() && nmd.join() === [...nm].reverse().join(), '정렬: 이름 가나다 · 거꾸로');
 const ad1 = (await call('ann', { action: 'tpl_list', sort: 'added', dir: 'desc' })).body;
-ok(ad1.rows[0].id === 'snow-night' && ad1.total === 3 && ad1.pageSize === 100 && ad1.kinds['아트'] === 2, '정렬: 올린 날 최신 · 100개씩 · 종류 개수');
+ok(ad1.rows[0].id === 'snow-night' && ad1.total === 3 && ad1.pageSize === 50 && ad1.sel.length === 3 && ad1.sel[0].id === 'snow-night' && Array.isArray(ad1.sel[0].tags) && ad1.kinds['아트'] === 2, '정렬: 올린 날 최신 · 100개씩 · 종류 개수');
 ok((await call('ann', { action: 'tpl_list', sort: 'tag', kind: '아트' })).body.total === 2, '정렬: 태그 + 거르기 개수');
 ok((await call('cat', { action: 'tpl_state_many', ids: ['art'], state: 'hidden' })).status === 403 && (await call('cat', { action: 'tpl_bulk', ids: ['art'], op: 'paid', value: true })).status === 403, 'staff는 한꺼번에 못 고침');
 ok((await call('ann', { action: 'tpl_state_many', ids: [], state: 'hidden' })).body.error === 'bad ids' && (await call('ann', { action: 'tpl_state_many', ids: ['X;drop'], state: 'hidden' })).body.error === 'bad ids', '한꺼번에: id 목록 확인');
@@ -269,6 +269,14 @@ await pg.exec(`update dz_templates set tags = '{${pubT.tags.slice(0, 2).join(','
 tb = (await call('ann', { action: 'tpl_bulk', ids: [pubT.id], op: 'tag_remove', value: pubT.tags[0] })).body;
 ok(tb.skipped[0]?.why === 'incomplete', '한꺼번에: 공개 중엔 태그 2개 아래로 못 뺌');
 await pg.exec(`update dz_templates set tags = '{${pubT.tags.join(',')}}' where id = '${pubT.id}'`);
+tb = (await call('ann', { action: 'tpl_bulk', ids: ['rebus'], op: 'tags', value: { add: ['비'], remove: ['비'] } })).body;
+ok(tb.error === 'bad tags' && (await call('ann', { action: 'tpl_bulk', ids: ['rebus'], op: 'tags', value: {} })).body.error === 'bad tags', '태그 창: 같은 태그 더하고 빼기 · 빈 변경 안 됨');
+const rb0 = (await pg.query(`select tags from dz_templates where id = 'rebus'`)).rows[0].tags;
+tb = (await call('ann', { action: 'tpl_bulk', ids: ['rebus'], op: 'tags', value: { add: ['비'], remove: [rb0[0]] } })).body;
+const rb1 = (await pg.query(`select tags from dz_templates where id = 'rebus'`)).rows[0].tags;
+ok(tb.done.length === 1 && rb1.includes('비') && !rb1.includes(rb0[0]) && rb1.length === rb0.length, '태그 창: 더하기 + 빼기 한 번에');
+await pg.exec(`update dz_templates set tags = '{${rb0.join(',')}}' where id = 'rebus'`);
+ok((await call('ann', { action: 'tpl_state_many', ids: Array.from({ length: 501 }, (_, i) => 't' + i), state: 'hidden' })).body.error === 'bad ids', '한꺼번에: 500개까지');
 // 종류 · 태그
 let tx = (await call('cat', { action: 'tax' })).body;
 ok(tx.kinds.map(k => k.name + k.n).join() === '디자인1,아트2' && tx.tags.find(t => t.id === '밤').n === 2 && tx.tags.find(t => t.id === '비').n === 0, '종류 · 태그 + 쓰는 수');

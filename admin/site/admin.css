@@ -281,21 +281,37 @@ td.tcell{ width:60px; padding-right:0 }
 .addrow{ display:flex; gap:8px; align-items:center; margin-bottom:12px } .addrow input{ padding:9px 14px } .addrow select{ width:auto; padding:9px 12px; font-size:13px } .addrow .btn{ white-space:nowrap; flex:none }
 @media (max-width: 1100px){ .dgrid{ grid-template-columns:1fr } .bigthumb{ max-width:200px } }
 @media (max-width: 720px){ .f2, .f4{ grid-template-columns:1fr 1fr } .addrow{ flex-wrap:wrap } .fsearch{ width:100% } }
-/* 템플릿 목록 2열 카드 (11-26) */
+/* 템플릿 목록 카드 (11-26): 넓으면 3열 · 중간 2열 · 폰 1열 */
+.ttop{ display:flex; flex-direction:column; gap:10px; margin-bottom:4px }
+.trow{ display:flex; align-items:center; gap:10px; flex-wrap:wrap } .trow .grow{ flex:1 }
+.ttl{ font:700 20px var(--display); margin:0 8px 0 0; letter-spacing:.01em }
+.trow .fsearch{ width:240px }
 .vbar{ width:1px; height:22px; background:var(--line-2); align-self:center; margin:0 6px }
-.sorts{ align-items:center } .sorts .btn{ margin-left:6px } .sorts .btn svg{ opacity:.45 } .sorts .btn.on{ background:var(--text); color:var(--ink); border-color:var(--text) } .sorts .btn.on svg{ opacity:1 }
-.tgrid{ display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px; margin-top:14px }
-.tcard{ display:flex; align-items:center; gap:12px; background:var(--box); border:1px solid var(--line); border-radius:var(--r-md); padding:12px 14px 12px 12px; cursor:pointer; min-width:0 }
+.sorts{ align-items:center } #ckall svg{ opacity:.45 } #ckall.on{ background:var(--text); color:var(--ink); border-color:var(--text) } #ckall.on svg{ opacity:1 }
+.hint{ margin-left:2px }
+.tgrid{ display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:10px; margin-top:12px }
+.tcard{ display:flex; align-items:center; gap:12px; background:var(--box); border:1px solid var(--line); border-radius:var(--r-md); padding:12px 14px 12px 12px; cursor:pointer; min-width:0; user-select:none }
 .tcard:hover{ border-color:var(--line-2) } .tcard.sel{ border-color:var(--text); background:var(--raise) }
-.tcard:focus-visible{ outline:2px solid var(--mustard); outline-offset:2px }
 .tck{ width:28px; height:28px; border-radius:8px; border:1.5px solid var(--text-3); background:transparent; color:transparent; display:grid; place-items:center; cursor:pointer; flex:none; padding:0 }
 .tck svg{ width:20px; height:20px } .tck[aria-pressed="true"]{ background:var(--text); border-color:var(--text); color:var(--ink) }
-.tinfo{ display:flex; flex-direction:column; gap:5px; min-width:0; flex:1 } .tinfo b{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+.th.cardth{ width:76px; height:95px; border-radius:12px; flex:none }
+.tinfo{ display:flex; flex-direction:column; gap:5px; min-width:0; flex:1 }
+.tname{ font-weight:700; color:var(--text); text-decoration:none; overflow:hidden; text-overflow:ellipsis; white-space:nowrap } .tname:hover{ text-decoration:underline }
 .ttags{ display:flex; flex-wrap:wrap; gap:4px }
 .tside{ display:flex; flex-direction:column; align-items:flex-end; gap:10px; flex:none }
 .selbar{ position:fixed; left:50%; bottom:22px; transform:translateX(-50%); z-index:30; display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:6px; background:var(--panel); border:1px solid var(--line-2); border-radius:22px; padding:10px 14px; box-shadow:0 12px 40px rgba(0,0,0,.6); width:max-content; max-width:calc(100vw - 32px) }
 .selbar[hidden]{ display:none } .selbar b{ margin-right:6px; white-space:nowrap }
 dialog.confirm select{ width:100% }
-@media (max-width: 1000px){ .tgrid{ grid-template-columns:1fr } }
-@media (max-width: 720px){ .selbar{ bottom:96px } .vbar{ display:none } }
 .tgrid ~ .pager{ padding-bottom:84px }
+/* 태그 창: 채움 = 모두 · 반쯤 = 일부 · 빈 칩 = 없음, ＋ 초록 / － 빨강 */
+dialog.tagsheet{ width:min(560px, calc(100vw - 32px)) }
+.tchips{ display:flex; flex-wrap:wrap; gap:8px; margin:18px 0 20px }
+.tchip{ display:inline-flex; align-items:center; gap:6px; font:600 13px var(--font); padding:8px 12px; border-radius:999px; border:1.5px solid var(--line-2); background:transparent; color:var(--text); cursor:pointer }
+.tchip small{ font-size:11px; color:var(--text-3) } .tchip i{ font-style:normal; font-weight:700; min-width:0 }
+.tchip.all{ background:var(--raise-2); border-color:var(--raise-2) }
+.tchip.some{ background:linear-gradient(90deg, var(--raise-2) 50%, transparent 50%) }
+.tchip.add{ border-color:var(--ok); color:var(--ok); background:rgba(127,212,138,.14) } .tchip.add small{ color:var(--ok) }
+.tchip.rm{ border-color:var(--err); color:var(--err); background:rgba(255,122,98,.1); text-decoration:line-through } .tchip.rm small{ color:var(--err) }
+@media (max-width: 1300px){ .tgrid{ grid-template-columns:repeat(2, minmax(0, 1fr)) } }
+@media (max-width: 760px){ .tgrid{ grid-template-columns:1fr } .trow .grow{ display:none } .trow .fsearch{ width:100% } .hint{ display:none } }
+@media (max-width: 720px){ .selbar{ bottom:96px } .vbar{ display:none } }

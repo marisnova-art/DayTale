@@ -102,9 +102,9 @@ function phraseRow(b: any) {
 // 템플릿 (11-06) — 앱(js/templates.js)이 읽는 모양 그대로 받아요
 const MAX_KINDS = 6;
 const TPL_LIST = 'id,fmt,kind,name,descr,tags,words,ex,assets,paid,state,author,added,sort';
-const TPL_ID = /^[a-z0-9-]{2,40}$/, TPL_PAGE = 100;
-// 한꺼번에 고칠 템플릿 id 목록 (1~100개)
-const tplIds = (v: unknown) => { const ids = uniq(v); if (!ids.length || ids.length > 100 || ids.some(x => !TPL_ID.test(x))) throw new Fail(400, 'bad ids'); return ids; };
+const TPL_ID = /^[a-z0-9-]{2,40}$/, TPL_PAGE = 50;
+// 한꺼번에 고칠 템플릿 id 목록 (1~500개)
+const tplIds = (v: unknown) => { const ids = uniq(v); if (!ids.length || ids.length > 500 || ids.some(x => !TPL_ID.test(x))) throw new Fail(400, 'bad ids'); return ids; };
 const day10 = (v: any) => v == null ? null : v instanceof Date ? v.toISOString().slice(0, 10) : String(v).slice(0, 10);
 const uniq = (v: unknown) => [...new Set((Array.isArray(v) ? v : []).map(x => String(x ?? '').trim()).filter(Boolean))];
 // 예시: 디자인 = 글 한 덩어리 (string) · 아트 = [글, 셔플 번호, 비율]
@@ -422,7 +422,7 @@ async function act(a: Admin, body: any, { db, env, fetch }: Deps) {
 
     // ---------- 템플릿 (11-06): 피터가 숨김으로 올리고, 공개는 owner만. 지우기 없음 (숨김만) ----------
     case 'tpl_list': {
-      // 11-26: 거르기(상태 · 종류 · 검색)는 DB에서, 정렬(이름 · 올린 날 · 태그)과 100개씩 나누기는 여기서
+      // 11-26: 거르기(상태 · 종류 · 검색)는 DB에서, 정렬(이름 · 올린 날 · 태그)과 50개씩 나누기는 여기서. sel = 거른 결과 전부(id · 이름 · 태그) — 전체 선택 · Shift 범위 · 태그 창이 씀
       const pg = page(body.page);
       let q = db.from('dz_templates').select(TPL_LIST).range(0, 99999);
       if (body.state === 'hidden' || body.state === 'public') q = q.eq('state', body.state);
@@ -443,7 +443,7 @@ async function act(a: Admin, body: any, { db, env, fetch }: Deps) {
       if (all.error) throw new Fail(500, all.error.message);
       const n = { all: 0, hidden: 0, public: 0 } as Record<string, number>, kinds: Record<string, number> = {};
       for (const r of all.data || []) { n.all++; n[r.state]++; kinds[r.kind] = (kinds[r.kind] || 0) + 1; }
-      return { rows: rows.slice(pg * TPL_PAGE, pg * TPL_PAGE + TPL_PAGE).map((t: any) => ({ id: t.id, fmt: t.fmt, kind: t.kind, name: t.name, tags: t.tags, paid: t.paid, added: day10(t.added), state: t.state, author: t.author, thumb: t.assets?.thumb ?? null, missing: tplMissing(t) })), total: rows.length, n, kinds, pageSize: TPL_PAGE };
+      return { rows: rows.slice(pg * TPL_PAGE, pg * TPL_PAGE + TPL_PAGE).map((t: any) => ({ id: t.id, fmt: t.fmt, kind: t.kind, name: t.name, tags: t.tags, paid: t.paid, added: day10(t.added), state: t.state, author: t.author, thumb: t.assets?.thumb ?? null, missing: tplMissing(t) })), total: rows.length, sel: rows.map((t: any) => ({ id: t.id, name: t.name, tags: t.tags || [], state: t.state })), n, kinds, pageSize: TPL_PAGE };
     }
 
     // 11-26: 체크한 여러 개를 한꺼번에 공개/숨김. 빈칸 있는 건 공개하지 않고 알려줘요. 관리 기록은 하나씩
@@ -474,6 +474,11 @@ async function act(a: Admin, body: any, { db, env, fetch }: Deps) {
       if (op === 'kind' && !kinds.includes(String(v))) throw new Fail(400, 'bad kind');
       else if ((op === 'tag_add' || op === 'tag_remove') && !tags.includes(String(v))) throw new Fail(400, 'bad tags');
       else if (op === 'paid' && typeof v !== 'boolean') throw new Fail(400, 'bad value');
+      else if (op === 'tags') {
+        // 태그 창: { add: [...], remove: [...] } 한 번에 (11-26)
+        const ad = uniq(v?.add), rm = uniq(v?.remove);
+        if ((!ad.length && !rm.length) || ad.some(x => !tags.includes(x) || rm.includes(x)) || rm.some(x => !tags.includes(x))) throw new Fail(400, 'bad tags');
+      }
       else if (!['kind', 'tag_add', 'tag_remove', 'paid'].includes(op)) throw new Fail(400, 'bad op');
       const { data, error } = await db.from('dz_templates').select('*').in('id', ids);
       if (error) throw new Fail(500, error.message);
@@ -483,6 +488,13 @@ async function act(a: Admin, body: any, { db, env, fetch }: Deps) {
         let row: any;
         if (op === 'kind') { if (t.kind === v) { done.push(t.id); continue; } row = { kind: String(v) }; }
         else if (op === 'paid') { if (t.paid === v) { done.push(t.id); continue; } row = { paid: v }; }
+        else if (op === 'tags') {
+          const ad = uniq(v.add), rm = uniq(v.remove), next = [...tg.filter(x => !rm.includes(x)), ...ad.filter(x => !tg.includes(x))];
+          if (next.length === tg.length && next.every(x => tg.includes(x))) { done.push(t.id); continue; }
+          if (next.length > 3) { skipped.push({ id: t.id, name: t.name, why: 'tags_full' }); continue; }
+          row = { tags: next };
+          if (t.state === 'public' && tplMissing({ ...t, ...row }).length) { skipped.push({ id: t.id, name: t.name, why: 'incomplete' }); continue; }
+        }
         else if (op === 'tag_add') {
           if (tg.includes(v)) { done.push(t.id); continue; }
           if (tg.length >= 3) { skipped.push({ id: t.id, name: t.name, why: 'tags_full' }); continue; }

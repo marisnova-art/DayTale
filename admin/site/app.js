@@ -20,7 +20,7 @@ const ago = d => {
 };
 const STATUS = { active: '이용 중', trialing: '체험 중', past_due: '결제 실패', paused: '일시정지', canceled: '해지됨' };
 const PLAN = { monthly: '월간', yearly: '연간' };
-const ACTION = { ban: '이용 정지', unban: '정지 해제', delete_user: '계정 삭제', cancel_subscription: '구독 해지', extend_trial: '체험 연장', notice_create: '공지 올림', notice_delete: '공지 내림', ops_daily: '매일 운영 실행', phrase_save: '문장 저장', phrase_delete: '문장 삭제', phrase_batch: '주간 묶음 올림', phrase_batch_active: '묶음 켜기·끄기', phrase_batch_delete: '묶음 지움', voucher_create: '이용권 발급', voucher_revoke: '이용권 취소', tpl_save: '템플릿 고침', tpl_public: '템플릿 공개', tpl_hide: '템플릿 숨김', kind_add: '종류 넣음', kind_remove: '종류 뺌', kinds_order: '종류 순서', tag_add: '태그 넣음', tag_remove: '태그 뺌', tag_cond: '태그 때 바꿈', tags_order: '태그 순서' };
+const ACTION = { ban: '이용 정지', unban: '정지 해제', delete_user: '계정 삭제', cancel_subscription: '구독 해지', extend_trial: '체험 연장', notice_create: '공지 올림', notice_delete: '공지 내림', ops_daily: '매일 운영 실행', phrase_save: '문장 저장', phrase_delete: '문장 삭제', phrase_batch: '주간 묶음 올림', phrase_batch_active: '묶음 켜기·끄기', phrase_batch_delete: '묶음 지움', voucher_create: '이용권 발급', voucher_revoke: '이용권 취소', tpl_save: '템플릿 고침', tpl_public: '템플릿 공개', tpl_hide: '템플릿 비공개', kind_add: '종류 넣음', kind_remove: '종류 뺌', kinds_order: '종류 순서', tag_add: '태그 넣음', tag_remove: '태그 뺌', tag_cond: '태그 때 바꿈', tags_order: '태그 순서' };
 const FLAG = c => !c || c === '—' ? '🌐' : String.fromCodePoint(...[...c.toUpperCase()].map(x => 0x1F1E6 + x.charCodeAt(0) - 65));
 const bytes = n => { n = Number(n || 0); return n >= 1024 ** 3 ? (n / 1024 ** 3).toFixed(2) + 'GB' : n >= 1024 ** 2 ? (n / 1024 ** 2).toFixed(1) + 'MB' : Math.round(n / 1024) + 'KB'; };
 const trialLeft = d => { if (!d) return ''; const n = Math.ceil((new Date(d) - Date.now()) / 864e5); return n > 0 ? `체험 ${n}일` : '체험 끝'; };
@@ -896,7 +896,7 @@ const thumbImg = (p, cls = '') => p ? `<img class="th ${cls}" src="${esc(thumbSr
 // 그림이 없으면 빗금 칸 (CSP 때문에 onerror 속성 대신)
 const fixThumbs = () => document.querySelectorAll('img.th').forEach(i => { const bad = () => { i.removeAttribute('src'); i.classList.add('none'); }; if (i.complete && !i.naturalWidth) bad(); else i.addEventListener('error', bad); });
 const MISS = { thumb: '정지 그림', ex: '예시 3개', descr: '설명 3줄', tags: '태그 2~3개', words: '관련 검색어 10개 이상' };
-const tplBadge = t => t.state === 'public' ? '<span class="badge active">공개</span>' : '<span class="badge wait">검토 대기</span>';
+const tplBadge = t => t.state === 'public' ? '<span class="badge active">공개</span>' : '<span class="badge">비공개</span>';
 const sw = (on, attrs = '') => `<button type="button" class="sw ${on ? 'on' : ''}" role="switch" aria-checked="${on}" ${attrs}><i></i></button>`;
 // 태그 '이때 앞으로' (앱 templates.js fit과 같은 값)
 const WHEN = [['', '없음'], ['time:morning', '시간 · 아침'], ['time:day', '시간 · 낮'], ['time:evening,night', '시간 · 저녁·밤'], ['wx:sun,suncloud', '날씨 · 맑음'], ['wx:cloud,fog', '날씨 · 흐림·안개'],
@@ -905,10 +905,32 @@ const condKey = c => { const k = Object.keys(c || {})[0]; return k ? k + ':' + [
 const keyCond = v => { if (!v) return {}; const [k, l] = v.split(':'); return { [k]: l.split(',') }; };
 const whenLabel = c => { const k = condKey(c); return (WHEN.find(w => w[0] === k) || [k, k])[1]; };
 
-// 11-26: 목록 = 2열 카드 · 개수 칩 · 정렬(이름 · 올린 날 · 태그) · 체크해서 한꺼번에 공개/숨김 · 종류 · 태그 · 유료/무료
+// 11-26: 목록 = 3/2/1열 카드 · 개수 칩 · 정렬(이름 · 올린 날 · 태그) · 50개씩 · 고르기(거른 결과 전체 · Shift 범위 · 고르는 중엔 카드 눌러 체크)
+//        → 한꺼번에 공개/비공개 · 종류 · 태그(칩으로 더하기/빼기) · 유료/무료
 const tplSel = new Set();
+let tplLast = null;
 const SORTS = [['name', '이름'], ['added', '올린 날'], ['tag', '태그']];
-const WHY = { incomplete: '빈칸', tags_full: '태그 3개 꽉 참' };
+const WHY = { incomplete: '빈칸', tags_full: '태그 3개 넘음' };
+// 태그 창: 칩을 누를 때마다 그대로 → ＋더하기 → －빼기 (모두 가졌으면 더하기 건너뜀, 아무도 없으면 빼기 건너뜀)
+function tagSheet(tags, picked) {
+  return new Promise(res => {
+    const n = picked.length, cnt = Object.fromEntries(tags.map(g => [g, picked.filter(t => (t.tags || []).includes(g)).length])), st = {};
+    const d = document.createElement('dialog'); d.className = 'confirm tagsheet';
+    const chip = g => { const c = cnt[g], s = st[g] || 0, have = c === n ? 'all' : c ? 'some' : 'none';
+      return `<button type="button" class="tchip ${have} ${s === 1 ? 'add' : s === 2 ? 'rm' : ''}" data-g="${esc(g)}"><i>${s === 1 ? '＋' : s === 2 ? '－' : ''}</i>${esc(g)}<small>${c}/${n}</small></button>`; };
+    const paint = () => { d.querySelector('.tchips').innerHTML = tags.map(chip).join('');
+      const ad = tags.filter(g => st[g] === 1).length, rm = tags.filter(g => st[g] === 2).length;
+      d.querySelector('.tsum').textContent = ad || rm ? `＋${ad} · －${rm}` : '칩을 눌러 더하거나 빼요'; d.querySelector('[value=ok]').disabled = !(ad || rm); };
+    d.innerHTML = `<form method="dialog"><h3>${n}개 태그</h3><p>채운 칩 = 모두 가짐 · 반쯤 = 일부 · 빈 칩 = 없음. 누를 때마다 그대로 → ＋더하기 → －빼기</p>
+      <div class="tchips"></div><div class="row between"><span class="muted xs tsum"></span><div class="row gap"><button value="cancel" class="btn ghost">취소</button><button value="ok" class="btn primary">저장</button></div></div></form>`;
+    document.body.appendChild(d); paint();
+    d.querySelector('.tchips').onclick = e => { const b = e.target.closest('[data-g]'); if (!b) return; const g = b.dataset.g, c = cnt[g];
+      let s = ((st[g] || 0) + 1) % 3; if (s === 1 && c === n) s = 2; if (s === 2 && c === 0) s = 0; st[g] = s; paint(); };
+    d.addEventListener('close', () => { const ok = d.returnValue === 'ok'; d.remove();
+      res(ok ? { add: tags.filter(g => st[g] === 1), remove: tags.filter(g => st[g] === 2) } : null); });
+    d.showModal();
+  });
+}
 async function viewTemplates(q) {
   const state = q.get('state') || 'all', kind = q.get('kind') || '', s = q.get('q') || '', pg = Number(q.get('page') || 0);
   const sort = SORTS.some(x => x[0] === q.get('sort')) ? q.get('sort') : '', dir = q.get('dir') === 'desc' ? 'desc' : '';
@@ -917,48 +939,61 @@ async function viewTemplates(q) {
   let r, tx; try { [r, tx] = await Promise.all([api('tpl_list', { state, kind, q: s, page: pg, sort, dir }), own ? api('tax') : null]); } catch (e) { return failed('#/templates', e); }
   const pages = Math.ceil(r.total / r.pageSize) || 1;
   const P = { state, kind, q: s, sort, dir };
-  const ids = r.rows.map(t => t.id);
-  for (const id of [...tplSel]) if (!ids.includes(id)) tplSel.delete(id);
+  const order = r.sel.map(t => t.id), byId = Object.fromEntries(r.sel.map(t => [t.id, t]));
+  for (const id of [...tplSel]) if (!byId[id]) tplSel.delete(id);
   const sortLink = k => { const next = sort !== k ? (k === 'added' ? 'desc' : '') : dir ? '' : 'desc'; return link('#/templates', { ...P, sort: k, dir: next, page: 0 }); };
   const arrow = k => sort === k ? (dir ? ' ▼' : ' ▲') : '';
-  const card = t => `<div class="tcard ${tplSel.has(t.id) ? 'sel' : ''}" data-id="${esc(t.id)}" tabindex="0">
-      ${own ? `<button type="button" class="tck" data-ck="${esc(t.id)}" aria-pressed="${tplSel.has(t.id)}" aria-label="고르기">${I.check}</button>` : ''}
-      ${thumbImg(t.thumb)}
-      <div class="tinfo"><b>${esc(t.name)}</b>
+  const card = t => `<div class="tcard" data-id="${esc(t.id)}">
+      ${own ? `<button type="button" class="tck" data-ck="${esc(t.id)}" aria-pressed="false" aria-label="고르기">${I.check}</button>` : ''}
+      ${thumbImg(t.thumb, 'cardth')}
+      <div class="tinfo"><a class="tname" href="#/templates/${esc(t.id)}">${esc(t.name)}</a>
         <span class="muted xs">${esc(t.kind)} · ${t.paid ? '유료' : '무료'} · ${esc(String(t.added || '').slice(2).replace(/-/g, '.'))} · ${esc(t.author || '')}</span>
         <span class="ttags">${(t.tags || []).map(g => `<span class="tag">${esc(g)}</span>`).join(' ') || '<span class="muted xs">태그 없음</span>'}</span>
         ${t.state === 'hidden' ? `<small class="xs ${t.missing.length ? 'warn-t' : 'muted'}">${t.missing.length ? `빈칸 ${t.missing.length}개` : '다 채움'}</small>` : ''}</div>
       <div class="tside">${tplBadge(t)}${sw(t.state === 'public', `data-st="${esc(t.id)}" ${!own || (t.state === 'hidden' && t.missing.length) ? 'disabled' : ''} title="${!own ? '공개는 최고 관리자만' : t.missing.length && t.state === 'hidden' ? '빈칸을 먼저 채워 주세요' : ''}"`)}</div></div>`;
-  shell('#/templates', `${head('템플릿', big(num(r.n.all)) + '<span class="unit">개</span>', '<p class="muted">앱에는 공개만 보여요.</p>')}
-    <div class="row between wrap gap"><div class="ranges left">${[['all', '전체', r.n.all], ['hidden', '검토 대기', r.n.hidden], ['public', '공개', r.n.public]].map(([k, l, n]) => `<a href="${link('#/templates', { ...P, state: k, page: 0 })}" class="${k === state ? 'on' : ''}">${l} ${num(n)}</a>`).join('')}
-      <span class="vbar"></span>${Object.entries(r.kinds).map(([k, n]) => `<a href="${link('#/templates', { ...P, kind: k === kind ? '' : k, page: 0 })}" class="${k === kind ? 'on' : ''}">${esc(k)} ${num(n)}</a>`).join('')}</div>
-      <a class="btn ghost sm" href="#/templates/tax">${I.folder}종류 · 태그</a></div>
-    <div class="row between wrap gap"><div class="ranges left sorts"><a href="${link('#/templates', { ...P, sort: '', dir: '', page: 0 })}" class="${!sort ? 'on' : ''}">기본</a>${SORTS.map(([k, l]) => `<a href="${sortLink(k)}" class="${sort === k ? 'on' : ''}">${l}${arrow(k)}</a>`).join('')}
-      ${own && r.rows.length ? `<button type="button" id="ckall" class="btn ghost sm">${I.check}전체 선택</button>` : ''}</div>
-      <form id="tq" class="fsearch" role="search">${I.search}<input name="q" type="search" value="${esc(s)}" placeholder="이름 · 태그 · 검색어" aria-label="템플릿 검색"></form></div>
+  shell('#/templates', `<div class="ttop">
+      <div class="trow"><h1 class="ttl">템플릿</h1>
+        <div class="ranges left">${[['all', '전체', r.n.all], ['public', '공개', r.n.public], ['hidden', '비공개', r.n.hidden]].map(([k, l, n]) => `<a href="${link('#/templates', { ...P, state: k, page: 0 })}" class="${k === state ? 'on' : ''}">${l} ${num(n)}</a>`).join('')}
+        <span class="vbar"></span>${Object.entries(r.kinds).map(([k, n]) => `<a href="${link('#/templates', { ...P, kind: k === kind ? '' : k, page: 0 })}" class="${k === kind ? 'on' : ''}">${esc(k)} ${num(n)}</a>`).join('')}</div>
+        <span class="grow"></span><form id="tq" class="fsearch" role="search">${I.search}<input name="q" type="search" value="${esc(s)}" placeholder="이름 · 태그 · 검색어" aria-label="템플릿 검색"></form>
+        <a class="btn ghost sm" href="#/templates/tax">${I.folder}종류 · 태그</a></div>
+      <div class="trow"><div class="ranges left sorts"><a href="${link('#/templates', { ...P, sort: '', dir: '', page: 0 })}" class="${!sort ? 'on' : ''}">기본</a>${SORTS.map(([k, l]) => `<a href="${sortLink(k)}" class="${sort === k ? 'on' : ''}">${l}${arrow(k)}</a>`).join('')}</div>
+        ${own && order.length ? `<button type="button" id="ckall" class="btn ghost sm">${I.check}전체 선택 ${num(order.length)}</button><span class="muted xs hint">Shift+클릭 = 범위</span>` : ''}</div></div>
     <div class="tgrid">${r.rows.map(card).join('') || `<p class="muted pad">${s ? '찾는 템플릿이 없어요.' : '아직 템플릿이 없어요.'}</p>`}</div>
-    ${pages > 1 ? pager('#/templates', P, pg, pages) : `<div class="row center pager"><span class="muted xs">${num(r.total)}개 · 100개씩 보여요${sort ? '' : ' · 검토 대기가 먼저 와요'}</span></div>`}
+    ${pages > 1 ? pager('#/templates', P, pg, pages) : `<div class="row center pager"><span class="muted xs">${num(r.total)}개 · 50개씩 보여요${sort ? '' : ' · 비공개가 먼저 와요'}</span></div>`}
     ${own ? `<div class="selbar" id="selbar" hidden><b id="seln"></b>
-      <button type="button" class="btn sm" data-bulk="public">공개</button><button type="button" class="btn sm" data-bulk="hidden">숨김</button>
-      <button type="button" class="btn sm" data-bulk="kind">종류 바꾸기</button><button type="button" class="btn sm" data-bulk="tag_add">태그 더하기</button><button type="button" class="btn sm" data-bulk="tag_remove">태그 빼기</button>
+      <button type="button" class="btn sm" data-bulk="public">공개</button><button type="button" class="btn sm" data-bulk="hidden">비공개</button>
+      <button type="button" class="btn sm" data-bulk="kind">종류 바꾸기</button><button type="button" class="btn sm" data-bulk="tags">태그</button>
       <button type="button" class="btn sm" data-bulk="paid1">유료</button><button type="button" class="btn sm" data-bulk="paid0">무료</button>
       <button type="button" class="btn ghost sm" data-bulk="clear">선택 해제</button></div>` : ''}`);
   fixThumbs();
-  const bar = document.getElementById('selbar');
+  const bar = document.getElementById('selbar'), grid = document.querySelector('.tgrid');
   const paint = () => {
     document.querySelectorAll('.tcard').forEach(c => { const on = tplSel.has(c.dataset.id); c.classList.toggle('sel', on); c.querySelector('.tck')?.setAttribute('aria-pressed', on); });
-    if (!bar) return; bar.hidden = !tplSel.size; document.getElementById('seln').textContent = `${tplSel.size}개 선택`;
-    const all = document.getElementById('ckall'); if (all) all.classList.toggle('on', ids.length > 0 && ids.every(id => tplSel.has(id)));
+    grid.classList.toggle('picking', tplSel.size > 0);
+    if (!bar) return; bar.hidden = !tplSel.size; document.getElementById('seln').textContent = `${num(tplSel.size)}개 선택`;
+    const all = document.getElementById('ckall'); if (all) all.classList.toggle('on', order.length > 0 && order.every(id => tplSel.has(id)));
   };
   paint();
+  // 고르기: Shift를 누르면 마지막으로 누른 카드부터 여기까지 (거른 결과 순서 그대로, 페이지를 넘어도)
+  const pick = (id, shift) => {
+    if (shift && tplLast && byId[tplLast] && tplLast !== id) {
+      const [a, b] = [order.indexOf(tplLast), order.indexOf(id)].sort((x, y) => x - y), on = !tplSel.has(id) || tplSel.has(tplLast);
+      order.slice(a, b + 1).forEach(x => on ? tplSel.add(x) : tplSel.delete(x));
+    } else tplSel.has(id) ? tplSel.delete(id) : tplSel.add(id);
+    tplLast = id; paint();
+  };
   document.getElementById('tq').onsubmit = e => { e.preventDefault(); location.hash = link('#/templates', { ...P, q: new FormData(e.target).get('q'), page: 0 }); };
-  document.querySelectorAll('.tcard').forEach(c => { const go = e => { if (!e.target.closest('.sw, .tck')) location.hash = '#/templates/' + c.dataset.id; };
-    c.onclick = go; c.onkeydown = e => { if (e.key === 'Enter' && e.target === c) go(e); }; });
-  document.querySelectorAll('[data-ck]').forEach(b => b.onclick = () => { const id = b.dataset.ck; tplSel.has(id) ? tplSel.delete(id) : tplSel.add(id); paint(); });
-  const ca = document.getElementById('ckall'); if (ca) ca.onclick = () => { const all = ids.every(id => tplSel.has(id)); ids.forEach(id => all ? tplSel.delete(id) : tplSel.add(id)); paint(); };
+  document.querySelectorAll('.tcard').forEach(c => c.onclick = e => {
+    if (e.target.closest('.sw, .tname')) return;
+    if (own && (e.target.closest('.tck') || tplSel.size || e.shiftKey)) { e.preventDefault(); return pick(c.dataset.id, e.shiftKey); }
+    location.hash = '#/templates/' + c.dataset.id;
+  });
+  if (own) document.querySelectorAll('.tcard').forEach(c => c.addEventListener('mousedown', e => { if (e.shiftKey) e.preventDefault(); }));
+  const ca = document.getElementById('ckall'); if (ca) ca.onclick = () => { const all = order.every(id => tplSel.has(id)); order.forEach(id => all ? tplSel.delete(id) : tplSel.add(id)); paint(); };
   document.querySelectorAll('[data-st]').forEach(b => b.onclick = async () => { const pub = b.getAttribute('aria-checked') !== 'true';
     if (pub && !await confirmBox({ title: '공개하기', body: '앱에 바로 보여요. 사용자 폰에는 다음에 앱을 열 때 들어가요.', ok: '공개하기' })) return;
-    try { await api('tpl_state', { id: b.dataset.st, state: pub ? 'public' : 'hidden' }); toast(pub ? '공개했어요.' : '숨겼어요. 앱에서 빠져요.'); viewTemplates(q); } catch (e) { toast(e.message, true); } });
+    try { await api('tpl_state', { id: b.dataset.st, state: pub ? 'public' : 'hidden' }); toast(pub ? '공개했어요.' : '비공개로 바꿨어요. 앱에서 빠져요.'); viewTemplates(q); } catch (e) { toast(e.message, true); } });
   // 한꺼번에: 결과를 알려 주고, 건너뛴 것만 골라 둔 채로 다시 그려요
   const report = (res, what) => {
     const sk = res.skipped || [];
@@ -970,18 +1005,20 @@ async function viewTemplates(q) {
     if (k === 'clear') { tplSel.clear(); return paint(); }
     try {
       if (k === 'public' || k === 'hidden') {
-        if (!await confirmBox({ title: k === 'public' ? `${n}개 공개하기` : `${n}개 숨기기`, body: k === 'public' ? '앱에 바로 보여요. 빈칸이 있는 템플릿은 빼고 공개해요.' : '앱에서 빠져요. 지우지는 않아요.', ok: k === 'public' ? '공개하기' : '숨기기' })) return;
-        return report(await api('tpl_state_many', { ids: list, state: k }), k === 'public' ? '공개했어요' : '숨겼어요');
+        if (!await confirmBox({ title: k === 'public' ? `${n}개 공개하기` : `${n}개 비공개로`, body: k === 'public' ? '앱에 바로 보여요. 빈칸이 있는 템플릿은 빼고 공개해요.' : '앱에서 빠져요. 지우지는 않아요.', ok: k === 'public' ? '공개하기' : '비공개로' })) return;
+        return report(await api('tpl_state_many', { ids: list, state: k }), k === 'public' ? '공개했어요' : '비공개로 바꿨어요');
       }
       if (k === 'paid1' || k === 'paid0') {
         if (!await confirmBox({ title: `${n}개 ${k === 'paid1' ? '유료로' : '무료로'}`, body: '앱에는 다음에 앱을 열 때 바뀌어요.', ok: '바꾸기' })) return;
         return report(await api('tpl_bulk', { ids: list, op: 'paid', value: k === 'paid1' }), '바꿨어요');
       }
-      const isK = k === 'kind';
-      const opts = isK ? tx.kinds.map(x => [x.name, x.name]) : tx.tags.map(x => [x.id, x.id]);
-      const f = await confirmBox({ title: `${n}개 ${isK ? '종류 바꾸기' : k === 'tag_add' ? '태그 더하기' : '태그 빼기'}`, body: isK ? '고른 종류로 모두 바꿔요.' : k === 'tag_add' ? '태그가 이미 3개인 템플릿은 빼고 더해요.' : '공개 중인데 태그가 2개 아래로 줄어드는 템플릿은 빼고 빼요.', ok: '바꾸기', fields: [{ name: 'v', label: isK ? '종류' : '태그', options: opts }] });
+      if (k === 'tags') {
+        const v = await tagSheet(tx.tags.map(x => x.id), list.map(id => byId[id]).filter(Boolean)); if (!v) return;
+        return report(await api('tpl_bulk', { ids: list, op: 'tags', value: v }), '바꿨어요');
+      }
+      const f = await confirmBox({ title: `${n}개 종류 바꾸기`, body: '고른 종류로 모두 바꿔요.', ok: '바꾸기', fields: [{ name: 'v', label: '종류', options: tx.kinds.map(x => [x.name, x.name]) }] });
       if (!f) return;
-      report(await api('tpl_bulk', { ids: list, op: k, value: f.v }), '바꿨어요');
+      report(await api('tpl_bulk', { ids: list, op: 'kind', value: f.v }), '바꿨어요');
     } catch (e) { toast(e.message, true); }
   });
 }
@@ -1014,7 +1051,7 @@ async function viewTemplate(id) {
         <div class="f4"><label>올린 날<input name="added" type="date" value="${esc(t.added)}" ${dis}></label><label>순서<input name="sort" type="number" min="0" value="${esc(t.sort ?? 0)}" ${dis}></label>
           <div class="tg"><span>유료</span>${sw(t.paid, `data-b="paid" ${dis}`)}</div><div class="tg"><span>모션</span>${sw(t.motion, `data-b="motion" ${dis}`)}</div></div>
         <details><summary>도구 설정 (틀 기본값에서 바꿀 것만)</summary><textarea name="tools" rows="4" class="mono" ${dis}>${esc(JSON.stringify(t.tools || {}, null, 1))}</textarea></details>
-        ${own ? `<div class="row end"><button class="btn ghost" value="save">저장</button>${t.state === 'public' ? `<button type="button" class="btn" id="hide">${I.eyeoff}숨기기</button>` : `<button type="button" class="btn primary" id="pub" ${t.missing.length ? 'disabled' : ''}>${I.eye}공개하기</button>`}</div>` : '<p class="muted xs">고치기와 공개는 최고 관리자만 할 수 있어요.</p>'}
+        ${own ? `<div class="row end"><button class="btn ghost" value="save">저장</button>${t.state === 'public' ? `<button type="button" class="btn" id="hide">${I.eyeoff}비공개로</button>` : `<button type="button" class="btn primary" id="pub" ${t.missing.length ? 'disabled' : ''}>${I.eye}공개하기</button>`}</div>` : '<p class="muted xs">고치기와 공개는 최고 관리자만 할 수 있어요.</p>'}
       </form>
     </div>`);
   fixThumbs();
@@ -1045,8 +1082,8 @@ async function viewTemplate(id) {
   const pub = document.getElementById('pub'), hide = document.getElementById('hide');
   if (pub) pub.onclick = async () => { if (!await confirmBox({ title: '공개하기', body: `「${esc(t.name)}」이 앱에 바로 보여요. 고친 내용이 있으면 먼저 저장해요.`, ok: '저장하고 공개' })) return;
     try { await save(); await api('tpl_state', { id: t.id, state: 'public' }); toast('공개했어요.'); viewTemplate(id); } catch (er) { toast(er.message, true); } };
-  if (hide) hide.onclick = async () => { if (!await confirmBox({ title: '숨기기', body: '앱에서 빠져요. 이 템플릿으로 이미 쓴 카드는 그대로 남아요.', ok: '숨기기' })) return;
-    try { await api('tpl_state', { id: t.id, state: 'hidden' }); toast('숨겼어요.'); viewTemplate(id); } catch (er) { toast(er.message, true); } };
+  if (hide) hide.onclick = async () => { if (!await confirmBox({ title: '비공개로 바꾸기', body: '앱에서 빠져요. 이 템플릿으로 이미 쓴 카드는 그대로 남아요.', ok: '비공개로' })) return;
+    try { await api('tpl_state', { id: t.id, state: 'hidden' }); toast('비공개로 바꿨어요.'); viewTemplate(id); } catch (er) { toast(er.message, true); } };
 }
 
 async function viewTax() {
