@@ -33,6 +33,7 @@ export const PAID = [
   { id: 'stars', img: './bg/stars.webp', tone: '#3a3f7a', ink: '#F3E6C8', dim: ['center', '0,0,0', .55] },
   { id: 'bands', code: 'bands', tone: '#a35cff', ink: '#fff', dim: ['center', '40,16,70', .55] },
   { id: 'slit', code: 'slit', tone: '#F07F3C', ink: '#fff', dim: ['all', '10,8,14', 0] },
+  { id: 'crain', code: 'crain', tone: '#2FE070', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 코드 레인 (130차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'fold', code: 'fold', tone: '#3A80F8', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 크롬 폴드 (129차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'swarm', code: 'swarm', tone: '#40F0D0', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 스웜 (128차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'dotw', code: 'dotw', tone: '#3A50F0', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 도트 웨이브 (127차): 글자색은 바탕 밝기로 (formats.js)
@@ -1929,6 +1930,69 @@ function drawFold(cv, seed, t) {
   g.drawArrays(g.TRIANGLES, 0, 3);
   const x = cv.getContext('2d'); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; x.imageSmoothingEnabled = true; x.drawImage(gc, 0, 0, W, H);
 }
+// 코드 레인 (130차): 세로 줄을 따라 코드 글자가 비처럼 떨어져요 · 맨 앞 글자는 밝게 빛나고 꼬리는 뒤로 갈수록 흐려져요 · 겹 3개(뒤 작고 어둡게 · 앞 크고 은은히 번짐).
+// 레퍼런스의 느낌만 · 식과 코드는 새로 작성. 글자는 아스키 · 16진수 · 0/1 · 기호만(특정 나라 글자 없음, 앤드류 11-26). 셔플 = 글자 종류 4 · 흐름 3(수직/사선/물결) · 밀도 2 · 색.
+// 꼬리는 시간값으로 바로 계산(덧그려 쌓지 않음) → 정지 그림도 모션의 한 장면과 같아요. 글자는 색별로 미리 그려 둔 판에서 찍어요. 글 뒤를 가리지 않고 글자에 옅은 그림자(.fsh)
+export const CRAIN_PAL = [   // [이름, 바탕 위, 바탕 아래, 꼬리 색, 머리 색, 밝은 바탕?, 무지개?]
+  ['그린', '#010A04', '#03140A', '#2FE070', '#E4FFE8'], ['시안', '#010A10', '#04182A', '#30D8F0', '#E4FCFF'],
+  ['앰버', '#0E0702', '#1E1004', '#FFB038', '#FFF0D0'], ['마젠타', '#10020C', '#22061C', '#F048C8', '#FFE4F8'],
+  ['바이올렛', '#06031A', '#120A30', '#9A70FF', '#EEE6FF'], ['레드', '#120203', '#240608', '#FF4A4A', '#FFE2DA'],
+  ['아이스', '#04070C', '#0C1420', '#A8C8E8', '#FFFFFF'], ['스펙트럼', '#040408', '#0C0C16', '#FF5AA0', '#FFFFFF', 0, 1],
+  ['먹 · 종이', '#F4F1EA', '#E8E3D8', '#2A2622', '#000000', 1], ['남색 · 크림', '#F8F2E2', '#EEE4CC', '#1E3A7A', '#0A1838', 1]];
+export const crainPal = (seed, pal) => pal != null && CRAIN_PAL[+pal] ? +pal : ((seed >>> 0) || 1) % CRAIN_PAL.length;
+export const crainLight = (seed, pal) => !!CRAIN_PAL[crainPal(seed, pal)][5];
+const CR_CS = ['ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', '0123456789ABCDEF', '01', '{}[]<>/\\|=+*#$%&@;:!?~^∑√∞≠±÷×'].map(s => Array.from(s));
+const CR_FONT = "ui-monospace,Menlo,Consolas,'JetBrains Mono','DejaVu Sans Mono',monospace";
+const crainCache = new Map(), crAtl = new Map();
+const crH = (a, b, c) => { let h = (a * 374761393 + b * 668265263 + c * 2246822519) | 0; h = Math.imul(h ^ h >>> 13, 1274126177); return ((h ^ h >>> 16) >>> 0) / 4294967296; };
+function crainOf(seed) {
+  if (crainCache.has(seed)) return crainCache.get(seed);
+  const r = rng(seed ^ 0x0c7a1), p = { cs: Math.floor(r() * 4), flow: Math.floor(r() * 3), dense: r() < .5, ang: (r() < .5 ? -1 : 1) * (.18 + r() * .14), hue0: r() * 360, s: (r() * 1e6) | 0, t0: 2 + r() * 20 };
+  if (crainCache.size > 60) crainCache.delete(crainCache.keys().next().value);
+  crainCache.set(seed, p); return p;
+}
+function crAtlas(cs, fs, col, glow) {   // 글자 한 줄 판: 칸마다 글자 하나 · glow = 번짐 색
+  const key = cs + '|' + fs + '|' + col + '|' + glow; let A = crAtl.get(key); if (A) return A;
+  const ch = CR_CS[cs], c = Math.ceil(fs * 1.8), cv = document.createElement('canvas'); cv.width = c * ch.length; cv.height = c;
+  const x = cv.getContext('2d'); x.font = `${fs}px ${CR_FONT}`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = col;
+  if (glow) { x.shadowBlur = fs * .7; x.shadowColor = glow; }
+  ch.forEach((g, i) => x.fillText(g, i * c + c / 2, c / 2));
+  A = { cv, c, n: ch.length }; if (crAtl.size > 80) crAtl.delete(crAtl.keys().next().value); crAtl.set(key, A); return A;
+}
+function drawCrain(cv, seed, t) {
+  const W = cv.width, H = cv.height, P = crainOf(seed), E = CRAIN_PAL[crainPal(seed, cv.dataset.pal)], light = !!E[5], rb = !!E[6], x = cv.getContext('2d'), tt = P.t0 + t;
+  x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1;
+  const bg = x.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, E[1]); bg.addColorStop(1, E[2]); x.fillStyle = bg; x.fillRect(0, 0, W, H);
+  x.save(); x.translate(W / 2, H / 2); if (P.flow === 1) x.rotate(P.ang);
+  const D = Math.hypot(W, H) * 1.02, EW = P.flow === 1 ? D : W, EH = P.flow === 1 ? D : H;
+  const L3 = [[P.dense ? .022 : .03, .38, .55, .85], [P.dense ? .034 : .046, .7, .8, .6], [P.dense ? .06 : .08, .9, 1.1, .28]];   // [글자 크기 비율, 밝기, 속도, 줄 남김]
+  const hcol = h => `hsl(${h},95%,62%)`;
+  for (let li = 0; li < 3; li++) {
+    const [fr, br, spd, keep] = L3[li], fs = Math.max(6, Math.round(W * fr)), cols = Math.ceil(EW / fs) + 1, rows = Math.ceil(EH / fs) + 1, front = li === 2;
+    const fade = light && front ? .55 : 1;
+    let tail = rb ? null : crAtlas(P.cs, fs, E[3], front && !light ? E[3] : 0);
+    const head = crAtlas(P.cs, fs, light ? E[4] : (rb ? '#FFFFFF' : E[4]), light ? 0 : (rb ? '#FFFFFF' : E[3]));
+    const c = head.c, n = head.n;
+    for (let ci = 0; ci < cols; ci++) {
+      if (crH(P.s, ci, li * 7 + 1) > keep) continue;
+      const v = (3 + crH(P.s, ci, li * 7 + 2) * 6) * spd, L = Math.floor(8 + crH(P.s, ci, li * 7 + 3) * (front ? 10 : 22)), ph = crH(P.s, ci, li * 7 + 4) * 100;
+      const cx = -EW / 2 + ci * fs + fs / 2;
+      if (rb) tail = crAtlas(P.cs, fs, hcol(Math.round(((P.hue0 + ci * 9 + li * 40) % 360) / 30) * 30), front ? hcol(Math.round(((P.hue0 + ci * 9 + li * 40) % 360) / 30) * 30) : 0);
+      const drops = front ? 1 : 2, span = rows + L;
+      for (let d = 0; d < drops; d++) {
+        const hd = Math.floor(((ph + d * span / drops + tt * v) % span) - L * .2);
+        for (let k = 0; k < L; k++) {
+          const ry = hd - k; if (ry < 0 || ry > rows) continue;
+          const fy = -EH / 2 + ry * fs + fs / 2, wx = P.flow === 2 ? Math.sin(fy / H * 5.5 + ci * .12 + tt * .5) * W * .035 : 0;
+          const gi = Math.floor(crH(ci * 31 + d + li * 977, ry, Math.floor(tt * 6 + crH(ci, ry, d + li * 5) * 50)) * n);
+          if (k === 0) { x.globalAlpha = light ? .9 * br + .1 : Math.min(.92, br + .2); x.drawImage(head.cv, gi * c, 0, c, c, cx + wx - c / 2, fy - c / 2, c, c); }
+          else { x.globalAlpha = Math.pow(1 - k / L, 1.6) * br * fade * (light ? .9 : .85); x.drawImage(tail.cv, gi * c, 0, c, c, cx + wx - c / 2, fy - c / 2, c, c); }
+        }
+      }
+    }
+  }
+  x.restore(); x.globalAlpha = 1;
+}
 function fractalTile(o, seed) {
   if (o.tile) return o.tile;
   const G = 300, cnt = frDensity(o.P, G, 22000, 34, seed), vals = Float32Array.from(cnt.filter(v => v > 0)).sort(), L = vals.length || 1;
@@ -1960,6 +2024,7 @@ export function drawCode(cv, seed, shift = 0, t = 0, grainAmt = cv.dataset.gr ==
   if (cv.dataset.code === 'neon') return drawNeon(cv, seed, t, cv.dataset.gr === '0' ? 0 : .05);
   if (cv.dataset.code === 'fractal') return drawFractal(cv, seed, t);
   if (cv.dataset.code === 'plasma') return drawPlasma(cv, seed, t, cv.dataset.gr === '0' ? 0 : .025);
+  if (cv.dataset.code === 'crain') return drawCrain(cv, seed, t);
   if (cv.dataset.code === 'fold') return drawFold(cv, seed, t);
   if (cv.dataset.code === 'swarm') return drawSwarm(cv, seed, t);
   if (cv.dataset.code === 'dotw') return drawDotw(cv, seed, t);
