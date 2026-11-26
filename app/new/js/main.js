@@ -1984,7 +1984,7 @@ const REC_T = { 밤: '밤에 쓰기 좋은', 비: '비 오는 날엔', 눈: '눈
 const WXK = { sun: '맑음', suncloud: '구름 조금', cloud: '흐림', rain: '비', snow: '눈', thunder: '천둥', fog: '안개' };
 const dayLine = (now = new Date()) => { let w = ''; try { const x = JSON.parse(localStorage.getItem('daytale.wx') || 'null'); if (x && Date.now() - x.at < 3 * 3600e3 && WXK[x.kind]) w = ` · ${WXK[x.kind]}${x.temp != null ? ` ${x.temp}°` : ''}`; } catch {} return `${now.getMonth() + 1}월 ${now.getDate()}일 ${'일월화수목금토'[now.getDay()]}요일${w}`; };
 // 78차: 새 버전 확인. 앱으로 돌아올 때(다른 앱 갔다 오기) version.txt가 지금과 다르면 저절로 새로 고쳐요. 쓰는 중엔 안 해요
-const BUILD = '136', BUILD_TAG = '11-27 136차';
+const BUILD = '137', BUILD_TAG = '11-27 137차';
 let verAt = 0;
 const checkVer = () => {
   if (document.hidden || Date.now() - verAt < 20e3) return; verAt = Date.now();
@@ -2471,6 +2471,7 @@ function viewWrite({ fmt, id, like }) {
   stage.addEventListener('compositionstart', () => { st.composing = true; });
   stage.addEventListener('compositionend', e => { st.composing = false; const b = e.target.closest?.('.body'); if (b) typed(b); });
   stage.addEventListener('input', e => {
+    if (st.prog) return;   // 코드로 바꾸는 중 (setBodies)
     const b = e.target.closest?.('.body'); if (!b) return;
     if (e.isComposing || st.composing) { el.classList.remove('empty'); fitCard(el, card); requestAnimationFrame(keepCaret); return; }
     typed(b);
@@ -2505,6 +2506,28 @@ function viewWrite({ fmt, id, like }) {
     b.focus({ preventScroll: true });
     const r = document.createRange(); r.selectNodeContents(b); r.collapse(false);
     const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+  }
+  // 11-27: 키보드가 올라온 채로 글을 통째로 바꾸기 (모두 지우기 · ↶ · ↷). 글 칸을 새로 만들지 않고 브라우저 편집 명령으로 바꿔요
+  // (iPhone은 쓰던 칸의 내용을 코드로 갈아 끼우면 키보드를 닫아요). 결과가 다르면 같은 칸에 그대로 넣어요
+  function setBodies(want) {
+    const act = document.activeElement;
+    st.prog = true;
+    bodies().forEach((b, i) => {
+      const html = rich ? (want.pages[i] ?? '') : want.html;
+      if (clean(b.innerHTML) === html) return;
+      if (b === act) {
+        const r = document.createRange(); r.selectNodeContents(b); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+        try { document.execCommand(html ? 'insertHTML' : 'delete', false, html); } catch {}
+        if (!html && b.textContent === '' && !b.querySelector('.stk')) b.innerHTML = '';
+        if (clean(b.innerHTML) !== html) b.innerHTML = html;
+        hydrate(b);
+      } else { b.innerHTML = html; hydrate(b); }
+      if (!rich) placeObjects(b, card.seed, card.fmt);
+    });
+    st.prog = false;
+    if (act && bodies().includes(act)) { const r = document.createRange(); r.selectNodeContents(act); r.collapse(false); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); }
+    el.classList.toggle('empty', !hasText());
+    fitCard(el, card); count(); tools(); requestAnimationFrame(keepCaret);
   }
 
   /* 쓰기 보기 = 글 칸에 커서가 있거나 이모티콘 판이 열렸을 때. 아니면 스타일 보기 */
@@ -2561,6 +2584,7 @@ function viewWrite({ fmt, id, like }) {
         st.hi += k === 'undo' ? -1 : 1;
         card = clone(st.hist[st.hi]); persist();
         if (rich) st.pg = Math.min(st.pg, card.pages.length - 1);
+        if (typingNow() && el && shapeOf() === shape) { setBodies(card); paintRow2(); return; }   // 키보드 화면: 글만 바꾸고 키보드 그대로 (11-27)
         const was = typingNow(); paintMeta(); draw(); if (was && !typingNow()) caretEnd(st.pg);
         paintRow2(); return;
       }
@@ -2580,9 +2604,9 @@ function viewWrite({ fmt, id, like }) {
         flush();
         if (rich) card.pages = card.pages.map(() => ''); else card.html = '';
         st.lastQ = null; if (st.ai) st.ai = null;
-        const kbUp = typingNow() || !!st.waitKb;
-        push(); draw(); count(); tools(); applySize(true);
-        if (kbUp) { caretEnd(st.pg); requestAnimationFrame(() => { if (!typingNow()) caretEnd(st.pg); }); }
+        push();
+        if (typingNow() && el) setBodies(card);   // 키보드 화면: 글 칸은 그대로 두고 비워요 → 키보드가 안 내려가요 (11-27)
+        else { draw(); count(); tools(); }
         return pop('↶ 로 되돌리기', null, '모두 지웠어요');
       }
       if (k === 'quote') {   // 문장 넣기 (11-04): 빈 장이거나 방금 넣은 문장이면 다른 문장으로 바꾸고, 쓴 글이 있으면 그 뒤에 붙여요
