@@ -2121,7 +2121,8 @@ function drawFractal(cv, seed, t) {
 }
 // 글리프 콜라주 (143차, 앤드류 레퍼런스의 느낌만 · 식과 코드는 새로 작성): 큰 기호 · 내 글자가 겹쳐 흩어진 그림.
 // 기호는 '기호 · 상징'만 (glyphs.js, Noto Sans Symbols OFL, 선 모양이라 기기 · 저장 이미지 모두 같아요). 내 글자 = 글에서 처음 나온 낱글자 최대 8개 (data-lt)
-// 셔플 = 배치 · 크기 · 회전 · 기호 (+ 칩을 안 골랐으면 색 묶음 10). 글자를 고쳐도 배치는 그대로, 글자 자리만 바뀌어요. 모션 = 천천히 떠다니며 조금씩 돌아요
+// 셔플 = 배치 · 크기 · 회전 · 기호 (+ 칩을 안 골랐으면 색 묶음 10). 글자를 고쳐도 배치는 그대로, 글자 자리만 바뀌어요.
+// 모션 (144차 앤드류): 기호마다 뒤에서 천천히 짙어지고 → 머물고 → 천천히 옅어진 뒤 다른 자리에서 다시. 0초(저장 · 정지) = 모두 보이는 그림
 export const GLYPH_PAL = [   // [이름, 바탕, 비슷한 톤 6, 강조 3, 밝은?]
   ['바이올렛', '#5c4a9c', ['#6e5bb0', '#4a3e8b', '#7b5aa6', '#584fa0', '#8a6db8', '#3e3380'], ['#1e90e0', '#e2531f', '#a6ecc4']],
   ['딥 블루', '#1f3a6e', ['#2a4a85', '#183060', '#35568f', '#22407a', '#3d5f9c', '#142a55'], ['#ffcf3d', '#ff6a4d', '#7fe0ff']],
@@ -2151,7 +2152,7 @@ function glyphOf(seed) {   // 배치는 씨앗으로만 (글자 수와 상관없
     let k = r() * 15, j = 0; while ((k -= GL_W[j]) > 0) j++; const L = GLY[GL_KINDS[j]], g = L[Math.floor(r() * L.length)];
     const acc = !big && r() < (small ? .12 : .2);
     let y = r() * 1.1 - .05; if (acc && y > .3 && y < .7) y = y < .5 ? .3 - r() * .3 : .7 + r() * .3;   // 강조색은 글 자리(가운데 띠)를 피해요
-    it.push({ x: r() * 1.1 - .05, y, s, a: (r() - .5) * Math.PI * (r() < .3 ? 2 : .9), g, lq, li, ci: Math.floor(r() * 6), ai: Math.floor(r() * 3), acc, sp: (r() - .5) * .25, ph: r() * 6.28, ring: r() < .12 });
+    it.push({ x: r() * 1.1 - .05, y, s, a: (r() - .5) * Math.PI * (r() < .3 ? 2 : .9), g, lq, li, ci: Math.floor(r() * 6), ai: Math.floor(r() * 3), acc, sp: (r() - .5) * .25, ph: r() * 6.28, ring: r() < .12, per: 12 + r() * 12, u0: r() });   // 모션 한 바퀴 12–24초. 0초엔 모두 보이고, 처음 옅어지는 때는 기호마다 달라요 (한꺼번에 비지 않게)
   }
   it.sort((a, b) => (a.acc - b.acc) || (b.s - a.s));   // 큰 것 뒤, 강조색 앞
   if (glyCache.size > 40) glyCache.delete(glyCache.keys().next().value);
@@ -2166,8 +2167,17 @@ function drawGlyph(cv, seed, t) {
   if (lt && document.fonts && !document.fonts.check(GL_FONT, lt) && !glyFont.has(lt)) { glyFont.add(lt); document.fonts.load(GL_FONT, lt).then(glyRedraw, () => {}); }
   x.textAlign = 'center'; x.textBaseline = 'middle';
   for (const it of glyphOf(seed)) {
-    const s = it.s * W, dx = Math.sin(t * .2 + it.ph) * s * .04, dy = Math.cos(t * .17 + it.ph) * s * .04, ch = it.lq && L.length ? L[Math.floor(it.li * L.length)] : null;
-    x.setTransform(1, 0, 0, 1, it.x * W + dx, it.y * H + dy); x.rotate(it.a + t * it.sp * .3);
+    const s = it.s * W, ch = it.lq && L.length ? L[Math.floor(it.li * L.length)] : null;
+    let px = it.x, py = it.y, pa = it.a, al = 1;
+    if (t > 0) {   // 0.3까지 짙어지고 · 0.65까지 머물고 · 0.95까지 옅어지고 · 잠깐 비었다가 다른 자리에서
+      const sm = q => q * q * (3 - 2 * q), w = t / it.per - it.u0 * .9;   // 첫 바퀴: u0만큼 머문 뒤 옅어져요
+      let k = 0, u;
+      if (w < 0) u = .5; else if (w < .35) u = .65 + w; else { const z = w - .35; k = Math.floor(z) + 1; u = z - (k - 1); }
+      al = u < .3 ? sm(u / .3) : u < .65 ? 1 : u < .95 ? 1 - sm((u - .65) / .3) : 0;
+      if (al <= 0) continue;
+      if (k > 0) { const h = rng(seed * 31 + it.ci * 977 + Math.round(it.ph * 1e4) + k * 104729); px = h() * 1.1 - .05; py = h() * 1.1 - .05; if (it.acc && py > .3 && py < .7) py = py < .5 ? .3 - h() * .3 : .7 + h() * .3; pa = (h() - .5) * Math.PI * 1.4; }
+    }
+    x.globalAlpha = al; x.setTransform(1, 0, 0, 1, px * W, py * H); x.rotate(pa + t * it.sp * .1);
     const col = it.acc ? P[3][it.ai] : P[2][it.ci]; x.fillStyle = col; x.strokeStyle = col;
     if (ch) { x.font = `700 ${s.toFixed(1)}px "DT Gowun Batang", serif`; x.fillText(ch, 0, 0); continue; }
     const g = it.g, k = s / Math.max(g[2], g[3]); x.scale(k, k);
