@@ -33,6 +33,7 @@ export const PAID = [
   { id: 'stars', img: './bg/stars.webp', tone: '#3a3f7a', ink: '#F3E6C8', dim: ['center', '0,0,0', .55] },
   { id: 'bands', code: 'bands', tone: '#a35cff', ink: '#fff', dim: ['center', '40,16,70', .55] },
   { id: 'slit', code: 'slit', tone: '#F07F3C', ink: '#fff', dim: ['all', '10,8,14', 0] },
+  { id: 'swarm', code: 'swarm', tone: '#40F0D0', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 스웜 (128차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'dotw', code: 'dotw', tone: '#3A50F0', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 도트 웨이브 (127차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'cloud', code: 'cloud', tone: '#1868F0', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 클라우드 텍스처 (126차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'float', code: 'float', tone: '#8EE0D0', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 플로팅 셰이프 (125차): 글자색은 바탕 밝기로 (formats.js)
@@ -1802,6 +1803,51 @@ function drawDotw(cv, seed, t) {
   }
   for (let b = 0; b < NB; b++) if (paths[b]) { x.fillStyle = BC[b]; x.fill(paths[b]); }
 }
+// 스웜 (128차): 빛나는 작은 입자 1~2천 개가 3D 공간에서 물고기 떼 · 플랑크톤처럼 무리 지어 헤엄쳐요(가까운 건 크고 또렷, 먼 건 작고 흐리게). 레퍼런스의 원리만 · 3D 라이브러리 없이 새로 작성.
+// 셔플 = 무리 모양 4(흐르는 띠 · 소용돌이 기둥 · 두 무리 · 플랑크톤) · 입자 수 · 크기 · 색. 모션 = 무리 전체가 50초에 한 바퀴 돌고 입자마다 흐름을 따라 흘러요.
+// 빛 번짐 점은 색마다 한 번만 그려 두고 찍기만 해요. 글 뒤를 가리지 않고 글자에 옅은 그림자(.fsh)
+export const SWARM_PAL = [   // [이름, 바탕 위, 바탕 아래, 입자 색 4, 밝은 바탕?]
+  ['바닷속', '#041622', '#0A3A4A', ['#40F0D0', '#80F0E0', '#20B0C0', '#E0FFF8']], ['산호', '#160A12', '#3A1626', ['#FF7A6A', '#FFB08A', '#F04A7A', '#FFE0D0']],
+  ['심해', '#02061A', '#0A1A44', ['#30C0FF', '#60E0FF', '#4060F0', '#D0F4FF']], ['반딧불', '#060A06', '#14200E', ['#E0F050', '#A0F060', '#F0C040', '#FFFFD0']],
+  ['네온', '#08041A', '#1A0A34', ['#F040E0', '#40E0F0', '#8040F0', '#FFFFFF']], ['오로라', '#020A12', '#0A2430', ['#40F0A0', '#40A0F0', '#C060F0', '#E0FFF0']],
+  ['선셋', '#14060A', '#341420', ['#FFB040', '#FF6A4A', '#F04A9A', '#FFE8C0']], ['모노', '#080808', '#1C1C1C', ['#FFFFFF', '#B0B0B0', '#808080', '#E8E8E8']],
+  ['라군', '#D8F0F0', '#F4FBFA', ['#108A9A', '#20B0A0', '#2A6AC0', '#0A4A6A'], 1], ['노을 종이', '#F8E8E0', '#FFF6F0', ['#E0503A', '#F08A3A', '#C03A6A', '#7A2A4A'], 1]];
+export const swarmPal = (seed, pal) => pal != null && SWARM_PAL[+pal] ? +pal : ((seed >>> 0) || 1) % SWARM_PAL.length;
+export const swarmLight = (seed, pal) => !!SWARM_PAL[swarmPal(seed, pal)][4];
+const swarmCache = new Map(), swSpr = new Map();
+function swarmSprite(h) {
+  if (swSpr.has(h)) return swSpr.get(h);
+  const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32), [R, G, B] = hx3(h).map(v => Math.round(v * 255));
+  gr.addColorStop(0, `rgba(${R},${G},${B},1)`); gr.addColorStop(.18, `rgba(${R},${G},${B},.9)`); gr.addColorStop(.4, `rgba(${R},${G},${B},.25)`); gr.addColorStop(1, `rgba(${R},${G},${B},0)`); g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+  swSpr.set(h, c); return c;
+}
+function swarmOf(seed, asp) {
+  const key = seed + ':' + asp.toFixed(2);
+  if (swarmCache.has(key)) return swarmCache.get(key);
+  const r = rng(seed ^ 0x5a17), gs = () => { let u = 0; for (let i = 0; i < 4; i++) u += r(); return (u - 2) / 1.15; };
+  const P = { form: Math.floor(r() * 4), n: 1200 + Math.floor(r() * 1000), sz: .8 + r() * .8, ph: r() * 6.283, yaw: r() * 6.283, Q: [] };
+  for (let i = 0; i < P.n; i++) P.Q.push({ sp: .6 + r() * .8, ci: Math.floor(r() * 4), base: r() * 6.283, g1: gs(), g2: gs(), g3: gs(), w: r() * 6.283, hy: r() * 2 - 1, bx: r() * 2 - 1, by: r() * 2 - 1, bz: r() * 2 - 1, s: .6 + r() * .9 });
+  if (swarmCache.size > 30) swarmCache.delete(swarmCache.keys().next().value);
+  swarmCache.set(key, P); return P;
+}
+function drawSwarm(cv, seed, t) {
+  const W = cv.width, H = cv.height, asp = H / W, P = swarmOf(seed, asp), E = SWARM_PAL[swarmPal(seed, cv.dataset.pal)], light = !!E[4], x = cv.getContext('2d');
+  x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; const bg = x.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, E[1]); bg.addColorStop(1, E[2]); x.fillStyle = bg; x.fillRect(0, 0, W, H);
+  const T = 6.283, yaw = P.yaw + (t > 0 ? t / 50 * T : 0), cyw = Math.cos(yaw), syw = Math.sin(yaw), CAM = 3.2, F = 2.4, sc = W * .5, SP = E[3].map(swarmSprite), pts = [], ph = P.ph, f = P.form, hh = 1.3 * asp;
+  for (const q of P.Q) {
+    let px, py, pz;
+    if (f === 0 || f === 2) { const two = f === 2 && (q.ci & 1), u = q.base + t / 14 * q.sp * .5, uu = two ? -u : u, p2 = ph + (two ? 2.4 : 0), spread = .13 + .1 * Math.sin(u * 2 + q.w);
+      px = Math.sin(uu) * 1.2 + q.g1 * spread + Math.sin(t / 3 + q.w) * .02; py = Math.sin(2 * uu + p2) * .55 * asp + q.g2 * spread * .8; pz = Math.cos(uu) * .9 + Math.sin(3 * uu + p2) * .2 + q.g3 * spread; }
+    else if (f === 1) { const rr = .55 + Math.abs(q.g1) * .4, a = q.base + t / 10 * q.sp / (rr + .3), hy = q.hy * .9 * asp, tw = hy * 1.6, k = rr * (1 - Math.abs(hy) * .25); px = Math.cos(a + tw) * k; py = hy + Math.sin(a * 2 + q.w) * .06; pz = Math.sin(a + tw) * k; }
+    else { const bx = q.bx * 1.5; let by = q.by * hh + t * .01 * q.sp; by = ((by + hh) % (2 * hh) + 2 * hh) % (2 * hh) - hh; px = bx + Math.sin(by * 1.7 + t / 9 * T * .3 + q.w) * .12; py = by + Math.sin(bx * 1.3 + t / 11 * T * .3) * .1; pz = q.bz * 1.2; }
+    const X = px * cyw + pz * syw, zz = -px * syw + pz * cyw + CAM; if (zz < .5) continue;
+    pts.push([W / 2 + X / zz * F * sc, H / 2 - py / zz * F * sc, zz, q.ci, q.s]);
+  }
+  if (light) pts.sort((a, b) => b[2] - a[2]);
+  x.globalCompositeOperation = light ? 'source-over' : 'lighter'; const k0 = P.sz * 9 * (W / 520) * 2.2, a0 = light ? .75 : .45;
+  for (const q of pts) { const d = Math.max(0, Math.min(1, (q[2] - 2) / 2.4)), R = q[4] * k0 / q[2]; x.globalAlpha = a0 * (1 - d * .7); x.drawImage(SP[q[3]], q[0] - R, q[1] - R, R * 2, R * 2); }
+  x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1;
+}
 function fractalTile(o, seed) {
   if (o.tile) return o.tile;
   const G = 300, cnt = frDensity(o.P, G, 22000, 34, seed), vals = Float32Array.from(cnt.filter(v => v > 0)).sort(), L = vals.length || 1;
@@ -1833,6 +1879,7 @@ export function drawCode(cv, seed, shift = 0, t = 0, grainAmt = cv.dataset.gr ==
   if (cv.dataset.code === 'neon') return drawNeon(cv, seed, t, cv.dataset.gr === '0' ? 0 : .05);
   if (cv.dataset.code === 'fractal') return drawFractal(cv, seed, t);
   if (cv.dataset.code === 'plasma') return drawPlasma(cv, seed, t, cv.dataset.gr === '0' ? 0 : .025);
+  if (cv.dataset.code === 'swarm') return drawSwarm(cv, seed, t);
   if (cv.dataset.code === 'dotw') return drawDotw(cv, seed, t);
   if (cv.dataset.code === 'cloud') return drawCloud(cv, seed, t, cv.dataset.gr === '0' ? 0 : .12);
   if (cv.dataset.code === 'float') return drawFloat(cv, seed, t, cv.dataset.gr === '0' ? 0 : .1);
