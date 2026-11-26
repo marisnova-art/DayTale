@@ -102,7 +102,9 @@ function phraseRow(b: any) {
 // 템플릿 (11-06) — 앱(js/templates.js)이 읽는 모양 그대로 받아요
 const MAX_KINDS = 6;
 const TPL_LIST = 'id,fmt,kind,name,descr,tags,words,ex,assets,paid,state,author,added,sort';
-const TPL_ID = /^[a-z0-9-]{2,40}$/;
+const TPL_ID = /^[a-z0-9-]{2,40}$/, TPL_PAGE = 100;
+// 한꺼번에 고칠 템플릿 id 목록 (1~100개)
+const tplIds = (v: unknown) => { const ids = uniq(v); if (!ids.length || ids.length > 100 || ids.some(x => !TPL_ID.test(x))) throw new Fail(400, 'bad ids'); return ids; };
 const day10 = (v: any) => v == null ? null : v instanceof Date ? v.toISOString().slice(0, 10) : String(v).slice(0, 10);
 const uniq = (v: unknown) => [...new Set((Array.isArray(v) ? v : []).map(x => String(x ?? '').trim()).filter(Boolean))];
 // 예시: 디자인 = 글 한 덩어리 (string) · 아트 = [글, 셔플 번호, 비율]
@@ -420,19 +422,82 @@ async function act(a: Admin, body: any, { db, env, fetch }: Deps) {
 
     // ---------- 템플릿 (11-06): 피터가 숨김으로 올리고, 공개는 owner만. 지우기 없음 (숨김만) ----------
     case 'tpl_list': {
+      // 11-26: 거르기(상태 · 종류 · 검색)는 DB에서, 정렬(이름 · 올린 날 · 태그)과 100개씩 나누기는 여기서
       const pg = page(body.page);
-      let q = db.from('dz_templates').select(TPL_LIST).order('state', { ascending: true }).order('added', { ascending: false }).order('sort', { ascending: true }).range(pg * PAGE, pg * PAGE + PAGE - 1);
+      let q = db.from('dz_templates').select(TPL_LIST).range(0, 99999);
       if (body.state === 'hidden' || body.state === 'public') q = q.eq('state', body.state);
       if (typeof body.kind === 'string' && body.kind) q = q.eq('kind', body.kind.slice(0, 20));
       const s = String(body.q ?? '').replace(/[,(){}*"\\%.:]/g, ' ').trim().slice(0, 30);
       if (s) q = q.or(`name.ilike.*${s}*,tags.cs.{${s}},words.cs.{${s}}`);
       const { data, error } = await q;
       if (error) throw new Fail(500, error.message);
+      const sort = ['name', 'added', 'tag'].includes(body.sort) ? body.sort : '', dir = body.dir === 'desc' ? -1 : 1;
+      const ko = (x: string, y: string) => x.localeCompare(y, 'ko');
+      const rows = [...(data || [])].sort((x: any, y: any) => {
+        if (sort === 'name') return dir * ko(x.name, y.name) || ko(x.id, y.id);
+        if (sort === 'added') return dir * (day10(x.added) || '').localeCompare(day10(y.added) || '') || ko(x.name, y.name);
+        if (sort === 'tag') { const tx = (x.tags || []).join(' '), ty = (y.tags || []).join(' '); return (!tx ? 1 : 0) - (!ty ? 1 : 0) || dir * ko(tx, ty) || ko(x.name, y.name); }
+        return (x.state === y.state ? 0 : x.state === 'hidden' ? -1 : 1) || (day10(y.added) || '').localeCompare(day10(x.added) || '') || (x.sort ?? 0) - (y.sort ?? 0);
+      });
       const all = await db.from('dz_templates').select('state,kind').range(0, 99999);
       if (all.error) throw new Fail(500, all.error.message);
       const n = { all: 0, hidden: 0, public: 0 } as Record<string, number>, kinds: Record<string, number> = {};
       for (const r of all.data || []) { n.all++; n[r.state]++; kinds[r.kind] = (kinds[r.kind] || 0) + 1; }
-      return { rows: (data || []).map((t: any) => ({ id: t.id, fmt: t.fmt, kind: t.kind, name: t.name, tags: t.tags, paid: t.paid, added: day10(t.added), state: t.state, author: t.author, thumb: t.assets?.thumb ?? null, missing: tplMissing(t) })), n, kinds, pageSize: PAGE };
+      return { rows: rows.slice(pg * TPL_PAGE, pg * TPL_PAGE + TPL_PAGE).map((t: any) => ({ id: t.id, fmt: t.fmt, kind: t.kind, name: t.name, tags: t.tags, paid: t.paid, added: day10(t.added), state: t.state, author: t.author, thumb: t.assets?.thumb ?? null, missing: tplMissing(t) })), total: rows.length, n, kinds, pageSize: TPL_PAGE };
+    }
+
+    // 11-26: 체크한 여러 개를 한꺼번에 공개/숨김. 빈칸 있는 건 공개하지 않고 알려줘요. 관리 기록은 하나씩
+    case 'tpl_state_many': {
+      ownerOnly(a);
+      const ids = tplIds(body.ids), state = body.state === 'public' ? 'public' : body.state === 'hidden' ? 'hidden' : null;
+      if (!state) throw new Fail(400, 'bad state');
+      const { data, error } = await db.from('dz_templates').select('*').in('id', ids);
+      if (error) throw new Fail(500, error.message);
+      const done: string[] = [], skipped: any[] = [];
+      for (const t of data || []) {
+        if (t.state === state) { done.push(t.id); continue; }
+        const miss = state === 'public' ? tplMissing(t) : [];
+        if (miss.length) { skipped.push({ id: t.id, name: t.name, why: 'incomplete', missing: miss }); continue; }
+        const u = await db.from('dz_templates').update({ state, updated_at: new Date().toISOString() }).eq('id', t.id);
+        if (u.error) throw new Fail(500, u.error.message);
+        await audit(db, a, state === 'public' ? 'tpl_public' : 'tpl_hide', {}, { id: t.id, name: t.name, bulk: true });
+        done.push(t.id);
+      }
+      return { ok: true, done, skipped };
+    }
+
+    // 11-26: 체크한 여러 개를 한꺼번에 — 종류 바꾸기 · 태그 더하기/빼기 · 유료/무료. 규칙(태그 3개까지, 공개 중엔 2개 아래로 못 뺌)에 걸리면 건너뛰고 알려줘요
+    case 'tpl_bulk': {
+      ownerOnly(a);
+      const ids = tplIds(body.ids), op = String(body.op ?? ''), { kinds, tags } = await taxNames(db);
+      const v = body.value;
+      if (op === 'kind' && !kinds.includes(String(v))) throw new Fail(400, 'bad kind');
+      else if ((op === 'tag_add' || op === 'tag_remove') && !tags.includes(String(v))) throw new Fail(400, 'bad tags');
+      else if (op === 'paid' && typeof v !== 'boolean') throw new Fail(400, 'bad value');
+      else if (!['kind', 'tag_add', 'tag_remove', 'paid'].includes(op)) throw new Fail(400, 'bad op');
+      const { data, error } = await db.from('dz_templates').select('*').in('id', ids);
+      if (error) throw new Fail(500, error.message);
+      const done: string[] = [], skipped: any[] = [];
+      for (const t of data || []) {
+        const tg: string[] = t.tags || [];
+        let row: any;
+        if (op === 'kind') { if (t.kind === v) { done.push(t.id); continue; } row = { kind: String(v) }; }
+        else if (op === 'paid') { if (t.paid === v) { done.push(t.id); continue; } row = { paid: v }; }
+        else if (op === 'tag_add') {
+          if (tg.includes(v)) { done.push(t.id); continue; }
+          if (tg.length >= 3) { skipped.push({ id: t.id, name: t.name, why: 'tags_full' }); continue; }
+          row = { tags: [...tg, String(v)] };
+        } else {
+          if (!tg.includes(v)) { done.push(t.id); continue; }
+          row = { tags: tg.filter(x => x !== v) };
+          if (t.state === 'public' && tplMissing({ ...t, ...row }).length) { skipped.push({ id: t.id, name: t.name, why: 'incomplete' }); continue; }
+        }
+        const u = await db.from('dz_templates').update({ ...row, updated_at: new Date().toISOString() }).eq('id', t.id);
+        if (u.error) throw new Fail(500, u.error.message);
+        await audit(db, a, 'tpl_bulk', {}, { id: t.id, name: t.name, op, value: v });
+        done.push(t.id);
+      }
+      return { ok: true, done, skipped };
     }
 
     case 'tpl_get': {
