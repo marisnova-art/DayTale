@@ -33,6 +33,7 @@ export const PAID = [
   { id: 'stars', img: './bg/stars.webp', tone: '#3a3f7a', ink: '#F3E6C8', dim: ['center', '0,0,0', .55] },
   { id: 'bands', code: 'bands', tone: '#a35cff', ink: '#fff', dim: ['center', '40,16,70', .55] },
   { id: 'slit', code: 'slit', tone: '#F07F3C', ink: '#fff', dim: ['all', '10,8,14', 0] },
+  { id: 'orb', code: 'orb', tone: '#2FB86A', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 루미너스 스피어 (131차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'crain', code: 'crain', tone: '#2FE070', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 코드 레인 (130차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'fold', code: 'fold', tone: '#3A80F8', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 크롬 폴드 (129차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'swarm', code: 'swarm', tone: '#40F0D0', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 스웜 (128차): 글자색은 바탕 밝기로 (formats.js)
@@ -1993,6 +1994,57 @@ function drawCrain(cv, seed, t) {
   }
   x.restore(); x.globalAlpha = 1;
 }
+// 루미너스 스피어 (131차): 어둠 속에 부드러운 빛 구슬 6~14개가 3D 공간에 떠서 겹쳐 번져요 · 가까운 건 크고 흐릿 · 먼 건 작고 어둡게 · 겹치면 빛이 더해져요.
+// 레퍼런스의 느낌만 · 식과 코드는 새로 작성. 셔플 = 배치 4(흩뿌림/궤도/구체/나선) · 구슬 수 · 크기 · 색. 작은 캔버스에 그려 키워서 부드럽게(필터 없이).
+// 모션 = 배치 전체가 40초에 한 바퀴 · 구슬은 둥둥 · 밝기가 숨 쉬듯. 글 뒤를 가리지 않고 밝기 상한만 + 글자에 옅은 그림자(.fsh)
+export const ORB_PAL = [   // [이름, 바탕 가운데, 바탕 가장자리, 빛 색 5, 밝은 바탕?]
+  ['숲 · 오로라', '#0E2418', '#020806', ['#2FB86A', '#1FA0A0', '#6A40D0', '#7AC030', '#2A8AC0']], ['심해', '#071A30', '#01050C', ['#1A70E0', '#20C0E0', '#4040C0', '#30E0C0', '#6090FF']],
+  ['선셋', '#2A0E14', '#080204', ['#FF7040', '#F03A6A', '#FFB040', '#C02A90', '#FF9070']], ['바이올렛', '#160A2C', '#04020A', ['#8A50F0', '#C060F0', '#4A50E0', '#F070D0', '#6A30C0']],
+  ['로즈', '#2A0A1C', '#080206', ['#F05090', '#FF80B0', '#C03070', '#F0A0C0', '#A040A0']], ['앰버', '#241606', '#080401', ['#F0A030', '#E07020', '#FFD060', '#C05020', '#F0C080']],
+  ['아이스', '#0E1A26', '#03060A', ['#5A9AD8', '#80B8E8', '#3A70B8', '#98C8F0', '#5080C8']], ['네온', '#0A0A1A', '#020206', ['#FF30A0', '#30F0E0', '#A040FF', '#F0F040', '#3080FF']],
+  ['크림 파스텔', '#FFF8EE', '#F2E6D6', ['#FFB0A0', '#A0D0F0', '#C0B0F0', '#F0D080', '#A0E0C0'], 1], ['하늘 파스텔', '#EEF6FF', '#D8E6F4', ['#90B8F0', '#F0A8C8', '#A8E0D8', '#C8B0F0', '#F8D0A0'], 1]];
+export const orbPal = (seed, pal) => pal != null && ORB_PAL[+pal] ? +pal : ((seed >>> 0) || 1) % ORB_PAL.length;
+export const orbLight = (seed, pal) => !!ORB_PAL[orbPal(seed, pal)][4];
+const orbCache = new Map(), orbSpr = new Map();
+function orbSprite(h) {
+  let s = orbSpr.get(h); if (s) return s;
+  s = document.createElement('canvas'); s.width = s.height = 128; const g = s.getContext('2d'), gr = g.createRadialGradient(64, 64, 0, 64, 64, 64), [R, G, B] = hx3(h).map(v => Math.round(v * 255));
+  [[0, 1], [.25, .75], [.5, .35], [.75, .1], [1, 0]].forEach(([o, a]) => gr.addColorStop(o, `rgba(${R},${G},${B},${a})`)); g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+  orbSpr.set(h, s); return s;
+}
+function orbOf(seed, asp) {
+  const key = seed + '|' + asp.toFixed(3); if (orbCache.has(key)) return orbCache.get(key);
+  const r = rng(seed ^ 0x0b5f3), T = 6.283, P = { form: Math.floor(r() * 4), n: 6 + Math.floor(r() * 9), sz: .8 + r() * .5, yaw: r() * T, q: [] };
+  for (let i = 0; i < P.n; i++) {
+    const a = r() * T, b = Math.acos(2 * r() - 1), ci = Math.floor(r() * 5), sp = r() * T, rad = .6 + r() * .7; let p;
+    if (P.form === 0) p = [(r() * 2 - 1) * 1.1, (r() * 2 - 1) * asp, (r() * 2 - 1) * .8];
+    else if (P.form === 1) { const aa = i / P.n * T; p = [Math.cos(aa) * 1.05, (r() - .5) * .5 * asp, Math.sin(aa) * 1.05]; }
+    else if (P.form === 2) p = [Math.sin(b) * Math.cos(a) * .85, Math.cos(b) * .85 * asp * .8, Math.sin(b) * Math.sin(a) * .85];
+    else { const u = i / P.n, aa = u * T * 1.6; p = [Math.cos(aa) * (.2 + u * .8), (u - .5) * 1.2 * asp, Math.sin(aa) * (.2 + u * .8)]; }
+    P.q.push({ p, ci, sp, rad });
+  }
+  if (orbCache.size > 40) orbCache.delete(orbCache.keys().next().value);
+  orbCache.set(key, P); return P;
+}
+let orbCv = null;
+function drawOrb(cv, seed, t) {
+  const W = cv.width, H = cv.height, asp = H / W, P = orbOf(seed, asp), E = ORB_PAL[orbPal(seed, cv.dataset.pal)], light = !!E[4], x = cv.getContext('2d');
+  const w = Math.max(40, Math.round(Math.min(W * .4, t > 0 ? 200 : 300))), h = Math.round(w * asp);
+  if (!orbCv) orbCv = document.createElement('canvas'); if (orbCv.width !== w || orbCv.height !== h) { orbCv.width = w; orbCv.height = h; }
+  const s = orbCv.getContext('2d'); s.globalCompositeOperation = 'source-over'; s.globalAlpha = 1;
+  const bg = s.createRadialGradient(w / 2, h * .45, 0, w / 2, h * .45, Math.hypot(w, h) * .6); bg.addColorStop(0, E[1]); bg.addColorStop(1, E[2]); s.fillStyle = bg; s.fillRect(0, 0, w, h);
+  const yaw = P.yaw + t / 40 * 6.283, cy = Math.cos(yaw), sy = Math.sin(yaw), pts = [];
+  for (const o of P.q) {
+    const px = o.p[0] + Math.sin(t / 7 + o.sp) * .06, py = o.p[1] + Math.cos(t / 9 + o.sp) * .06, pz = o.p[2];
+    const X = px * cy + pz * sy, zz = -px * sy + pz * cy + 2.6;
+    pts.push([w / 2 + X / zz * 1.1 * w, h / 2 - py / zz * 1.1 * w, zz, o]);
+  }
+  pts.sort((a, b) => b[2] - a[2]);
+  s.globalCompositeOperation = light ? 'multiply' : 'screen';
+  for (const [X, Y, z, o] of pts) { const R = o.rad * P.sz * w * .26 * 2.6 / z, br = .55 + .3 * Math.sin(t / 5 + o.sp); s.globalAlpha = light ? .5 : Math.min(.62, br * .85 * (2.6 / z)); s.drawImage(orbSprite(E[3][o.ci]), X - R, Y - R, R * 2, R * 2); }
+  s.globalCompositeOperation = 'source-over'; s.globalAlpha = 1;
+  x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'low'; x.drawImage(orbCv, 0, 0, W, H);
+}
 function fractalTile(o, seed) {
   if (o.tile) return o.tile;
   const G = 300, cnt = frDensity(o.P, G, 22000, 34, seed), vals = Float32Array.from(cnt.filter(v => v > 0)).sort(), L = vals.length || 1;
@@ -2024,6 +2076,7 @@ export function drawCode(cv, seed, shift = 0, t = 0, grainAmt = cv.dataset.gr ==
   if (cv.dataset.code === 'neon') return drawNeon(cv, seed, t, cv.dataset.gr === '0' ? 0 : .05);
   if (cv.dataset.code === 'fractal') return drawFractal(cv, seed, t);
   if (cv.dataset.code === 'plasma') return drawPlasma(cv, seed, t, cv.dataset.gr === '0' ? 0 : .025);
+  if (cv.dataset.code === 'orb') return drawOrb(cv, seed, t);
   if (cv.dataset.code === 'crain') return drawCrain(cv, seed, t);
   if (cv.dataset.code === 'fold') return drawFold(cv, seed, t);
   if (cv.dataset.code === 'swarm') return drawSwarm(cv, seed, t);
