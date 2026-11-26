@@ -33,6 +33,7 @@ export const PAID = [
   { id: 'stars', img: './bg/stars.webp', tone: '#3a3f7a', ink: '#F3E6C8', dim: ['center', '0,0,0', .55] },
   { id: 'bands', code: 'bands', tone: '#a35cff', ink: '#fff', dim: ['center', '40,16,70', .55] },
   { id: 'slit', code: 'slit', tone: '#F07F3C', ink: '#fff', dim: ['all', '10,8,14', 0] },
+  { id: 'wint', code: 'wint', tone: '#7A4BF0', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 웨이브 인터퍼런스 (116차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'bmod', code: 'bmod', tone: '#E3A82B', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 블록 모더니즘 (114차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'ccomp', code: 'ccomp', tone: '#E4572E', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 큐브 컴포지션 (113차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'cube', code: 'cube', tone: '#5BC4BE', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 미니멀 큐브 (111차): 글자색은 바탕 밝기로 (formats.js)
@@ -1221,6 +1222,79 @@ function drawBmod(cv, seed, t, grain) {
   });
   if (grain) { x.globalCompositeOperation = 'soft-light'; x.globalAlpha = grain; x.fillStyle = x.createPattern(gbNoise(), 'repeat'); x.fillRect(0, 0, W, H); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; }
 }
+// 웨이브 인터퍼런스 (116차): 가로 물결 · 세로 물결을 겹친 간섭무늬. 레퍼런스의 원리만 · 식과 코드는 새로 작성.
+// 가로 값은 x만, 세로 값은 y만의 함수라서 줄 · 칸마다 한 번씩만 계산해요(빠름). 결 4가지: 0 차분한 파도 · 1 전기장 · 2 코스모스 · 3 네온 웨이브
+export const WINT_PAL = [   // [이름, 바탕, [색1, 색2, 색3]]
+  ['심해', '#03080F', ['#0F3A6E', '#1E9FD0', '#7FF2E0']], ['전기 보라', '#07040F', ['#3A1C8C', '#7A4BF0', '#7FE8FF']],
+  ['코스모스', '#040311', ['#141055', '#5A1F78', '#E07AC8']], ['네온 민트', '#020A07', ['#0B5A3E', '#1FE0A0', '#D2FFEA']],
+  ['노을', '#0E0505', ['#5A1420', '#E05A3A', '#FFD08A']], ['금빛', '#0A0803', ['#4A3208', '#C8902A', '#FFF0C0']],
+  ['체리', '#0F040A', ['#5A0F34', '#E0407E', '#FFD0E4']], ['모노', '#060606', ['#2E2E2E', '#8A8A8A', '#F2F2F2']],
+  ['종이', '#F2ECE0', ['#D8C2A0', '#9A6A3E', '#3E2614']], ['하늘빛', '#E8F0F6', ['#B6CCE2', '#4A80B8', '#16345A']]];
+export const wintPal = (seed, pal) => pal != null && WINT_PAL[+pal] ? +pal : ((seed >>> 0) || 1) % WINT_PAL.length;
+export const wintLight = (seed, pal) => { const [r, g, b] = hx3(WINT_PAL[wintPal(seed, pal)][1]); return .2126 * r + .7152 * g + .0722 * b > .5; };
+const wintCache = new Map();
+function wintOf(seed) {
+  if (wintCache.has(seed)) return wintCache.get(seed);
+  const r = rng(seed ^ 0x5e17), n = 5 + Math.floor(r() * 5), WV = [];
+  for (let i = 0; i < n; i++) WV.push({ d: i < 2 ? i : (r() < .5 ? 0 : 1), f: 1.2 + r() * 4.5, a: .4 + r() * .6, s: (.15 + r() * .35) * (r() < .5 ? -1 : 1), ph: r() * 6.28 });
+  const p = { WV, look: (Math.floor(((seed >>> 0) || 1) / 10) + Math.floor(r() * 4)) % 4 };
+  if (wintCache.size > 60) wintCache.delete(wintCache.keys().next().value);
+  wintCache.set(seed, p); return p;
+}
+let wintCv = null;
+function drawWint(cv, seed, t, grain) {
+  const W = cv.width, H = cv.height, P = wintOf(seed), C = WINT_PAL[wintPal(seed, cv.dataset.pal)], light = wintLight(seed, cv.dataset.pal), look = P.look;
+  const rw = Math.min(W, t > 0 ? 320 : 540), rh = Math.max(1, Math.round(H * rw / W));   // 빛이 매끈해서 낮은 해상도로 그리고 부드럽게 늘려요(움직일 땐 더 낮게)
+  if (!wintCv) wintCv = document.createElement('canvas'); if (wintCv.width !== rw || wintCv.height !== rh) { wintCv.width = rw; wintCv.height = rh; }
+  const g = wintCv.getContext('2d'), im = g.createImageData(rw, rh), D = im.data;
+  const bg = hx3(C[1]), [c1, c2, c3] = C[2].map(hx3), TP = Math.PI * 2;
+  const sx = P.WV.filter(w => !w.d), sy = P.WV.filter(w => w.d), ax = sx.reduce((s, w) => s + w.a, 0), ay = sy.reduce((s, w) => s + w.a, 0);
+  const TR = t > 0 ? [[0, 1], [.25, .45], [.5, .22], [.75, .1]] : [[0, 1]];   // 움직일 때만 잔상(조금 전 장면을 옅게), 저장 그림은 또렷하게
+  const tw = TR.reduce((s, q) => s + q[1], 0);
+  const XS = TR.map(([dt]) => { const a = new Float32Array(rw); for (let i = 0; i < rw; i++) { const u = (i + .5) / rw; let v = 0; for (const w of sx) v += w.a * Math.sin(TP * w.f * u + w.ph + (t - dt) * w.s); a[i] = v / ax; } return a; });
+  const YS = TR.map(([dt]) => { const a = new Float32Array(rh); for (let j = 0; j < rh; j++) { const y = (j + .5) / rw; let v = 0; for (const w of sy) v += w.a * Math.sin(TP * w.f * y + w.ph + (t - dt) * w.s); a[j] = v / ay; } return a; });
+  const glow = (d, w) => Math.exp(-(d / w) * (d / w)) + .32 * Math.exp(-d / (w * 3.2));   // 가운데 진하고 둘레로 퍼지는 빛
+  const lo = light ? .42 : .02, hi = light ? .97 : (look === 3 ? .5 : look === 1 ? .56 : .66);   // 카드 전체 밝기 폭을 고르게 낮춰서 글이 읽혀요
+  // 값(S 또는 줄 빛 I) → 색을 표로 미리 만들어 두고, 점마다 표만 찾아요(빠름)
+  const N = 1024, LR = new Float32Array(N), LG = new Float32Array(N), LB = new Float32Array(N), LA = new Float32Array(N), cc = [0, 0, 0];
+  const grad = k => { const A = k < .5 ? c1 : c2, B = k < .5 ? c2 : c3, q = k < .5 ? k / .5 : (k - .5) / .5; cc[0] = A[0] + (B[0] - A[0]) * q; cc[1] = A[1] + (B[1] - A[1]) * q; cc[2] = A[2] + (B[2] - A[2]) * q; };
+  const IMAX = 2.7;   // 전기장: 가로 줄 빛 + 세로 줄 빛 (최대 약 2.64)
+  for (let n = 0; n < N; n++) {
+    let a = 0;
+    if (look === 1) { const I = n / (N - 1) * IMAX, e = Math.max(0, I - 1);   // 가로 줄 + 세로 줄의 빛이 더해져 겹친 곳이 더 밝아요
+      if (light) { a = Math.min(1, I * .7); const q = Math.min(1, e); cc[0] = c2[0] + (c3[0] - c2[0]) * q; cc[1] = c2[1] + (c3[1] - c2[1]) * q; cc[2] = c2[2] + (c3[2] - c2[2]) * q; }
+      else { cc[0] = c2[0] * I * .8 + c3[0] * e * .9 + c1[0] * .35; cc[1] = c2[1] * I * .8 + c3[1] * e * .9 + c1[1] * .35; cc[2] = c2[2] * I * .8 + c3[2] * e * .9 + c1[2] * .35; } }
+    else { const S = n / (N - 1) * 2 - 1;
+      if (look === 0) { let k = (S + 1) / 2; k = k * k * (3 - 2 * k); grad(light ? Math.pow(k, .75) : k); if (light) a = Math.min(1, .3 + .9 * k); else { const m = .35 + .65 * k, hl = Math.pow(k, 6) * .5; cc[0] = cc[0] * m + c3[0] * hl; cc[1] = cc[1] * m + c3[1] * hl; cc[2] = cc[2] * m + c3[2] * hl; } }
+      else if (look === 2) { const k = Math.pow((S + 1) / 2, 2.4); grad(light ? Math.pow(k, .6) : k); if (light) a = Math.min(1, .1 + k * 1.6); else { const m = .2 + k; cc[0] *= m; cc[1] *= m; cc[2] *= m; } }
+      else { const I = glow(Math.abs(S), .03), I3 = I * I * I; if (light) { a = Math.min(1, I * .55); cc[0] = c2[0] + (c3[0] - c2[0]) * I3; cc[1] = c2[1] + (c3[1] - c2[1]) * I3; cc[2] = c2[2] + (c3[2] - c2[2]) * I3; } else { cc[0] = c2[0] * I * .9 + c3[0] * I3 * .7; cc[1] = c2[1] * I * .9 + c3[1] * I3 * .7; cc[2] = c2[2] * I * .9 + c3[2] * I3 * .7; } } }
+    if (!light) { cc[0] = bg[0] + 1 - Math.exp(-cc[0] * 1.6); cc[1] = bg[1] + 1 - Math.exp(-cc[1] * 1.6); cc[2] = bg[2] + 1 - Math.exp(-cc[2] * 1.6); }   // 어두운 바탕은 빛을 더하고 부드럽게 눌러요
+    LR[n] = cc[0]; LG[n] = cc[1]; LB[n] = cc[2]; LA[n] = a;
+  }
+  // 전기장은 줄 빛을 가로 · 세로 따로 미리 계산 (값이 x만 · y만의 함수)
+  const GX = look === 1 ? XS.map(A => A.map(v => glow(Math.abs(v), .045))) : null, GY = look === 1 ? YS.map(A => A.map(v => glow(Math.abs(v), .045))) : null;
+  const CX = new Float32Array(rw), CY = new Float32Array(rh);   // 코스모스 가운데 은은한 빛(가로 × 세로로 나눠 계산)
+  if (look === 2 && !light) { for (let i = 0; i < rw; i++) { const d = (i + .5) / rw - .5; CX[i] = Math.exp(-d * d * 8); } for (let j = 0; j < rh; j++) { const d = (j + .5) / rh - .5; CY[j] = Math.exp(-d * d * 8) * .08; } }
+  const ns = TR.length, sc = (N - 1) / 2, ic = (N - 1) / IMAX, inv = 1 / tw;
+  for (let j = 0; j < rh; j++) for (let i = 0; i < rw; i++) {
+    let ar = 0, ag = 0, ab = 0, am = 0;
+    for (let s = 0; s < ns; s++) {
+      const wt = TR[s][1], n = look === 1 ? Math.min(N - 1, (GX[s][i] + GY[s][j]) * ic | 0) : Math.max(0, Math.min(N - 1, ((XS[s][i] + YS[s][j]) / 2 + 1) * sc | 0));
+      ar += LR[n] * wt; ag += LG[n] * wt; ab += LB[n] * wt; am += LA[n] * wt;
+    }
+    ar *= inv; ag *= inv; ab *= inv;
+    if (look === 2 && !light) { const gl = CX[i] * CY[j]; ar += gl; ag += gl; ab += gl; }
+    let r, gg, b;
+    if (light) { const a = Math.min(1, am * inv * .92); r = bg[0] + (ar - bg[0]) * a; gg = bg[1] + (ag - bg[1]) * a; b = bg[2] + (ab - bg[2]) * a; }   // 밝은 바탕은 물감처럼 진해져요
+    else { r = ar; gg = ag; b = ab; }
+    const gr = (r + gg + b) / 3; r += (gr - r) * .2; gg += (gr - gg) * .2; b += (gr - b) * .2;
+    const o = (j * rw + i) * 4;
+    D[o] = (lo + Math.max(0, Math.min(1, r)) * (hi - lo)) * 255; D[o + 1] = (lo + Math.max(0, Math.min(1, gg)) * (hi - lo)) * 255; D[o + 2] = (lo + Math.max(0, Math.min(1, b)) * (hi - lo)) * 255; D[o + 3] = 255;
+  }
+  g.putImageData(im, 0, 0);
+  const x = cv.getContext('2d'); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high'; x.drawImage(wintCv, 0, 0, W, H);
+  if (grain) { x.globalCompositeOperation = 'soft-light'; x.globalAlpha = grain; x.fillStyle = x.createPattern(gbNoise(), 'repeat'); x.fillRect(0, 0, W, H); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; }
+}
 function fractalTile(o, seed) {
   if (o.tile) return o.tile;
   const G = 300, cnt = frDensity(o.P, G, 22000, 34, seed), vals = Float32Array.from(cnt.filter(v => v > 0)).sort(), L = vals.length || 1;
@@ -1252,6 +1326,7 @@ export function drawCode(cv, seed, shift = 0, t = 0, grainAmt = cv.dataset.gr ==
   if (cv.dataset.code === 'neon') return drawNeon(cv, seed, t, cv.dataset.gr === '0' ? 0 : .05);
   if (cv.dataset.code === 'fractal') return drawFractal(cv, seed, t);
   if (cv.dataset.code === 'plasma') return drawPlasma(cv, seed, t, cv.dataset.gr === '0' ? 0 : .025);
+  if (cv.dataset.code === 'wint') return drawWint(cv, seed, t, cv.dataset.gr === '0' ? 0 : .1);
   if (cv.dataset.code === 'bmod') return drawBmod(cv, seed, t, cv.dataset.gr === '0' ? 0 : .42);
   if (cv.dataset.code === 'ccomp') return drawCcomp(cv, seed, t, cv.dataset.gr === '0' ? 0 : .25);
   if (cv.dataset.code === 'cube') return drawCube(cv, seed, t, cv.dataset.gr === '0' ? 0 : .3);
