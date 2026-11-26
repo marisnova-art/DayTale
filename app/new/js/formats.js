@@ -31,7 +31,7 @@ export const dateChip = d => { const x = parse(d); return `${x.getMonth() + 1}.$
 // 비율: 4:5(기본) · 9:16 · 1:1. 쓰기에서 고르고, 피드 · 저장 이미지가 그 비율 그대로예요
 export const AR = { 45: 1.25, 916: 16 / 9, 11: 1, 32: 2 / 3, 169: 9 / 16 };   // 세로 ÷ 가로. 가로형 3:2 · 16:9 (11-04)
 export const RATIOS = [['45', '4:5'], ['916', '9:16'], ['11', '1:1'], ['32', '3:2'], ['169', '16:9']];
-export const arOf = c => AR[c?.ratio] || 1.25;
+export const arOf = c => FORMATS[c?.fmt]?.tools?.ratio === false ? 1.25 : AR[c?.ratio] || 1.25;   // 4:5만 쓰는 틀 (잡지 표지)
 export const shape = (el, ar) => { el.dataset.ar = ar; el.classList.toggle('r916', ar > 1.5); el.classList.toggle('r11', ar < 1.1 && ar > .95); el.classList.toggle('r32', ar <= .95 && ar > .6); el.classList.toggle('r169', ar <= .6); el.classList.toggle('rw', ar <= .95); return el; };
 // 정보 줄 = 날짜 · 장소 (각각 켜고 끄기), 자리는 위 · 아래. 서명은 늘 맨 아래 왼쪽 · 가운데 · 오른쪽 (모든 장)
 export const dateOn = c => c.showDate ?? (!!c.datePos && c.datePos !== 'none');

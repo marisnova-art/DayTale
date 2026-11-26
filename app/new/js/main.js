@@ -1984,7 +1984,7 @@ const REC_T = { 밤: '밤에 쓰기 좋은', 비: '비 오는 날엔', 눈: '눈
 const WXK = { sun: '맑음', suncloud: '구름 조금', cloud: '흐림', rain: '비', snow: '눈', thunder: '천둥', fog: '안개' };
 const dayLine = (now = new Date()) => { let w = ''; try { const x = JSON.parse(localStorage.getItem('daytale.wx') || 'null'); if (x && Date.now() - x.at < 3 * 3600e3 && WXK[x.kind]) w = ` · ${WXK[x.kind]}${x.temp != null ? ` ${x.temp}°` : ''}`; } catch {} return `${now.getMonth() + 1}월 ${now.getDate()}일 ${'일월화수목금토'[now.getDay()]}요일${w}`; };
 // 78차: 새 버전 확인. 앱으로 돌아올 때(다른 앱 갔다 오기) version.txt가 지금과 다르면 저절로 새로 고쳐요. 쓰는 중엔 안 해요
-const BUILD = '141', BUILD_TAG = '11-27 141차';
+const BUILD = '142', BUILD_TAG = '11-27 142차';
 let verAt = 0;
 const checkVer = () => {
   if (document.hidden || Date.now() - verAt < 20e3) return; verAt = Date.now();
@@ -2121,6 +2121,7 @@ function viewWrite({ fmt, id, like }) {
   const intent = writeIntent; writeIntent = null;
   if (!card || !FORMATS[card.fmt]) return go('#/');
   const f = { ...FORMATS[card.fmt], tools: T.toolsOf(card) }, rich = !!f.rich;   // 도구 = 틀 기본값 + 템플릿이 바꾼 것   // 장으로 쓰는 포맷(글 · 아트)
+  if (f.tools.ratio === false && card.ratio && card.ratio !== '45') card.ratio = '45';   // 142차: 4:5만 쓰는 틀은 물려받은 비율(1:1 등) 대신 늘 4:5
   if (!rich && card.html == null) { card.html = renderCard(card).querySelector('.rb').innerHTML; card.html = clean(card.html); delete card.text; }
   const st = { panel: null, tab: intent?.color ? 'bg' : f.tools.look ? 'img' : 'fmt', hist: [clone(card)], hi: 0, timer: 0, pg: 0, sel: null, composing: false };
   const root = document.documentElement;
@@ -2144,7 +2145,7 @@ function viewWrite({ fmt, id, like }) {
   // 지금 못 쓰는 칸은 숨겨요(빈칸). 되돌리기 · 다시하기만 흐리게 남아요
   // 디자인 템플릿 중 사진을 받는 틀(tools.photo 'tab', 타이프라이터 97차): 기본 글쓰기처럼 컬러 칸 오른쪽에 이미지 칸 + 셔플 (글꼴 칸 자리를 써서 8칸). 키보드 줄엔 사진 칸 없음
   const imgTab = f.tools.photo === 'tab';
-  const T1 = [['kb', ''], ['ratio', 's'], ['fmt', 's'], ...(imgTab ? [] : [['font', 's']]), ['bg', 's'], ...(imgTab ? [['img', 's'], ['shuf', 's']] : [[f.tools.filter ? 'img' : 'shuf', 's']]), ['emo', 'w'], ['page', 'w'], ['quote', 'w'], ['ai', 'w'], ['undo', ''], ['redo', ''], ['clear', 'w']];   // 11-27 앤드류: 키보드 줄 = 키보드 · 이모티콘 · 장 나누기 · 인용 · AI · ↶ · ↷ · 삭제(01:01 앤드류: 맨 끝, 동그라미 X) (사진은 키보드 내린 배경 줄에서)   // ai = AI 글쓰기 (11-20, 모든 포맷)
+  const T1 = [['kb', ''], ['ratio', 's'], ...(f.tools.look ? [] : [['fmt', 's']]), ...(imgTab ? [] : [['font', 's']]), ['bg', 's'], ...(imgTab ? [['img', 's'], ...(f.tools.look ? [['lay', 's']] : []), ['shuf', 's']] : [[f.tools.filter ? 'img' : 'shuf', 's']]), ['emo', 'w'], ['page', 'w'], ['quote', 'w'], ['ai', 'w'], ['undo', ''], ['redo', ''], ['clear', 'w']];   // 11-27 앤드류: 키보드 줄 = 키보드 · 이모티콘 · 장 나누기 · 인용 · AI · ↶ · ↷ · 삭제(01:01 앤드류: 맨 끝, 동그라미 X) (사진은 키보드 내린 배경 줄에서)   // ai = AI 글쓰기 (11-20, 모든 포맷)
   app.innerHTML = `<div class="wr ${rich ? 'rich' : 'plain'}">
     <header class="top"><button class="cb" data-a="back" aria-label="뒤로">${ic('back')}</button><div class="nm stt"></div><button class="cb w" data-a="ok" aria-label="완료">${ic('check')}</button></header>
     <div class="area"><section class="stage"></section></div>
@@ -2413,7 +2414,7 @@ function viewWrite({ fmt, id, like }) {
   /* 카드 그리기. 글만 바뀌면 그 자리에서 바꾸고(키보드가 내려가지 않게), 장 수·배경·날짜 같은 틀이 바뀔 때만 새로 그려요 */
   let el = null, shape = '';
   const look = () => [card.ratio, card.lh, card.bold, card.ink, card.showDate, card.placeOff, card.sg, card.signTxt, card.dh];
-  const shapeOf = () => JSON.stringify(rich ? [card.pages.length, card.bg, card.align, card.pst, card.datePos, card.date, card.place, card.font, card.size, card.filter, card.leak, ...look()] : [card.date, card.place, card.size, card.align, card.datePos, card.seed, card.pal, card.bg?.ph, card.bg?.src, card.bg?.vd, card.filter, ...look()]);   // 셔플(seed)하면 종이색까지 새로 (11-20)
+  const shapeOf = () => JSON.stringify(rich ? [card.pages.length, card.bg, card.align, card.pst, card.datePos, card.date, card.place, card.font, card.size, card.filter, card.leak, ...look()] : [card.date, card.place, card.size, card.align, card.datePos, card.seed, card.pal, card.bg?.ph, card.bg?.src, card.bg?.vd, card.filter, card.layout, ...look()]);   // 셔플(seed)하면 종이색까지 새로 (11-20)
   const bodies = () => $$('.body', el);
   // 글 칸의 값: 장(글 · 아트) · 한 덩어리 글(디자인) · 따로 쓰는 칸(data-f, 잡지 표지 제목 = 글자만)
   const valOf = (c, b, i) => b.dataset.f ? esc(c[b.dataset.f] ?? '') : rich ? (c.pages[i] ?? '') : c.html;
@@ -2558,7 +2559,8 @@ function viewWrite({ fmt, id, like }) {
 
   /* 도구 줄. 포맷이 안 쓰는 도구는 어둡게, 누르면 살짝 흔들림 */
   const enabled = k => {
-    if (k === 'ratio') return f.tools.ratio !== false;   // 잡지 표지: 4:5만
+    if (k === 'ratio') return f.tools.ratio !== false;
+    if (k === 'lay') return !!f.tools.look;   // 잡지 표지 배치   // 잡지 표지: 4:5만
     if (k === 'kb' || k === 'undo' || k === 'redo') return true;
     if (k === 'photo' || k === 'emo' || k === 'page') return !!f.tools[k];
     if (k === 'ai') return true;   // AI 글쓰기: 모든 포맷
@@ -2593,6 +2595,9 @@ function viewWrite({ fmt, id, like }) {
         const i = RATIOS.findIndex(r => r[0] === (card.ratio || '45')), [n, t] = RATIOS[(i + 1) % RATIOS.length];
         card.ratio = n; push(); sizeCard(); draw(); tools(); return pop(t, null, '비율');
       }
+      if (k === 'lay') {   // 142차 앤드류: 배치는 직접 골라요 (A → B → C). 셔플은 룩 · 제목 색만
+        const o = ['A', 'B', 'C'], n = o[(o.indexOf(f.layoutOf(card)) + 1) % 3]; card.layout = n; push(); draw(); return pop(f.layoutName[n], null, '배치');
+      }
       if (k === 'kb') {   // 스타일 보기 → 글 끝에서 쓰기(키보드 올림) / 쓰기 → 키보드 내림 / 이모티콘 판 → 다시 키보드
         if (st.panel) return closePanel(true);
         if (typingNow() || st.hold) { st.hold = false; if (typingNow()) document.activeElement.blur(); return mode(); }   // 키보드 쓰기 → 쓰기메인
@@ -2607,7 +2612,7 @@ function viewWrite({ fmt, id, like }) {
         const was = typingNow() || st.hold; paintMeta(); draw(); if (was && !typingNow()) caretEnd(st.pg);
         paintRow2(); return;
       }
-      if (k === 'shuf') { if (rich) { const o = ps().bg.seed || 1; let n = newSeed(); while ((ps().bg.id === 'slit' && n % 5 === o % 5) || (ps().bg.id === 'swirl' && ps().bg.pal == null && n % 20 === o % 20) || ((ps().bg.id === 'neon' || ps().bg.id === 'tunnel' || ps().bg.id === 'eclipse' || ps().bg.id === 'mesh' || ps().bg.id === 'pixel' || ps().bg.id === 'retro' || ps().bg.id === 'gband' || ps().bg.id === 'cube' || ps().bg.id === 'ccomp' || ps().bg.id === 'bmod' || ps().bg.id === 'wint' || ps().bg.id === 'spec' || ps().bg.id === 'city' || ps().bg.id === 'blob' || ps().bg.id === 'lens' || ps().bg.id === 'field' || ps().bg.id === 'liquid' || ps().bg.id === 'float' || ps().bg.id === 'cloud' || ps().bg.id === 'dotw' || ps().bg.id === 'swarm' || ps().bg.id === 'fold' || ps().bg.id === 'crain' || ps().bg.id === 'orb' || ps().bg.id === 'valley') && ps().bg.pal == null && n % 10 === o % 10) || (ps().bg.id === 'plasma' && ps().bg.pal == null && n % 11 === o % 11) || (ps().bg.id === 'fractal' && n % 10 === o % 10)) n = newSeed(); ps().bg.seed = n; syncFirst(); } else { card.seed = newSeed(); f.shuffle?.(card); } push(); draw(); paintRow2(); return; }   // 글카드: 보고 있는 장만. 슬릿스캔는 셔플마다 색 묶음도 꼭 바뀌게
+      if (k === 'shuf') { if (rich) { const o = ps().bg.seed || 1; let n = newSeed(); while ((ps().bg.id === 'slit' && n % 5 === o % 5) || (ps().bg.id === 'swirl' && ps().bg.pal == null && n % 20 === o % 20) || ((ps().bg.id === 'neon' || ps().bg.id === 'tunnel' || ps().bg.id === 'eclipse' || ps().bg.id === 'mesh' || ps().bg.id === 'pixel' || ps().bg.id === 'retro' || ps().bg.id === 'gband' || ps().bg.id === 'cube' || ps().bg.id === 'ccomp' || ps().bg.id === 'bmod' || ps().bg.id === 'wint' || ps().bg.id === 'spec' || ps().bg.id === 'city' || ps().bg.id === 'blob' || ps().bg.id === 'lens' || ps().bg.id === 'field' || ps().bg.id === 'liquid' || ps().bg.id === 'float' || ps().bg.id === 'cloud' || ps().bg.id === 'dotw' || ps().bg.id === 'swarm' || ps().bg.id === 'fold' || ps().bg.id === 'crain' || ps().bg.id === 'orb' || ps().bg.id === 'valley') && ps().bg.pal == null && n % 10 === o % 10) || (ps().bg.id === 'plasma' && ps().bg.pal == null && n % 11 === o % 11) || (ps().bg.id === 'fractal' && n % 10 === o % 10)) n = newSeed(); ps().bg.seed = n; syncFirst(); } else { f.shuffle?.(card); card.seed = newSeed(); } push(); draw(); paintRow2(); return; }   // 글카드: 보고 있는 장만. 슬릿스캔는 셔플마다 색 묶음도 꼭 바뀌게
       if (k === 'page') {
         ps(); card.pages.splice(st.pg + 1, 0, ''); card.pst.splice(st.pg + 1, 0, clone(card.pst[st.pg])); st.pg += 1;   // 새 장은 앞 장 배경 · 위치를 이어받아요
         push(); draw(); scrollToPage(st.pg);

@@ -47,13 +47,14 @@ const dist = (a, b) => Math.hypot(b[0] - a[0], b[1] - a[1]);
 const flat = r => { const q = quad(r); return [dist(q[0], q[1]), dist(q[0], q[3])]; };   // 자리를 펴 놓은 크기 (카드 px)
 
 // 배치 (종이 좌표): A 레퍼런스(제목 위 · 사진 · 본문) · B 사진 위 · 제목 아래 · C 제목이 사진 아래쪽에 겹침
+export const LAYOUT_NAME = { A: '제목 위', B: '제목 아래', C: '제목 겹침' };
 const LAYOUTS = {
   A: { title: { u: .06, v: .03, w: .88, h: .13 }, photo: { u: .06, v: .185, w: .88, h: .64 }, body: { u: .06, v: .855, w: .88, h: .11 } },
   B: { photo: { u: .06, v: .04, w: .88, h: .66 }, title: { u: .06, v: .72, w: .88, h: .13 }, body: { u: .06, v: .87, w: .88, h: .1 } },
   C: { photo: { u: .06, v: .04, w: .88, h: .72 }, title: { u: .06, v: .69, w: .88, h: .13 }, body: { u: .06, v: .86, w: .88, h: .11 } },
 };
 const INKS = ['#d0452f', '#1f3fbf', '#141414', '#e8641b', '#0f7a55', '#ffffff'];   // 흰색은 제목이 사진에 겹치는 C에서만
-export const layoutOf = c => { const x = rng(((c?.seed || 1) ^ 0x5bd10028) >>> 0)(); return x < .6 ? 'A' : x < .8 ? 'B' : 'C'; };
+export const layoutOf = c => { if (LAYOUTS[c?.layout]) return c.layout; const x = rng(((c?.seed || 1) ^ 0x5bd10028) >>> 0)(); return x < .6 ? 'A' : x < .8 ? 'B' : 'C'; };
 export const inkOf = c => { const x = rng(((c?.seed || 1) ^ 0x27d40033) >>> 0)(), n = layoutOf(c) === 'C' ? INKS.length : INKS.length - 1; return INKS[Math.floor(x * n)]; };
 // 처음 카드 = A 배치 · 빨간 제목 (레퍼런스처럼)
 const firstSeed = () => { for (;;) { const s = Math.floor(Math.random() * 1e9); if (layoutOf({ seed: s }) === 'A' && inkOf({ seed: s }) === INKS[0]) return s; } };
@@ -314,12 +315,13 @@ export default {
   fonts: [['extra.css', 'DT Black Han Sans']],
   sample: SAMPLE,
   datePos: 'none',
-  blank: () => ({ html: '', title: 'Film Vibes', seed: firstSeed(), filter: 'mag-cred', bg: { id: 'photo', src: SAMPLE_PH, w: 900, h: 900, x: 50, y: 50 }, datePos: 'none', showDate: false }),
+  blank: () => ({ html: '', title: 'Film Vibes', seed: firstSeed(), filter: 'mag-cred', bg: { id: 'photo', src: SAMPLE_PH, w: 900, h: 900, x: 50, y: 50 }, datePos: 'none', showDate: false, ratio: '45', layout: 'A' }),
   render: (c, o) => mag(c, o),
   fit,
   prep: need,   // 저장 전에 틀 · 사진 · 글꼴을 먼저
   // 셔플: 배치 · 제목 색은 seed로, 룩은 다른 것으로 (main.js가 seed를 바꾼 뒤 불러요)
-  shuffle: c => { const cur = lookOf(c).id, l = LOOKS.filter(x => x.id !== cur); c.filter = 'mag-' + l[Math.floor(Math.random() * l.length)].id; },
-  looks: LOOKS, lookOf, lookThumb,
+  shuffle: c => { c.layout = layoutOf(c);   // 배치는 그대로 (셔플 전 씨앗으로 정해진 것도 고정)
+    const cur = lookOf(c).id, l = LOOKS.filter(x => x.id !== cur); c.filter = 'mag-' + l[Math.floor(Math.random() * l.length)].id; },
+  looks: LOOKS, lookOf, lookThumb, layoutOf, layoutName: LAYOUT_NAME,
   tone: c => ({ cred: '#5a1712', teal: '#1d3a40', bleach: '#3a3a38', neon: '#2a1040', vint: '#4a3a28', noir: '#202020', vhs: '#2b2840', disp: '#3a3020', pola: '#36423f', warm70: '#4d3216', y2k: '#1d2a48', xpro: '#2a4020' })[lookOf(c).id] || '#3a2a26',
 };
