@@ -1,4 +1,4 @@
-// AI 글쓰기 (11-20): 키워드 · 주제 + 짧게/길게 → 오늘 하루 일기처럼 쓴 글 한 편.
+// AI 글쓰기 (11-20, 11-27): 키워드 · 주제 + 제목 문장 / 2줄 문장 / 5줄 문장 → 오늘 하루 일기처럼 쓴 글.
 // 앱 → 이 함수 → Gemini API. 키는 서버 설정(Secrets)의 GEMINI_API_KEY 에만 있어요 (앱 · 코드 · 대화에 없음).
 // 모델: GEMINI_MODELS 순서대로 (아래 handle 참고). 한도가 차거나 늦으면 다음 모델로. 모두 같은 키.
 // 나중에 Claude 등으로 바꿀 때는 이 파일의 call() 한 곳만 바꿔요.
@@ -10,26 +10,55 @@ type Deps = { fetch: typeof fetch; env: (k: string) => string | undefined };
 const LANG: Record<string, string> = { ko: '한국어', en: 'English', ja: '日本語', es: 'Español', fr: 'Français' };
 const ALLOW = /^https:\/\/([a-z0-9-]+\.)?(todaytale|daytale)\.pages\.dev$|^http:\/\/localhost(:\d+)?$/;
 
-export function prompt(o: { topic: string; len: 's' | 'l'; lang: string; date?: string; design?: boolean }) {
-  const lang = LANG[o.lang] || LANG.ko;
-  const size = o.len === 'l'
-    ? (o.lang === 'ko' || o.lang === 'ja' ? '350~500자, 2~3문단' : '120~180 words, 2-3 short paragraphs')
-    : (o.lang === 'ko' || o.lang === 'ja' ? '60~110자, 1~2문장' : '20-40 words, 1-2 sentences');
+// 길이 (11-27 앤드류): t = 제목 문장(3단어 이하) · 2 = 2줄 문장 · 5 = 5줄 문장 (기본 글씨 크기 기준). 예전 앱의 s/l은 2/5로
+export type Len = 't' | '2' | '5';
+export const lenOf = (v: unknown): Len => v === 't' ? 't' : v === '5' || v === 'l' ? '5' : '2';
+// 식상하지 않게 (11-27 앤드류: "글자들이 너무 식상하다"): 흔한 표현 금지 · 구체적 장면 + 예상 밖 디테일 · 정리/교훈 끝맺음 금지 · 말투를 부를 때마다 무작위
+const BAN: Record<string, string> = {
+  ko: '소소한, 따스한 햇살, 따뜻한 햇살, 하루를 마무리, 감사한 하루, 행복한 하루, 새삼, 문득 깨달았다, 오늘도 수고, 힐링, 여유를 즐기, 소중함, 작은 행복, 일상의 행복, 마음이 따뜻해',
+  en: 'simple joys, little things, grateful, cozy, a reminder that, warm sunlight, wrapping up the day, cherish, blessed, self-care, peaceful moment',
+  ja: 'ささやかな幸せ, 暖かい日差し, 一日を締めくくる, 感謝, 癒し, 小さな幸せ, 改めて',
+  es: 'pequeñas cosas, agradecido, acogedor, cálido sol, terminar el día, valorar',
+  fr: 'petits bonheurs, reconnaissant, cosy, doux soleil, finir la journée, savourer',
+};
+const STYLES = [
+  '관찰: 눈앞의 사물 하나를 카메라로 아주 가까이 찍듯 묘사해요.',
+  '혼잣말: 나에게 툭 던지는 혼잣말 말투로 써요.',
+  '대화 한 줄: 누군가 한 말 한마디를 따옴표 없이 옮기고 그 순간의 장면을 써요.',
+  '시처럼: 짧게 끊어지는 문장들로, 명사로 끝나는 문장도 괜찮아요.',
+  '메모: 메모장에 적듯 건조하고 짧게, 감정 낱말 없이 사실만으로 기분이 느껴지게 써요.',
+  '엉뚱하게: 사소한 일을 아주 진지하게, 살짝 유머 있게 써요.',
+];
+export function prompt(o: { topic: string; len: Len; lang: string; date?: string; design?: boolean; style?: number }) {
+  const lang = LANG[o.lang] || LANG.ko, cjk = o.lang === 'ko' || o.lang === 'ja', st = STYLES[(o.style ?? Math.floor(Math.random() * STYLES.length)) % STYLES.length];
+  const ban = BAN[o.lang] || BAN.en;
+  if (o.len === 't') return [
+    `아래 키워드 · 주제로 오늘 하루 카드에 크게 올릴 제목 한 줄을 ${lang}로 써 줘.`,
+    `- ${cjk ? '3어절 이하, 12자 이하' : 'at most 3 words'}. 마침표 · 따옴표 · 이모지 · 해시태그 없이 제목만.`,
+    '- 광고 카피나 책 제목처럼 짧고 낯설게. 키워드를 그대로 되풀이하지 말고 살짝 비틀어요. 뻔한 말("행복한 하루" 같은)은 쓰지 않아요.',
+    `- 쓰지 않을 표현: ${ban}`,
+    '- 종교 · 정치 · 술은 넣지 않아요.',
+    `키워드 · 주제: ${o.topic}`,
+  ].join('\n');
+  const size = o.len === '5' ? (cjk ? '70~90자 (카드에서 5줄쯤), 3~5문장' : '22-34 words (about 5 lines on the card)') : (cjk ? '24~34자 (카드에서 2줄쯤), 1~2문장' : '8-14 words (about 2 lines on the card)');
   return [
-    `너는 사용자를 대신해 오늘 하루 일기를 짧게 써 주는 도우미야. 아래 키워드 · 주제로 사용자 자신이 쓴 것처럼 일기 한 편을 ${lang}로 써 줘.`,
-    `- 길이: ${size}`,
-    '- 1인칭(나), 담백하고 따뜻한 말투. 과장 · 교훈 · 명언 · 이모지 · 해시태그 · 제목 · 따옴표 없이 본문만.',
-    '- 구체적인 장면 하나(시간, 장소, 감각)를 넣어 실제 하루처럼. 종교 · 정치 · 술 이야기는 넣지 않아요.',
-    o.design ? '- 한 덩어리 글로 (줄바꿈 없이).' : (o.len === 'l' ? '- 문단 사이는 빈 줄 하나.' : '- 줄바꿈 없이.'),
+    `너는 사용자를 대신해 오늘 하루 일기를 써 주는 도우미야. 아래 키워드 · 주제로 사용자 자신이 쓴 것처럼 ${lang}로 써 줘.`,
+    `- 길이: ${size}. 넘기지 마.`,
+    `- 말투: ${st}`,
+    '- 1인칭(나). 키워드를 구체적인 장면 · 사물 · 소리 · 냄새 하나로 바꾸고, 남들이 잘 쓰지 않는 예상 밖의 디테일을 꼭 하나 넣어요.',
+    '- 끝에 정리 · 교훈 · 감상 요약을 붙이지 말고 장면 안에서 툭 끝내요.',
+    `- 쓰지 않을 상투적 표현: ${ban}`,
+    '- 명언 · 이모지 · 해시태그 · 제목 · 따옴표 없이 본문만. 종교 · 정치 · 술 이야기는 넣지 않아요.',
+    '- 줄바꿈 없이 한 덩어리로.',
     o.date ? `- 계절 참고용 날짜: ${o.date} (날짜 · 요일은 글에 쓰지 않아요, 카드에 따로 있어요)` : '',
     `키워드 · 주제: ${o.topic}`,
   ].filter(Boolean).join('\n');
 }
 
-async function call(deps: Deps, model: string, key: string, text: string, len: 's' | 'l', ms: number) {
+async function call(deps: Deps, model: string, key: string, text: string, len: Len, ms: number) {
   const r = await deps.fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
     method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
-    body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text }] }], generationConfig: { temperature: 0.9, maxOutputTokens: model.startsWith('gemma') ? 4096 : len === 'l' ? 2048 : 1024,
+    body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text }] }], generationConfig: { temperature: 1.05, maxOutputTokens: model.startsWith('gemma') ? 4096 : len === 't' ? 256 : 1024,
       ...(model.startsWith('gemini') ? { thinkingConfig: { thinkingBudget: 0 } } : {}) } }),   // 일기 한 편엔 생각 단계가 필요 없어요 (빠르고 싸게)
     signal: AbortSignal.timeout(ms),   // 정해 둔 시간 안에 답이 없으면 다음 모델로
   });
@@ -41,10 +70,11 @@ async function call(deps: Deps, model: string, key: string, text: string, len: '
 }
 
 // 글 다듬기: 제목 · 따옴표 · 마크다운 · 이모지 빼고, 줄은 최대 빈 줄 하나
-export function tidy(s: string, design: boolean) {
+export function tidy(s: string, design: boolean, len: Len = '2') {
   let t = s.replace(/\r/g, '').replace(/^#+\s.*\n+/, '').replace(/\*\*|__|`/g, '').replace(/^["'“”‘’]+|["'“”‘’]+$/g, '').trim();
   t = t.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
-  if (design) t = t.replace(/\s*\n+\s*/g, ' ');
+  t = t.replace(/\s*\n+\s*/g, ' ');   // 11-27: 세 길이 모두 한 덩어리
+  if (len === 't') t = t.replace(/[.。!！]+$/, '').slice(0, 40);
   return t.slice(0, 1200);
 }
 
@@ -56,7 +86,7 @@ export async function handle(req: Request, deps: Deps): Promise<Response> {
   let b: any; try { b = await req.json(); } catch { return json({ error: 'bad_json' }, 400, cors); }
   const topic = String(b?.topic || '').replace(/\s+/g, ' ').trim().slice(0, 80);
   if (!topic) return json({ error: 'no_topic' }, 400, cors);
-  const len = b?.len === 'l' ? 'l' : 's', lang = LANG[b?.lang] ? b.lang : 'ko', design = !!b?.design;
+  const len = lenOf(b?.len), lang = LANG[b?.lang] ? b.lang : 'ko', design = !!b?.design;
   const date = /^\d{4}-\d{2}-\d{2}$/.test(b?.date || '') ? b.date : undefined;
   const key = deps.env('GEMINI_API_KEY'); if (!key) return json({ error: 'no_key' }, 503, cors);
   const text = prompt({ topic, len, lang, date, design });
@@ -68,7 +98,7 @@ export async function handle(req: Request, deps: Deps): Promise<Response> {
   for (const { m, ms } of models) {
     try {
       const r = await call(deps, m, key, text, len, ms);
-      if (r.ok) return json({ text: tidy(r.text, design), model: m }, 200, cors);
+      if (r.ok) return json({ text: tidy(r.text, design, len), model: m }, 200, cors);
       last = r.status;
       if (r.status === 401 || r.status === 403) break;   // 키 문제는 다음 모델도 같아요
     } catch (e) { console.log('ai-write', m, 'error', String((e as Error)?.name || e)); last = 502; }

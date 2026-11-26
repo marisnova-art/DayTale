@@ -364,7 +364,14 @@ export function heroes(n = now()) {
   if (nw) out.push({ k: 'new', t: nw });
   return out;
 }
-export const newest = () => [...TEMPLATES].sort((a, b) => b.added.localeCompare(a.added));
+// 최근 올린 순 (11-27 앤드류): 같은 날이면 나중에 올린 것(순서 sort가 큰 것) 먼저
+export const newest = () => [...TEMPLATES].sort((a, b) => b.added.localeCompare(a.added) || (b.sort ?? 0) - (a.sort ?? 0));
+// 날마다 섞기 (11-27): 같은 날 · 같은 줄이면 늘 같은 순서, 다음 날엔 새 순서
+export function daily(list, salt = '') {
+  let h = dayNo() * 2654435761 >>> 0; for (const c of String(salt)) h = Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0;
+  const key = t => { let x = h; for (const c of t.id) x = Math.imul(x ^ c.charCodeAt(0), 2246822519) >>> 0; x ^= x >>> 15; return Math.imul(x, 2654435761) >>> 0; };
+  return list.map(t => [key(t), t]).sort((a, b) => a[0] - b[0]).map(x => x[1]);
+}
 // 내가 쓴 카드 수 (템플릿별)
 export const mineCount = () => { const n = {}; S.cards().forEach(c => { const t = tplOfCard(c); if (t) n[t.id] = (n[t.id] || 0) + 1; }); return n; };
 // 줄 탭 순서: 새로 나온(30일 안) · 인기 · 자주 쓴(내가 쓴 것만)

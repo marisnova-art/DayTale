@@ -1878,8 +1878,9 @@ function viewTpl() {
     if (f === '홈' && !q) {
       const seen = new Set(), rows = [];
       const row = (title, list, c) => { const l = list.filter(t => !seen.has(t)).slice(0, 8); if (l.length >= 2) { l.forEach(t => seen.add(t)); rows.push({ title, l, c }); } };
-      T.tagOrder().slice(0, 2).forEach(g => row(g, T.TEMPLATES.filter(t => t.tags.includes(g)), g));
-      T.kinds().forEach(k => row(k, T.TEMPLATES.filter(t => t.kind === k), k));   // 종류마다 한 줄 (관리자 순서)
+      // 11-27 (앤드류): 테마 줄은 날마다 새로 섞어요 (그날은 그대로) — 예전엔 올린 차례 앞 8개라 늘 같은 템플릿
+      T.tagOrder().slice(0, 2).forEach(g => row(g, T.daily(T.TEMPLATES.filter(t => t.tags.includes(g)), g), g));
+      T.kinds().forEach(k => row(k, T.daily(T.TEMPLATES.filter(t => t.kind === k), k), k));   // 종류마다 한 줄 (관리자 순서)
       // 첫 줄: 새로 나온 · 인기 · 자주 쓴 탭 (아래 줄만 바뀌어요). 다른 줄과 겹쳐도 돼요
       const SORTS = [['new', '새로 나온'], ['pop', '인기'], ...(Object.keys(T.mineCount()).length ? [['mine', '자주 쓴']] : [])];
       if (!SORTS.some(x => x[0] === tstate.sort)) tstate.sort = 'new';
@@ -1983,7 +1984,7 @@ const REC_T = { 밤: '밤에 쓰기 좋은', 비: '비 오는 날엔', 눈: '눈
 const WXK = { sun: '맑음', suncloud: '구름 조금', cloud: '흐림', rain: '비', snow: '눈', thunder: '천둥', fog: '안개' };
 const dayLine = (now = new Date()) => { let w = ''; try { const x = JSON.parse(localStorage.getItem('daytale.wx') || 'null'); if (x && Date.now() - x.at < 3 * 3600e3 && WXK[x.kind]) w = ` · ${WXK[x.kind]}${x.temp != null ? ` ${x.temp}°` : ''}`; } catch {} return `${now.getMonth() + 1}월 ${now.getDate()}일 ${'일월화수목금토'[now.getDay()]}요일${w}`; };
 // 78차: 새 버전 확인. 앱으로 돌아올 때(다른 앱 갔다 오기) version.txt가 지금과 다르면 저절로 새로 고쳐요. 쓰는 중엔 안 해요
-const BUILD = '134', BUILD_TAG = '11-26 134차';
+const BUILD = '135', BUILD_TAG = '11-27 135차';
 let verAt = 0;
 const checkVer = () => {
   if (document.hidden || Date.now() - verAt < 20e3) return; verAt = Date.now();
@@ -2160,7 +2161,7 @@ function viewWrite({ fmt, id, like }) {
     </div>
     <div class="aip">
       <div class="g6"><label class="wide w8 al">${ic('ai')}<input class="ai" maxlength="80" placeholder="키워드 · 주제" aria-label="키워드 · 주제" enterkeyhint="go"></label></div>
-      <div class="g6"><button class="wide w2 len" data-l="s" aria-label="짧게">짧게</button><button class="wide w2 len" data-l="l" aria-label="길게">길게</button><button class="wide w4 go" aria-label="만들기">만들기</button></div>
+      <div class="g6"><button class="wide w2 len" data-l="t" aria-label="제목 문장">제목 문장</button><button class="wide w2 len" data-l="2" aria-label="2줄 문장">2줄 문장</button><button class="wide w2 len" data-l="5" aria-label="5줄 문장">5줄 문장</button><button class="wide w2 go" aria-label="만들기">만들기</button></div>
       <div class="g6"><button class="wide w8 ok" aria-label="닫기">닫기</button></div>
     </div>
     <div class="recent"></div>
@@ -2320,15 +2321,15 @@ function viewWrite({ fmt, id, like }) {
   // 글을 누르면 판을 닫고 쓰기로
   stage.addEventListener('pointerdown', () => { if (aiOpen()) { if (!st.aiBusy) closeAi(); } else if (infOpen()) closeInf(); }, true);
 
-  /* AI 글쓰기 (11-20): 키워드 · 주제 + 짧게/길게 → 만들기. 쓴 글이 있으면 그 뒤에 붙이고, 다시 만들기는 방금 넣은 글만 바꿔요.
+  /* AI 글쓰기 (11-20): 키워드 · 주제 + 제목 문장/2줄 문장/5줄 문장(11-27) → 만들기. 쓴 글이 있으면 그 뒤에 붙이고, 다시 만들기는 방금 넣은 글만 바꿔요.
      날짜 · 장소 · 서명 화면과 같은 자리(키보드 위 입력 줄). 글은 서버(ai-write)가 만들어요 (키는 서버에만) */
   const aip = $('.aip'), ain = $('.aip .ai'), aigo = $('.aip .go');
-  st.aiLen = S.pref('aiLen', 's');
+  st.aiLen = ({ s: '2', l: '5' })[S.pref('aiLen', '2')] || S.pref('aiLen', '2');   // 11-27: 짧게/길게 → 제목 · 2줄 · 5줄 문장 (예전 값은 2줄 · 5줄로)
   const aiCur = () => rich ? (card.pages[st.pg] || '') : (card.html || '');
   function paintAi() {
     $$('.len', aip).forEach(b => b.classList.toggle('sel', b.dataset.l === st.aiLen));
     const again = st.ai && st.ai.at === aiCur() && st.ai.topic === ain.value.trim();
-    aigo.textContent = st.aiBusy ? '만드는 중' : again ? '다시 만들기' : '만들기';
+    aigo.textContent = st.aiBusy ? '만드는 중' : again ? '다시' : '만들기';   // 11-27: 칸이 좁아져서(길이 버튼 3개) '다시'
     aigo.classList.toggle('busy', !!st.aiBusy); aigo.classList.toggle('mo', !ain.value.trim() && !st.aiBusy);
   }
   function openAi() {
@@ -2369,7 +2370,7 @@ function viewWrite({ fmt, id, like }) {
     st.ai = { base, at: next, topic };
     S.setPref('aiLen', st.aiLen);
     push(); draw(); count(); tools(); paintAi(); applySize(true);
-    pop(st.aiLen === 'l' ? '길게' : '짧게', null, 'AI 글쓰기');
+    pop(({ t: '제목 문장', 5: '5줄 문장' })[st.aiLen] || '2줄 문장', null, 'AI 글쓰기');
   }
   $$('button', aip).forEach(b => b.addEventListener('pointerdown', e => e.preventDefault()));
   $$('.len', aip).forEach(b => { b.onclick = () => { st.aiLen = b.dataset.l; paintAi(); }; });

@@ -435,9 +435,9 @@ async function act(a: Admin, body: any, { db, env, fetch }: Deps) {
       const ko = (x: string, y: string) => x.localeCompare(y, 'ko');
       const rows = [...(data || [])].sort((x: any, y: any) => {
         if (sort === 'name') return dir * ko(x.name, y.name) || ko(x.id, y.id);
-        if (sort === 'added') return dir * (day10(x.added) || '').localeCompare(day10(y.added) || '') || ko(x.name, y.name);
+        if (sort === 'added') return dir * ((day10(x.added) || '').localeCompare(day10(y.added) || '') || (x.sort ?? 0) - (y.sort ?? 0)) || ko(x.name, y.name);   // 11-27: 같은 날이면 올린 차례(sort)로 — 최근 올린 순이 맨 앞
         if (sort === 'tag') { const tx = (x.tags || []).join(' '), ty = (y.tags || []).join(' '); return (!tx ? 1 : 0) - (!ty ? 1 : 0) || dir * ko(tx, ty) || ko(x.name, y.name); }
-        return (x.state === y.state ? 0 : x.state === 'hidden' ? -1 : 1) || (day10(y.added) || '').localeCompare(day10(x.added) || '') || (x.sort ?? 0) - (y.sort ?? 0);
+        return (x.state === y.state ? 0 : x.state === 'hidden' ? -1 : 1) || (day10(y.added) || '').localeCompare(day10(x.added) || '') || (y.sort ?? 0) - (x.sort ?? 0);
       });
       const all = await db.from('dz_templates').select('state,kind').range(0, 99999);
       if (all.error) throw new Fail(500, all.error.message);
