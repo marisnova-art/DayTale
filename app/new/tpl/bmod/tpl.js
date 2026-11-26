@@ -5,7 +5,7 @@ import { renderText, fitText } from '../../js/formats.js';
 
 export default {
   id: 'bmod', name: '블록 모더니즘', info: '아트 · 셔플할 때마다 새 박스 구성 · 천천히 돌며 숨 쉬어요', paid: true, rich: true, cls: 'art cbmod',
-  tools: { photo: false, emo: false, page: true, shuf: true, style: true, font: true, bg: 'art', dp: true },
+  tools: { photo: false, emo: true, page: true, shuf: true, style: true, font: true, bg: 'art', dp: true },
   sample: { pages: ['새로 지은 미술관에 다녀왔다.'], bg: { id: 'bmod', dim: 'dark', seed: 7 } },
   blank: () => ({ pages: [''], bg: { id: 'bmod', dim: 'dark', seed: Math.floor(Math.random() * 1e9) }, align: { h: 'c', v: 'm' }, datePos: 'bottom', font: 'sans', size: 'm' }),
   render: renderText, fit: fitText,

@@ -5,7 +5,7 @@ import { renderText, fitText } from '../../js/formats.js';
 
 export default {
   id: 'liquid', name: '리퀴드', info: '아트 · 셔플할 때마다 새 덩어리 · 천천히 녹아 흘러요', paid: true, rich: true, cls: 'art cliquid',
-  tools: { photo: false, emo: false, page: true, shuf: true, style: true, font: true, bg: 'art', dp: true },
+  tools: { photo: false, emo: true, page: true, shuf: true, style: true, font: true, bg: 'art', dp: true },
   sample: { pages: ['오늘은 아무 생각 없이 창밖만 보았다.'], bg: { id: 'liquid', dim: 'dark', seed: 10 } },
   blank: () => ({ pages: [''], bg: { id: 'liquid', dim: 'dark', seed: Math.floor(Math.random() * 1e9) }, align: { h: 'c', v: 'm' }, datePos: 'bottom', font: 'sans', size: 'm' }),
   render: renderText, fit: fitText,

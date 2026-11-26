@@ -5,7 +5,7 @@ import { renderText, fitText } from '../../js/formats.js';
 
 export default {
   id: 'wint', name: '웨이브 인터퍼런스', info: '아트 · 셔플할 때마다 새 물결 · 빛이 엇갈리며 흘러요', paid: true, rich: true, cls: 'art cwint',
-  tools: { photo: false, emo: false, page: true, shuf: true, style: true, font: true, bg: 'art', dp: true },
+  tools: { photo: false, emo: true, page: true, shuf: true, style: true, font: true, bg: 'art', dp: true },
   sample: { pages: ['바닷가에 오래 앉아 물결을 보았다.'], bg: { id: 'wint', dim: 'dark', seed: 13 } },
   blank: () => ({ pages: [''], bg: { id: 'wint', dim: 'dark', seed: Math.floor(Math.random() * 1e9) }, align: { h: 'c', v: 'm' }, datePos: 'bottom', font: 'sans', size: 'm' }),
   render: renderText, fit: fitText,

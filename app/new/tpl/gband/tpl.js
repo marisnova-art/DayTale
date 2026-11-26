@@ -5,7 +5,7 @@ import { renderText, fitText } from '../../js/formats.js';
 
 export default {
   id: 'gband', name: '그라데이션 밴드', info: '아트 · 셔플할 때마다 새 띠 · 물결이 옆으로 천천히 흘러요', paid: true, rich: true, cls: 'art cgband',
-  tools: { photo: false, emo: false, page: true, shuf: true, style: true, font: true, bg: 'art', dp: true },
+  tools: { photo: false, emo: true, page: true, shuf: true, style: true, font: true, bg: 'art', dp: true },
   sample: { pages: ['해 질 무렵 강가를 오래 걸었다.'], bg: { id: 'gband', dim: 'dark', seed: 7 } },
   blank: () => ({ pages: [''], bg: { id: 'gband', dim: 'dark', seed: Math.floor(Math.random() * 1e9) }, align: { h: 'c', v: 'm' }, datePos: 'bottom', font: 'sans', size: 'm' }),
   render: renderText, fit: fitText,

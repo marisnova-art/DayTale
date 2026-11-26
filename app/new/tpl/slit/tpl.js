@@ -5,7 +5,7 @@ import { renderText, fitText } from '../../js/formats.js';
 
 export default {
   id: 'slit', name: '슬릿스캔', info: '아트 · 셔플할 때마다 새 풍경 · 숨 쉬는 띠', paid: true, rich: true, cls: 'art slit', css: true,
-  tools: { photo: false, emo: false, page: true, shuf: true, style: true, font: true, bg: 'art', dp: true },
+  tools: { photo: false, emo: true, page: true, shuf: true, style: true, font: true, bg: 'art', dp: true },
   sample: { pages: ['퇴근길 하늘이 이상하게 예뻐서 버스를 한 정거장 일찍 내렸다.'], bg: { id: 'slit', dim: 'dark', seed: 5 } },
   blank: () => ({ pages: [''], bg: { id: 'slit', dim: 'dark', seed: Math.floor(Math.random() * 1e9) }, align: { h: 'l', v: 't' }, datePos: 'bottom', font: 'sans', size: 'm' }),
   render: renderText, fit: fitText,

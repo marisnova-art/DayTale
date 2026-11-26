@@ -5,7 +5,7 @@ import { renderText, fitText } from '../../js/formats.js';
 
 export default {
   id: 'tunnel', name: '라이트 터널', info: '아트 · 셔플할 때마다 새 터널 · 뻗어 나오는 빛줄기', paid: true, rich: true, cls: 'art tunnel',
-  tools: { photo: false, emo: false, page: true, shuf: true, style: true, font: true, bg: 'art', dp: true },
+  tools: { photo: false, emo: true, page: true, shuf: true, style: true, font: true, bg: 'art', dp: true },
   sample: { pages: ['오늘은 하루가 정말 빨리 지나갔다.'], bg: { id: 'tunnel', dim: 'dark', seed: 10 } },
   blank: () => ({ pages: [''], bg: { id: 'tunnel', dim: 'dark', seed: Math.floor(Math.random() * 1e9) }, align: { h: 'c', v: 'm' }, datePos: 'bottom', font: 'sans', size: 'm' }),
   render: renderText, fit: fitText,

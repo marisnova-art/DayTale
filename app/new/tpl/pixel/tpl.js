@@ -5,7 +5,7 @@ import { renderText, fitText } from '../../js/formats.js';
 
 export default {
   id: 'pixel', name: '픽셀 체커', info: '아트 · 셔플할 때마다 새 바둑판 · 천천히 자리를 바꾸는 칸', paid: true, rich: true, cls: 'art cpix',
-  tools: { photo: false, emo: false, page: true, shuf: true, style: true, font: true, bg: 'art', dp: true },
+  tools: { photo: false, emo: true, page: true, shuf: true, style: true, font: true, bg: 'art', dp: true },
   sample: { pages: ['오늘은 오래된 게임을 다시 해 봤다.'], bg: { id: 'pixel', dim: 'dark', seed: 7 } },
   blank: () => ({ pages: [''], bg: { id: 'pixel', dim: 'dark', seed: Math.floor(Math.random() * 1e9) }, align: { h: 'c', v: 'm' }, datePos: 'bottom', font: 'sans', size: 'm' }),
   render: renderText, fit: fitText,

@@ -5,7 +5,7 @@ import { renderText, fitText } from '../../js/formats.js';
 
 export default {
   id: 'ccomp', name: '큐브 컴포지션', info: '아트 · 셔플할 때마다 새 상자 구성 · 두께가 물결처럼 움직여요', paid: true, rich: true, cls: 'art cccomp',
-  tools: { photo: false, emo: false, page: true, shuf: true, style: true, font: true, bg: 'art', dp: true },
+  tools: { photo: false, emo: true, page: true, shuf: true, style: true, font: true, bg: 'art', dp: true },
   sample: { pages: ['오늘은 방을 정리하고 상자들을 차곡차곡 쌓았다.'], bg: { id: 'ccomp', dim: 'dark', seed: 7 } },
   blank: () => ({ pages: [''], bg: { id: 'ccomp', dim: 'dark', seed: Math.floor(Math.random() * 1e9) }, align: { h: 'c', v: 'm' }, datePos: 'bottom', font: 'sans', size: 'm' }),
   render: renderText, fit: fitText,

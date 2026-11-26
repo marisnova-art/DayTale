@@ -5,7 +5,7 @@ import { renderText, fitText } from '../../js/formats.js';
 
 export default {
   id: 'city', name: '3D 시티', info: '아트 · 셔플할 때마다 새 도시 · 카메라가 천천히 돌아요', paid: true, rich: true, cls: 'art ccity',
-  tools: { photo: false, emo: false, page: true, shuf: true, style: true, font: true, bg: 'art', dp: true },
+  tools: { photo: false, emo: true, page: true, shuf: true, style: true, font: true, bg: 'art', dp: true },
   sample: { pages: ['야근하고 나오니 도시가 조용했다.'], bg: { id: 'city', dim: 'dark', seed: 10 } },
   blank: () => ({ pages: [''], bg: { id: 'city', dim: 'dark', seed: Math.floor(Math.random() * 1e9) }, align: { h: 'c', v: 'm' }, datePos: 'bottom', font: 'sans', size: 'm' }),
   render: renderText, fit: fitText,

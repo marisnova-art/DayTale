@@ -5,7 +5,7 @@ import { renderText, fitText } from '../../js/formats.js';
 
 export default {
   id: 'plasma', name: '플라즈마', info: '아트 · 셔플할 때마다 새 물결 · 빛이 번지듯 천천히 일렁여요', paid: true, rich: true, cls: 'art cplas',
-  tools: { photo: false, emo: false, page: true, shuf: true, style: true, font: true, bg: 'art', dp: true },
+  tools: { photo: false, emo: true, page: true, shuf: true, style: true, font: true, bg: 'art', dp: true },
   sample: { pages: ['오늘은 바다를 오래 보고 왔다.'], bg: { id: 'plasma', dim: 'dark', seed: 9 } },
   blank: () => ({ pages: [''], bg: { id: 'plasma', dim: 'dark', seed: Math.floor(Math.random() * 1e9) }, align: { h: 'c', v: 'm' }, datePos: 'bottom', font: 'sans', size: 'm' }),
   render: renderText, fit: fitText,

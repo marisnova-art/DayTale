@@ -5,7 +5,7 @@ import { renderText, fitText } from '../../js/formats.js';
 
 export default {
   id: 'cube', name: '미니멀 큐브', info: '아트 · 셔플할 때마다 새 자리와 각도 · 공간이 돌고 큐브가 굴러요', paid: true, rich: true, cls: 'art ccube',
-  tools: { photo: false, emo: false, page: true, shuf: true, style: true, font: true, bg: 'art', dp: true },
+  tools: { photo: false, emo: true, page: true, shuf: true, style: true, font: true, bg: 'art', dp: true },
   sample: { pages: ['책상을 비우고 컵 하나만 올려 두었다.'], bg: { id: 'cube', dim: 'dark', seed: 7 } },
   blank: () => ({ pages: [''], bg: { id: 'cube', dim: 'dark', seed: Math.floor(Math.random() * 1e9) }, align: { h: 'c', v: 'm' }, datePos: 'bottom', font: 'sans', size: 'm' }),
   render: renderText, fit: fitText,

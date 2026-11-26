@@ -5,7 +5,7 @@ import { renderText, fitText } from '../../js/formats.js';
 
 export default {
   id: 'swirl', name: '라이트 스월', info: '아트 · 셔플할 때마다 새 소용돌이 · 번지는 물결', paid: true, rich: true, cls: 'art swirl',
-  tools: { photo: false, emo: false, page: true, shuf: true, style: true, font: true, bg: 'art', dp: true },
+  tools: { photo: false, emo: true, page: true, shuf: true, style: true, font: true, bg: 'art', dp: true },
   sample: { pages: ['창문을 열었더니 바람이 차가웠다. 따뜻한 차를 끓여 오래 마셨다.'], bg: { id: 'swirl', dim: 'dark', seed: 3 } },
   blank: () => ({ pages: [''], bg: { id: 'swirl', dim: 'dark', seed: Math.floor(Math.random() * 1e9) }, align: { h: 'c', v: 'm' }, datePos: 'bottom', font: 'sans', size: 'm' }),
   render: renderText, fit: fitText,

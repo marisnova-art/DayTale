@@ -5,7 +5,7 @@ import { renderText, fitText } from '../../js/formats.js';
 
 export default {
   id: 'neon', name: '네온 플로우', info: '아트 · 셔플할 때마다 새 흐름 · 은은한 네온 꼬리', paid: true, rich: true, cls: 'art neon',
-  tools: { photo: false, emo: false, page: true, shuf: true, style: true, font: true, bg: 'art', dp: true },
+  tools: { photo: false, emo: true, page: true, shuf: true, style: true, font: true, bg: 'art', dp: true },
   sample: { pages: ['늦은 밤 버스 창밖으로 불빛이 길게 흘러갔다.'], bg: { id: 'neon', dim: 'dark', seed: 21 } },
   blank: () => ({ pages: [''], bg: { id: 'neon', dim: 'dark', seed: Math.floor(Math.random() * 1e9) }, align: { h: 'c', v: 'm' }, datePos: 'bottom', font: 'sans', size: 'm' }),
   render: renderText, fit: fitText,

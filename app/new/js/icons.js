@@ -26,6 +26,7 @@ const P = {
   nograin: '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M7.5 8h.01M16.5 8.5h.01M9 12h.01M11.5 16.5h.01"/><path d="M4 20 20 4"/>',
   page: '<rect x="6" y="3" width="13" height="17" rx="2"/><path d="M3 7v12a2 2 0 0 0 2 2h9"/><path d="M12.5 8.5v6M9.5 11.5h6"/>',
   shuf: '<path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="m15 15 6 6"/><path d="M4 4l5 5"/>',
+  clear: '<path d="M21 5H9l-6 7 6 7h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1z"/><path d="m12 9 6 6M18 9l-6 6"/>',
   undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',
   redo: '<path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/>',
   bold: '<path d="M7 5h6a3.5 3.5 0 0 1 0 7H7z"/><path d="M7 12h7a3.5 3.5 0 0 1 0 7H7z"/>',
