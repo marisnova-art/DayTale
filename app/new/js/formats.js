@@ -1,5 +1,5 @@
 // 포맷 = 데이터 + 그리기. 카드는 가로 1080 기준으로 디자인하고 cqw 단위로 그려서, 화면 크기와 저장 이미지가 같은 모양이에요
-import { find as findBg, dimCss, drawCode, slitLum, swirlLight, neonLight, tunnelLight, eclipseLight, meshLight, pixelLight, retroLight, gbandLight, cubeLight, ccompLight, bmodLight, wintLight, specLight, cityLight, blobLight, lensLight, fieldLight, liquidLight, plasmaLight, fractalLight } from './bg.js';
+import { find as findBg, dimCss, drawCode, slitLum, swirlLight, neonLight, tunnelLight, eclipseLight, meshLight, pixelLight, retroLight, gbandLight, cubeLight, ccompLight, bmodLight, wintLight, specLight, cityLight, blobLight, lensLight, fieldLight, liquidLight, floatLight, plasmaLight, fractalLight } from './bg.js';
 import { bgUrl, keyOf, fidOf, grainLv, GRAPHIC } from './filters.js';
 import { rangeAt } from './rich.js';
 import { hydrate } from './stickers.js';
@@ -100,6 +100,7 @@ function bgLayer(c, page, pages) {
   if (b.code === 'slit' && cb?.dim !== 'light') { const sl = slitLayer(c, page, shift, cb.seed || 1, ex); return { html: base + sl.html + more, ink: sl.ink, bink: sl.bink }; }
   if (b.code === 'fractal' && cb?.dim !== 'light') { const lt = fractalLight(cb.seed || 1) && ex < .4; return { html: base + more, ink: lt ? '#1E1B18' : '#fff' }; }   // 프랙탈 패턴 (107차)
   if (b.code === 'plasma' && cb?.dim !== 'light') { const lt = plasmaLight(cb.seed || 1, cb.pal) && ex < .4; return { html: base + more, ink: lt ? '#1E1B18' : '#fff' }; }   // 플라즈마 (106차): 글 둘레는 셰이더가 글자색에 맞춰 옅게
+  if (b.code === 'float' && cb?.dim !== 'light') { const lt = floatLight(cb.seed || 1, cb.pal) && ex < .4; return { html: base + more + `<i class="fsh ${lt ? 'l' : 'd'}"></i>`, ink: lt ? '#1E1B18' : '#fff' }; }   // 플로팅 셰이프 (125차): 글 뒤를 가리지 않고 글자에 옅은 그림자만
   if (b.code === 'liquid' && cb?.dim !== 'light') { const lt = liquidLight(cb.seed || 1, cb.pal) && ex < .4; return { html: base + more + `<i class="fsh ${lt ? 'l' : 'd'}"></i>`, ink: lt ? '#1E1B18' : '#fff' }; }   // 리퀴드 (124차): 글 뒤를 가리지 않고 글자에 옅은 그림자만 (app.css .fsh)
   if (b.code === 'field' && cb?.dim !== 'light') { const lt = fieldLight(cb.seed || 1, cb.pal) && ex < .4; return { html: base + more + `<i class="fsh ${lt ? 'l' : 'd'}"></i>`, ink: lt ? '#1E1B18' : '#fff' }; }   // 컬러 필드 (123차): 글 뒤를 가리지 않고 글자에 아주 옅은 그림자만 (app.css .fsh)
   if (b.code === 'lens' && cb?.dim !== 'light') { const lt = lensLight(cb.seed || 1, cb.pal) && ex < .4; return { html: base + more, ink: lt ? '#1E1B18' : '#fff' }; }   // 웨이브 렌즈 (122차): 원 안 직선을 옅게 그려요
@@ -260,7 +261,7 @@ export function ensure(f) {
 export const missing = fmts => [...new Set(fmts)].filter(f => f && !FORMATS[f] && !BAD.has(f));
 export const ORDER = ['rebus', 'art', 'text'];
 // 피드 · 쓰기 위에 보이는 '종류 · 템플릿'
-export const LABEL = { text: '기본', rebus: '디자인 · 멤피스 타이포', art: '아트 · 오로라 커튼', hilite: '디자인 · 하이라이트 노트', slit: '아트 · 슬릿스캔', swirl: '아트 · 라이트 스월', neon: '아트 · 네온 플로우', tunnel: '아트 · 라이트 터널', eclipse: '아트 · 이클립스 링', mesh: '아트 · 네온 메시', pixel: '아트 · 픽셀 체커', retro: '아트 · 레트로 픽셀', gband: '아트 · 그라데이션 밴드', cube: '아트 · 미니멀 큐브', ccomp: '아트 · 큐브 컴포지션', liquid: '아트 · 리퀴드', field: '아트 · 컬러 필드', lens: '아트 · 웨이브 렌즈', blob: '아트 · 컬러 블롭', city: '아트 · 3D 시티', spec: '아트 · 스펙트럼 커브', wint: '아트 · 웨이브 인터퍼런스', bmod: '아트 · 블록 모더니즘', plasma: '아트 · 플라즈마', fractal: '아트 · 프랙탈 패턴', pill: '디자인 · 그라데이션 필', dots: '디자인 · 서클 인덱스', wave: '디자인 · 웨이브 타이포', tower: '디자인 · 타이포 타워', symbol: '디자인 · 심볼 타이포', label: '디자인 · 라벨 콜라주', typer: '디자인 · 타이프라이터', vset: '디자인 · 비디오 세팅' };
+export const LABEL = { text: '기본', rebus: '디자인 · 멤피스 타이포', art: '아트 · 오로라 커튼', hilite: '디자인 · 하이라이트 노트', slit: '아트 · 슬릿스캔', swirl: '아트 · 라이트 스월', neon: '아트 · 네온 플로우', tunnel: '아트 · 라이트 터널', eclipse: '아트 · 이클립스 링', mesh: '아트 · 네온 메시', pixel: '아트 · 픽셀 체커', retro: '아트 · 레트로 픽셀', gband: '아트 · 그라데이션 밴드', cube: '아트 · 미니멀 큐브', ccomp: '아트 · 큐브 컴포지션', float: '아트 · 플로팅 셰이프', liquid: '아트 · 리퀴드', field: '아트 · 컬러 필드', lens: '아트 · 웨이브 렌즈', blob: '아트 · 컬러 블롭', city: '아트 · 3D 시티', spec: '아트 · 스펙트럼 커브', wint: '아트 · 웨이브 인터퍼런스', bmod: '아트 · 블록 모더니즘', plasma: '아트 · 플라즈마', fractal: '아트 · 프랙탈 패턴', pill: '디자인 · 그라데이션 필', dots: '디자인 · 서클 인덱스', wave: '디자인 · 웨이브 타이포', tower: '디자인 · 타이포 타워', symbol: '디자인 · 심볼 타이포', label: '디자인 · 라벨 콜라주', typer: '디자인 · 타이프라이터', vset: '디자인 · 비디오 세팅' };
 
 export function blank(fmt, date) {
   const d = FORMATS[fmt];

@@ -33,6 +33,7 @@ export const PAID = [
   { id: 'stars', img: './bg/stars.webp', tone: '#3a3f7a', ink: '#F3E6C8', dim: ['center', '0,0,0', .55] },
   { id: 'bands', code: 'bands', tone: '#a35cff', ink: '#fff', dim: ['center', '40,16,70', .55] },
   { id: 'slit', code: 'slit', tone: '#F07F3C', ink: '#fff', dim: ['all', '10,8,14', 0] },
+  { id: 'float', code: 'float', tone: '#8EE0D0', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 플로팅 셰이프 (125차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'liquid', code: 'liquid', tone: '#D8282A', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 리퀴드 (124차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'field', code: 'field', tone: '#1430E0', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 컬러 필드 (123차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'lens', code: 'lens', tone: '#8CF08C', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 웨이브 렌즈 (122차): 글자색은 바탕 밝기로 (formats.js)
@@ -1625,6 +1626,92 @@ function drawLiquid(cv, seed, t, grain) {
   const x = cv.getContext('2d'); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'low'; x.drawImage(lqOut, 0, 0, W, H);
   if (grain) { x.globalCompositeOperation = 'soft-light'; x.globalAlpha = grain; x.fillStyle = x.createPattern(gbNoise(), 'repeat'); x.fillRect(0, 0, W, H); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; }
 }
+// 플로팅 셰이프 (125차): 3D 도형 8종(각진 6종은 면마다 다른 색 · 구 · 도넛은 광택)이 공간에 떠 있어요. 레퍼런스의 원리만 · 3D 라이브러리 없이 꼭짓점 투영으로 새로 작성.
+// 셔플 = 배치 4(무작위 구름 · 구 · 스파이럴 · 고리) · 도형 비율 · 개수 · 색. 모션 = 무리 전체가 40초에 한 바퀴(위아래로 살짝 기울며) + 도형마다 자전 + 제자리 둘레를 작게 맴돌기
+// + 배치별(구: 숨쉬기 · 스파이럴: 제자리에서 빙글 + 출렁 · 고리: 물결). 글 뒤를 가리지 않고 글자에 옅은 그림자(.fsh)
+export const FLOAT_PAL = [   // [이름, 바탕, 색 6, 밝은 바탕?]
+  ['민트 · 핑크', '#141416', ['#8EE0D0', '#F08AB8', '#9A7AE8', '#5AA8E8', '#E8E0D8', '#F0B07A']], ['네온', '#0C0A14', ['#20E0E0', '#F030C0', '#7A40F0', '#2060F0', '#C0F040', '#F0F0F0']],
+  ['선셋', '#140C10', ['#F07A4A', '#F0C050', '#E04A80', '#8A3AB0', '#F0E0C0', '#4A6AD0']], ['오션', '#081018', ['#30B0D0', '#80E0E0', '#2A60C0', '#E0F0F0', '#F0A080', '#4A3A9A']],
+  ['캔디', '#120E16', ['#F06AA0', '#6AD0F0', '#F0E06A', '#A06AF0', '#6AF0A0', '#F0F0F0']], ['포레스트', '#0C120E', ['#5AB07A', '#C0D86A', '#2A7A6A', '#E0C08A', '#8AD0B0', '#E07A5A']],
+  ['모노 · 레드', '#111111', ['#E8E8E8', '#A0A0A0', '#606060', '#E02A2A', '#C8C8C8', '#404040']], ['오로라', '#060A14', ['#40F0B0', '#40A0F0', '#A060F0', '#F060C0', '#E0F0FF', '#20C0A0']],
+  ['파스텔', '#F2EEF6', ['#F0A8C8', '#A8D8F0', '#C8B0F0', '#A8F0D0', '#F8E0A8', '#FFFFFF'], 1], ['크림', '#F6F0E6', ['#E08A6A', '#6AA0C8', '#E8C060', '#8AC09A', '#C88AB8', '#FFFFFF'], 1]];
+export const floatPal = (seed, pal) => pal != null && FLOAT_PAL[+pal] ? +pal : ((seed >>> 0) || 1) % FLOAT_PAL.length;
+export const floatLight = (seed, pal) => !!FLOAT_PAL[floatPal(seed, pal)][3];
+const fv = { sub: (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]], dot: (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2], cross: (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]], norm: v => { const l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / l, v[1] / l, v[2] / l]; } };
+let FLOAT_GEO = null;
+function floatGeo() {
+  if (FLOAT_GEO) return FLOAT_GEO;
+  const { sub, dot, cross, norm } = fv, PHI = (1 + Math.sqrt(5)) / 2, G = {};
+  const orient = (V, F) => F.map(f => { const c = f.reduce((s, i) => s.map((v, k) => v + V[i][k] / f.length), [0, 0, 0]), n = cross(sub(V[f[1]], V[f[0]]), sub(V[f[2]], V[f[0]])); return dot(n, c) < 0 ? f.slice().reverse() : f; });
+  const tri = (V, L) => { const F = [], d = (i, j) => Math.hypot(...sub(V[i], V[j])); for (let a = 0; a < V.length; a++) for (let b = a + 1; b < V.length; b++) for (let c = b + 1; c < V.length; c++) if (Math.abs(d(a, b) - L) < 1e-3 && Math.abs(d(b, c) - L) < 1e-3 && Math.abs(d(a, c) - L) < 1e-3) F.push([a, b, c]); return F; };
+  { const V = [[-1, -1, -1], [1, -1, -1], [-1, 1, -1], [1, 1, -1], [-1, -1, 1], [1, -1, 1], [-1, 1, 1], [1, 1, 1]].map(v => v.map(a => a * .62)); G.cube = { V, F: orient(V, [[0, 2, 6, 4], [1, 3, 7, 5], [0, 1, 5, 4], [2, 3, 7, 6], [0, 1, 3, 2], [4, 5, 7, 6]]) }; }
+  { const V = [[1, 1, 1], [1, -1, -1], [-1, 1, -1], [-1, -1, 1]].map(v => v.map(a => a * .7)); G.tetra = { V, F: orient(V, [[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]]) }; }
+  { const V = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]]; G.octa = { V, F: orient(V, tri(V, Math.SQRT2)) }; }
+  { const V0 = []; for (const a of [-1, 1]) for (const b of [-PHI, PHI]) { V0.push([0, a, b]); V0.push([a, b, 0]); V0.push([b, 0, a]); } const F = orient(V0, tri(V0, 2)), V = V0.map(v => v.map(x => x / Math.hypot(1, PHI)));
+    G.icosa = { V, F };
+    const DV = F.map(f => norm(f.reduce((s, i) => s.map((v, k) => v + V[i][k]), [0, 0, 0]))), DF = V.map(v => { const fs = F.map((f, fi) => f.includes(V.indexOf(v)) ? fi : -1).filter(i => i >= 0), u = norm(cross(v, Math.abs(v[0]) < .9 ? [1, 0, 0] : [0, 1, 0])), w = cross(v, u); return fs.sort((a, b) => Math.atan2(dot(DV[a], w), dot(DV[a], u)) - Math.atan2(dot(DV[b], w), dot(DV[b], u))); });
+    G.dodeca = { V: DV, F: orient(DV, DF) }; }
+  { const n = 18, V = [[0, .75, 0]]; for (let i = 0; i < n; i++) { const a = i / n * 6.283; V.push([Math.cos(a) * .7, -.7, Math.sin(a) * .7]); } const F = []; for (let i = 0; i < n; i++) F.push([0, 1 + i, 1 + (i + 1) % n]); F.push(Array.from({ length: n }, (_, i) => 1 + i)); G.cone = { V, F: orient(V, F) }; }
+  { const U = 24, Vn = 12, R = .72, r = .28, V = [], F = []; for (let i = 0; i < U; i++) for (let j = 0; j < Vn; j++) { const a = i / U * 6.283, b = j / Vn * 6.283; V.push([(R + r * Math.cos(b)) * Math.cos(a), r * Math.sin(b), (R + r * Math.cos(b)) * Math.sin(a)]); }
+    for (let i = 0; i < U; i++) for (let j = 0; j < Vn; j++) F.push([i * Vn + j, ((i + 1) % U) * Vn + j, ((i + 1) % U) * Vn + (j + 1) % Vn, i * Vn + (j + 1) % Vn]); G.torus = { V, F, smooth: 1, U, Vn }; }
+  return FLOAT_GEO = G;
+}
+const FLOAT_KINDS = ['cube', 'tetra', 'octa', 'icosa', 'dodeca', 'cone'];
+const floatCache = new Map();
+function floatOf(seed, asp) {
+  const key = seed + ':' + asp.toFixed(2);
+  if (floatCache.has(key)) return floatCache.get(key);
+  const r = rng(seed ^ 0x2f10), lay = Math.floor(r() * 4), n0 = 16 + Math.floor(r() * 12), smooth = .15 + r() * .3, n = lay === 0 ? n0 : lay === 3 ? n0 + 10 : n0 + 20, ys = Math.min(1.5, asp * .95), O = [];
+  for (let i = 0; i < n; i++) {
+    const kind = r() < smooth ? (r() < .5 ? 'sphere' : 'torus') : FLOAT_KINDS[Math.floor(r() * 6)]; let p, size;
+    if (lay === 0) { size = .16 + r() ** 1.5 * .34; for (let k = 0; k < 30; k++) { p = [(r() * 2 - 1) * 1.35, (r() * 2 - 1) * 1.35 * ys, (r() * 2 - 1) * 1.1]; if (O.every(q => Math.hypot(q.p[0] - p[0], q.p[1] - p[1], q.p[2] - p[2]) > (q.size + size) * .95)) break; } }
+    else if (lay === 1) { const y = 1 - 2 * (i + .5) / n, rr = Math.sqrt(1 - y * y), a = i * 2.39996; p = [Math.cos(a) * rr * .9, y * .9, Math.sin(a) * rr * .9]; size = .1 + r() * .08; }
+    else if (lay === 2) { const a = i * .5, y = (i / (n - 1) * 2 - 1) * 1.3 * ys; p = [Math.cos(a) * .8, y, Math.sin(a) * .8]; size = .1 + r() * .08; }
+    else { const a = i / n * 6.283, rr = 1.25 + (r() - .5) * .25; p = [Math.cos(a) * rr, (r() - .5) * .3, Math.sin(a) * rr]; size = .13 + r() * .13; }
+    O.push({ kind, p, size, ax: r() * 6.28, ay: r() * 6.28, az: r() * 6.28, sx: (r() - .5) * .5, sy: (r() - .5) * .5, ph: r() * 6.28, cols: [0, 1, 2, 3, 4, 5].map(() => Math.floor(r() * 6)), i });
+  }
+  const p = { lay, O, yaw0: r() * 6.283 };
+  if (floatCache.size > 60) floatCache.delete(floatCache.keys().next().value);
+  floatCache.set(key, p); return p;
+}
+function drawFloat(cv, seed, t, grain) {
+  const W = cv.width, H = cv.height, P = floatOf(seed, H / W), E = FLOAT_PAL[floatPal(seed, cv.dataset.pal)], light = !!E[3], x = cv.getContext('2d'), G = floatGeo(), { sub, dot, cross, norm } = fv;
+  const cap = c => { const L = .3 * c[0] + .59 * c[1] + .11 * c[2], k = light ? Math.min(1, .3 / Math.max(.01, 1 - L)) : Math.min(1, .78 / Math.max(.01, L)); return c.map(v => light ? 1 - (1 - v) * k : v * k); };
+  const C = E[2].map(h => cap(hx3(h))), BG = hx3(E[1]), rgb = c => `rgb(${Math.round(Math.max(0, Math.min(1, c[0])) * 255)},${Math.round(Math.max(0, Math.min(1, c[1])) * 255)},${Math.round(Math.max(0, Math.min(1, c[2])) * 255)})`, mix = (a, b, k) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k];
+  x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; x.fillStyle = E[1]; x.fillRect(0, 0, W, H);
+  const L = norm([-.5, .7, -.6]), CAM = 3.4, F = 2.9, sc = W * .5, cx0 = W / 2, cy0 = H / 2, lay = P.lay;
+  const yaw = P.yaw0 + (t > 0 ? t / 40 * 6.283 : 0), pit = .15 + (t > 0 ? Math.sin(t / 10 * 6.283) * .1 : 0) + (lay === 3 ? .5 : 0), cy = Math.cos(yaw), sy = Math.sin(yaw), cp = Math.cos(pit), sp = Math.sin(pit);
+  const S = v => { const X = v[0] * cy + v[2] * sy, Z0 = -v[0] * sy + v[2] * cy; return [X, v[1] * cp - Z0 * sp, v[1] * sp + Z0 * cp]; };
+  const faces = [];
+  for (const ob of P.O) {
+    let wp = ob.p; const ph = t > 0 ? t / 8 * 6.283 + ob.ph : ob.ph;
+    if (t > 0) {
+      if (lay === 1) wp = wp.map(v => v * (1 + .07 * Math.sin(t / 8 * 6.283)));   // 구: 숨 쉬듯
+      if (lay === 2) { const a = t / 20 * 6.283, c = Math.cos(a), s2 = Math.sin(a); wp = [wp[0] * c - wp[2] * s2, wp[1] + Math.sin(t / 6 * 6.283 + ob.i * .3) * .06, wp[0] * s2 + wp[2] * c]; }   // 스파이럴: 제자리에서 빙글 + 출렁
+      if (lay === 3) wp = [wp[0], wp[1] + Math.sin(t / 6 * 6.283 + Math.atan2(wp[2], wp[0]) * 2) * .08, wp[2]];   // 고리: 물결
+      wp = [wp[0] + Math.sin(ph) * .04, wp[1] + Math.cos(ph) * .04, wp[2] + Math.sin(ph * .7) * .04];   // 제자리 둘레를 작게 맴돌아요
+    }
+    const c3 = S(wp), cz = c3[2] + CAM, fog = Math.max(0, Math.min(1, (c3[2] + 1.4) / 2.8)) * .35;
+    const proj = q => { const zz = q[2] + CAM; return [cx0 + q[0] / zz * F * sc, cy0 - q[1] / zz * F * sc]; };
+    if (ob.kind === 'sphere') { const p = proj(c3), rad = ob.size * .8 / cz * F * sc, c0 = C[ob.cols[0]], c1 = C[ob.cols[1]]; faces.push({ d: cz + ob.size * .3, sph: 1, p, rad, c0: mix(mix(c0, [1, 1, 1], .45), BG, fog), c1: mix(c0, BG, fog), c2: mix(mix(c1, [0, 0, 0], .25), BG, fog) }); continue; }
+    const g = G[ob.kind], ax = ob.ax + ob.sx * t, ay = ob.ay + ob.sy * t, az = ob.az, [ca, sa, cb, sb, cc, s3] = [Math.cos(ax), Math.sin(ax), Math.cos(ay), Math.sin(ay), Math.cos(az), Math.sin(az)];
+    const VW = g.V.map(v => { let X = v[0], Y = v[1], Z = v[2]; [Y, Z] = [Y * ca - Z * sa, Y * sa + Z * ca]; [X, Z] = [X * cb + Z * sb, -X * sb + Z * cb]; [X, Y] = [X * cc - Y * s3, X * s3 + Y * cc]; return S([wp[0] + X * ob.size, wp[1] + Y * ob.size, wp[2] + Z * ob.size]); }), VP = VW.map(proj);
+    g.F.forEach((f, fi) => {
+      const n2 = norm(cross(sub(VW[f[1]], VW[f[0]]), sub(VW[f[2]], VW[f[0]]))); let c0 = 0, c1 = 0, c2 = 0; for (const i of f) { c0 += VW[i][0]; c1 += VW[i][1]; c2 += VW[i][2]; }
+      const view = [c0 / f.length, c1 / f.length, c2 / f.length + CAM]; if (dot(n2, view) > 0) return;
+      const lam = Math.max(0, -dot(n2, L)), base = g.smooth ? mix(C[ob.cols[0]], C[ob.cols[1]], .5 + .5 * Math.sin(Math.floor(fi / g.Vn) / g.U * 6.283 * 2)) : C[ob.cols[fi % 6]];
+      let col = [base[0] * (.72 + .38 * lam), base[1] * (.72 + .38 * lam), base[2] * (.72 + .38 * lam)]; if (g.smooth) { const h = Math.pow(Math.max(0, dot(n2, norm(sub([-L[0], -L[1], -L[2]], norm(view))))), 18); col = mix(col, [1, 1, 1], h * .7); }
+      faces.push({ d: view[2], pts: f.map(i => VP[i]), col: mix(col, BG, fog) });
+    });
+  }
+  faces.sort((a, b) => b.d - a.d);
+  x.lineWidth = .8 * W / 520; x.lineJoin = 'round';
+  for (const f of faces) {
+    if (f.sph) { const g = x.createRadialGradient(f.p[0] - f.rad * .35, f.p[1] - f.rad * .4, f.rad * .05, f.p[0], f.p[1], f.rad); g.addColorStop(0, rgb(f.c0)); g.addColorStop(.55, rgb(f.c1)); g.addColorStop(1, rgb(f.c2)); x.fillStyle = g; x.beginPath(); x.arc(f.p[0], f.p[1], f.rad, 0, 6.283); x.fill(); continue; }
+    const cs = rgb(f.col); x.fillStyle = cs; x.strokeStyle = cs; x.beginPath(); for (let k = 0; k < f.pts.length; k++) k ? x.lineTo(f.pts[k][0], f.pts[k][1]) : x.moveTo(f.pts[k][0], f.pts[k][1]); x.closePath(); x.fill(); x.stroke();
+  }
+  if (grain) { x.globalCompositeOperation = 'soft-light'; x.globalAlpha = grain; x.fillStyle = x.createPattern(gbNoise(), 'repeat'); x.fillRect(0, 0, W, H); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; }
+}
 function fractalTile(o, seed) {
   if (o.tile) return o.tile;
   const G = 300, cnt = frDensity(o.P, G, 22000, 34, seed), vals = Float32Array.from(cnt.filter(v => v > 0)).sort(), L = vals.length || 1;
@@ -1656,6 +1743,7 @@ export function drawCode(cv, seed, shift = 0, t = 0, grainAmt = cv.dataset.gr ==
   if (cv.dataset.code === 'neon') return drawNeon(cv, seed, t, cv.dataset.gr === '0' ? 0 : .05);
   if (cv.dataset.code === 'fractal') return drawFractal(cv, seed, t);
   if (cv.dataset.code === 'plasma') return drawPlasma(cv, seed, t, cv.dataset.gr === '0' ? 0 : .025);
+  if (cv.dataset.code === 'float') return drawFloat(cv, seed, t, cv.dataset.gr === '0' ? 0 : .1);
   if (cv.dataset.code === 'liquid') return drawLiquid(cv, seed, t, cv.dataset.gr === '0' ? 0 : .14);
   if (cv.dataset.code === 'field') return drawField(cv, seed, t, cv.dataset.gr === '0' ? 0 : .1);
   if (cv.dataset.code === 'lens') return drawLens(cv, seed, t, cv.dataset.gr === '0' ? 0 : .1);
