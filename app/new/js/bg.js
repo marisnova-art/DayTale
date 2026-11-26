@@ -33,6 +33,7 @@ export const PAID = [
   { id: 'stars', img: './bg/stars.webp', tone: '#3a3f7a', ink: '#F3E6C8', dim: ['center', '0,0,0', .55] },
   { id: 'bands', code: 'bands', tone: '#a35cff', ink: '#fff', dim: ['center', '40,16,70', .55] },
   { id: 'slit', code: 'slit', tone: '#F07F3C', ink: '#fff', dim: ['all', '10,8,14', 0] },
+  { id: 'lens', code: 'lens', tone: '#8CF08C', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 웨이브 렌즈 (122차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'blob', code: 'blob', tone: '#E0C040', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 컬러 블롭 (120차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'city', code: 'city', tone: '#FFD640', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 3D 시티 (118차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'spec', code: 'spec', tone: '#E040C0', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 스펙트럼 커브 (117차): 글자색은 바탕 밝기로 (formats.js)
@@ -1453,6 +1454,74 @@ function drawBlob(cv, seed, t, grain) {
   const x = cv.getContext('2d'); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'low'; x.drawImage(blobCv, 0, 0, W, H);
   if (grain) { x.globalCompositeOperation = 'soft-light'; x.globalAlpha = grain; x.fillStyle = x.createPattern(gbNoise(), 'repeat'); x.fillRect(0, 0, W, H); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; }
 }
+// 웨이브 렌즈 (122차): 가로줄들이 원 밖에서는 물결로 흐르고, 원 안에 들어오면 팽팽한 직선으로 펴져요(밖은 변화 · 안은 질서). 레퍼런스의 원리만 · 식과 코드는 새로 작성.
+// 셔플 = 물결 스타일 6(잔잔 · 큰 물결 · 거친 노이즈 · 리플 · 소용돌이 · 촘촘) × 선 종류 4(실선 · 대시 · 점선 · 글로우) × 줄 개수 · 원 크기(지름 = 카드 폭 74~90%).
+// 원은 글 자리 뒤, 원 안 직선은 옅게 해서 글이 읽혀요. 모션 = 물결 흐름 + 출렁임 6초 · 원 숨쉬기 10초 · 소용돌이 감김 12초
+export const LENS_PAL = [   // [이름, 바탕, 줄 색(위 → 아래), 원 색, 밝은 바탕?]
+  ['스펙트럼', '#050507', ['#3FE0C0', '#4A9BF0', '#8A5CF0', '#E050C8', '#F05A5A', '#F0A040', '#E8E060'], '#8CF08C'],
+  ['오로라', '#03080A', ['#7CF0A0', '#30D0B0', '#2A9CE0', '#3A5CD8', '#6A40C8'], '#C8F8E0'],
+  ['노을', '#0A0508', ['#F8D860', '#F89A40', '#F05A70', '#C040A0', '#6A3AC0'], '#FFE8B0'],
+  ['아이스', '#04070C', ['#F0F8FF', '#A8E4F8', '#58B8F0', '#3A78E0', '#2A48A8'], '#FFFFFF'],
+  ['네온', '#06040C', ['#30F0F0', '#6A8CFF', '#B050FF', '#FF40C0', '#FF4080'], '#30F0F0'],
+  ['앰버', '#0A0603', ['#FFE0A0', '#F8B848', '#F08030', '#D84A28', '#A02A30'], '#FFD070'],
+  ['라임 · 보라', '#06060A', ['#D8F860', '#80E070', '#40B8A0', '#6A68D8', '#A848E0'], '#D8F860'],
+  ['모노 · 레드', '#060606', ['#F0F0F0', '#B8B8B8', '#808080', '#B8B8B8', '#F0F0F0'], '#FF4A3A'],
+  ['크림', '#F4EEE2', ['#2A3A7A', '#4A62B0', '#D0566A', '#E08848', '#3A9A8A'], '#D0566A', 1],
+  ['라벤더', '#EEEAF6', ['#5A3AA0', '#8A58C8', '#D05AA0', '#4A80C8', '#3A5AA0'], '#5A3AA0', 1]];
+export const lensPal = (seed, pal) => pal != null && LENS_PAL[+pal] ? +pal : ((seed >>> 0) || 1) % LENS_PAL.length;
+export const lensLight = (seed, pal) => !!LENS_PAL[lensPal(seed, pal)][4];
+const lensCache = new Map();
+function lensOf(seed) {
+  if (lensCache.has(seed)) return lensCache.get(seed);
+  const r = rng(seed ^ 0x1e45), p = { n: 34 + Math.floor(r() * 30), R: .74 + r() * .16, ph: r() * 6.283, nz: r() * 1e3, st: Math.floor(r() * 6), lt: Math.floor(r() * 4) };
+  if (lensCache.size > 60) lensCache.delete(lensCache.keys().next().value);
+  lensCache.set(seed, p); return p;
+}
+const LENS_ST = [[4, .03, 1.5], [14, .022, 2], [6, .05, 11], [9, .06, 1.5], [7, .035, 2], [3.5, .1, 1]];   // [물결 높이, 촘촘함, 노이즈] (520px 기준)
+function drawLens(cv, seed, t, grain) {
+  const W = cv.width, H = cv.height, P = lensOf(seed), E = LENS_PAL[lensPal(seed, cv.dataset.pal)], light = !!E[4], x = cv.getContext('2d'), s = W / 520, st = P.st, LT = P.lt;
+  const CX = W / 2, CY = H / 2 - (H / W > 1.6 ? .04 * H : 0), R = P.R * W / 2 * (t > 0 ? 1 + .04 * Math.sin(t / 10 * 6.283) : 1), br = t > 0 ? 1 + .3 * Math.sin(t / 6 * 6.283) : 1;
+  const SP = LENS_ST[st], A = SP[0] * br * s, f = SP[1] / s, NA = SP[2] * s, n = Math.round(P.n * H / W / 1.25);
+  x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; x.shadowBlur = 0; x.setLineDash([]);
+  x.fillStyle = E[1]; x.fillRect(0, 0, W, H);
+  const C = E[2].map(h => hx3(h).map(v => v * 255)), col = q => { const m = C.length - 1, k = Math.min(m - 1, Math.floor(q * m)), ff = q * m - k, a = C[k], b = C[k + 1]; return a.map((v, z) => Math.round(v + (b[z] - v) * ff)); };
+  const [cr, cg, cb] = hx3(E[3]).map(v => Math.round(v * 255)), g = x.createRadialGradient(CX, CY, 0, CX, CY, R); g.addColorStop(0, `rgba(${cr},${cg},${cb},${light ? .1 : .12})`); g.addColorStop(1, `rgba(${cr},${cg},${cb},0)`);
+  x.fillStyle = g; x.beginPath(); x.arc(CX, CY, R, 0, 6.283); x.fill();
+  const nz = (a, b) => Math.sin(a * 1.7 + b * 2.3 + P.nz) * .5 + Math.sin(a * .73 - b * 1.1 + P.nz * 2) * .3 + Math.sin(a * 3.9 + b * 4.1 + P.nz * 3) * .2;
+  const rot = st === 4 ? 1.1 + (t > 0 ? .35 * Math.sin(t / 12 * 6.283) : 0) : 0, nzs = (st === 2 ? .025 : .01) / s, nzy = (st === 2 ? .03 : .01) / s, R2 = R * R;
+  const dash = LT === 1 ? [7 * s, 5 * s] : LT === 2 ? [.1 * s, 4.2 * s] : [];
+  x.lineCap = 'round'; x.lineJoin = 'round'; x.setLineDash(dash);
+  const lw = (light ? 1.5 : 1.3) * s * (LT === 2 ? 2.2 : LT === 3 ? 1.4 : 1), step = 3 * s, outs = [], chs = [];
+  for (let i = 0; i < n; i++) {
+    const y0 = (i + .5) * H / n, ph = i * .2 + P.ph;
+    let out = null, inside = false, last = null; const segs = [], chords = [];
+    for (let px = -W * .3; px <= W * 1.3; px += step) {
+      let qx = px, qy;
+      if (st === 3) { const d = Math.hypot(px - CX, y0 - CY); qy = y0 + A * Math.sin(d * f - t * 1.5 + P.ph) * Math.min(1, d / R * .9); }
+      else qy = y0 + A * Math.sin(px * f - t * 1.2 + ph);
+      qy += NA * nz(px * nzs + t * .05, y0 * nzy);
+      if (rot) { const dx = qx - CX, dy = qy - CY, d = Math.hypot(dx, dy), k = rot * Math.max(0, 1 - d / (W * .85)) ** 1.5, a = Math.atan2(dy, dx) + k; qx = CX + Math.cos(a) * d; qy = CY + Math.sin(a) * d; }
+      const inn = (qx - CX) * (qx - CX) + (qy - CY) * (qy - CY) < R2;
+      if (inn && !inside) { if (out) { out.push(qx, qy); segs.push(out); out = null; } last = [qx, qy]; inside = true; }
+      else if (!inn && inside) { chords.push(last[0], last[1], qx, qy); out = [qx, qy]; inside = false; }
+      else if (!inn) { if (!out) out = []; out.push(qx, qy); }
+    }
+    if (out) segs.push(out);
+    const c = col(n > 1 ? i / (n - 1) : 0), cs = `rgb(${c.join(',')})`;
+    x.strokeStyle = cs; x.lineWidth = lw;
+    if (LT === 3 && !light) { x.shadowColor = cs; x.shadowBlur = 10 * s; }
+    x.globalAlpha = light ? .75 : .85; x.beginPath();
+    for (const sg of segs) { x.moveTo(sg[0], sg[1]); for (let k = 2; k < sg.length; k += 2) x.lineTo(sg[k], sg[k + 1]); }
+    x.stroke(); x.shadowBlur = 0;
+    x.globalAlpha = light ? .4 : .42; x.beginPath();   // 원 안 직선은 옅게 (글 자리)
+    for (let k = 0; k < chords.length; k += 4) { x.moveTo(chords[k], chords[k + 1]); x.lineTo(chords[k + 2], chords[k + 3]); }
+    x.stroke();
+  }
+  x.setLineDash([]); x.globalAlpha = .9; x.strokeStyle = E[3]; x.lineWidth = 1.6 * s;
+  if (!light) { x.shadowColor = E[3]; x.shadowBlur = 10 * s; }
+  x.beginPath(); x.arc(CX, CY, R, 0, 6.283); x.stroke(); x.shadowBlur = 0; x.globalAlpha = 1;
+  if (grain) { x.globalCompositeOperation = 'soft-light'; x.globalAlpha = grain; x.fillStyle = x.createPattern(gbNoise(), 'repeat'); x.fillRect(0, 0, W, H); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; }
+}
 function fractalTile(o, seed) {
   if (o.tile) return o.tile;
   const G = 300, cnt = frDensity(o.P, G, 22000, 34, seed), vals = Float32Array.from(cnt.filter(v => v > 0)).sort(), L = vals.length || 1;
@@ -1484,6 +1553,7 @@ export function drawCode(cv, seed, shift = 0, t = 0, grainAmt = cv.dataset.gr ==
   if (cv.dataset.code === 'neon') return drawNeon(cv, seed, t, cv.dataset.gr === '0' ? 0 : .05);
   if (cv.dataset.code === 'fractal') return drawFractal(cv, seed, t);
   if (cv.dataset.code === 'plasma') return drawPlasma(cv, seed, t, cv.dataset.gr === '0' ? 0 : .025);
+  if (cv.dataset.code === 'lens') return drawLens(cv, seed, t, cv.dataset.gr === '0' ? 0 : .1);
   if (cv.dataset.code === 'blob') return drawBlob(cv, seed, t, cv.dataset.gr === '0' ? 0 : .1);
   if (cv.dataset.code === 'city') return drawCity(cv, seed, t, cv.dataset.gr === '0' ? 0 : .1);
   if (cv.dataset.code === 'spec') return drawSpec(cv, seed, t, cv.dataset.gr === '0' ? 0 : .1);
