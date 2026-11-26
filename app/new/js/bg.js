@@ -2062,7 +2062,7 @@ function vaLab(h) { const [r, g, b] = hx3(h).map(vaLin), l = Math.cbrt(.41222147
   return [.2104542553 * l + .793617785 * m - .0040720468 * s, 1.9779984951 * l - 2.428592205 * m + .4505937099 * s, .0259040371 * l + .7827717662 * m - .808675766 * s]; }
 function vaRgb([L, A, B]) { const l = (L + .3963377774 * A + .2158037573 * B) ** 3, m = (L - .1055613458 * A - .0638541728 * B) ** 3, s = (L - .0894841775 * A - 1.291485548 * B) ** 3;
   return 'rgb(' + [4.0767416621 * l - 3.3077115913 * m + .2309699292 * s, -1.2684380046 * l + 2.6097574011 * m - .3413193965 * s, -.0041960863 * l - .7034186147 * m + 1.707614701 * s].map(v => Math.round(Math.max(0, Math.min(1, vaGam(v))) * 255)).join(',') + ')'; }
-function valleyRamp(pi, n) {   // 위 → 가운데 → 아래, n색 (위치에 따라 고르게 집어 쓰도록 촘촘히)
+function valleyRamp(pi, n) {   // 위 → 가운데 → 아래, n색
   const key = pi + '|' + n; let R = vaRamp.get(key); if (R) return R;
   const E = VALLEY_PAL[pi], A = vaLab(E[1]), B = vaLab(E[2]), C = vaLab(E[3]);
   R = Array.from({ length: n }, (_, i) => { const u = i / (n - 1), [P, Q, k] = u < .5 ? [A, B, u * 2] : [B, C, u * 2 - 1]; return vaRgb(P.map((v, j) => v + (Q[j] - v) * k)); });
@@ -2074,27 +2074,24 @@ function valleyOf(seed) {
   if (vaCache.size > 60) vaCache.delete(vaCache.keys().next().value);
   vaCache.set(seed, p); return p;
 }
-// 모션 (132차 2, 앤드류 11-26): 능선 모양은 층마다 고정 · 층 전체가 위→아래로 천천히 내려오며(한 층 5초) 색은 위치 따라 밝음→깊음 · 맨 위에서 새 능선이 생겨나고 맨 아래로 빠져나가요. 옆 이동 없음.
 function drawValley(cv, seed, t) {
   const W = cv.width, H = cv.height, P = valleyOf(seed), pi = valleyPal(seed, cv.dataset.pal), light = !!VALLEY_PAL[pi][4], x = cv.getContext('2d');
-  const N = P.n, K = 8, M = (N + 1) * K + 1, C = valleyRamp(pi, M), ax = W * P.ax, ay = W * P.ay;
-  const col = q => C[Math.max(0, Math.min(M - 1, Math.round(q / (N + 1) * (M - 1))))];   // 위치 q(0 = 맨 위 바탕 … N+1 = 맨 아래)의 색
-  const sc = t / 5, base = Math.floor(sc), f = sc - base;
+  const N = P.n, C = valleyRamp(pi, N + 2), ax = W * P.ax, ay = W * P.ay;
   x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1;
-  x.fillStyle = P.line ? (light ? C[0] : C[M - 1]) : C[0]; x.fillRect(0, 0, W, H);
+  x.fillStyle = P.line ? (light ? C[0] : C[N + 1]) : C[0]; x.fillRect(0, 0, W, H);
   if (P.line) { x.lineWidth = W * .004; x.lineJoin = 'round'; }
-  for (let q = -1; q <= N; q++) {
-    const id = q - base, pos = q + f, root = H * (pos / N) - H * .02, sh = W * P.off * id * 6;
+  for (let i = 0; i <= N; i++) {
+    const root = H * (i / N) - H * .02, sh = W * P.off * i * 6 + t * W * .012 * (1 + i / N * 1.5), amp = ay * (1 + .15 * Math.sin(t / 4 + i * .3));
     const j0 = Math.floor((sh - W * .3) / ax) - 1;
     x.beginPath(); let px = 0, py = 0, first = true, x0 = 0;
     for (let j = j0; (j - 2) * ax - sh < W; j++) {
-      const h = vaH(P.s + id * 101, j), jit = P.crazy ? (h - .5) * ax * .5 : 0, sg = P.crazy ? (vaH(P.s + id * 31, j + 7) < .5 ? 1 : -1) * (.4 + .6 * h) : (j & 1 ? 1 : -1);
-      const cx = j * ax + jit - sh, cy = root + sg * ay;
+      const h = vaH(P.s + i * 101, j), jit = P.crazy ? (h - .5) * ax * .5 : 0, sg = P.crazy ? (vaH(P.s + i * 31, j + 7) < .5 ? 1 : -1) * (.4 + .6 * h) : (j & 1 ? 1 : -1);
+      const cx = j * ax + jit - sh, cy = root + sg * amp;
       if (first) { x.moveTo(cx, cy); x0 = cx; first = false; } else { const d = (cx - px) / P.sm; x.bezierCurveTo(px + d, py, cx - d, cy, cx, cy); }
       px = cx; py = cy;
     }
-    if (P.line) { x.strokeStyle = light ? col(Math.max((N + 1) * .4, pos + 1)) : col(pos); x.globalAlpha = Math.max(0, Math.min(1, pos + 1)); x.stroke(); x.globalAlpha = 1; }
-    else { x.lineTo(px, H + 10); x.lineTo(x0, H + 10); x.closePath(); x.fillStyle = col(pos + 1); x.fill(); }
+    if (P.line) { x.strokeStyle = light ? C[Math.min(N + 1, Math.max(Math.round(N * .4), i + 1))] : C[i]; x.stroke(); }
+    else { x.lineTo(px, H + 10); x.lineTo(x0, H + 10); x.closePath(); x.fillStyle = C[i + 1]; x.fill(); }
   }
 }
 function fractalTile(o, seed) {
