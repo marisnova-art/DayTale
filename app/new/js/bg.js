@@ -33,6 +33,7 @@ export const PAID = [
   { id: 'stars', img: './bg/stars.webp', tone: '#3a3f7a', ink: '#F3E6C8', dim: ['center', '0,0,0', .55] },
   { id: 'bands', code: 'bands', tone: '#a35cff', ink: '#fff', dim: ['center', '40,16,70', .55] },
   { id: 'slit', code: 'slit', tone: '#F07F3C', ink: '#fff', dim: ['all', '10,8,14', 0] },
+  { id: 'spec', code: 'spec', tone: '#E040C0', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 스펙트럼 커브 (117차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'wint', code: 'wint', tone: '#7A4BF0', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 웨이브 인터퍼런스 (116차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'bmod', code: 'bmod', tone: '#E3A82B', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 블록 모더니즘 (114차): 글자색은 바탕 밝기로 (formats.js)
   { id: 'ccomp', code: 'ccomp', tone: '#E4572E', ink: '#fff', dim: ['center', '0,0,0', 0] },   // 큐브 컴포지션 (113차): 글자색은 바탕 밝기로 (formats.js)
@@ -1295,6 +1296,47 @@ function drawWint(cv, seed, t, grain) {
   const x = cv.getContext('2d'); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high'; x.drawImage(wintCv, 0, 0, W, H);
   if (grain) { x.globalCompositeOperation = 'soft-light'; x.globalAlpha = grain; x.fillStyle = x.createPattern(gbNoise(), 'repeat'); x.fillRect(0, 0, W, H); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; }
 }
+// 스펙트럼 커브 (117차): 모서리에서 활처럼 휘어 퍼지는 매끈한 색띠. 레퍼런스 첫 화면의 원리만 · 식과 코드는 새로 작성.
+// 색 = 가로 위치 × 세로 위치(곱) → 모서리 둘레로 휜 띠. 매끈한 값이라 낮은 해상도로 그리고 부드럽게 늘려요(빠름)
+export const SPEC_PAL = [   // [이름, 색들(돌아가며 이어짐), 무지개?]
+  ['스펙트럼', ['#E0305A', '#E0B030', '#40C060', '#30A8E0', '#7040E0', '#E040C0'], 1], ['노을', ['#2B0A3D', '#A3214F', '#EE6A3C', '#F6B851']],
+  ['바다', ['#041F3D', '#0C5C8C', '#22A6C8', '#7FE0D8']], ['베리', ['#2A0630', '#7A1A6E', '#D2448E', '#F49AC0']],
+  ['숲', ['#06241A', '#1C6B47', '#6DBF6A', '#D8E58A']], ['네온', ['#1A0B52', '#5B2BE0', '#E032C8', '#29D3F0']],
+  ['앰버', ['#2A1402', '#8A3E0A', '#E08A1E', '#F8D27A']], ['오로라', ['#061A33', '#1F6F8B', '#39D3A0', '#B48CF0']],
+  ['파스텔', ['#FBD3E0', '#F9E7B5', '#C8F0DC', '#C9D8FA']], ['라벤더', ['#E6DAFA', '#FADCE6', '#D6EEF8', '#F6F0D2']]];
+export const specPal = (seed, pal) => pal != null && SPEC_PAL[+pal] ? +pal : ((seed >>> 0) || 1) % SPEC_PAL.length;
+export const specLight = (seed, pal) => { const C = SPEC_PAL[specPal(seed, pal)][1].map(hx3); return C.reduce((s, c) => s + .3 * c[0] + .59 * c[1] + .11 * c[2], 0) / C.length > .6; };
+const specCache = new Map();
+function specOf(seed) {
+  if (specCache.has(seed)) return specCache.get(seed);
+  const r = rng(seed ^ 0x3c51), p = { corner: Math.floor(r() * 4), lin: r() * .55, cyc: .85 + r() * .45, wob: .02 + r() * .05, wf: 3 + r() * 5, ph: r() * 6.28, sc: 3 + r() * 4, off: r() };
+  if (specCache.size > 60) specCache.delete(specCache.keys().next().value);
+  specCache.set(seed, p); return p;
+}
+let specCv = null;
+function drawSpec(cv, seed, t, grain) {
+  const W = cv.width, H = cv.height, P = specOf(seed), E = SPEC_PAL[specPal(seed, cv.dataset.pal)], light = specLight(seed, cv.dataset.pal), C = E[1].map(hx3), rainbow = !!E[2];
+  const rw = Math.min(W, 180), rh = Math.max(1, Math.round(H * rw / W));
+  if (!specCv) specCv = document.createElement('canvas'); if (specCv.width !== rw || specCv.height !== rh) { specCv.width = rw; specCv.height = rh; }
+  const g = specCv.getContext('2d'), im = g.createImageData(rw, rh), D = im.data;
+  const lo = light ? .5 : .03, hi = light ? .98 : .74, ds = light ? .1 : .28, n = C.length, c = [0, 0, 0];   // 카드 전체 채도 · 밝기 폭을 고르게 낮춰서 글이 읽혀요
+  const hsl = (h, sa, l) => { const a = sa * Math.min(l, 1 - l); for (let z = 0; z < 3; z++) { const k = ([0, 8, 4][z] + h * 12) % 12; c[z] = l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)); } };
+  for (let j = 0; j < rh; j++) for (let i = 0; i < rw; i++) {
+    let u = (i + .5) / rw, v = (j + .5) / rh;
+    if (P.corner & 1) u = 1 - u; if (P.corner & 2) v = 1 - v;
+    const u2 = u + Math.sin(v * P.wf + P.ph + t * .35) * P.wob, v2 = v + Math.sin(u2 * P.wf * .8 + P.ph * 1.3 + t * .3) * P.wob;   // 살짝 일렁여요
+    const h = u2 * v2 * (1 - P.lin) + (u2 + v2) / 2 * P.lin;   // 곱 = 모서리 둘레로 활처럼 휜 띠
+    let q = h * P.cyc + P.off + t * .02; q -= Math.floor(q);   // 시간이 지나면 색이 띠를 따라 흘러요
+    if (rainbow) hsl(q, .78, .52); else { const x = q * n, k = Math.floor(x), f = x - k, sm = f * f * (3 - 2 * f), A = C[k % n], B = C[(k + 1) % n]; c[0] = A[0] + (B[0] - A[0]) * sm; c[1] = A[1] + (B[1] - A[1]) * sm; c[2] = A[2] + (B[2] - A[2]) * sm; }
+    const L0 = .86 + .14 * (Math.sin(u2 * P.sc + t * .4) + Math.cos(v2 * P.sc - t * .3)) / 2, L = light ? .94 + .06 * L0 : L0;   // 은은한 밝기 물결
+    const gr = (c[0] + c[1] + c[2]) / 3 * L, o = (j * rw + i) * 4;
+    for (let z = 0; z < 3; z++) { const w = c[z] * L; D[o + z] = (lo + Math.max(0, Math.min(1, w + (gr - w) * ds)) * (hi - lo)) * 255; }
+    D[o + 3] = 255;
+  }
+  g.putImageData(im, 0, 0);
+  const x = cv.getContext('2d'); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high'; x.drawImage(specCv, 0, 0, W, H);
+  if (grain) { x.globalCompositeOperation = 'soft-light'; x.globalAlpha = grain; x.fillStyle = x.createPattern(gbNoise(), 'repeat'); x.fillRect(0, 0, W, H); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; }
+}
 function fractalTile(o, seed) {
   if (o.tile) return o.tile;
   const G = 300, cnt = frDensity(o.P, G, 22000, 34, seed), vals = Float32Array.from(cnt.filter(v => v > 0)).sort(), L = vals.length || 1;
@@ -1326,6 +1368,7 @@ export function drawCode(cv, seed, shift = 0, t = 0, grainAmt = cv.dataset.gr ==
   if (cv.dataset.code === 'neon') return drawNeon(cv, seed, t, cv.dataset.gr === '0' ? 0 : .05);
   if (cv.dataset.code === 'fractal') return drawFractal(cv, seed, t);
   if (cv.dataset.code === 'plasma') return drawPlasma(cv, seed, t, cv.dataset.gr === '0' ? 0 : .025);
+  if (cv.dataset.code === 'spec') return drawSpec(cv, seed, t, cv.dataset.gr === '0' ? 0 : .1);
   if (cv.dataset.code === 'wint') return drawWint(cv, seed, t, cv.dataset.gr === '0' ? 0 : .1);
   if (cv.dataset.code === 'bmod') return drawBmod(cv, seed, t, cv.dataset.gr === '0' ? 0 : .42);
   if (cv.dataset.code === 'ccomp') return drawCcomp(cv, seed, t, cv.dataset.gr === '0' ? 0 : .25);
