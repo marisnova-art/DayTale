@@ -1114,8 +1114,8 @@ const ccompCache = new Map();
 function ccompOf(seed, asp) {   // 상자 배치는 격자 단위라 카드 비율마다 한 번만
   const key = seed + ':' + asp.toFixed(2);
   if (ccompCache.has(key)) return ccompCache.get(key);
-  const r = rng(seed ^ 0x7c0f), N = 12 + Math.floor(r() * 9), big = .4 + r() * .5, maxS = 2 + Math.floor(r() * 3), mixS = r(), M = Math.floor(asp * .9 * N);
-  const occ = Array.from({ length: M }, (_, j) => Array.from({ length: N }, (_, i) => i < 1 || i >= N - 1 || j < 1));
+  const r = rng(seed ^ 0x7c0f), N = 12 + Math.floor(r() * 9), big = .4 + r() * .5, maxS = 2 + Math.floor(r() * 3), mixS = r(), M = Math.ceil(asp * (N - 1)) + 1;   // 앤드류 T7: 테두리 없이 격자를 카드보다 반 칸씩 크게 깔아 가장자리까지 꽉 채워요
+  const occ = Array.from({ length: M }, () => Array(N).fill(false));
   const R = [], free = (i, j, w, h) => { if (i + w > N || j + h > M) return false; for (let y = j; y < j + h; y++) for (let x = i; x < i + w; x++) if (occ[y][x]) return false; return true; };
   const put = (i, j, w, h) => { for (let y = j; y < j + h; y++) for (let x = i; x < i + w; x++) occ[y][x] = R.length + 1; R.push({ i, j, w, h }); };
   for (let k = 0; k < 900 * big; k++) { const i = Math.floor(r() * N), j = Math.floor(r() * M), s = 2 + Math.floor(r() * (maxS - 1)); let w = s, h = s; if (r() < .3) { if (r() < .5) w = s - 1; else h = s - 1; } if (free(i, j, w, h)) put(i, j, w, h); }
@@ -1132,7 +1132,7 @@ function ccompOf(seed, asp) {   // 상자 배치는 격자 단위라 카드 비�
 }
 function drawCcomp(cv, seed, t, grain) {
   const W = cv.width, H = cv.height, P = ccompOf(seed, H / W), C = CCOMP_PAL[ccompPal(seed, cv.dataset.pal)], light = ccompLight(seed, cv.dataset.pal), x = cv.getContext('2d');
-  const tall = H / W > 1.6, u = W / P.N, oy = H * .9 - P.M * u - u * .5, CX = W / 2, CY = H / 2 - (tall ? .08 * W : 0), gp = u * .14, lw0 = Math.max(1, u * .06);
+  const tall = H / W > 1.6, u = W / (P.N - 1), ox = -u / 2, oy = (H - P.M * u) / 2, CX = W / 2, CY = H / 2 - (tall ? .08 * W : 0), gp = u * .14, lw0 = Math.max(1, u * .06);
   const K = h => hx3(h).map(v => v * 255), BG = K(C[1]), PAL = C[2].map(K), LN = K(C[3]), mixA = light ? .9 : .78;
   const fade = (c, k) => { const gr = (c[0] + c[1] + c[2]) / 3; return `rgb(${c.map((v, i) => { v += (gr - v) * k * .7; return Math.round(v + (BG[i] - v) * k * mixA); }).join(',')})`; };   // 글 둘레: 채도 낮추고 바탕색 쪽으로
   x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; x.fillStyle = C[1]; x.fillRect(0, 0, W, H); x.lineJoin = 'miter';
@@ -1140,14 +1140,14 @@ function drawCcomp(cv, seed, t, grain) {
   const poly = (pts, fill, stroke) => { x.beginPath(); pts.forEach(([a, b], k) => k ? x.lineTo(a, b) : x.moveTo(a, b)); x.closePath(); if (fill) { x.fillStyle = fill; x.fill(); } if (stroke) { x.strokeStyle = stroke; x.lineWidth = lw; x.stroke(); } };
   const ties = (F, B, s) => { x.strokeStyle = s; x.lineWidth = lw; x.beginPath(); for (let k = 0; k < 4; k++) { x.moveTo(F[k][0], F[k][1]); x.lineTo(B[k][0], B[k][1]); } x.stroke(); };
   for (const q of P.R) {
-    const bx = q.i * u + gp / 2, by = oy + q.j * u + gp / 2, w = q.w * u - gp, h = q.h * u - gp, mx = bx + w / 2, my = by + h / 2;
+    const bx = ox + q.i * u + gp / 2, by = oy + q.j * u + gp / 2, w = q.w * u - gp, h = q.h * u - gp, mx = bx + w / 2, my = by + h / 2;
     const wave = t > 0 ? .5 + .5 * Math.sin(t / 8 * Math.PI * 2 - Math.hypot(mx - CX, my - CY) / W * 7) : .55;
     const d = Math.min(w, h) * (.18 + .2 * wave), sx = mx < CX ? 1 : -1, sy = my < CY ? 1 : -1;   // 두께는 글 자리 쪽으로
     const fx = bx + (sx < 0 ? d : 0), fy = by + (sy < 0 ? d : 0), fw = w - d, fh = h - d;
     const F = [[fx, fy], [fx + fw, fy], [fx + fw, fy + fh], [fx, fy + fh]], B = F.map(([a, b]) => [a + sx * d, b + sy * d]);
     const ex = sx > 0 ? [1, 2] : [3, 0], ey = sy > 0 ? [2, 3] : [0, 1], cn = ex[1] === ey[0] ? ex[1] : ex[0] === ey[1] ? ex[0] : ex[1];
     const SX = [F[ex[0]], F[ex[1]], B[ex[1]], B[ex[0]]], SY = [F[ey[0]], F[ey[1]], B[ey[1]], B[ey[0]]];
-    const e = Math.hypot((mx - CX) / (W * (tall ? .5 : .42)), (my - CY) / (H * (tall ? .44 : .21))), sm = Math.min(1, Math.max(0, tall ? (e - .78) / .45 : (e - .55) / .7)), k = (light ? 1 : .95) * (1 - sm * sm * (3 - 2 * sm));
+    const e = Math.hypot((mx - CX) / (W * (tall ? .5 : .42)), (my - CY) / (H * (tall ? .44 : .21))), sm = Math.min(1, Math.max(0, tall ? (e - .78) / .45 : (e - .55) / .7)), ed = Math.hypot((mx - W * .2) / (W * .34), (my - H * .925) / (W * .14)), sd = Math.min(1, Math.max(0, (ed - .6) / .6)), k = (light ? 1 : .95) * Math.max(1 - sm * sm * (3 - 2 * sm), .85 * (1 - sd * sd * (3 - 2 * sd)));   // 날짜 둘레도 옅게
     const c0 = fade(PAL[q.c], k), c1 = fade(PAL[q.c2], k), c2 = fade(PAL[q.c3], k), ln = fade(LN, Math.min(1, k * (light ? 1.12 : 1))); lw = lw0 * (1 - k * .4);
     if (q.st === 0) { poly(SX, c1); poly(SY, c2); poly(F, c0); }
     else if (q.st === 1) { poly(B, null, ln); ties(F, B, ln); poly(F, null, ln); }
