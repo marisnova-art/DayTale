@@ -1984,7 +1984,7 @@ const REC_T = { 밤: '밤에 쓰기 좋은', 비: '비 오는 날엔', 눈: '눈
 const WXK = { sun: '맑음', suncloud: '구름 조금', cloud: '흐림', rain: '비', snow: '눈', thunder: '천둥', fog: '안개' };
 const dayLine = (now = new Date()) => { let w = ''; try { const x = JSON.parse(localStorage.getItem('daytale.wx') || 'null'); if (x && Date.now() - x.at < 3 * 3600e3 && WXK[x.kind]) w = ` · ${WXK[x.kind]}${x.temp != null ? ` ${x.temp}°` : ''}`; } catch {} return `${now.getMonth() + 1}월 ${now.getDate()}일 ${'일월화수목금토'[now.getDay()]}요일${w}`; };
 // 78차: 새 버전 확인. 앱으로 돌아올 때(다른 앱 갔다 오기) version.txt가 지금과 다르면 저절로 새로 고쳐요. 쓰는 중엔 안 해요
-const BUILD = '138', BUILD_TAG = '11-27 138차';
+const BUILD = '139', BUILD_TAG = '11-27 139차';
 let verAt = 0;
 const checkVer = () => {
   if (document.hidden || Date.now() - verAt < 20e3) return; verAt = Date.now();
@@ -2187,15 +2187,16 @@ function viewWrite({ fmt, id, like }) {
     }
     if (open && st.waitKb) endWait();
     // 아이폰 키보드의 내림 단추로 내려도 스타일 보기로 (글 칸에 커서만 남아 있지 않게)
-    if (wasOpen && !open && !st.panel && !st.waitKb && document.activeElement?.matches?.('.wr .body')) {
+    if (wasOpen && !open && !st.panel && !st.waitKb && (st.hold || document.activeElement?.matches?.('.wr .body'))) {
       // 0.3초 뒤 다시 재서 그래도 내려가 있을 때만 · 도구 줄을 누른 직후(0.8초)는 쉬어요
       clearTimeout(st.kbT);
       const check = () => {
         if (gone || st.panel || st.waitKb || root.classList.contains('kb-open')) return;
-        const wait = 800 - (Date.now() - (st.toolAt || 0));
-        if (wait > 0) { st.kbT = setTimeout(check, wait); return; }
+        if (Date.now() - (st.toolAt || 0) < 800) return;   // 도구를 누른 뒤 내려간 키보드는 사용자가 내린 게 아니에요 → 키보드 쓰기 그대로
         if (Math.round(innerHeight - vv.height) > 80) return;
-        if (document.activeElement?.matches?.('.wr .body')) { document.activeElement.blur(); mode(); }
+        st.hold = false;   // 아이폰 키보드의 내림 · ✓ = 글 완료 → 쓰기메인
+        if (document.activeElement?.matches?.('.wr .body')) document.activeElement.blur();
+        mode();
       };
       st.kbT = setTimeout(check, 300);
     }
@@ -2279,7 +2280,7 @@ function viewWrite({ fmt, id, like }) {
   }
   const infOpen = () => wr.classList.contains('inf') && !wr.classList.contains('aiw');
   const aiOpen = () => wr.classList.contains('aiw');
-  function openInf() { if (st.panel) closePanel(false); wr.classList.add('inf'); paintMeta(); applySize(true); }
+  function openInf() { st.hold = false; if (st.panel) closePanel(false); wr.classList.add('inf'); paintMeta(); applySize(true); }
   function closeInf() {
     if (!infOpen()) return;
     if (st.panel === 'date') closePanel(false);
@@ -2291,7 +2292,7 @@ function viewWrite({ fmt, id, like }) {
   $$('button', ipn).forEach(b => b.addEventListener('pointerdown', e => e.preventDefault()));
   $('.ok', ipn).onclick = closeInf;
   // 날짜: 키보드 자리에 우리 달력 판 (세 줄은 위에 그대로). 고르면 다시 장소로
-  dtb.onclick = () => { flush(); if (st.panel === 'date') return closePanel(false); document.activeElement?.blur?.(); st.calM = card.date.slice(0, 7); openPanel('date'); };
+  dtb.onclick = () => { st.hold = false; flush(); if (st.panel === 'date') return closePanel(false); document.activeElement?.blur?.(); st.calM = card.date.slice(0, 7); openPanel('date'); };
   // 날짜 줄 자리: 상좌 → 상중 → 상우 → 하좌 → 하중 → 하우 → 꺼짐 (꺼도 날짜 · 장소 값은 그대로)
   dpc.addEventListener('pointerdown', e => e.preventDefault());
   dpc.onclick = () => {
@@ -2354,6 +2355,7 @@ function viewWrite({ fmt, id, like }) {
     if (!aiOpen()) return;
     wr.classList.toggle('aiw', false); wr.classList.toggle('inf', false); wr.classList.toggle('ki', false);
     document.activeElement?.blur?.(); applySize(true); tools();
+    if (st.hold) { caretEnd(st.pg); mode(); return; }   // 키보드 쓰기에서 연 AI → 닫으면 키보드 쓰기로 (11-27)
     setTimeout(() => { if (!document.activeElement?.matches?.('input, .body')) { scrollTo(0, 0); kb(); } }, 300);
   }
   const aiLang = () => { const l = (navigator.language || 'ko').slice(0, 2); return ['ko', 'en', 'ja', 'es', 'fr'].includes(l) ? l : 'en'; };
@@ -2491,7 +2493,7 @@ function viewWrite({ fmt, id, like }) {
   });
   stage.addEventListener('focusin', e => {
     const b = e.target.closest?.('.body'); if (!b) return;
-    st.pg = pageOf(b);
+    st.pg = pageOf(b); st.hold = true;   // 키보드 쓰기에 들어옴
     if (st.panel) closePanel(false);
     mode();
   });
@@ -2546,7 +2548,7 @@ function viewWrite({ fmt, id, like }) {
   /* 쓰기 보기 = 글 칸에 커서가 있거나 이모티콘 판이 열렸을 때. 아니면 스타일 보기 */
   const typingNow = () => !!document.activeElement?.closest?.('.wr .body');
   function mode() {
-    const w = typingNow() || st.panel === 'emo' || !!st.waitKb;
+    const w = typingNow() || st.panel === 'emo' || !!st.waitKb || !!st.hold;   // 11-27: 키보드 쓰기는 ⌨ · 위 ✓(글 완료) · 아이폰 키보드 내림으로만 나가요 (st.hold)
     if (wr.classList.contains('typ') !== w) { wr.classList.toggle('typ', w); applySize(); if (el && !rich) fitCard(el, card); requestAnimationFrame(() => { count(); keepCaret(); }); }
     tools(); panAxes();
   }
@@ -2589,7 +2591,7 @@ function viewWrite({ fmt, id, like }) {
       }
       if (k === 'kb') {   // 스타일 보기 → 글 끝에서 쓰기(키보드 올림) / 쓰기 → 키보드 내림 / 이모티콘 판 → 다시 키보드
         if (st.panel) return closePanel(true);
-        if (typingNow()) { document.activeElement.blur(); return mode(); }
+        if (typingNow() || st.hold) { st.hold = false; if (typingNow()) document.activeElement.blur(); return mode(); }   // 키보드 쓰기 → 쓰기메인
         caretEnd(st.pg); return mode();
       }
       if (k === 'undo' || k === 'redo') {
@@ -2597,8 +2599,8 @@ function viewWrite({ fmt, id, like }) {
         st.hi += k === 'undo' ? -1 : 1;
         card = clone(st.hist[st.hi]); persist();
         if (rich) st.pg = Math.min(st.pg, card.pages.length - 1);
-        if (typingNow() && el && shapeOf() === shape) { setBodies(card); paintRow2(); return; }   // 키보드 화면: 글만 바꾸고 키보드 그대로 (11-27)
-        const was = typingNow(); paintMeta(); draw(); if (was && !typingNow()) caretEnd(st.pg);
+        if ((typingNow() || st.hold) && el && shapeOf() === shape) { setBodies(card); if (!typingNow()) caretEnd(st.pg); paintRow2(); return; }   // 키보드 화면: 글만 바꾸고 키보드 그대로 (11-27)
+        const was = typingNow() || st.hold; paintMeta(); draw(); if (was && !typingNow()) caretEnd(st.pg);
         paintRow2(); return;
       }
       if (k === 'shuf') { if (rich) { const o = ps().bg.seed || 1; let n = newSeed(); while ((ps().bg.id === 'slit' && n % 5 === o % 5) || (ps().bg.id === 'swirl' && ps().bg.pal == null && n % 20 === o % 20) || ((ps().bg.id === 'neon' || ps().bg.id === 'tunnel' || ps().bg.id === 'eclipse' || ps().bg.id === 'mesh' || ps().bg.id === 'pixel' || ps().bg.id === 'retro' || ps().bg.id === 'gband' || ps().bg.id === 'cube' || ps().bg.id === 'ccomp' || ps().bg.id === 'bmod' || ps().bg.id === 'wint' || ps().bg.id === 'spec' || ps().bg.id === 'city' || ps().bg.id === 'blob' || ps().bg.id === 'lens' || ps().bg.id === 'field' || ps().bg.id === 'liquid' || ps().bg.id === 'float' || ps().bg.id === 'cloud' || ps().bg.id === 'dotw' || ps().bg.id === 'swarm' || ps().bg.id === 'fold' || ps().bg.id === 'crain' || ps().bg.id === 'orb' || ps().bg.id === 'valley') && ps().bg.pal == null && n % 10 === o % 10) || (ps().bg.id === 'plasma' && ps().bg.pal == null && n % 11 === o % 11) || (ps().bg.id === 'fractal' && n % 10 === o % 10)) n = newSeed(); ps().bg.seed = n; syncFirst(); } else card.seed = newSeed(); push(); draw(); paintRow2(); return; }   // 글카드: 보고 있는 장만. 슬릿스캔는 셔플마다 색 묶음도 꼭 바뀌게
@@ -2618,7 +2620,7 @@ function viewWrite({ fmt, id, like }) {
         if (rich) card.pages = card.pages.map(() => ''); else card.html = '';
         st.lastQ = null; if (st.ai) st.ai = null;
         push();
-        if (typingNow() && el) setBodies(card);   // 키보드 화면: 글 칸은 그대로 두고 비워요 → 키보드가 안 내려가요 (11-27)
+        if ((typingNow() || st.hold) && el) { setBodies(card); if (!typingNow()) caretEnd(st.pg); }   // 키보드 쓰기: 글 칸은 그대로 두고 비워요 (11-27)
         else { draw(); count(); tools(); }
         return pop('↶ 로 되돌리기', null, '모두 지웠어요');
       }
@@ -2628,7 +2630,7 @@ function viewWrite({ fmt, id, like }) {
         const plain = cur.replace(/<br\s*\/?>/g, '').replace(/<[^>]+>/g, '').trim();
         card.pages[st.pg] = !plain || cur === st.lastQ ? html : `${cur}<br><br>${html}`;
         st.lastQ = card.pages[st.pg];
-        const kbUp = typingNow() || !!st.waitKb;   // 키보드 화면에서 눌렀으면 키보드 그대로 (계속 눌러 바꿔 볼 수 있게)
+        const kbUp = typingNow() || !!st.waitKb || !!st.hold;   // 키보드 화면에서 눌렀으면 키보드 그대로 (계속 눌러 바꿔 볼 수 있게)
         push(); draw(); count(); tools(); if (kbUp) { caretEnd(st.pg); requestAnimationFrame(() => { if (!typingNow()) caretEnd(st.pg); }); } return pop(q.by || '문장');
       }
       pop('다음 단계에서 열려요');
@@ -3158,6 +3160,15 @@ function viewWrite({ fmt, id, like }) {
     go(isNew ? '#/pick' : `#/at/${card.id}`);   // 바로 앞 화면으로: 새로 쓰기는 포맷 고르기, 고치기는 피드의 그 카드
   };
   $('[data-a=ok]').onclick = () => {   // 11-04: 글 없이 배경 · 날짜만 있는 카드도 올릴 수 있어요
+    // 11-27 앤드류: 키보드 쓰기의 위 ✓ = 글 완료 → 쓰기메인. 쓰기메인의 위 ✓ = 카드 완료 → 저장 · 피드
+    if (infOpen()) { flush(); closeInf(); return pop('완료', null, '날짜 · 장소 · 서명'); }   // 날짜 · 장소 · 서명 화면의 위 ✓ = 그 화면만 닫기 → 쓰기메인
+    if (wr.classList.contains('typ')) {
+      flush(); st.hold = false;
+      if (aiOpen()) closeAi();
+      if (st.panel) closePanel(false);
+      if (typingNow()) document.activeElement.blur();
+      mode(); return pop('글 완료');
+    }
     if (isNew) { card.id = S.uid(); card.created = new Date().toISOString(); S.clearDraft(did); }
     delete card.sample; delete card.ex; S.saveCard(card);
     const pl = (card.place || '').trim();   // 최근 장소 (장소 칸에서 다시 고를 수 있게)
