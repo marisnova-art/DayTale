@@ -1984,7 +1984,7 @@ const REC_T = { 밤: '밤에 쓰기 좋은', 비: '비 오는 날엔', 눈: '눈
 const WXK = { sun: '맑음', suncloud: '구름 조금', cloud: '흐림', rain: '비', snow: '눈', thunder: '천둥', fog: '안개' };
 const dayLine = (now = new Date()) => { let w = ''; try { const x = JSON.parse(localStorage.getItem('daytale.wx') || 'null'); if (x && Date.now() - x.at < 3 * 3600e3 && WXK[x.kind]) w = ` · ${WXK[x.kind]}${x.temp != null ? ` ${x.temp}°` : ''}`; } catch {} return `${now.getMonth() + 1}월 ${now.getDate()}일 ${'일월화수목금토'[now.getDay()]}요일${w}`; };
 // 78차: 새 버전 확인. 앱으로 돌아올 때(다른 앱 갔다 오기) version.txt가 지금과 다르면 저절로 새로 고쳐요. 쓰는 중엔 안 해요
-const BUILD = '139', BUILD_TAG = '11-27 139차';
+const BUILD = '140', BUILD_TAG = '11-27 140차';
 let verAt = 0;
 const checkVer = () => {
   if (document.hidden || Date.now() - verAt < 20e3) return; verAt = Date.now();
@@ -2144,7 +2144,7 @@ function viewWrite({ fmt, id, like }) {
   // 지금 못 쓰는 칸은 숨겨요(빈칸). 되돌리기 · 다시하기만 흐리게 남아요
   // 디자인 템플릿 중 사진을 받는 틀(tools.photo 'tab', 타이프라이터 97차): 기본 글쓰기처럼 컬러 칸 오른쪽에 이미지 칸 + 셔플 (글꼴 칸 자리를 써서 8칸). 키보드 줄엔 사진 칸 없음
   const imgTab = f.tools.photo === 'tab';
-  const T1 = [['kb', ''], ['ratio', 's'], ['fmt', 's'], ...(imgTab ? [] : [['font', 's']]), ['bg', 's'], ...(imgTab ? [['img', 's'], ['shuf', 's']] : [[f.tools.filter ? 'img' : 'shuf', 's']]), ['emo', 'w'], ['page', 'w'], ['quote', 'w'], ['ai', 'w'], ['clear', 'w'], ['undo', ''], ['redo', '']];   // 11-27 앤드류: 키보드 줄 = 키보드 · 이모티콘 · 장 나누기 · 인용 · AI · 삭제 · ↶ · ↷ (사진은 키보드 내린 배경 줄에서)   // ai = AI 글쓰기 (11-20, 모든 포맷)
+  const T1 = [['kb', ''], ['ratio', 's'], ['fmt', 's'], ...(imgTab ? [] : [['font', 's']]), ['bg', 's'], ...(imgTab ? [['img', 's'], ['shuf', 's']] : [[f.tools.filter ? 'img' : 'shuf', 's']]), ['emo', 'w'], ['page', 'w'], ['quote', 'w'], ['ai', 'w'], ['undo', ''], ['redo', ''], ['clear', 'w']];   // 11-27 앤드류: 키보드 줄 = 키보드 · 이모티콘 · 장 나누기 · 인용 · AI · ↶ · ↷ · 삭제(01:01 앤드류: 맨 끝, 동그라미 X) (사진은 키보드 내린 배경 줄에서)   // ai = AI 글쓰기 (11-20, 모든 포맷)
   app.innerHTML = `<div class="wr ${rich ? 'rich' : 'plain'}">
     <header class="top"><button class="cb" data-a="back" aria-label="뒤로">${ic('back')}</button><div class="nm stt"></div><button class="cb w" data-a="ok" aria-label="완료">${ic('check')}</button></header>
     <div class="area"><section class="stage"></section></div>
