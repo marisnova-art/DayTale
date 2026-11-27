@@ -169,7 +169,7 @@ function text(c, { edit = false } = {}) {
     const date = info ? `<div class="dt ${dp === 'top' ? 'dup' : 'ddn'}" style="text-align:${dhOf(c)};font-size:${dl}cqw;font-family:${ff}${ls}">${info}</div>` : '';   // 날짜 줄도 카드 글꼴 · 글자 크기를 따라가요 (글꼴마다 크기 보정)
     const sig = sg ? `<div class="sgn" data-h="${sg}" style="font-size:${dl}cqw;font-family:${ff}${ls}">${esc(c.signTxt)}</div>` : '';   // 서명: 모든 장 맨 아래
     return `<section class="pg${sg ? ' hsg' : ''}" data-i="${i}" style="color:${c.ink || ink};--dl:${dl}cqw${bink && !c.ink ? `;--bink:${bink}` : ''}">${html}
-      <div class="tx" data-k="${fo.k}" data-sz="${SIZES[c.size] || SIZES.m}" data-v="${pageAlign(c, i).v || 'm'}" style="${pageAlign(c, i).x != null ? `--dx:${+pageAlign(c, i).x || 0};--dy:${+pageAlign(c, i).y || 0};` : ''}font-family:${ff};line-height:${(fo.lh * (LH[c.lh] || 1)).toFixed(3)};letter-spacing:${fo.ls || 'normal'};text-align:${{ l: 'left', c: 'center', r: 'right' }[pageAlign(c, i).h || 'l']}${c.bold ? ';font-weight:700' : ''}">
+      <div class="tx" data-k="${fo.k}" data-sz="${SIZES[c.size] || SIZES.m}" data-szk="${c.size || 'm'}" data-v="${pageAlign(c, i).v || 'm'}" style="${pageAlign(c, i).x != null ? `--dx:${+pageAlign(c, i).x || 0};--dy:${+pageAlign(c, i).y || 0};` : ''}font-family:${ff};line-height:${(fo.lh * (LH[c.lh] || 1)).toFixed(3)};letter-spacing:${fo.ls || 'normal'};text-align:${{ l: 'left', c: 'center', r: 'right' }[pageAlign(c, i).h || 'l']}${c.bold ? ';font-weight:700' : ''}">
         ${dp === 'top' && i === 0 ? date : ''}
         <div class="body" ${edit ? 'contenteditable="true" spellcheck="false" autocapitalize="off"' : ''} data-ph="${i === 0 ? esc(ex) : '이어서 써 보세요'}"${capc ? ` data-fx="${tfxOf(c)}" data-mo="${tmoOf(c)}" style="--tg:${toneOf(c)}"` : ''}>${h}</div>
         ${dp === 'bottom' && i === pages.length - 1 ? date : ''}
@@ -222,11 +222,12 @@ function bigTitle(tx, over) {
   if (!base || room <= 0) return;
   const widest = () => { const r = document.createRange(); r.selectNodeContents(body); const rows = new Map(); for (const q of r.getClientRects()) { if (q.width < 1) continue; const k = Math.round(q.top); rows.set(k, (rows.get(k) || 0) + q.width); } return Math.max(0, ...rows.values()); };
   const w = widest(); if (!w) return;
-  const cw0 = tx.clientWidth || room, goal = Math.min(cw0 * .76, room * .96);   // 카드 폭의 약 3/4
-  let k = Math.max(1, Math.min(2.4, goal / w));
+  // 149차 (앤드류): 크기 단계마다 가장 긴 줄이 카드 폭의 45 · 60 · 74 · 82 · 90%
+  const cw0 = tx.clientWidth || room, goal = Math.min(cw0 * ({ xs: .45, s: .6, m: .74, l: .82, xl: .9 }[tx.dataset.szk] || .75), room * .98);
+  let k = Math.max(.5, Math.min(3, goal / w));
   const cw = tx.clientWidth || 1, set = f => { tx.style.fontSize = (f / cw * 100).toFixed(3) + 'cqw'; };
   set(base * k);
-  for (let n = 0; n < 12 && (over() || widest() > room * .98) && k > .55; n++) { k *= .92; set(base * k); }
+  for (let n = 0; n < 12 && (over() || widest() > room * .995) && k > .3; n++) { k *= .92; set(base * k); }
 }
 function fitText(el, c) {
   el.querySelectorAll('.pg').forEach(pg => {

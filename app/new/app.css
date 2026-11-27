@@ -201,6 +201,8 @@ html:not(.kb-open):not(.pan) .wr.inf.ki { bottom: var(--kbh, 40vh); }   /* 키�
 .g6 .k.off { color: var(--off); }
 .g6 .k.shake { animation: shake .3s; }
 .g6 .k.hid { visibility: hidden; }   /* 지금 못 쓰는 칸은 빈칸으로 */
+.wr .tb .k.hid, .st3 .k.hid { display: none; }
+.st3 .w5:has(~ .k.hid) { grid-column: span 6; }   /* 149차 (앤드류): 키보드 줄은 빈칸 없이 왼쪽부터 붙여요 */
 .g6 .k.rt { font: var(--fw) var(--fs-s) var(--ui); letter-spacing: -.01em; }
 .g6 .k.vio { background: #5B4BDB; color: #fff; }   /* 보라 = 내보내기(저장)만 */
 .g6 .k.vio:active { transform: scale(.92); filter: brightness(1.15); }
@@ -242,12 +244,11 @@ html:not(.kb-open):not(.pan) .wr.inf.ki { bottom: var(--kbh, 40vh); }   /* 키�
 .st2.fnr .end { flex: 0 0 calc((100% - 20px) / 6 * 4 + 12px); }   /* 마지막 글꼴도 맨 앞까지 밀 수 있게 */
 /* 아래 줄: 날짜 · 장소 · 서명 글자(4칸) · 날짜 줄 자리 · 서명 자리 · 이미지 저장(2칸, 보라) */
 .st3 .wide, .ipn .wide, .aip .wide { position: relative; border-radius: 14px; background: var(--srf); display: flex; align-items: center; gap: 6px; padding: 0 9px; color: #fff; font: var(--fw) var(--fs-s) var(--ui); min-width: 0; overflow: hidden; }
-.w2 { grid-column: span 2; } .w4 { grid-column: span 4; } .w7 { grid-column: span 7; } .w8 { grid-column: span 8; }
+.w2 { grid-column: span 2; } .w4 { grid-column: span 4; } .w5 { grid-column: span 5; } .w7 { grid-column: span 7; } .w8 { grid-column: span 8; }
 .st3 .wide .ic, .ipn .wide .ic, .aip .wide .ic { width: 18px; height: 18px; color: var(--mut); flex: none; }
 .st3 .inf.mo { color: var(--mut); }
-.st3 .svb { background: #5B4BDB; color: #fff; justify-content: center; gap: 3px; padding: 0 3px; font-size: var(--fs-s); letter-spacing: -.03em; }
-.st3 .svb .ic { color: #fff; width: 18px; height: 18px; }
-@media (max-width: 389px) { .st3 .svb { font-size: var(--fs-s); gap: 2px; } .st3 .svb .ic { width: 16px; height: 16px; } }   /* 좁은 폰에서도 '이미지 저장'이 칸 안에 */
+.st3 .svb { background: #fff; color: var(--bg); }   /* 149차 (앤드류): 저장 = 흰 칸 아이콘 (흑백 앱, 위 ✓ 와 같은 주 버튼) */
+.st3 .svb .ic { color: var(--bg); }
 .st3 .svb:active { transform: scale(.95); filter: brightness(1.15); }
 /* 키보드 화면(.inf): 날짜 · 장소 · 서명 입력만. 위 줄 · 서식 줄 · 아래 줄은 숨겨요 */
 .ipn { display: none; flex: none; }
@@ -2157,9 +2158,11 @@ html:not(.kb-open):not(.pan) .wr.aiw:not(.ki) .aip { padding-bottom: max(8px, va
 
 /* 146차 (11-27 앤드류): 아트 · 포스터 키보드 쓰기 = 위 가운데 작은 카드 + 내용글 · 좋은글 · 제목글 칸 */
 .capx { width: 100%; padding: 2px 2px 24px; }
-.wr.cap:not(.typ) .capx { position: absolute; left: 0; top: 0; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none; }
-.wr.cap.typ .stage { width: 100%; border-radius: 0; }
-.wr.cap.typ .stage > .cd { width: var(--cw); margin: 2px auto 6px; border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,.4); flex: none; overflow: hidden; }
+.wr.wcap:not(.typ) .capx { position: absolute; left: 0; top: 0; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none; }
+.wr.wcap.typ .stage { width: 100%; border-radius: 0; display: flex; align-items: flex-start; gap: 14px; }   /* 149차 (앤드류): 왼쪽 작은 카드 · 오른쪽 글 (인스타 글쓰기처럼) */
+.wr.wcap.typ .stage > .cd { width: var(--cw); margin: 4px 0 0; border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,.4); flex: none; overflow: hidden; position: sticky; top: 4px; }
+.wr.wcap.typ .capx { flex: 1; min-width: 0; }
+.wr.wcap.typ .capx > .clb:first-child { margin-top: 2px; }
 .capx .clb { font-size: var(--fs-s); color: var(--mut); margin: 14px 0 4px; }
 .capx .cx { font: var(--fw) var(--fs-m)/1.5 var(--ui); color: #fff; outline: none; min-height: 1.5em; white-space: pre-wrap; overflow-wrap: anywhere; -webkit-user-select: text; user-select: text; caret-color: #4b8dff; }
 .capx .cx:empty::before { content: attr(data-ph); color: rgba(255,255,255,.35); pointer-events: none; }
@@ -2171,10 +2174,11 @@ html:not(.kb-open):not(.pan) .wr.aiw:not(.ki) .aip { padding-bottom: max(8px, va
 
 /* 146차 (11-27 앤드류): AI 시트 · 넣은 뒤 ✨ 고르기 */
 .sheet.ais { max-height: 88vh; max-height: 88dvh; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; gap: 0; }
-.ais .sh { margin-bottom: 4px; }
-.ais .aq { font-size: var(--fs-s); color: var(--mut); margin: 14px 0 8px; }
-.ais .ach { display: flex; flex-wrap: wrap; gap: 8px; }
-.ais .chp { height: 34px; padding: 0 14px; border-radius: 999px; background: #232327; color: #c9c9cf; font: var(--fw) var(--fs-s) var(--ui); }
+.ais .sh { margin: 2px 0 2px; }
+.sheet.ais .grab { margin-bottom: 12px; }
+.ais .aq { font-size: var(--fs-s); color: var(--mut); margin: 16px 0 8px; }
+.ais .ach { display: grid; grid-template-columns: repeat(var(--n, 4), minmax(0, 1fr)); gap: 4px; }   /* 149차: 칸 맞춘 격자 · 다른 시트와 같은 둥근 사각형 44 */
+.ais .chp { height: 44px; padding: 0 4px; border-radius: 14px; background: #232327; color: #fff; font: var(--fw) var(--fs-s) var(--ui); white-space: nowrap; overflow: hidden; }
 .ais .chp.sel { background: #fff; color: var(--bg); }
 .ais .aix { margin-bottom: 16px; }
 .ais .okp.wk { animation: aiBusy 1.2s ease-in-out infinite; }
@@ -2182,7 +2186,7 @@ html:not(.kb-open):not(.pan) .wr.aiw:not(.ki) .aip { padding-bottom: max(8px, va
 .ais .abox { background: #232327; border-radius: 14px; padding: 12px 14px; font: var(--fw) var(--fs-m)/1.55 var(--ui); color: #fff; outline: none; white-space: pre-wrap; overflow-wrap: anywhere; -webkit-user-select: text; user-select: text; caret-color: #4b8dff; }
 .ais .abox:focus { box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.6); }
 .ais .ahint { font-size: var(--fs-s); color: var(--mut); text-align: center; margin: 12px 0 14px; }
-.ais .abt { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ais .aibt { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .ais .okp.sec { background: #232327; color: #fff; }
 .sheet.aact .it { justify-content: center; }
 .wr .stt.aibz { animation: aiBusy 1.2s ease-in-out infinite; }
@@ -2228,3 +2232,6 @@ html:not(.kb-open):not(.pan) .wr.aiw:not(.ki) .aip { padding-bottom: max(8px, va
 /* 타자: 마스크를 계단식으로 (글자를 치듯) */
 .fi.play .cd.capc .body[data-mo=type], .wr:not(.typ) .stage .cd.capc .body[data-mo=type] { animation-timing-function: steps(14, end); }
 .st2.txr .fn { font-size: 15px; }
+
+/* 149차 (앤드류: 크기가 안 바뀌어요): 아트 제목글은 좌우 여백 6% → 크기 5단계가 모두 달라요 */
+.cd.capc .tx { padding-left: 6cqw; padding-right: 6cqw; }

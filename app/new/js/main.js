@@ -1993,7 +1993,7 @@ const REC_T = { 밤: '밤에 쓰기 좋은', 비: '비 오는 날엔', 눈: '눈
 const WXK = { sun: '맑음', suncloud: '구름 조금', cloud: '흐림', rain: '비', snow: '눈', thunder: '천둥', fog: '안개' };
 const dayLine = (now = new Date()) => { let w = ''; try { const x = JSON.parse(localStorage.getItem('daytale.wx') || 'null'); if (x && Date.now() - x.at < 3 * 3600e3 && WXK[x.kind]) w = ` · ${WXK[x.kind]}${x.temp != null ? ` ${x.temp}°` : ''}`; } catch {} return `${now.getMonth() + 1}월 ${now.getDate()}일 ${'일월화수목금토'[now.getDay()]}요일${w}`; };
 // 78차: 새 버전 확인. 앱으로 돌아올 때(다른 앱 갔다 오기) version.txt가 지금과 다르면 저절로 새로 고쳐요. 쓰는 중엔 안 해요
-const BUILD = '148', BUILD_TAG = '11-27 148차';
+const BUILD = '149', BUILD_TAG = '11-27 149차';
 let verAt = 0;
 const checkVer = () => {
   if (document.hidden || Date.now() - verAt < 20e3) return; verAt = Date.now();
@@ -2172,7 +2172,7 @@ function viewWrite({ fmt, id, like }) {
     <div class="tb g6">${T1.map(([k, m]) => k ? `<button class="k t ${m} ${k === 'ratio' ? 'rt' : ''}" data-t="${k}" aria-label="${k}">${k === 'ratio' ? '' : ic(k)}</button>` : `<span class="${m}"></span>`).join('')}</div>
     <div class="st2 g6"></div>
     <div class="st3 g6">
-      <button class="wide w4 inf" aria-label="날짜 · 장소 · 서명"><span></span></button><button class="k dpc" aria-label="날짜 줄 자리"></button><button class="k sgc" aria-label="서명 자리"></button><button class="wide w2 vio svb" aria-label="이미지 저장">${ic('save')}<span>이미지 저장</span></button>
+      <button class="wide w5 inf" aria-label="날짜 · 장소 · 서명"><span></span></button><button class="k dpc" aria-label="날짜 줄 자리"></button><button class="k sgc" aria-label="서명 자리"></button><button class="k svb" aria-label="이미지 저장">${ic('save')}</button>
     </div>
     <div class="ipn">
       <div class="g6"><button class="wide w8 dt" aria-label="날짜">${ic('date')}<span></span></button></div>
@@ -2191,7 +2191,7 @@ function viewWrite({ fmt, id, like }) {
   let capx = null;
   const cf = k => capx && $(`[data-c="${k}"]`, capx);
   if (cap) {
-    wr.classList.add('cap');
+    wr.classList.add('wcap');
     capx = document.createElement('div'); capx.className = 'capx';
     const ce = pt => `contenteditable="${pt ? 'plaintext-only' : 'true'}" spellcheck="false" autocapitalize="off"`;
     capx.innerHTML = `<p class="clb">내용글</p><div class="body cx cn" data-c="note" ${ce(1)} data-ph="오늘 있었던 일을 자유롭게"></div>
@@ -2270,7 +2270,7 @@ function viewWrite({ fmt, id, like }) {
   function applySize(force) {
     const writing = wr.classList.contains('typ') || wr.classList.contains('inf') || root.classList.contains('kb-open') || root.classList.contains('pan');
     let cw = writing ? sizes.w : sizes.v;
-    if (cap && wr.classList.contains('typ') && !wr.classList.contains('inf')) cw = 120;   // 키보드 쓰기: 위 가운데 작은 카드
+    if (cap && wr.classList.contains('typ') && !wr.classList.contains('inf')) cw = 92;   // 키보드 쓰기: 왼쪽 작은 카드 (149차)
     if (wr.classList.contains('inf')) { const ah = $('.area').clientHeight; if (ah > 40) cw = Math.max(80, Math.min(sizes.w, Math.floor((ah - 12) / arOf(card)))); }   // 날짜 · 장소 · 서명 화면: 카드 한 장이 다 보이게 줄여요
     if (!force && wr.style.getPropertyValue('--cw') === cw + 'px') return;
     wr.style.setProperty('--cw', cw + 'px'); wr.style.setProperty('--ar', arOf(card));
@@ -2434,7 +2434,7 @@ function viewWrite({ fmt, id, like }) {
   // 146차 (11-27 앤드류): AI 시트 — 내용글 [없음/1~5줄] · 제목글 [없음/키워드/1줄/2줄] (기본 · 디자인 = 글 [1~5줄]) + 감성 · 주제 칩 + 추가 입력.
   // 결과는 시트 안에서 바로 고치기 · 다시 · 넣기. 넣은 뒤 ✨ = 다시 생성(같은 설정, 시트 없이 바꿔 넣기, ↶로 되돌림) / 설정하기(마지막 선택으로 시트)
   const AI_MOOD = ['잔잔한', '설레는', '쓸쓸한', '따뜻한', '다짐', '감사', '위로', '유쾌한'];
-  const AI_TOPIC = ['날씨', '산책', '카페', '일', '사람', '여행', '음식', '밤', '휴식'];
+  const AI_TOPIC = ['날씨', '산책', '카페', '일', '사람', '여행', '음식', '밤'];   // 149차: 4×2 격자
   const aiKey = cap ? 'aiSet' : 'aiSet1';
   const aiSet = Object.assign({ b: 3, h: cap ? '1' : '', m: '', t: '', x: '' }, S.pref(aiKey, {}));
   if (!cap) { aiSet.h = ''; if (!aiSet.b) aiSet.b = 3; }
@@ -2471,19 +2471,19 @@ function viewWrite({ fmt, id, like }) {
   }
   const backToKb = () => { st.hold = true; caretEnd(st.pg); mode(); };   // 누른 그 순간에 칸을 잡아야 아이폰 키보드가 다시 올라와요
   function aiSheet() {
-    flush(); st.hold = true;
+    flush(); st.hold = true; document.activeElement?.blur?.();   // 149차 (앤드류): 키보드를 먼저 내려요 (시트를 가리지 않게)
     let res = null, busy = false, prev = [...(st.aiLast?.prev || [])];
     const sh = panelSheet(`<div class="grab"></div><p class="sh">AI 글쓰기</p><div class="aib"></div>`, 'ais');
     const box = $('.aib', sh.el);
     sh.bg.addEventListener('click', e => { if (e.target === sh.bg) backToKb(); });
-    const chips = (k, opts) => `<div class="ach" data-k="${k}">${opts.map(([v, l]) => `<button class="chp${String(aiSet[k]) === String(v) ? ' sel' : ''}" data-v="${esc(String(v))}">${esc(l)}</button>`).join('')}</div>`;
+    const chips = (k, opts) => `<div class="ach" data-k="${k}" style="--n:${opts.length > 6 ? 4 : opts.length}">${opts.map(([v, l]) => `<button class="chp${String(aiSet[k]) === String(v) ? ' sel' : ''}" data-v="${esc(String(v))}">${esc(l)}</button>`).join('')}</div>`;
     function paint() {
       if (res) {
         box.innerHTML = `<p class="asum">${esc(aiSum())}</p>
           ${res.body ? `<p class="aq">${cap ? '내용글' : '글'}</p><div class="abox" data-r="body" contenteditable="plaintext-only" spellcheck="false">${esc(res.body)}</div>` : ''}
           ${res.head ? `<p class="aq">제목글</p><div class="abox" data-r="head" contenteditable="plaintext-only" spellcheck="false">${esc(res.head)}</div>` : ''}
           <p class="ahint">글을 눌러 바로 고칠 수 있어요</p>
-          <div class="abt"><button class="okp sec${busy ? ' wk' : ''}" data-a="again">${busy ? '만드는 중' : '다시'}</button><button class="okp" data-a="put">넣기</button></div>`;
+          <div class="aibt"><button class="okp sec${busy ? ' wk' : ''}" data-a="again">${busy ? '만드는 중' : '다시'}</button><button class="okp" data-a="put">넣기</button></div>`;
         return;
       }
       const nums = n0 => Array.from({ length: 6 - n0 }, (_, i) => [i + n0, i + n0 ? `${i + n0}줄` : '없음']);
@@ -2535,6 +2535,7 @@ function viewWrite({ fmt, id, like }) {
   }
   function aiTap() {
     if (!st.aiLast?.res) return aiSheet();
+    st.hold = true; document.activeElement?.blur?.();
     const sh = panelSheet(`<div class="grp"><button class="it" data-a="again">다시 생성</button><button class="it" data-a="set">설정하기</button></div><div class="grp"><button class="it" data-a="no">취소</button></div>`, 'aact');
     sh.bg.addEventListener('click', e => {
       const a = e.target === sh.bg ? 'no' : e.target.closest('[data-a]')?.dataset.a; if (!a) return;

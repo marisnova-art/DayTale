@@ -150,8 +150,9 @@ export async function handle(req: Request, deps: Deps): Promise<Response> {
 async function run(deps: Deps, key: string, text: string, len: Len, cors: Record<string, string>, done: (t: string) => Record<string, unknown> | null) {
   // 11-20 시험: 무료 키에서 3.8 · 3.7 flash는 45초 넘게 답이 안 와요. 3.6 flash 2초 · 3 flash 1초 → 3.6이 1순위 (지금 되는 것 중 가장 좋은 것).
   // 순서: 3.6 flash → 3 flash → 3.1 flash lite → Gemma 4 31B (느려요, 생각 단계 때문에 15~40초). 서버 설정 GEMINI_MODELS로 바꿀 수 있어요 (쉼표로)
-  const list = (deps.env('GEMINI_MODELS') || 'gemini-3.6-flash,gemini-3-flash-preview,gemini-3.1-flash-lite,gemma-4-31b-it').split(',').map(x => x.trim()).filter(Boolean);
-  const models = list.map(m => ({ m, ms: m.startsWith('gemma') ? 40000 : 10000 }));
+  // 149차 (11-27): 3.6 flash가 계속 10초 넘게 답이 없어서(매번 12초) 3 flash를 1순위로, 기다림 6초
+  const list = (deps.env('GEMINI_MODELS') || 'gemini-3-flash-preview,gemini-3.6-flash,gemini-3.1-flash-lite,gemma-4-31b-it').split(',').map(x => x.trim()).filter(Boolean);
+  const models = list.map(m => ({ m, ms: m.startsWith('gemma') ? 40000 : 6000 }));
   let last = 0;
   for (const { m, ms } of models) {
     try {
