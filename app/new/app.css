@@ -2235,3 +2235,12 @@ html:not(.kb-open):not(.pan) .wr.aiw:not(.ki) .aip { padding-bottom: max(8px, va
 
 /* 149차 (앤드류: 크기가 안 바뀌어요): 아트 제목글은 좌우 여백 6% → 크기 5단계가 모두 달라요 */
 .cd.capc .tx { padding-left: 6cqw; padding-right: 6cqw; }
+/* 150차: 효과 · 모션 줄 = ↩ · ‹ · › 다음에 이름 5칸 */
+.st2.fnr.txr .fst { grid-column: 4 / span 5; }
+.st2.fnr.txr .fn { --it: calc((100% - 16px) / 5 * 2 + 4px); }
+.st2.fnr.txr .end { flex: 0 0 calc((100% - 16px) / 5 * 3 + 8px); }
+/* 150차: 룩 · 필터 칸 이름이 길면 칸 안에서 잘라요 (옆 칸으로 겹치지 않게) */
+.st2.flr .sw.ft span, .st2.swr .sw.ft span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-left: 3px; padding-right: 3px; }
+.fi .fx.tall { aspect-ratio: auto; overflow: visible; border-radius: 0; box-shadow: none; }   /* 150차: 9:16 바탕판 없음 */
+.fi .fx.tall > .view { margin: 0 auto; }
+.fi .fx.tall > .bd { right: calc(17.66% + 8px); }

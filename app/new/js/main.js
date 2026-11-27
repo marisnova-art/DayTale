@@ -430,7 +430,7 @@ function feedItem(c, tile, x = {}) {
   let blr = null;
   if (!tile && arOf(c) > 1.5) {
     fx.classList.add('tall');
-    blr = document.createElement('div'); blr.className = 'blr'; blr.setAttribute('aria-hidden', 'true'); fx.prepend(blr);
+    // 150차 (앤드류): 뒤에 깔던 흐린 바탕판은 지워요 → 9:16 카드만 가운데, 양옆은 앱 바탕
   }
   const ex = $('.ex', it), ex1 = $('.ex1', it);
   if (ex1) { ex1.textContent = flat(c); ex1.onclick = () => fx.click(); }
@@ -1695,6 +1695,8 @@ function panelSheet(html, cls = '') {
   const fit = () => { if (!vv) return; if (innerHeight - vv.height < 120) { bg.style.top = bg.style.height = bg.style.bottom = ''; return; }   // 11-12: 키보드가 떴을 때만 맞춰요 (아이폰 홈 화면 앱에서 아래 틈이 생기지 않게)
     bg.style.top = vv.offsetTop + 'px'; bg.style.height = vv.height + 'px'; bg.style.bottom = 'auto'; };
   vv?.addEventListener('resize', fit); vv?.addEventListener('scroll', fit);
+  // 150차 (앤드류: AI 시트 아래 빈 공간): 키보드가 내려가는 중에 연 시트는 키보드 높이에 맞춘 채 남을 때가 있어요 (아이폰이 마지막 resize를 안 줄 때) → 열고 나서 몇 번 · 시트를 만질 때마다 다시 맞춰요
+  [80, 300, 650, 1100].forEach(t => setTimeout(fit, t)); el.addEventListener('pointerdown', fit, true);
   let shut = false;
   const close = () => { if (shut) return; shut = true; vv?.removeEventListener('resize', fit); vv?.removeEventListener('scroll', fit); document.activeElement?.blur?.(); bg.classList.add('out'); unlockBg(); setTimeout(() => bg.remove(), 300); };
   bg.addEventListener('click', e => { if (e.target === bg) close(); });
@@ -1993,7 +1995,7 @@ const REC_T = { 밤: '밤에 쓰기 좋은', 비: '비 오는 날엔', 눈: '눈
 const WXK = { sun: '맑음', suncloud: '구름 조금', cloud: '흐림', rain: '비', snow: '눈', thunder: '천둥', fog: '안개' };
 const dayLine = (now = new Date()) => { let w = ''; try { const x = JSON.parse(localStorage.getItem('daytale.wx') || 'null'); if (x && Date.now() - x.at < 3 * 3600e3 && WXK[x.kind]) w = ` · ${WXK[x.kind]}${x.temp != null ? ` ${x.temp}°` : ''}`; } catch {} return `${now.getMonth() + 1}월 ${now.getDate()}일 ${'일월화수목금토'[now.getDay()]}요일${w}`; };
 // 78차: 새 버전 확인. 앱으로 돌아올 때(다른 앱 갔다 오기) version.txt가 지금과 다르면 저절로 새로 고쳐요. 쓰는 중엔 안 해요
-const BUILD = '149', BUILD_TAG = '11-27 149차';
+const BUILD = '150', BUILD_TAG = '11-27 150차';
 let verAt = 0;
 const checkVer = () => {
   if (document.hidden || Date.now() - verAt < 20e3) return; verAt = Date.now();
@@ -2768,7 +2770,7 @@ function viewWrite({ fmt, id, like }) {
       if (k === 'redo') return b.classList.toggle('off', st.hi >= st.hist.length - 1);
       b.classList.toggle('hid', !enabled(k));
       if (k === 'ratio') b.textContent = RATIOS.find(r => r[0] === (card.ratio || '45'))[1];
-      const tab = { ink: 'fmt', hue: 'bg', filter: 'img' }[st.tab] || st.tab;
+      const tab = { ink: 'fmt', tfx: 'fmt', tmo: 'fmt', hue: 'bg', filter: 'img' }[st.tab] || st.tab;   // 150차: 서식 아래 줄(글자색 · 효과 · 모션)에서도 T 켜짐
       b.classList.toggle('on', k === 'ai' ? aiOpen() : k === 'kb' ? typ && !st.panel : ['fmt', 'font', 'bg', 'img'].includes(k) ? tab === k && enabled(k) : st.panel === k);
     });
   }
@@ -2888,7 +2890,7 @@ function viewWrite({ fmt, id, like }) {
   function paintHue(what) {
     const pal = what === 'pal', pb = pal ? {} : ps().bg, ink = what === 'ink', pos = ink ? card.inkPos : pal ? (isHex(card.pal) ? card.palPos : null) : pb.id === 'hex' ? pb.pos : null;
     row2.className = 'st2 g6 hur';
-    row2.innerHTML = `<button class="k" data-x="back" aria-label="돌아가기">${ic('back')}</button>${ink ? `<button class="k rt ${card.ink ? '' : 'on'}" data-x="auto">자동</button>` : ''}<div class="hbar" style="grid-column:span ${ink ? 6 : 7}"><i ${pos == null ? 'hidden' : ''} style="left:${Math.max(0, Math.min(1, pos ?? .5)) * 100}%"></i></div>`;
+    row2.innerHTML = `<button class="k" data-x="back" aria-label="돌아가기">${ic('ret')}</button>${ink ? `<button class="k rt ${card.ink ? '' : 'on'}" data-x="auto">자동</button>` : ''}<div class="hbar" style="grid-column:span ${ink ? 6 : 7}"><i ${pos == null ? 'hidden' : ''} style="left:${Math.max(0, Math.min(1, pos ?? .5)) * 100}%"></i></div>`;
     $$('button', row2).forEach(x => x.addEventListener('pointerdown', e => e.preventDefault()));
     $('[data-x=back]', row2).onclick = () => { st.tab = ink ? 'fmt' : 'bg'; paintRow2(); };
     if (ink) $('[data-x=auto]', row2).onclick = () => { flush(); card.ink = null; delete card.inkPos; push(); draw(); paintRow2(); pop('자동', null, '글자색'); };
@@ -2916,8 +2918,8 @@ function viewWrite({ fmt, id, like }) {
   // 148차 (11-27 앤드류): 글자 효과 · 모션 이름 줄 = 글꼴 줄과 같은 모양 (‹ › 하나씩 · 이름을 눌러 바로). 고르면 셔플해도 그대로
   function paintTxRow(kind) {
     const L = kind === 'tfx' ? TFX : TMO, cur = kind === 'tfx' ? tfxOf(card) : tmoOf(card), lab = kind === 'tfx' ? '글자 효과' : '글자 모션';
-    row2.className = 'st2 g6 fnr txr';
-    row2.innerHTML = `<button class="k" data-x="back" aria-label="돌아가기">${ic('back')}</button><button class="k" data-x="next" aria-label="다음">${ic('next')}</button>
+    row2.className = 'st2 g6 fnr txr';   // 150차 (앤드류): ↩ 돌아가기 · ‹ 이전 · › 다음 · 이름 5칸 (밀어서도)
+    row2.innerHTML = `<button class="k" data-x="back" aria-label="돌아가기">${ic('ret')}</button><button class="k" data-x="prev" aria-label="이전">${ic('prev')}</button><button class="k" data-x="next" aria-label="다음">${ic('next')}</button>
       <div class="fst">${L.map(([id, nm]) => `<button class="fn ${id === cur ? 'sel' : ''}" data-v="${id}"><span>${nm}</span></button>`).join('')}<span class="end"></span></div>`;
     const fs = $('.fst', row2);
     const fitNames = () => $$('.fn', fs).forEach(x => { const sp = x.firstElementChild, room = x.clientWidth - 12; x.style.fontSize = ''; if (sp.offsetWidth > room) x.style.fontSize = Math.floor(15 * room / sp.offsetWidth) + 'px'; });
@@ -2930,7 +2932,8 @@ function viewWrite({ fmt, id, like }) {
     toCur(false);
     $$('button', row2).forEach(x => x.addEventListener('pointerdown', e => e.preventDefault()));
     $('[data-x=back]', row2).onclick = () => { st.tab = 'fmt'; paintRow2(); };
-    $('[data-x=next]', row2).onclick = () => { const i = L.findIndex(o => o[0] === (kind === 'tfx' ? tfxOf(card) : tmoOf(card))); pick(L[(i + 1) % L.length][0], i + 1 < L.length); };
+    const step = d => { const c = L.findIndex(o => o[0] === (kind === 'tfx' ? tfxOf(card) : tmoOf(card))), i = (c + d + L.length) % L.length; pick(L[i][0], Math.abs(i - c) === 1); };
+    $('[data-x=prev]', row2).onclick = () => step(-1); $('[data-x=next]', row2).onclick = () => step(1);
     $$('[data-v]', fs).forEach(x => x.onclick = () => pick(x.dataset.v, true));
   }
   // 글꼴 줄: 1 · 2칸 = 이전 · 다음 글꼴(끝에서는 처음으로), 3~7칸 = 이름 줄(이름 하나가 2칸, 그 글꼴로). 지금 글꼴이 맨 앞, 밀어 보고 이름을 눌러 바로 골라요
@@ -2958,7 +2961,7 @@ function viewWrite({ fmt, id, like }) {
   function paintFilterRow() {
     const cur = filterOf(card.filter).id, pb = ps().bg;
     row2.className = 'st2 g6 bgr flr';
-    row2.innerHTML = `<button class="k" data-x="back" aria-label="돌아가기">${ic('back')}</button>
+    row2.innerHTML = `<button class="k" data-x="back" aria-label="돌아가기">${ic('ret')}</button>
       <div class="swp">${FILTERS.map(o => `<button class="k sw ft ${o.id === cur ? 'sel' : ''}" data-fl="${o.id}" aria-label="${o.name}"><span>${o.name}</span></button>`).join('')}<span class="end"></span></div>`;
     const sw = $('.swp', row2);
     const thumbs = () => $$('[data-fl]', row2).forEach(x => fthumb(pb, x.dataset.fl === 'leak' ? 'leak' + ((card.leak | 0) % 4) : x.dataset.fl).then(u => { if (u) x.style.backgroundImage = `url(${u})`; }));

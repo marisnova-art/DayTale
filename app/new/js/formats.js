@@ -227,7 +227,9 @@ function bigTitle(tx, over) {
   let k = Math.max(.5, Math.min(3, goal / w));
   const cw = tx.clientWidth || 1, set = f => { tx.style.fontSize = (f / cw * 100).toFixed(3) + 'cqw'; };
   set(base * k);
-  for (let n = 0; n < 12 && (over() || widest() > room * .995) && k > .3; n++) { k *= .92; set(base * k); }
+  // 150차 (앤드류 아이폰: 제목글이 안 커져요): scrollHeight는 사파리에서 모션 · 효과 그림자까지 넘침으로 재서 계속 줄였어요 → 글 상자 높이(변형 · 그림자 빼고)로만 재요
+  const cs = getComputedStyle(tx), tall = () => body.offsetHeight > tx.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) + 1;
+  for (let n = 0; n < 12 && (tall() || widest() > room * .995) && k > .3; n++) { k *= .92; set(base * k); }
 }
 function fitText(el, c) {
   el.querySelectorAll('.pg').forEach(pg => {

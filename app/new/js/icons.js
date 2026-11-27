@@ -2,6 +2,7 @@
 const P = {
   back: '<path d="m15 18-6-6 6-6"/>',
   prev: '<path d="m15 18-6-6 6-6"/>',
+  ret: '<path d="M19 12H5"/><path d="m11 18-6-6 6-6"/>',   // 150차: 돌아가기 (‹ 이전과 다른 모양)
   next: '<path d="m9 18 6-6-6-6"/>',
   note: '<path d="M5 4h14v11l-5 5H5z"/><path d="M14 20v-5h5"/><path d="M8.5 9h7M8.5 12.5h4"/>',
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.5h.01"/>',
