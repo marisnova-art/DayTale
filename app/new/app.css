@@ -2242,5 +2242,4 @@ html:not(.kb-open):not(.pan) .wr.aiw:not(.ki) .aip { padding-bottom: max(8px, va
 /* 150차: 룩 · 필터 칸 이름이 길면 칸 안에서 잘라요 (옆 칸으로 겹치지 않게) */
 .st2.flr .sw.ft span, .st2.swr .sw.ft span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-left: 3px; padding-right: 3px; }
 .fi .fx.tall { aspect-ratio: auto; overflow: visible; border-radius: 0; box-shadow: none; }   /* 150차: 9:16 바탕판 없음 */
-.fi .fx.tall > .view { margin: 0 auto; }
-.fi .fx.tall > .bd { right: calc(17.66% + 8px); }
+.fi .fx.tall > .view { width: 100%; margin: 0; }   /* 150차 (17:08 앤드류): 9:16도 다른 비율처럼 화면 폭 꽉 */
