@@ -23,7 +23,7 @@ const TPL = T;   // 함수 안에서 T를 다른 뜻(달 · 길이)으로 쓰는
 
 const app = document.getElementById('app');
 const HOME_START = [['last', '마지막에 본 보기'], ['1', '1열'], ['2', '2열'], ['cal', '캘린더']];
-{ const h = S.pref('homeStart', 'last'), put = (k, v) => S.pref(k) !== v && S.setPref(k, v); if (h === 'cal') put('homeCal', true); else if (h === '1' || h === '2') { put('homeCal', false); put('cols', +h); } }   // 11-12: 앱을 열 때만
+{ const h = S.pref('homeStart', '1'),   /* 152차 (앤드류): 기본 = 1열 홈 */ put = (k, v) => S.pref(k) !== v && S.setPref(k, v); if (h === 'cal') put('homeCal', true); else if (h === '1' || h === '2') { put('homeCal', false); put('cols', +h); } }   // 11-12: 앱을 열 때만
 const stillBg = () => document.documentElement.classList.toggle('still', S.pref('bgMotion', true) === false); stillBg();
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -111,7 +111,7 @@ const tabOf = h => { const [r, a] = (h || '').replace(/^#\/?/, '').split('/'); i
 function route() {
   { const k = tabOf(curHash); if (k) tabY[k] = scrollY; }   // 떠나는 탭의 자리 (쓰기는 따로 기억해요)
   const back = tabGo && tabOf(tabGo) && tabOf(tabGo) === tabOf(location.hash) ? tabY[tabOf(location.hash)] : 0; tabGo = null;
-  cleanup?.(); cleanup = null;
+  cleanup?.(); cleanup = null; navTimer(); $('.nbx')?.remove();
   if (lockN) { lockN = 1; unlockBg(); }   // 시트가 열린 채 화면이 바뀌면 멈춤을 풀어요
   const [r, a] = location.hash.replace(/^#\/?/, '').split('/');
   // 템플릿 틀은 볼 때만 불러와요: 이 화면에 필요한 틀이 없으면 먼저 받고 다시 그려요 (뒤로 기록은 그대로)
@@ -247,6 +247,13 @@ const upper = () => { let acc = 0; return dy => { if (dy > 0) { acc = 0; return 
     if (y <= 60 || end) n.classList.remove('out'); else if (y - y0 > 6) { n.classList.add('out'); up(1); } else if (up(y - y0)) n.classList.remove('out');
     y0 = y;
   }, { passive: true }); }
+// 152차 (앤드류): 5초 동안 아무 조작이 없으면 메뉴 막대가 숨고, 화면 어디든 만지면 다시 나와요 (카드를 누르면 메뉴도 나오고 카드도 열려요)
+// 아래 알림 배너가 떠 있거나 시트가 열린 동안은 숨기지 않아요
+const NAV_IDLE = 5000; let navIdle = 0;
+const navSleep = () => { const n = $('.nav'); if (!n) return; if (lockN || $('.nbx:not(.down)') || $('.sheet-bg')) { navIdle = setTimeout(navSleep, NAV_IDLE); return; } n.classList.add('out'); };
+const navTimer = () => { clearTimeout(navIdle); navIdle = setTimeout(navSleep, NAV_IDLE); };
+addEventListener('pointerdown', () => { const n = $('.nav'); if (n && !lockN) n.classList.remove('out'); navTimer(); }, true);
+addEventListener('scroll', navTimer, { passive: true }); addEventListener('keydown', navTimer, true);
 // 2 (11-11): 홈처럼 모든 화면에서 내리면 위 머리(쓰기 검색 · 칩, 검색 칸, 캘린더 판, 책갈피 · 설정 위 줄)가 숨고, 올리면 바로 나와요
 let hdHold = 0;   // 화면이 스스로 스크롤할 때(캘린더 날짜 누르기)는 그대로
 { let y0 = 0; const up = upper();
@@ -281,17 +288,16 @@ function viewFeed(fresh, quiet) {
   const feed = $('.feed');
   // 내 카드가 적으면 우리 카드(포맷 예시)를 아래에. N년 전 오늘 카드는 위에서 두 번째, NEW 포맷 카드는 8장마다 하나
   const list = mine.map(c => ({ c }));
-  const rec = recallOf(mine);
-  if (rec) list.splice(Math.min(1, list.length), 0, { c: rec.c, x: { recall: rec.n } });
-  if (mine.length >= 8) promoFormats(mine).forEach((f, i) => { const at = (i + 1) * 9 - 1; if (at <= list.length) list.splice(at, 0, { c: sampleCard(f, S.today()), x: { promo: true } }); });
-  if (mine.length < 6) list.push(...ORDER.map(f => ({ c: sampleCard(f, S.today()) })));
+  const rec = recallOf(mine);   // 152차: N년 전 오늘은 피드 대신 아래 알림 배너로
+  // 152차 (앤드류): 피드엔 견본 카드를 끼우지 않아요 (쓰기 홈이 그 역할). 새 템플릿은 아래 알림 배너로
   // 11-11: 처음엔 칸만, 화면 가까이(위아래 한 화면 반) 오면 그려요. 카드가 많아도 홈이 바로 떠요
   const lz = new IntersectionObserver(es => es.forEach(e => { if (!e.isIntersecting) return; lz.unobserve(e.target); e.target._draw?.(); }), { rootMargin: '1200px 0px' });
   if (two) {   // 더 짧은 열에 차례로 (높이 = 비율 + 아래 줄)
     const cols = $$('.mc', feed), h = [0, 0];
     list.forEach(({ c, x }) => { const i = h[1] < h[0] ? 1 : 0; cols[i].appendChild(feedItem(c, true, { ...x, lazy: lz })); h[i] += arOf(c) + .16; });
   } else list.forEach(({ c, x }) => feed.appendChild(feedItem(c, false, { ...x, lazy: lz })));
-  // 11-04: 위 배너는 이벤트 · 공지 · 알림 전용 (관리자에서 올린 것만). N년 전 오늘은 피드 두 번째 카드로만
+  // 152차: 아래 알림 배너 (홈을 열 때, 부팅 화면이 걷힌 뒤)
+  if (!fresh && !quiet) { const h = location.hash; setTimeout(() => { if (location.hash === h && $('.feed')) bottomBanner(rec); }, bootDone ? 700 : 2200); }
   // 1열 ↔ 2열: 보던 카드가 바뀐 화면에서도 가운데에 오게
   if (homeAt) { const id = homeAt; homeAt = null; const it = $(`.feed .fi[data-k="${id}"]`); if (it && it !== $('.feed .fi')) { const put = () => it.scrollIntoView({ block: 'center' }); put(); setTimeout(put, 400); } }
   $('[data-a=view]').onclick = () => {
@@ -421,7 +427,7 @@ function feedItem(c, tile, x = {}) {
   const f = FORMATS[c.fmt], when = x.recall ? `<i class="rc">${x.recall}년 전 오늘</i>` : ago(c);
   // 11-11: 카드 아래 = 쓴 때 · ⋯ 줄 + 글 한 줄. 1열은 '더 보기'로 그 자리에서 글 전체와 메모 모두 (인스타처럼), 2열은 글 한 줄만 (누르면 크게 보기)
   const memo = !c.sample;
-  it.innerHTML = `<div class="fx"><div class="view"></div><span class="pc bd"${hasVideo(c) ? '' : ' hidden'}>${hasVideo(c) ? ic('video') : ''}<b></b></span></div>
+  it.innerHTML = `<div class="fx"><div class="view"></div><span class="pc bd" hidden><b></b></span></div>
       ${tile && !c.sample && !x.recall && flat(c) ? '<p class="ex1"></p>' : ''}<p class="mt">${c.sample ? `<span><i class="nw">NEW</i>${f.name}</span><button class="cb" data-a="use" aria-label="이 포맷으로 쓰기">${ic('pen')}</button>`
         : `<span>${when}<span class="fls">${flagsOf(c, tile)}</span></span><button class="cb" data-a="more" aria-label="더 보기">${ic('more')}</button>`}</p>${tile ? '' : `<p class="ex"${memo || x.ex ? '' : ' hidden'}></p>`}`;
   const fx = $('.fx', it), view = $('.view', it), pc = $('.pc', it);
@@ -513,30 +519,44 @@ function promoSeen(f) {
   seen[f] = { n: o.n + 1, d }; S.setPref('promo', seen);
 }
 
-// 위 배너: 지금은 N년 전 오늘 (맞는 카드가 있을 때만). 공지가 생기면 같은 자리 · 같은 모양으로 공지가 먼저 (한 번에 하나).
-// 하루 한 번: 누르거나 옆으로 밀거나 ✕ 하면 그날은 끝. 누르면 그 카드가 크게 열려요
-function banner(rec) {
-  const el = $('.bn'), day = S.today();
-  if (!el || !rec || S.pref('bnDay') === day) return;
-  const c = rec.c;
-  el.hidden = false;
-  el.innerHTML = `<div class="th"></div><div class="tx">${rec.n}년 전 오늘<small>${esc(cardText(c).replace(/\s+/g, ' ').trim() || T.labelOf(c) || '')}</small></div><button class="cb" data-a="x" aria-label="닫기">${ic('close')}</button>`;
-  mount($('.th', el), c);
-  const done = () => { S.setPref('bnDay', day); el.classList.add('gone'); setTimeout(() => { el.hidden = true; el.classList.remove('gone'); el.style.transform = ''; }, 260); };
-  $('[data-a=x]', el).onclick = e => { e.stopPropagation(); done(); };
-  let x0 = null, dx = 0;
-  el.addEventListener('pointerdown', e => { x0 = e.clientX; dx = 0; });
-  el.addEventListener('pointermove', e => { if (x0 == null) return; dx = e.clientX - x0; if (Math.abs(dx) > 6) { el.style.transition = 'none'; el.style.transform = `translateX(${dx}px)`; } });
-  const up = () => {
-    if (x0 == null) return; x0 = null; el.style.transition = '';
-    if (Math.abs(dx) > 70) { el.style.transform = `translateX(${dx > 0 ? 110 : -110}%)`; done(); } else el.style.transform = '';
+// 152차 (앤드류): 아래 알림 배너. 메뉴 막대 바로 위로 올라와요. 누르면 이동 · ✕ 닫기 · 그대로 두면 3초 뒤 내려가요
+// 한 자리 · 한 번에 하나 · 종류마다 하루 한 번. 순서: (공지) → 새 템플릿 → N년 전 오늘
+// 새 템플릿 = 7일 안에 올라온 템플릿들을 랜덤 순서로 3초마다 하나씩, 한 바퀴 돌면 내려가요. 쓰는 중 · 시트가 열린 동안엔 안 떠요
+const NB_MS = 3000;
+function bottomBanner(rec) {
+  if ($('.nbx') || lockN) return;
+  const day = S.today(), seen = S.pref('nbDay', {});
+  const fresh = T.newest().filter(t => (new Date(day) - new Date(t.added)) / 864e5 <= 7);
+  let kind = null;
+  if (fresh.length && seen.tpl !== day) kind = 'tpl';
+  else if (rec && seen.rec !== day) kind = 'rec';
+  if (!kind) return;
+  seen[kind] = day; S.setPref('nbDay', seen);
+  const el = document.createElement('div'); el.className = 'nbx down'; el.setAttribute('role', 'button');
+  el.innerHTML = `<div class="th"></div><div class="tx"><small></small><b></b></div><button class="nbc" aria-label="닫기">${ic('close')}</button>`;
+  document.body.appendChild(el);
+  const put = () => { const n = $('.nav'); if (n) el.style.bottom = Math.max(12, innerHeight - n.getBoundingClientRect().top + 10) + 'px'; };
+  put();
+  const th = $('.th', el), sm = $('small', el), tt = $('b', el);
+  let at = null, timer = 0, gone = false;
+  const list = kind === 'tpl' ? fresh.map(t => [Math.random(), t]).sort((x, y) => x[0] - y[0]).map(x => x[1]) : [];
+  const fill = i => {
+    th.innerHTML = '';
+    if (kind === 'tpl') { const t = list[i]; at = '#/ti/' + t.id; sm.textContent = '새 템플릿'; tt.innerHTML = `<i class="nw">NEW</i>${esc(t.name)}`; tplTile(th, t, true, true); }
+    else { const c = rec.c; at = '#/at/' + c.id; sm.textContent = `${rec.n}년 전 오늘`; tt.textContent = cardText(c).replace(/\s+/g, ' ').trim() || T.labelOf(c) || ''; mount(th, c); }
   };
-  el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
-  el.addEventListener('click', e => {
-    if (Math.abs(dx) > 6 || e.target.closest('[data-a=x]')) return;
-    const it = $(`.feed .fi[data-k="r:${c.id}"]`) || $(`.feed .fi[data-k="${c.id}"]`);
-    done(); if (it) openFocus(it, c);
-  });
+  const hide = () => { if (gone) return; gone = true; clearTimeout(timer); el.classList.add('down'); setTimeout(() => el.remove(), 400); };
+  let i = 0; fill(0);
+  const tick = () => {
+    if (gone) return;
+    if ($('.nav')?.classList.contains('out') || $('.sheet-bg')) return hide();   // 피드를 내려 메뉴가 숨으면 같이
+    if (kind === 'tpl' && i < list.length - 1) { i++; el.classList.add('sw'); setTimeout(() => { if (!gone) { fill(i); el.classList.remove('sw'); } }, 180); timer = setTimeout(tick, NB_MS); return; }
+    hide();
+  };
+  requestAnimationFrame(() => requestAnimationFrame(() => el.classList.remove('down')));
+  timer = setTimeout(tick, NB_MS);
+  $('.nbc', el).onclick = e => { e.stopPropagation(); hide(); };
+  el.onclick = () => { const h = at; hide(); if (h) go(h); };
 }
 
 // 글만보기 (2열 ⋯): 포맷과 상관없이 글만, 한 가지 글꼴 · 크기. 바탕은 무료 그라데이션 중 하나 + 살짝 어둡게. 누르면 닫혀요
@@ -1187,6 +1207,7 @@ function viewMarks() {
 const motionKind = it => (it._card && hasVideo(it._card)) ? 'video' : (it._card && T.tplOfCard(it._card)?.motion === false) ? '' : it.querySelector('canvas.bgc, .cd.rebus .o[data-m], .cd.hilite .hm, .cd.gpl .gp.g, .cd.cdots .cdot, .cd.cwave .wvc, .cd.ctwr .tk, .cd.csym .sy, .cd.clab .ln, .cd.ctyp .tk, .cd.cvst .vpl') ? 'spark2' : '';
 function pcNum(pc, t) { if (!pc) return; let b = $('b', pc); if (!b) { b = document.createElement('b'); pc.appendChild(b); } b.textContent = t; pc.hidden = !t && !$('.kic', pc); }
 function markKind(it) {
+  return;   // 152차 (앤드류): 모션 ✨ · 영상 배지는 안 붙여요 (무엇인지 알아보기 어려워서). 장 번호(1/3)만 남아요
   if (it.dataset.kd || !it.querySelector('.cd')) return; it.dataset.kd = 1;
   const k = motionKind(it); if (!k) return;
   const host = it.querySelector('.fx') || it.querySelector('.tc') || it.querySelector('.cd'); let pc = host && host.querySelector(':scope > .pc');
@@ -1685,6 +1706,7 @@ function viewCal(month) {
 }
 
 // 우리 시트 틀 (목록 시트와 같은 모양 · 움직임). 바깥을 누르면 닫혀요. 키보드가 오르면 시트도 그 위로
+const STANDALONE = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 function panelSheet(html, cls = '') {
   const bg = document.createElement('div'); bg.className = 'sheet-bg';
   bg.innerHTML = `<div class="sheet bks ${cls}">${html}</div>`;
@@ -1692,11 +1714,11 @@ function panelSheet(html, cls = '') {
   const back = sheetBack; sheetBack = null;
   if (back && $('.sh', el)) { const b = document.createElement('button'); b.className = 'cb shb'; b.setAttribute('aria-label', '뒤로'); b.innerHTML = ic('back'); el.prepend(b); b.onclick = () => { close(); setTimeout(back, 120); };
     el.classList.add('hasb'); requestAnimationFrame(() => { const t = $('.sh', el); if (t) b.style.top = t.offsetTop + 'px'; }); }   // 자리만 맞춰요 (높이는 그대로)
-  const fit = () => { if (!vv) return; if (innerHeight - vv.height < 120) { bg.style.top = bg.style.height = bg.style.bottom = ''; return; }   // 11-12: 키보드가 떴을 때만 맞춰요 (아이폰 홈 화면 앱에서 아래 틈이 생기지 않게)
+  const fit = () => { if (!vv) return; if (innerHeight - vv.height < 120) { bg.style.top = bg.style.height = bg.style.bottom = ''; if (STANDALONE) { bg.style.top = '0px'; bg.style.bottom = 'auto'; bg.style.height = Math.max(innerHeight, screen.height) + 'px'; } return; }   // 152차: 홈 화면 앱은 키보드를 내린 뒤 바닥을 짧게 잡을 때가 있어서, 화면 끝까지   // 11-12: 키보드가 떴을 때만 맞춰요 (아이폰 홈 화면 앱에서 아래 틈이 생기지 않게)
     bg.style.top = vv.offsetTop + 'px'; bg.style.height = vv.height + 'px'; bg.style.bottom = 'auto'; };
   vv?.addEventListener('resize', fit); vv?.addEventListener('scroll', fit);
   // 150차 (앤드류: AI 시트 아래 빈 공간): 키보드가 내려가는 중에 연 시트는 키보드 높이에 맞춘 채 남을 때가 있어요 (아이폰이 마지막 resize를 안 줄 때) → 열고 나서 몇 번 · 시트를 만질 때마다 다시 맞춰요
-  [80, 300, 650, 1100].forEach(t => setTimeout(fit, t)); el.addEventListener('pointerdown', fit, true);
+  fit(); [80, 300, 650, 1100].forEach(t => setTimeout(fit, t)); el.addEventListener('pointerdown', fit, true);
   let shut = false;
   const close = () => { if (shut) return; shut = true; vv?.removeEventListener('resize', fit); vv?.removeEventListener('scroll', fit); document.activeElement?.blur?.(); bg.classList.add('out'); unlockBg(); setTimeout(() => bg.remove(), 300); };
   bg.addEventListener('click', e => { if (e.target === bg) close(); });
@@ -1860,7 +1882,7 @@ function viewTpl() {
   };
   bindNav();
   const stopMood = paintMood($('.amb'));
-  const tile = t => `<button class="tt" data-t="${t.id}"><div class="tc">${lock(t) ? `<span class="lk">${ic('lock')}</span>` : ''}</div><div class="nm"><span>${esc(t.name)}</span>${T.isFav(t.id) ? HEART : ''}</div></button>`;
+  const tile = t => `<button class="tt" data-t="${t.id}"><div class="tc"></div><div class="nm"><span>${lock(t) ? `<i class="lkp" aria-label="잠김">${ic('lock')}</i>` : ''}${esc(t.name)}</span>${T.isFav(t.id) ? HEART : ''}</div></button>`;
   // 11-11: 견본 칸은 화면 가까이(가로 줄 포함) 온 것만 그려요. 쓰기 탭이 바로 떠요
   const tq = new IntersectionObserver(es => es.forEach(e => { if (!e.isIntersecting) return; tq.unobserve(e.target); const b = e.target; if (b.isConnected && !$('.tc .cd', b)) tplTile($('.tc', b), T.tpl(b.dataset.t)); }), { rootMargin: '600px 400px' });
   let timer = 0;
@@ -1995,7 +2017,7 @@ const REC_T = { 밤: '밤에 쓰기 좋은', 비: '비 오는 날엔', 눈: '눈
 const WXK = { sun: '맑음', suncloud: '구름 조금', cloud: '흐림', rain: '비', snow: '눈', thunder: '천둥', fog: '안개' };
 const dayLine = (now = new Date()) => { let w = ''; try { const x = JSON.parse(localStorage.getItem('daytale.wx') || 'null'); if (x && Date.now() - x.at < 3 * 3600e3 && WXK[x.kind]) w = ` · ${WXK[x.kind]}${x.temp != null ? ` ${x.temp}°` : ''}`; } catch {} return `${now.getMonth() + 1}월 ${now.getDate()}일 ${'일월화수목금토'[now.getDay()]}요일${w}`; };
 // 78차: 새 버전 확인. 앱으로 돌아올 때(다른 앱 갔다 오기) version.txt가 지금과 다르면 저절로 새로 고쳐요. 쓰는 중엔 안 해요
-const BUILD = '151', BUILD_TAG = '11-27 151차';
+const BUILD = '152', BUILD_TAG = '11-27 152차';
 let verAt = 0;
 const checkVer = () => {
   if (document.hidden || Date.now() - verAt < 20e3) return; verAt = Date.now();
@@ -2472,8 +2494,11 @@ function viewWrite({ fmt, id, like }) {
     count(); tools(); applySize(true);
   }
   const backToKb = () => { st.hold = true; caretEnd(st.pg); mode(); };   // 누른 그 순간에 칸을 잡아야 아이폰 키보드가 다시 올라와요
-  function aiSheet() {
+  function aiSheet(waited) {
     flush(); st.hold = true; document.activeElement?.blur?.();   // 149차 (앤드류): 키보드를 먼저 내려요 (시트를 가리지 않게)
+    // 152차 (앤드류: 시트 아래 빈 공간): 키보드가 다 내려간 뒤에 열어요 (내려가는 중에 열면 아이폰이 짧게 잡은 바닥에 붙어요)
+    const vv = window.visualViewport;
+    if (!waited && vv && innerHeight - vv.height > 80) { const t0 = performance.now(); const w = () => { if (innerHeight - vv.height <= 80 || performance.now() - t0 > 900) setTimeout(() => aiSheet(true), 120); else requestAnimationFrame(w); }; return requestAnimationFrame(w); }
     let res = null, busy = false, prev = [...(st.aiLast?.prev || [])];
     const sh = panelSheet(`<div class="grab"></div><p class="sh">AI 글쓰기</p><div class="aib"></div>`, 'ais');
     const box = $('.aib', sh.el);
@@ -3860,7 +3885,7 @@ function viewSet(sub) {
   if (sub === 'date') return setPick('날짜 표시', DATE_FMT.map(f => [f, dateLine(S.today(), f)]), S.pref('dateFmt', 'dot'), v => S.setPref('dateFmt', v));
   if (sub === 'bg') return setBg();
   if (sub === 'bgg' || sub === 'bgs') return setBgPick(sub.slice(2));
-  if (sub === 'home') return setPick('홈 첫 화면', HOME_START, S.pref('homeStart', 'last'), v => S.setPref('homeStart', v));
+  if (sub === 'home') return setPick('홈 첫 화면', HOME_START, S.pref('homeStart', '1'), v => S.setPref('homeStart', v));
   if (sub === 'week') return setPick('한 주의 시작', [[0, '일요일'], [1, '월요일']], weekStart(), v => S.setPref('weekStart', v));
   if (sub === 'lang') return setPick('언어', Object.entries(LANGS), S.pref('lang', 'ko'), v => S.setPref('lang', v));
   if (sub === 'alarmtime') return setPick('알림 시간', TIMES, S.pref('remindAt', '21:00'), v => S.setPref('remindAt', v));
@@ -3876,7 +3901,7 @@ function viewSet(sub) {
   setShell('설정', `${sgrp(`<button class="srw acc" data-go="#/set/account"><span class="av"${avStyle()}></span><span class="t"><b>${esc(me.name || '나')}</b><small>${u ? esc(u.email || '') : '로그인 전'}</small></span>${u ? `<span class="v">${ic('next')}</span>` : '<span class="lbtn" data-a="login">로그인</span>'}</button>`)}
     ${sgrp(srow('chart', '내 기록', S.cards().length ? `카드 ${S.cards().length}` : '', { go: '#/me' }))}
     <div class="sgp plan">${srow('star', '구독', '체험 중', { go: '#/set/plan' })}${srow('ticket', '이용권 코드 넣기', '', { a: 'code' })}</div>
-    ${sgrp(srow('img', '바탕', BG_MODES.find(x => x[0] === bgMode())[1] + (!'dw'.includes(bgMode()) ? ' · ' + esc(bgPickOf(bgMode()) || '랜덤') : ''), { go: '#/set/bg' }), srow('home', '홈 첫 화면', HOME_START.find(x => x[0] === S.pref('homeStart', 'last'))[1], { go: '#/set/home' }))}
+    ${sgrp(srow('img', '바탕', BG_MODES.find(x => x[0] === bgMode())[1] + (!'dw'.includes(bgMode()) ? ' · ' + esc(bgPickOf(bgMode()) || '랜덤') : ''), { go: '#/set/bg' }), srow('home', '홈 첫 화면', HOME_START.find(x => x[0] === S.pref('homeStart', '1'))[1], { go: '#/set/home' }))}
     ${sgrp(srow('pin', '장소 자동', '', { tg: S.pref('autoPlace', false), a: 'place' }), srow('sign', '서명', esc(S.pref('sign', '')) || '없음', { go: '#/set/sign' }), srow('date', '날짜 표시', dateLine(S.today()), { go: '#/set/date' }), srow('week', '한 주의 시작', weekStart() ? '월요일' : '일요일', { go: '#/set/week' }))}
     ${sgrp(srow('backup', '백업', '', { go: '#/set/backup' }), srow('trash', '휴지통', n || '', { go: '#/set/trash' }))}
     ${sgrp(srow('bell', '알림', S.pref('remind', false) ? '켜짐' : '', { go: '#/set/alarm' }), srow('globe', '언어', LANGS[S.pref('lang', 'ko')], { go: '#/set/lang' }))}
@@ -4192,4 +4217,4 @@ const oauthBack = /[?&]code=/.test(location.search);
 T.onUpdate(() => { if (/^#\/(tpl|pick|ti)\b/.test(location.hash)) route(); });
 T.refresh();
 PC.start();   // PC: 휠 · 끌기 · 단축키
-Promise.all([P.boot(usedPhotos()), A.start()]).then(() => { if (oauthBack && A.user()) afterLogin(); else { route(); if (A.user()) Y.run().catch(() => {}); } }).then(() => document.fonts.ready).then(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))).then(bootEnd, bootEnd);
+Promise.all([P.boot(usedPhotos()), A.start()]).then(() => { if (oauthBack && A.user()) afterLogin(); else { if (!location.hash.replace(/^#\/?/, '') && !S.cards().length) history.replaceState(null, '', '#/pick'); route();   /* 152차 (앤드류): 카드가 없는 처음 사용자는 쓰기 홈부터 */ if (A.user()) Y.run().catch(() => {}); } }).then(() => document.fonts.ready).then(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))).then(bootEnd, bootEnd);

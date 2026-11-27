@@ -2243,3 +2243,21 @@ html:not(.kb-open):not(.pan) .wr.aiw:not(.ki) .aip { padding-bottom: max(8px, va
 .st2.flr .sw.ft span, .st2.swr .sw.ft span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-left: 3px; padding-right: 3px; }
 .fi .fx.tall { aspect-ratio: auto; overflow: visible; border-radius: 0; box-shadow: none; }   /* 150차: 9:16 바탕판 없음 */
 .fi .fx.tall > .view { width: 100%; margin: 0; }   /* 150차 (17:08 앤드류): 9:16도 다른 비율처럼 화면 폭 꽉 */
+.tt .nm .lkp { display: inline-grid; place-items: center; vertical-align: -3px; width: 22px; height: 17px; margin-right: 5px; border-radius: 6px; background: #fff; color: var(--bg); font-style: normal; }   /* 152차: 잠긴 템플릿 = 이름 앞 흰 알약 (NEW와 같은 모양) */
+.tt .nm .lkp svg.ic { width: 11px; height: 11px; stroke-width: 2.4; stroke: #141416; }
+/* 152차: 아래 알림 배너 (메뉴 막대 바로 위). 흐린 유리 → 그날 분위기 색이 비쳐요 */
+.nbx { position: fixed; left: var(--gut); right: var(--gut); max-width: 448px; margin: 0 auto; z-index: 29; height: 64px; border-radius: 18px; display: flex; align-items: center; gap: 12px; padding: 0 4px 0 8px; color: #fff; cursor: pointer;
+  background: rgba(26,26,29,.78); -webkit-backdrop-filter: blur(22px) saturate(1.5); backdrop-filter: blur(22px) saturate(1.5); box-shadow: inset 0 0 0 1px rgba(255,255,255,.1), 0 10px 30px rgba(0,0,0,.35);
+  transition: transform .35s cubic-bezier(.2,.8,.2,1), opacity .35s; }
+.nbx.down { transform: translateY(calc(100% + 110px)); opacity: 0; pointer-events: none; }
+.nbx .th { position: relative; width: 38px; height: 48px; border-radius: 8px; overflow: hidden; flex: none; pointer-events: none; background: rgba(255,255,255,.08); }
+.nbx .th .cd { width: 38px; }
+.nbx .th img.tth { width: 100%; height: 100%; object-fit: cover; display: block; }
+.nbx .tx { flex: 1; min-width: 0; line-height: 1.3; font-size: var(--fs-s); font-weight: var(--fw); transition: opacity .18s; }
+.nbx .tx small { display: block; color: rgba(255,255,255,.6); font-size: var(--fs-s); font-weight: var(--fw); }
+.nbx .tx b { display: block; font-weight: var(--fw); font-size: var(--fs-m); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nbx .tx .nw { font-style: normal; font-size: var(--fs-s); background: #fff; color: var(--bg); border-radius: 6px; padding: 0 5px; margin-right: 6px; }
+.nbx.sw .tx, .nbx.sw .th { opacity: 0; }
+.nbx .th { transition: opacity .18s; }
+.nbx .nbc { width: 44px; height: 44px; display: grid; place-items: center; background: none; border: 0; color: rgba(255,255,255,.7); flex: none; }
+.nbx .nbc .ic { width: 18px; height: 18px; }
