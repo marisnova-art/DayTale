@@ -2168,3 +2168,21 @@ html:not(.kb-open):not(.pan) .wr.aiw:not(.ki) .aip { padding-bottom: max(8px, va
 .capx .cqb { border-left: 2px solid rgba(255,255,255,.5); padding-left: 12px; }
 .capx .cs { font-size: var(--fs-s); color: var(--mut); min-height: 1.4em; }
 .capx .ct .stk { height: 1.2em; }
+
+/* 146차 (11-27 앤드류): AI 시트 · 넣은 뒤 ✨ 고르기 */
+.sheet.ais { max-height: 88vh; max-height: 88dvh; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; gap: 0; }
+.ais .sh { margin-bottom: 4px; }
+.ais .aq { font-size: var(--fs-s); color: var(--mut); margin: 14px 0 8px; }
+.ais .ach { display: flex; flex-wrap: wrap; gap: 8px; }
+.ais .chp { height: 34px; padding: 0 14px; border-radius: 999px; background: #232327; color: #c9c9cf; font: var(--fw) var(--fs-s) var(--ui); }
+.ais .chp.sel { background: #fff; color: var(--bg); }
+.ais .aix { margin-bottom: 16px; }
+.ais .okp.wk { animation: aiBusy 1.2s ease-in-out infinite; }
+.ais .asum { font-size: var(--fs-s); color: var(--mut); text-align: center; }
+.ais .abox { background: #232327; border-radius: 14px; padding: 12px 14px; font: var(--fw) var(--fs-m)/1.55 var(--ui); color: #fff; outline: none; white-space: pre-wrap; overflow-wrap: anywhere; -webkit-user-select: text; user-select: text; caret-color: #4b8dff; }
+.ais .abox:focus { box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.6); }
+.ais .ahint { font-size: var(--fs-s); color: var(--mut); text-align: center; margin: 12px 0 14px; }
+.ais .abt { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ais .okp.sec { background: #232327; color: #fff; }
+.sheet.aact .it { justify-content: center; }
+.wr .stt.aibz { animation: aiBusy 1.2s ease-in-out infinite; }

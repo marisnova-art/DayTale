@@ -1993,7 +1993,7 @@ const REC_T = { 밤: '밤에 쓰기 좋은', 비: '비 오는 날엔', 눈: '눈
 const WXK = { sun: '맑음', suncloud: '구름 조금', cloud: '흐림', rain: '비', snow: '눈', thunder: '천둥', fog: '안개' };
 const dayLine = (now = new Date()) => { let w = ''; try { const x = JSON.parse(localStorage.getItem('daytale.wx') || 'null'); if (x && Date.now() - x.at < 3 * 3600e3 && WXK[x.kind]) w = ` · ${WXK[x.kind]}${x.temp != null ? ` ${x.temp}°` : ''}`; } catch {} return `${now.getMonth() + 1}월 ${now.getDate()}일 ${'일월화수목금토'[now.getDay()]}요일${w}`; };
 // 78차: 새 버전 확인. 앱으로 돌아올 때(다른 앱 갔다 오기) version.txt가 지금과 다르면 저절로 새로 고쳐요. 쓰는 중엔 안 해요
-const BUILD = '146', BUILD_TAG = '11-27 146차';
+const BUILD = '147', BUILD_TAG = '11-27 147차';
 let verAt = 0;
 const checkVer = () => {
   if (document.hidden || Date.now() - verAt < 20e3) return; verAt = Date.now();
@@ -2431,6 +2431,117 @@ function viewWrite({ fmt, id, like }) {
     push(); draw(); paintCap(true); count(); tools(); paintAi(); applySize(true);
     pop(({ t: '제목 문장', 5: '5줄 문장' })[st.aiLen] || '2줄 문장', null, 'AI 글쓰기');
   }
+  // 146차 (11-27 앤드류): AI 시트 — 내용글 [없음/1~5줄] · 제목글 [없음/키워드/1줄/2줄] (기본 · 디자인 = 글 [1~5줄]) + 감성 · 주제 칩 + 추가 입력.
+  // 결과는 시트 안에서 바로 고치기 · 다시 · 넣기. 넣은 뒤 ✨ = 다시 생성(같은 설정, 시트 없이 바꿔 넣기, ↶로 되돌림) / 설정하기(마지막 선택으로 시트)
+  const AI_MOOD = ['잔잔한', '설레는', '쓸쓸한', '따뜻한', '다짐', '감사', '위로', '유쾌한'];
+  const AI_TOPIC = ['날씨', '산책', '카페', '일', '사람', '여행', '음식', '밤', '휴식'];
+  const aiKey = cap ? 'aiSet' : 'aiSet1';
+  const aiSet = Object.assign({ b: 3, h: cap ? '1' : '', m: '', t: '', x: '' }, S.pref(aiKey, {}));
+  if (!cap) { aiSet.h = ''; if (!aiSet.b) aiSet.b = 3; }
+  const aiSum = () => [aiSet.b ? `${cap ? '내용글' : '글'} ${aiSet.b}줄` : '', aiSet.h ? `제목글 ${aiSet.h === 'kw' ? '키워드' : aiSet.h + '줄'}` : '', aiSet.m, aiSet.t].filter(Boolean).join(' · ');
+  async function aiCall(prev) {
+    const C = window.APP_CONFIG || {};
+    if (!C.SUPABASE_URL || !navigator.onLine) return { error: 'net' };
+    const src = cap && !aiSet.b && aiSet.h ? (card.note || '').trim() : '';   // 제목글만: 이미 쓴 내용글에서 줄여요
+    try {
+      const r = await fetch(`${C.SUPABASE_URL}/functions/v1/ai-write`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: C.SUPABASE_ANON_KEY, authorization: `Bearer ${C.SUPABASE_ANON_KEY}` },
+        body: JSON.stringify({ v: 2, body: aiSet.b, head: aiSet.h, mood: aiSet.m, topic: aiSet.t, extra: aiSet.x, src, prev, lang: aiLang(), date: card.date }) });
+      const j = await r.json().catch(() => null);
+      return r.ok && j && (j.body || j.head) ? { body: j.body || '', head: j.head || '' } : { error: j?.error || 'upstream' };
+    } catch { return { error: 'net' }; }
+  }
+  const aiErr = e => e === 'busy' ? '잠시 뒤 다시 해 주세요' : e === 'net' ? '인터넷에 연결해 주세요' : '지금은 못 만들어요';
+  const aiPrev = res => [res?.body, res?.head].filter(Boolean).join(' / ');
+  function aiPut(res) {   // 아트 · 포스터: 칸 글을 바꿔 넣어요. 기본 · 디자인: 먼저 쓴 글 뒤에 (다시 생성은 방금 넣은 것만 바꿔요)
+    flush();
+    if (cap) {
+      if (res.body) { card.note = res.body; if (mag) card.html = esc(firstLine(res.body)); }
+      if (res.head) { if (mag) card.title = res.head.replace(/\n+/g, ' '); else card.pages[0] = esc(res.head).replace(/\n/g, '<br>'); }
+    } else {
+      const cur = rich ? card.pages[st.pg] || '' : card.html || '';
+      const base = st.aiLast && st.aiLast.at === cur ? st.aiLast.base : cur, add = esc(res.body);
+      const plain = base.replace(/<br\s*\/?>/g, '').replace(/<[^>]+>|&nbsp;/g, '').trim();
+      const next = !plain ? add : rich ? `${base}<br><br>${add}` : `${base.replace(/(\s|&nbsp;)+$/, '')} ${add}`;
+      if (rich) card.pages[st.pg] = next; else card.html = next;
+      st.aiLast = { ...(st.aiLast || {}), base, at: next };
+    }
+    { const pv = st.aiLast?.prev || []; st.aiLast = { ...(st.aiLast || {}), res, prev: pv[pv.length - 1] === aiPrev(res) ? pv : [...pv, aiPrev(res)].slice(-3) }; }
+    push(); if (cap) { draw(); paintCap(true); } else if (typingNow() || st.hold) setBodies(card); else draw();
+    count(); tools(); applySize(true);
+  }
+  const backToKb = () => { st.hold = true; caretEnd(st.pg); mode(); };   // 누른 그 순간에 칸을 잡아야 아이폰 키보드가 다시 올라와요
+  function aiSheet() {
+    flush(); st.hold = true;
+    let res = null, busy = false, prev = [...(st.aiLast?.prev || [])];
+    const sh = panelSheet(`<div class="grab"></div><p class="sh">AI 글쓰기</p><div class="aib"></div>`, 'ais');
+    const box = $('.aib', sh.el);
+    sh.bg.addEventListener('click', e => { if (e.target === sh.bg) backToKb(); });
+    const chips = (k, opts) => `<div class="ach" data-k="${k}">${opts.map(([v, l]) => `<button class="chp${String(aiSet[k]) === String(v) ? ' sel' : ''}" data-v="${esc(String(v))}">${esc(l)}</button>`).join('')}</div>`;
+    function paint() {
+      if (res) {
+        box.innerHTML = `<p class="asum">${esc(aiSum())}</p>
+          ${res.body ? `<p class="aq">${cap ? '내용글' : '글'}</p><div class="abox" data-r="body" contenteditable="plaintext-only" spellcheck="false">${esc(res.body)}</div>` : ''}
+          ${res.head ? `<p class="aq">제목글</p><div class="abox" data-r="head" contenteditable="plaintext-only" spellcheck="false">${esc(res.head)}</div>` : ''}
+          <p class="ahint">글을 눌러 바로 고칠 수 있어요</p>
+          <div class="abt"><button class="okp sec${busy ? ' wk' : ''}" data-a="again">${busy ? '만드는 중' : '다시'}</button><button class="okp" data-a="put">넣기</button></div>`;
+        return;
+      }
+      const nums = n0 => Array.from({ length: 6 - n0 }, (_, i) => [i + n0, i + n0 ? `${i + n0}줄` : '없음']);
+      box.innerHTML = (cap ? `<p class="aq">내용글</p>${chips('b', nums(0))}<p class="aq">제목글</p>${chips('h', [['', '없음'], ['kw', '키워드'], ['1', '1줄'], ['2', '2줄']])}`
+        : `<p class="aq">글</p>${chips('b', nums(1))}`)
+        + `<p class="aq">감성</p>${chips('m', AI_MOOD.map(x => [x, x]))}<p class="aq">주제</p>${chips('t', AI_TOPIC.map(x => [x, x]))}
+          <p class="aq">추가 입력</p><label class="inp aix"><input maxlength="80" enterkeyhint="done" autocomplete="off" placeholder="예: 강변, 소금빵" value="${esc(aiSet.x)}"></label>
+          <button class="okp${busy ? ' wk' : ''}" data-a="go"${!aiSet.b && !aiSet.h ? ' disabled' : ''}>${busy ? '만드는 중' : '만들기'}</button>`;
+      const inp = $('.aix input', box);
+      inp.oninput = () => { aiSet.x = inp.value; };
+      inp.onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); inp.blur(); } };
+    }
+    async function make() {
+      if (busy) return;
+      busy = true; paint();
+      S.setPref(aiKey, { b: aiSet.b, h: aiSet.h, m: aiSet.m, t: aiSet.t, x: aiSet.x });
+      const r = await aiCall(prev);
+      busy = false;
+      if (!sh.bg.isConnected) return;
+      if (r.error) { paint(); return pop(aiErr(r.error)); }
+      res = r; prev = [...prev, aiPrev(r)].slice(-3); paint();
+    }
+    box.addEventListener('click', e => {
+      const c = e.target.closest('.chp');
+      if (c) {
+        const k = c.closest('.ach').dataset.k, v = c.dataset.v;
+        if (k === 'b') aiSet.b = +v; else if (k === 'h') aiSet.h = v; else aiSet[k] = aiSet[k] === v ? '' : v;   // 감성 · 주제는 다시 누르면 빼요
+        return paint();
+      }
+      const a = e.target.closest('[data-a]')?.dataset.a;
+      if (a === 'go' || a === 'again') return make();
+      if (a === 'put') {
+        $$('.abox', box).forEach(b => { res[b.dataset.r] = b.innerText.replace(/​/g, '').trim(); });
+        if (!res.body && !res.head) return;
+        st.aiLast = { ...(st.aiLast || {}), prev };
+        backToKb(); sh.close(); aiPut(res); pop('넣었어요', null, 'AI 글쓰기');
+      }
+    });
+    paint();
+  }
+  async function aiAgain() {   // 다시 생성: 같은 설정 · 시트 없이 · 앞선 결과와 다르게
+    if (st.aiBusy) return;
+    st.aiBusy = true; const nm = $('.wr .stt'); clearTimeout(st.popT); st.popT = 1; nm.textContent = '만드는 중'; nm.classList.add('ntc', 'aibz');
+    const r = await aiCall(st.aiLast?.prev || []);
+    st.aiBusy = false; st.popT = 0; nm.classList.remove('ntc', 'aibz');
+    if (!wr.isConnected) return;
+    if (r.error) return pop(aiErr(r.error));
+    aiPut(r); pop('다시 만들었어요', null, 'AI 글쓰기');
+  }
+  function aiTap() {
+    if (!st.aiLast?.res) return aiSheet();
+    const sh = panelSheet(`<div class="grp"><button class="it" data-a="again">다시 생성</button><button class="it" data-a="set">설정하기</button></div><div class="grp"><button class="it" data-a="no">취소</button></div>`, 'aact');
+    sh.bg.addEventListener('click', e => {
+      const a = e.target === sh.bg ? 'no' : e.target.closest('[data-a]')?.dataset.a; if (!a) return;
+      if (a === 'set') { sh.close(); return aiSheet(); }
+      backToKb(); sh.close(); if (a === 'again') aiAgain();
+    });
+  }
   $$('button', aip).forEach(b => b.addEventListener('pointerdown', e => e.preventDefault()));
   $$('.len', aip).forEach(b => { b.onclick = () => { st.aiLen = b.dataset.l; paintAi(); }; });
   aigo.onclick = aiMake;
@@ -2699,7 +2810,7 @@ function viewWrite({ fmt, id, like }) {
       if (k === 'img') { st.tab = 'img'; paintRow2(); return; }   // 11-04: 위 칸은 아래 줄만 열어요. 사진첩은 아래 줄 사진 칸에서만 (두 곳에서 열려 헷갈려서)
       if (k === 'photo') return pickPhoto();   // 쓰는 중에도 이 장의 사진을 고를 수 있어요 (포토 포맷)
       if (k === 'emo') return st.panel === k ? closePanel(true) : openPanel(k);
-      if (k === 'ai') return aiOpen() ? closeAi() : openAi();
+      if (k === 'ai') return aiOpen() ? closeAi() : aiTap();   // 146차: AI 시트
       if (k === 'clear') {   // 모두 지우기 (11-27): 모든 장의 글을 한 번에. 확인 창 없이, ↶로 되살려요
         if (!hasText()) return;
         flush();
