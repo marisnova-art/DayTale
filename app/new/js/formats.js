@@ -161,7 +161,9 @@ function text(c, { edit = false } = {}) {
   const info = esc([dateOn(c) ? dateLine(c.date) : '', placeOn(c) ? c.place.trim() : ''].filter(Boolean).join(' · '));
   const ff = fontCssOf(fo).replace(/"/g, '&quot;'), ls = fo.id === 'sans' ? '' : ';letter-spacing:.04em';
   shape(el, arOf(c));
-  const ex = c.ex?.t || (FORMATS[c.fmt] || FORMATS.text).sample.pages[0].replace(/<[^>]+>/g, '');   // 새 카드마다 고른 질문 · 문장 (prompts.js)
+  const ex = c.ex?.t || (FORMATS[c.fmt] || FORMATS.text).sample.pages[0].replace(/<[^>]+>/g, '');
+  const capc = c.fmt !== 'text' && capOn(c);   // 148차: 아트 제목글 = 크게(카드 폭 70~80%) + 효과 · 모션
+  if (capc) el.classList.add('capc');   // 새 카드마다 고른 질문 · 문장 (prompts.js)
   el.innerHTML = pages.map((h, i) => {
     const { html, ink, bink } = bgLayer(c, i, pages.length);
     const date = info ? `<div class="dt ${dp === 'top' ? 'dup' : 'ddn'}" style="text-align:${dhOf(c)};font-size:${dl}cqw;font-family:${ff}${ls}">${info}</div>` : '';   // 날짜 줄도 카드 글꼴 · 글자 크기를 따라가요 (글꼴마다 크기 보정)
@@ -169,7 +171,7 @@ function text(c, { edit = false } = {}) {
     return `<section class="pg${sg ? ' hsg' : ''}" data-i="${i}" style="color:${c.ink || ink};--dl:${dl}cqw${bink && !c.ink ? `;--bink:${bink}` : ''}">${html}
       <div class="tx" data-k="${fo.k}" data-sz="${SIZES[c.size] || SIZES.m}" data-v="${pageAlign(c, i).v || 'm'}" style="${pageAlign(c, i).x != null ? `--dx:${+pageAlign(c, i).x || 0};--dy:${+pageAlign(c, i).y || 0};` : ''}font-family:${ff};line-height:${(fo.lh * (LH[c.lh] || 1)).toFixed(3)};letter-spacing:${fo.ls || 'normal'};text-align:${{ l: 'left', c: 'center', r: 'right' }[pageAlign(c, i).h || 'l']}${c.bold ? ';font-weight:700' : ''}">
         ${dp === 'top' && i === 0 ? date : ''}
-        <div class="body" ${edit ? 'contenteditable="true" spellcheck="false" autocapitalize="off"' : ''} data-ph="${i === 0 ? esc(ex) : '이어서 써 보세요'}">${h}</div>
+        <div class="body" ${edit ? 'contenteditable="true" spellcheck="false" autocapitalize="off"' : ''} data-ph="${i === 0 ? esc(ex) : '이어서 써 보세요'}"${capc ? ` data-fx="${tfxOf(c)}" data-mo="${tmoOf(c)}" style="--tg:${toneOf(c)}"` : ''}>${h}</div>
         ${dp === 'bottom' && i === pages.length - 1 ? date : ''}
       </div>${sig}</section>`;
   }).join('');
@@ -213,6 +215,19 @@ function photoTiles(pg, tx) {
     const m = ph.cloneNode(); m.classList.add('more'); m.style.top = (pad + off) + 'px'; ph.after(m);
   });
 }
+// 148차: 제목글을 가장 긴 줄이 글 칸 폭의 약 75%가 되게 키워요 (고른 크기가 기준, 최대 2.4배). 넘치면 줄여서 늘 한 장
+function bigTitle(tx, over) {
+  const body = tx.querySelector('.body'); if (!body || !body.textContent.trim()) return;
+  const base = parseFloat(getComputedStyle(tx).fontSize) || 0, room = tx.clientWidth - parseFloat(getComputedStyle(tx).paddingLeft) - parseFloat(getComputedStyle(tx).paddingRight);
+  if (!base || room <= 0) return;
+  const widest = () => { const r = document.createRange(); r.selectNodeContents(body); const rows = new Map(); for (const q of r.getClientRects()) { if (q.width < 1) continue; const k = Math.round(q.top); rows.set(k, (rows.get(k) || 0) + q.width); } return Math.max(0, ...rows.values()); };
+  const w = widest(); if (!w) return;
+  const cw0 = tx.clientWidth || room, goal = Math.min(cw0 * .76, room * .96);   // 카드 폭의 약 3/4
+  let k = Math.max(1, Math.min(2.4, goal / w));
+  const cw = tx.clientWidth || 1, set = f => { tx.style.fontSize = (f / cw * 100).toFixed(3) + 'cqw'; };
+  set(base * k);
+  for (let n = 0; n < 12 && (over() || widest() > room * .98) && k > .55; n++) { k *= .92; set(base * k); }
+}
 function fitText(el, c) {
   el.querySelectorAll('.pg').forEach(pg => {
     const tx = pg.querySelector('.tx'); if (!tx) return;
@@ -222,6 +237,7 @@ function fitText(el, c) {
     const over = () => tx.scrollHeight > tx.clientHeight + 1;
     // 글자 크기는 고른 그대로(중간 = 카드 폭의 6%). 저절로 줄이지 않고, 넘치면 장이 길어져 저장할 때 나뉘어요
     tx.style.fontSize = px((+tx.dataset.sz || 65) * (+tx.dataset.k || 1));
+    if (el.classList.contains('capc')) bigTitle(tx, over);
     if (over()) pg.classList.add('long');
     tx.style.justifyContent = jc;
     photoTiles(pg, tx);
@@ -296,6 +312,14 @@ const plain = h => { const d = document.createElement('div'); d.innerHTML = (h |
 // 146차 (11-27 앤드류): 아트 · 포스터 = 카드엔 제목글만, 내용글 · 좋은글은 카드 아래 (저장 이미지엔 카드만). 디자인 · 기본은 지금처럼 글이 카드에
 export const isCap = c => !!c && c.fmt !== 'text' && (Array.isArray(c.pages) || c.fmt === 'mag');
 export const capOn = c => isCap(c) && (!!c.cap || c.note != null || !!c.quote);   // 새 방식으로 쓴 카드 (예전 카드는 카드 글을 그대로 아래에)
+// 148차 (11-27 앤드류): 아트 제목글 효과 12 · 모션 12. 은은하게 · 튀지 않게. 틀마다 기본 조합, 셔플이 바꿔요 (고른 뒤엔 그대로).
+// 모션은 홈 가운데 카드(.fi.play)와 쓰기메인에서만 움직이고, 저장 이미지는 다 나타난 모습
+export const TFX = [['', '기본'], ['glow', '은은한 글로우'], ['soft', '부드러운 그림자'], ['line', '얇은 외곽선'], ['hollow', '속 빈 글자'], ['show', '그림 비침'], ['grad', '그림 색 그라데이션'], ['grain', '그레인'], ['ink', '잉크 번짐'], ['dual', '이중 겹침'], ['rim', '빛 테두리'], ['glass', '유리']];
+export const TMO = [['', '없음'], ['fade', '페이드'], ['rise', '천천히 떠오르기'], ['settle', '내려앉기'], ['focus', '블러에서 또렷하게'], ['chars', '한 글자씩 페이드'], ['type', '타자'], ['seep', '스며들기'], ['near', '다가오기'], ['breath', '숨쉬기'], ['track', '자간 펼치기'], ['sheen', '빛 지나가기']];
+export const FX_SOFT = ['glow', 'soft', '', 'show', 'glass', 'rim'], MO_SOFT = ['fade', 'rise', 'focus', 'seep', 'near', 'track', 'chars'];
+const hashS = s => [...String(s)].reduce((h, ch) => (Math.imul(h, 31) + ch.charCodeAt(0)) >>> 0, 7);
+export const tfxOf = c => c.tfx ?? FX_SOFT[hashS(c.fmt) % FX_SOFT.length];
+export const tmoOf = c => c.tmo ?? MO_SOFT[hashS(c.fmt + 'm') % MO_SOFT.length];
 export const firstLine = t => { const s = String(t || '').trim().split(/\n+/)[0] || ''; const m = s.match(/^.+?[.!?。！？](?=\s|$)/); return (m ? m[0] : s).slice(0, 80); };
 export const cardText = c => c.pages ? c.pages.map(plain).join('\n') : plain(rebusHtmlOf(c));
 // 피드 바탕에 은은하게 번지는 색: 카드의 대표 색

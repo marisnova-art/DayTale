@@ -2,7 +2,7 @@
 import { ic } from './icons.js';
 import * as S from './store.js';
 import { exampleText, quoteText, dayQuestion } from './prompts.js';
-import { FORMATS, ORDER, LABEL, ensure, missing, blank, sampleCard, renderCard, fitCard, cardText, isCap, capOn, firstLine, RATIO3, newSeed, placeObjects, dateChip, weekday, toneOf, pageBg, AR, RATIOS, arOf, dateOn, placeOn, infoPos, signOf, SIZE5, V5, dimLv, inkOn, dateLine, DATE_FMT, zoomOf, zoomCss, lines, starts } from './formats.js';
+import { FORMATS, ORDER, LABEL, ensure, missing, blank, sampleCard, renderCard, fitCard, cardText, isCap, capOn, firstLine, RATIO3, TFX, TMO, FX_SOFT, MO_SOFT, tfxOf, tmoOf, newSeed, placeObjects, dateChip, weekday, toneOf, pageBg, AR, RATIOS, arOf, dateOn, placeOn, infoPos, signOf, SIZE5, V5, dimLv, inkOn, dateLine, DATE_FMT, zoomOf, zoomCss, lines, starts } from './formats.js';
 import { FREE, KIND, find as findBg, drawCode, SWIRL_PAL, NEON_PAL, TUNNEL_PAL, ECLIPSE_PAL, MESH_PAL, PIXEL_PAL, RETRO_PAL, GBAND_PAL, CUBE_PAL, CCOMP_PAL, BMOD_PAL, WINT_PAL, SPEC_PAL, CITY_PAL, BLOB_PAL, LENS_PAL, FIELD_PAL, LIQUID_PAL, FLOAT_PAL, CLOUD_PAL, DOTW_PAL, SWARM_PAL, FOLD_PAL, CRAIN_PAL, ORB_PAL, VALLEY_PAL, GLYPH_PAL, PLASMA_PAL } from './bg.js';
 import { buildPages, saveImages } from './export.js';
 import { saveCard, pill, pillOff } from './save.js';
@@ -1993,7 +1993,7 @@ const REC_T = { 밤: '밤에 쓰기 좋은', 비: '비 오는 날엔', 눈: '눈
 const WXK = { sun: '맑음', suncloud: '구름 조금', cloud: '흐림', rain: '비', snow: '눈', thunder: '천둥', fog: '안개' };
 const dayLine = (now = new Date()) => { let w = ''; try { const x = JSON.parse(localStorage.getItem('daytale.wx') || 'null'); if (x && Date.now() - x.at < 3 * 3600e3 && WXK[x.kind]) w = ` · ${WXK[x.kind]}${x.temp != null ? ` ${x.temp}°` : ''}`; } catch {} return `${now.getMonth() + 1}월 ${now.getDate()}일 ${'일월화수목금토'[now.getDay()]}요일${w}`; };
 // 78차: 새 버전 확인. 앱으로 돌아올 때(다른 앱 갔다 오기) version.txt가 지금과 다르면 저절로 새로 고쳐요. 쓰는 중엔 안 해요
-const BUILD = '147', BUILD_TAG = '11-27 147차';
+const BUILD = '148', BUILD_TAG = '11-27 148차';
 let verAt = 0;
 const checkVer = () => {
   if (document.hidden || Date.now() - verAt < 20e3) return; verAt = Date.now();
@@ -2134,7 +2134,7 @@ function viewWrite({ fmt, id, like }) {
   if (!rich && card.html == null) { card.html = renderCard(card).querySelector('.rb').innerHTML; card.html = clean(card.html); delete card.text; }
   // 146차 (11-27 앤드류): 아트 · 포스터 = 키보드 쓰기에서 내용글 · (좋은글) · 제목글 칸에 따로 써요. 카드엔 제목글만 (포스터는 잡지 제목 + 본문 자리에 내용글 첫 문장).
   // 내용글 · 좋은글은 홈에서 카드 아래 (저장 이미지엔 카드만). 장 나누기는 없어요 (카드 1장)
-  const cap = isCap(card), mag = cap && !rich;
+  const cap = isCap(card), mag = cap && !rich, artCap = cap && rich;
   if (cap && !card.cap) {   // 예전 카드: 여러 장이면 하나로 합쳐 제목글로 (내용글은 비어 있어요)
     if (rich && card.pages.length > 1) { card.pages = [card.pages.filter(h => h && h.replace(/<[^>]+>|&nbsp;|\s/g, '')).join('<br>')]; if (card.pst) card.pst = [card.pst[0]].filter(Boolean); }
     if (mag && card.note == null && card.html && !card.sample) card.note = card.html.replace(/<br\s*\/?>/g, '\n').replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&amp;/g, '&').trim();
@@ -2568,7 +2568,7 @@ function viewWrite({ fmt, id, like }) {
   /* 카드 그리기. 글만 바뀌면 그 자리에서 바꾸고(키보드가 내려가지 않게), 장 수·배경·날짜 같은 틀이 바뀔 때만 새로 그려요 */
   let el = null, shape = '';
   const look = () => [card.ratio, card.lh, card.bold, card.ink, card.showDate, card.placeOff, card.sg, card.signTxt, card.dh];
-  const shapeOf = () => JSON.stringify(rich ? [card.pages.length, card.bg, card.align, card.pst, card.datePos, card.date, card.place, card.font, card.size, card.filter, card.leak, ...look()] : [card.date, card.place, card.size, card.align, card.datePos, card.seed, card.pal, card.bg?.ph, card.bg?.src, card.bg?.vd, card.filter, card.layout, ...look()]);   // 셔플(seed)하면 종이색까지 새로 (11-20)
+  const shapeOf = () => JSON.stringify(rich ? [card.pages.length, card.bg, card.align, card.pst, card.datePos, card.date, card.place, card.font, card.size, card.filter, card.leak, card.tfx, card.tmo, ...look()] : [card.date, card.place, card.size, card.align, card.datePos, card.seed, card.pal, card.bg?.ph, card.bg?.src, card.bg?.vd, card.filter, card.layout, ...look()]);   // 셔플(seed)하면 종이색까지 새로 (11-20)
   const bodies = () => $$('.body', el);
   // 글 칸의 값: 장(글 · 아트) · 한 덩어리 글(디자인) · 따로 쓰는 칸(data-f, 잡지 표지 제목 = 글자만)
   const valOf = (c, b, i) => b.dataset.f ? esc(c[b.dataset.f] ?? '') : rich ? (c.pages[i] ?? '') : c.html;
@@ -2800,7 +2800,7 @@ function viewWrite({ fmt, id, like }) {
         const was = typingNow() || st.hold; paintMeta(); draw(); if (was && !typingNow()) caretEnd(st.pg);
         paintRow2(); return;
       }
-      if (k === 'shuf') { if (rich) { const o = ps().bg.seed || 1; let n = newSeed(); while ((ps().bg.id === 'slit' && n % 5 === o % 5) || (ps().bg.id === 'swirl' && ps().bg.pal == null && n % 20 === o % 20) || ((ps().bg.id === 'neon' || ps().bg.id === 'tunnel' || ps().bg.id === 'eclipse' || ps().bg.id === 'mesh' || ps().bg.id === 'pixel' || ps().bg.id === 'retro' || ps().bg.id === 'gband' || ps().bg.id === 'cube' || ps().bg.id === 'ccomp' || ps().bg.id === 'bmod' || ps().bg.id === 'wint' || ps().bg.id === 'spec' || ps().bg.id === 'city' || ps().bg.id === 'blob' || ps().bg.id === 'lens' || ps().bg.id === 'field' || ps().bg.id === 'liquid' || ps().bg.id === 'float' || ps().bg.id === 'cloud' || ps().bg.id === 'dotw' || ps().bg.id === 'swarm' || ps().bg.id === 'fold' || ps().bg.id === 'crain' || ps().bg.id === 'orb' || ps().bg.id === 'valley' || ps().bg.id === 'glyph') && ps().bg.pal == null && n % 10 === o % 10) || (ps().bg.id === 'plasma' && ps().bg.pal == null && n % 11 === o % 11) || (ps().bg.id === 'fractal' && n % 10 === o % 10)) n = newSeed(); ps().bg.seed = n; syncFirst(); } else { f.shuffle?.(card); card.seed = newSeed(); } push(); draw(); paintRow2(); return; }   // 글카드: 보고 있는 장만. 슬릿스캔는 셔플마다 색 묶음도 꼭 바뀌게
+      if (k === 'shuf') { if (rich) { const o = ps().bg.seed || 1; let n = newSeed(); while ((ps().bg.id === 'slit' && n % 5 === o % 5) || (ps().bg.id === 'swirl' && ps().bg.pal == null && n % 20 === o % 20) || ((ps().bg.id === 'neon' || ps().bg.id === 'tunnel' || ps().bg.id === 'eclipse' || ps().bg.id === 'mesh' || ps().bg.id === 'pixel' || ps().bg.id === 'retro' || ps().bg.id === 'gband' || ps().bg.id === 'cube' || ps().bg.id === 'ccomp' || ps().bg.id === 'bmod' || ps().bg.id === 'wint' || ps().bg.id === 'spec' || ps().bg.id === 'city' || ps().bg.id === 'blob' || ps().bg.id === 'lens' || ps().bg.id === 'field' || ps().bg.id === 'liquid' || ps().bg.id === 'float' || ps().bg.id === 'cloud' || ps().bg.id === 'dotw' || ps().bg.id === 'swarm' || ps().bg.id === 'fold' || ps().bg.id === 'crain' || ps().bg.id === 'orb' || ps().bg.id === 'valley' || ps().bg.id === 'glyph') && ps().bg.pal == null && n % 10 === o % 10) || (ps().bg.id === 'plasma' && ps().bg.pal == null && n % 11 === o % 11) || (ps().bg.id === 'fractal' && n % 10 === o % 10)) n = newSeed(); ps().bg.seed = n; syncFirst(); if (artCap) { const rn = (L, v) => { let x; do x = L[Math.floor(Math.random() * L.length)]; while (x === v && L.length > 1); return x; }; if (!card.tfxP) card.tfx = rn(FX_SOFT, tfxOf(card)); if (!card.tmoP) card.tmo = rn(MO_SOFT, tmoOf(card)); } } else { f.shuffle?.(card); card.seed = newSeed(); } push(); draw(); paintRow2(); return; }   // 148차: 아트 제목글 효과 · 모션도 (고른 건 그대로)   // 글카드: 보고 있는 장만. 슬릿스캔는 셔플마다 색 묶음도 꼭 바뀌게
       if (k === 'page') {
         ps(); card.pages.splice(st.pg + 1, 0, ''); card.pst.splice(st.pg + 1, 0, clone(card.pst[st.pg])); st.pg += 1;   // 새 장은 앞 장 배경 · 위치를 이어받아요
         push(); draw(); scrollToPage(st.pg);
@@ -2859,11 +2859,12 @@ function viewWrite({ fmt, id, like }) {
     if (st.tab === 'filter' && f.tools.filter) return paintFilterRow();
     if (st.tab === 'bg' && f.tools.bg) return paintBgRow();
     if (st.tab === 'font' && f.tools.font) return paintFontRow();
+    if ((st.tab === 'tfx' || st.tab === 'tmo') && artCap) return paintTxRow(st.tab);
     const a = ps().align || { h: 'l', v: rich ? 'm' : 't' };
     row2.className = 'st2 g6';
     row2.innerHTML = `<button class="k" data-s="size" aria-label="크기">${ic('size')}</button><button class="k" data-s="lh" aria-label="줄 간격">${ic('lh')}</button>
       <button class="k" data-s="h" aria-label="좌우">${ic('a' + (a.h || 'l'))}</button><button class="k" data-s="v" aria-label="위아래">${ic('v' + (a.v || 'm'))}</button>
-      ${rich ? `<button class="k ${card.bold ? 'on' : ''}" data-s="bold" aria-label="굵게">${ic('bold')}</button><button class="k" data-s="ink" aria-label="글자색" style="--ink:${card.ink || '#F4B860'}">${ic('col')}</button>` : '<span></span><span></span>'}<span></span><span></span>`;
+      ${rich ? `<button class="k ${card.bold ? 'on' : ''}" data-s="bold" aria-label="굵게">${ic('bold')}</button><button class="k" data-s="ink" aria-label="글자색" style="--ink:${card.ink || '#F4B860'}">${ic('col')}</button>` : '<span></span><span></span>'}${artCap ? `<button class="k" data-s="tfx" aria-label="글자 효과">${ic('tfx')}</button><button class="k" data-s="tmo" aria-label="글자 모션">${ic('tmo')}</button>` : '<span></span><span></span>'}`;
     $$('.k', row2).forEach(x => {
       x.addEventListener('pointerdown', e => e.preventDefault());
       x.onclick = () => {
@@ -2877,6 +2878,7 @@ function viewWrite({ fmt, id, like }) {
         if (k === 'v') { const n = free ? a.v || (rich ? 'm' : 't') : next(V5, a.v || (rich ? 'm' : 't')); ps().align = { ...fixed(), v: n }; syncFirst(); push(); draw(); pop(VN[n], null, pgLab()); }
         if (k === 'bold') { card.bold = !card.bold; push(); draw(); pop(card.bold ? '굵게' : '보통 굵기'); }
         if (k === 'ink') { st.tab = 'ink'; return paintRow2(); }
+        if (k === 'tfx' || k === 'tmo') { st.tab = k; return paintRow2(); }   // 148차: 이름 줄
         paintRow2();
       };
     });
@@ -2909,6 +2911,26 @@ function viewWrite({ fmt, id, like }) {
       push(); draw(); paintRow2(); pop(ink ? '글자색' : '직접 색', null, ink || pal ? null : pgLab());
     };
     bar.addEventListener('pointerup', end); bar.addEventListener('pointercancel', end);
+  }
+  // 148차 (11-27 앤드류): 글자 효과 · 모션 이름 줄 = 글꼴 줄과 같은 모양 (‹ › 하나씩 · 이름을 눌러 바로). 고르면 셔플해도 그대로
+  function paintTxRow(kind) {
+    const L = kind === 'tfx' ? TFX : TMO, cur = kind === 'tfx' ? tfxOf(card) : tmoOf(card), lab = kind === 'tfx' ? '글자 효과' : '글자 모션';
+    row2.className = 'st2 g6 fnr txr';
+    row2.innerHTML = `<button class="k" data-x="back" aria-label="돌아가기">${ic('back')}</button><button class="k" data-x="next" aria-label="다음">${ic('next')}</button>
+      <div class="fst">${L.map(([id, nm]) => `<button class="fn ${id === cur ? 'sel' : ''}" data-v="${id}"><span>${nm}</span></button>`).join('')}<span class="end"></span></div>`;
+    const fs = $('.fst', row2);
+    const fitNames = () => $$('.fn', fs).forEach(x => { const sp = x.firstElementChild, room = x.clientWidth - 12; x.style.fontSize = ''; if (sp.offsetWidth > room) x.style.fontSize = Math.floor(15 * room / sp.offsetWidth) + 'px'; });
+    fitNames();
+    const toCur = smooth => { const s = $('.sel', fs); if (s) fs.scrollTo({ left: s.offsetLeft - fs.firstElementChild.offsetLeft, behavior: smooth ? 'smooth' : 'instant' }); };
+    const pick = (id, smooth) => {
+      flush(); card[kind] = id; card[kind + 'P'] = 1; push(); draw(); pop(L.find(o => o[0] === id)[1], null, lab);
+      $$('.fn', fs).forEach(x => x.classList.toggle('sel', x.dataset.v === id)); toCur(smooth);
+    };
+    toCur(false);
+    $$('button', row2).forEach(x => x.addEventListener('pointerdown', e => e.preventDefault()));
+    $('[data-x=back]', row2).onclick = () => { st.tab = 'fmt'; paintRow2(); };
+    $('[data-x=next]', row2).onclick = () => { const i = L.findIndex(o => o[0] === (kind === 'tfx' ? tfxOf(card) : tmoOf(card))); pick(L[(i + 1) % L.length][0], i + 1 < L.length); };
+    $$('[data-v]', fs).forEach(x => x.onclick = () => pick(x.dataset.v, true));
   }
   // 글꼴 줄: 1 · 2칸 = 이전 · 다음 글꼴(끝에서는 처음으로), 3~7칸 = 이름 줄(이름 하나가 2칸, 그 글꼴로). 지금 글꼴이 맨 앞, 밀어 보고 이름을 눌러 바로 골라요
   function paintFontRow() {
