@@ -2,7 +2,7 @@
 import { ic } from './icons.js';
 import * as S from './store.js';
 import { exampleText, quoteText, dayQuestion } from './prompts.js';
-import { FORMATS, ORDER, LABEL, ensure, missing, blank, sampleCard, renderCard, fitCard, cardText, newSeed, placeObjects, dateChip, weekday, toneOf, pageBg, AR, RATIOS, arOf, dateOn, placeOn, infoPos, signOf, SIZE5, V5, dimLv, inkOn, dateLine, DATE_FMT, zoomOf, zoomCss, lines, starts } from './formats.js';
+import { FORMATS, ORDER, LABEL, ensure, missing, blank, sampleCard, renderCard, fitCard, cardText, isCap, capOn, firstLine, RATIO3, newSeed, placeObjects, dateChip, weekday, toneOf, pageBg, AR, RATIOS, arOf, dateOn, placeOn, infoPos, signOf, SIZE5, V5, dimLv, inkOn, dateLine, DATE_FMT, zoomOf, zoomCss, lines, starts } from './formats.js';
 import { FREE, KIND, find as findBg, drawCode, SWIRL_PAL, NEON_PAL, TUNNEL_PAL, ECLIPSE_PAL, MESH_PAL, PIXEL_PAL, RETRO_PAL, GBAND_PAL, CUBE_PAL, CCOMP_PAL, BMOD_PAL, WINT_PAL, SPEC_PAL, CITY_PAL, BLOB_PAL, LENS_PAL, FIELD_PAL, LIQUID_PAL, FLOAT_PAL, CLOUD_PAL, DOTW_PAL, SWARM_PAL, FOLD_PAL, CRAIN_PAL, ORB_PAL, VALLEY_PAL, GLYPH_PAL, PLASMA_PAL } from './bg.js';
 import { buildPages, saveImages } from './export.js';
 import { saveCard, pill, pillOff } from './save.js';
@@ -412,7 +412,7 @@ function pageInto(view, c, onCount) {
 // x.recall = N년 전 오늘로 위에 한 번 더 나온 카드, x.promo = 피드 중간의 NEW 포맷 카드
 // 11-04 3차: 켜진 알림 = 반복이거나 아직 안 지난 것. 카드 아래 줄 표시 (책갈피 · 알림 · 메모)
 const alarmOn = c => !!c.alarm && ((c.alarm.rep && c.alarm.rep !== 'none') || new Date(`${c.alarm.d}T${c.alarm.t || '00:00'}`) > new Date());
-const flagsOf = (c, memo) => c.sample ? '' : [c.mark && 'bookmark', alarmOn(c) && 'bell', memo && c.memos?.length && 'note'].filter(Boolean).map(k => `<i class="fl">${ic(k, 'i-' + k)}</i>`).join('');
+const flagsOf = (c, memo) => c.sample ? '' : [c.mark && 'bookmark', alarmOn(c) && 'bell', false].filter(Boolean).map(k => `<i class="fl">${ic(k, 'i-' + k)}</i>`).join('');
 function syncCard(c) { $$(`.fi[data-id="${c.id}"]`).forEach(it => { if (it._card && it._card !== c) Object.assign(it._card, { memos: c.memos, alarm: c.alarm, mark: c.mark }); it._sync?.(); }); }
 const hasVideo = c => [c.bg, ...(c.pst || []).map(p => p?.bg)].some(b => b?.vd);   // 영상이 든 카드 (그림 안에 작은 영상 표시)
 function feedItem(c, tile, x = {}) {
@@ -436,8 +436,10 @@ function feedItem(c, tile, x = {}) {
   if (ex1) { ex1.textContent = flat(c); ex1.onclick = () => fx.click(); }
   const exOpen = () => {   // 글 전체 + 그 아래 메모 모두 (최근 메모가 위)
     const ms = [...(c.memos || [])].reverse();
-    ex.innerHTML = `<span class="tf"></span>${ms.length ? `<span class="xms">${ms.map(m => `<span class="xm1"><span></span><small>${stamp(m.at)}</small></span>`).join('')}</span>` : ''}`;
-    $('.tf', ex).textContent = cardText(c).replace(/\n{3,}/g, '\n\n').trim();
+    const q = capOn(c) && c.quote?.t?.trim() ? c.quote : null;
+    ex.innerHTML = `<span class="tf"></span>${q ? '<span class="xq"><span></span><small></small></span>' : ''}${ms.length ? `<span class="xms">${ms.map(m => `<span class="xm1"><span></span><small>${stamp(m.at)}</small></span>`).join('')}</span>` : ''}`;
+    $('.tf', ex).textContent = bodyText(c);
+    if (q) { $('.xq > span', ex).textContent = q.t.trim(); $('.xq small', ex).textContent = (q.src || '').trim(); }
     $$('.xm1 > span', ex).forEach((el, i) => { el.textContent = ms[i].t; });
   };
   const exLine = () => {
@@ -446,7 +448,7 @@ function feedItem(c, tile, x = {}) {
     const t = flat(c), n = c.memos?.length || 0;
     if (ex.classList.contains('open')) { ex.hidden = false; return exOpen(); }
     ex.innerHTML = '<span class="t1"></span><button class="xmore" hidden>더 보기</button>'; $('.t1', ex).textContent = t; ex.hidden = !t && !n;
-    requestAnimationFrame(() => { const s1 = $('.t1', ex), b = $('.xmore', ex); if (s1 && b) b.hidden = !(n || s1.scrollWidth > s1.clientWidth + 1); });
+    requestAnimationFrame(() => { const s1 = $('.t1', ex), b = $('.xmore', ex); if (s1 && b) b.hidden = !(n || s1.scrollHeight > s1.clientHeight + 1 || s1.scrollWidth > s1.clientWidth + 1 || (capOn(c) && c.quote?.t?.trim())); ex.classList.toggle('hm', !b.hidden); });
   };
   if (ex && !x.ex) { ex.classList.add('xcap'); ex.onclick = () => { if (ex.classList.contains('open')) { ex.classList.remove('open'); exLine(); } else if ($('.xmore', ex) && !$('.xmore', ex).hidden) { ex.classList.add('open'); exOpen(); } }; }
   it._sync = () => { const f = $('.fls', it); if (f) f.innerHTML = flagsOf(c, tile); exLine(); };   // 메모 · 알림 · 책갈피가 바뀌면 바로
@@ -456,6 +458,9 @@ function feedItem(c, tile, x = {}) {
     if (it._drawn) return; it._drawn = 1;
     if (blr) mount(blr, { ...c, pages: c.pages ? [''] : c.pages, pst: c.pst ? [c.pst[0]].filter(Boolean) : c.pst, html: c.html != null ? '&nbsp;' : c.html, place: '', showDate: false, datePos: 'none', sg: '', signTxt: '' });
     mount(view, c);
+    // 146차: 그림이 그려지면 뒤 바탕색을 빼요 (둥근 모서리 위아래에 바탕색이 가는 줄로 비치던 것)
+    const unTone = (n = 0) => { if (!it.isConnected && n) return; if (view.querySelector('.cd:not(.wait)')) fx.style.background = ''; else if (n < 20) setTimeout(() => unTone(n + 1), 300); };
+    requestAnimationFrame(() => unTone());
     pageInto(view, c, (i, n) => { if (pc) { pc.hidden = false; $('b', pc).textContent = `${i}/${n}`; } });
   };
   it._draw = draw; fx.style.background = toneOf(c);
@@ -474,7 +479,7 @@ function feedItem(c, tile, x = {}) {
   on('read', () => {
     if (!ex) return;
     const open = !ex.classList.contains('open');
-    ex.classList.toggle('open', open); if (open) ex.textContent = cardText(c).replace(/\n{3,}/g, '\n\n').trim(); else exLine();
+    ex.classList.toggle('open', open); if (open) ex.textContent = feedText(c).replace(/\n{3,}/g, '\n\n').trim(); else exLine();
     $('[data-a=read]', it).classList.toggle('on', open);
   });
   on('mark', mark); on('del', del); on('like', () => goLike(c));
@@ -577,7 +582,7 @@ const alarmShort = a => `${+a.d.slice(5, 7)}.${+a.d.slice(8, 10)}${a.rep && a.re
 function cardExtra(c) {
   const n = c.memos?.length || 0;
   return [
-    { icon: 'note', label: `메모${n ? `<span class="sval">${n}</span>` : ''}`, on: n > 0, run: () => memoSheet(c) },
+    // 146차 (앤드류): 메모는 뺐어요. 이미 쓴 메모는 카드 아래 글 끝(더 보기)에 그대로 보여요
     { icon: 'bell', label: `알림${c.alarm ? `<span class="sval">${alarmShort(c.alarm)}</span>` : ''}`, on: alarmOn(c), run: () => alarmSheet(c) },
     { icon: 'info', label: '정보', run: () => infoSheet(c) },
   ];
@@ -614,7 +619,7 @@ function memoSheet(c) {
 // 큰 화면: 카드 바로 아래 메모 (최근 것이 위, 쓴 때)
 const focusRow = c => `<div class="fi fmt"><p class="mt"><span>${ago(c)}<span class="fls">${flagsOf(c, false)}</span></span><button class="cb" data-a="more" aria-label="더 보기">${ic('more')}</button></p></div>`;
 function memoHtml(c) {   // 11-11: 크게 보기 카드 아래 = 글 전체 + 메모 모두 (펼친 채로)
-  const ms = [...(c.memos || [])].reverse(), t = cardText(c).replace(/\n{3,}/g, '\n\n').trim();
+  const ms = [...(c.memos || [])].reverse(), t = feedText(c).replace(/\n{3,}/g, '\n\n').trim();
   return (t ? `<p class="ftx">${esc(t)}</p>` : '') + (ms.length ? `<div class="fms">${ms.map(m => `<div class="fm"><p>${esc(m.t)}</p><small>${stamp(m.at)}</small></div>`).join('')}</div>` : '');
 }
 function refreshFocusMemo(c) {
@@ -889,7 +894,11 @@ const PIN = '<svg class="ic" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7
 const CLK = '<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
 const ymd = d => `${+d.slice(0, 4)}년 ${+d.slice(5, 7)}월 ${+d.slice(8, 10)}일`;
 const md = d => (d.slice(0, 4) !== S.today().slice(0, 4) ? `${+d.slice(0, 4)}년 ` : '') + `${+d.slice(5, 7)}월 ${+d.slice(8, 10)}일`;
-const flat = c => cardText(c).replace(/\s+/g, ' ').trim();
+// 146차: 카드 아래 글 = 아트 · 포스터는 내용글 (+ 좋은글), 기본 · 디자인은 카드 글 그대로
+const quoteLine = q => q?.t?.trim() ? `“${q.t.trim()}”${q.src?.trim() ? ' — ' + q.src.trim() : ''}` : '';
+const bodyText = c => capOn(c) ? (c.note || '').replace(/\n{3,}/g, '\n\n').trim() : cardText(c).replace(/\n{3,}/g, '\n\n').trim();
+const feedText = c => capOn(c) ? [bodyText(c), quoteLine(c.quote)].filter(Boolean).join('\n\n') : cardText(c);
+const flat = c => feedText(c).replace(/\s+/g, ' ').trim();
 // 찾은 낱말을 드래그한 것처럼 (모서리 없는 반투명 네모)
 function hl(t, words) {
   const lw = t.toLowerCase(), hit = new Array(t.length).fill(false);
@@ -1984,7 +1993,7 @@ const REC_T = { 밤: '밤에 쓰기 좋은', 비: '비 오는 날엔', 눈: '눈
 const WXK = { sun: '맑음', suncloud: '구름 조금', cloud: '흐림', rain: '비', snow: '눈', thunder: '천둥', fog: '안개' };
 const dayLine = (now = new Date()) => { let w = ''; try { const x = JSON.parse(localStorage.getItem('daytale.wx') || 'null'); if (x && Date.now() - x.at < 3 * 3600e3 && WXK[x.kind]) w = ` · ${WXK[x.kind]}${x.temp != null ? ` ${x.temp}°` : ''}`; } catch {} return `${now.getMonth() + 1}월 ${now.getDate()}일 ${'일월화수목금토'[now.getDay()]}요일${w}`; };
 // 78차: 새 버전 확인. 앱으로 돌아올 때(다른 앱 갔다 오기) version.txt가 지금과 다르면 저절로 새로 고쳐요. 쓰는 중엔 안 해요
-const BUILD = '145', BUILD_TAG = '11-27 145차';
+const BUILD = '146', BUILD_TAG = '11-27 146차';
 let verAt = 0;
 const checkVer = () => {
   if (document.hidden || Date.now() - verAt < 20e3) return; verAt = Date.now();
@@ -2123,6 +2132,17 @@ function viewWrite({ fmt, id, like }) {
   const f = { ...FORMATS[card.fmt], tools: T.toolsOf(card) }, rich = !!f.rich;   // 도구 = 틀 기본값 + 템플릿이 바꾼 것   // 장으로 쓰는 포맷(글 · 아트)
   if (f.tools.ratio === false && card.ratio && card.ratio !== '45') card.ratio = '45';   // 142차: 4:5만 쓰는 틀은 물려받은 비율(1:1 등) 대신 늘 4:5
   if (!rich && card.html == null) { card.html = renderCard(card).querySelector('.rb').innerHTML; card.html = clean(card.html); delete card.text; }
+  // 146차 (11-27 앤드류): 아트 · 포스터 = 키보드 쓰기에서 내용글 · (좋은글) · 제목글 칸에 따로 써요. 카드엔 제목글만 (포스터는 잡지 제목 + 본문 자리에 내용글 첫 문장).
+  // 내용글 · 좋은글은 홈에서 카드 아래 (저장 이미지엔 카드만). 장 나누기는 없어요 (카드 1장)
+  const cap = isCap(card), mag = cap && !rich;
+  if (cap && !card.cap) {   // 예전 카드: 여러 장이면 하나로 합쳐 제목글로 (내용글은 비어 있어요)
+    if (rich && card.pages.length > 1) { card.pages = [card.pages.filter(h => h && h.replace(/<[^>]+>|&nbsp;|\s/g, '')).join('<br>')]; if (card.pst) card.pst = [card.pst[0]].filter(Boolean); }
+    if (mag && card.note == null && card.html && !card.sample) card.note = card.html.replace(/<br\s*\/?>/g, '\n').replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&amp;/g, '&').trim();
+    card.cap = 1;
+  }
+  if (cap) { if (card.note == null) card.note = ''; if (mag) card.html = esc(firstLine(card.note)); }
+  if (mag && isNew && card.title === 'Film Vibes' && !card.note) card.title = null;   // 새 표지: 예시 제목은 칸에 안 넣어요 (비워 두면 표지엔 예시 제목)
+  if (!RATIO3.includes(card.ratio || '45') && isNew) card.ratio = '45';
   const st = { panel: null, tab: intent?.color ? 'bg' : f.tools.look ? 'img' : 'fmt', hist: [clone(card)], hi: 0, timer: 0, pg: 0, sel: null, composing: false };
   const root = document.documentElement;
   // 장마다 배경 · 글 위치 (글카드). ps() = 보고 있는 장의 값(없으면 카드 값으로 채워요). 첫 장 값은 card.bg · align에도 (피드 색 · 예전 카드)
@@ -2168,6 +2188,21 @@ function viewWrite({ fmt, id, like }) {
     <div class="recent"></div>
     <div class="panel"></div></div>`;
   const wr = $('.wr'), stage = $('.stage'), panel = $('.panel');
+  let capx = null;
+  const cf = k => capx && $(`[data-c="${k}"]`, capx);
+  if (cap) {
+    wr.classList.add('cap');
+    capx = document.createElement('div'); capx.className = 'capx';
+    const ce = pt => `contenteditable="${pt ? 'plaintext-only' : 'true'}" spellcheck="false" autocapitalize="off"`;
+    capx.innerHTML = `<p class="clb">내용글</p><div class="body cx cn" data-c="note" ${ce(1)} data-ph="오늘 있었던 일을 자유롭게"></div>
+      <div class="cq" hidden><p class="clb">좋은글</p><div class="cqb"><div class="body cx" data-c="qt" ${ce(1)} data-ph="마음에 남은 문장"></div><div class="body cx cs" data-c="qs" ${ce(1)} data-ph="출처 · 책, 사람"></div></div></div>
+      <p class="clb">제목글</p><div class="body cx ct" data-c="title" ${ce(mag)} data-ph="카드에 들어가요 · 키워드나 한두 줄"></div>`;
+    // 좋은글을 비워 두고 다른 칸으로 가면 좋은글 칸을 닫아요
+    capx.addEventListener('focusout', () => setTimeout(() => {
+      const a = document.activeElement?.dataset?.c;
+      if (card.quote && a !== 'qt' && a !== 'qs' && !card.quote.t?.trim() && !card.quote.src?.trim()) { delete card.quote; push(); paintCap(); }
+    }, 0));
+  }
 
   /* 키보드: shell.js trackKeyboard와 같은 계산. 키보드 높이는 기억해 두고 패널도 같은 높이로 열어요 */
   const vv = window.visualViewport;
@@ -2235,6 +2270,7 @@ function viewWrite({ fmt, id, like }) {
   function applySize(force) {
     const writing = wr.classList.contains('typ') || wr.classList.contains('inf') || root.classList.contains('kb-open') || root.classList.contains('pan');
     let cw = writing ? sizes.w : sizes.v;
+    if (cap && wr.classList.contains('typ') && !wr.classList.contains('inf')) cw = 120;   // 키보드 쓰기: 위 가운데 작은 카드
     if (wr.classList.contains('inf')) { const ah = $('.area').clientHeight; if (ah > 40) cw = Math.max(80, Math.min(sizes.w, Math.floor((ah - 12) / arOf(card)))); }   // 날짜 · 장소 · 서명 화면: 카드 한 장이 다 보이게 줄여요
     if (!force && wr.style.getPropertyValue('--cw') === cw + 'px') return;
     wr.style.setProperty('--cw', cw + 'px'); wr.style.setProperty('--ar', arOf(card));
@@ -2246,13 +2282,13 @@ function viewWrite({ fmt, id, like }) {
   const push = () => { clearTimeout(st.timer); st.timer = 0; st.hist = st.hist.slice(0, st.hi + 1); st.hist.push(clone(card)); if (st.hist.length > 80) st.hist.shift(); st.hi = st.hist.length - 1; tools(); persist(); };
   const flush = () => { if (st.timer) push(); };   // 쓰던 글을 먼저 기록해 두고 바꿔요 (되돌리면 바로 앞 모습으로)
   const pushLater = () => { clearTimeout(st.timer); st.timer = setTimeout(push, 700); persist(); tools(); };
-  const hasText = () => cardText(card).trim().length > 0 || (rich && card.pages.some(h => h.includes('class="stk"')));   // 이모티콘만 있어도 쓴 거예요
+  const hasText = () => cardText(card).trim().length > 0 || (rich && card.pages.some(h => h.includes('class="stk"'))) || (cap && !!((card.note || '').trim() || card.quote?.t?.trim()));   // 이모티콘만 있어도 쓴 거예요
   // 위 가운데: 지금 장 / 저장될 장 수 · 글자 수. 긴 장은 점선마다 한 장으로 세요(저장할 때 그렇게 나뉘어요)
   function count() {
-    const n = `${cardText(card).replace(/\s/g, '').length}자`, nm = $('.wr .stt');
+    const n = `${(cardText(card) + (cap ? card.note || '' : '')).replace(/\s/g, '').length}자`, nm = $('.wr .stt');
     if (st.popT || !nm) return;   // 알림이 떠 있는 동안은 그대로
     if (!hasText()) return (nm.textContent = card.ex?.by || '');   // 예시가 문장이면 위 가운데에 작가 이름
-    if (!rich || !el) return (nm.textContent = n);
+    if (!rich || !el || cap) return (nm.textContent = n);
     const box = stage.getBoundingClientRect(), mid = box.top + Math.min(box.height, el.getBoundingClientRect().height) / 2;
     let total = 0, at = 0;
     $$('.pg', el).forEach((pg, i) => {
@@ -2340,7 +2376,7 @@ function viewWrite({ fmt, id, like }) {
      날짜 · 장소 · 서명 화면과 같은 자리(키보드 위 입력 줄). 글은 서버(ai-write)가 만들어요 (키는 서버에만) */
   const aip = $('.aip'), ain = $('.aip .ai'), aigo = $('.aip .go');
   st.aiLen = ({ s: '2', l: '5' })[S.pref('aiLen', '2')] || S.pref('aiLen', '2');   // 11-27: 짧게/길게 → 제목 · 2줄 · 5줄 문장 (예전 값은 2줄 · 5줄로)
-  const aiCur = () => rich ? (card.pages[st.pg] || '') : (card.html || '');
+  const aiCur = () => cap ? (st.aiLen === 't' ? fieldVal('title') : card.note || '') : rich ? (card.pages[st.pg] || '') : (card.html || '');
   function paintAi() {
     $$('.len', aip).forEach(b => b.classList.toggle('sel', b.dataset.l === st.aiLen));
     const again = st.ai && st.ai.at === aiCur() && st.ai.topic === ain.value.trim();
@@ -2379,13 +2415,20 @@ function viewWrite({ fmt, id, like }) {
     st.aiBusy = false;
     if (!wr.isConnected) return;
     if (j.error) { paintAi(); return pop(j.error === 'busy' ? '잠시 뒤 다시 해 주세요' : j.error === 'net' ? '인터넷에 연결해 주세요' : '지금은 못 만들어요'); }
+    if (cap) {   // 146차: 제목 문장 → 제목글(바꿔 넣기), 2줄 · 5줄 → 내용글 뒤에
+      const t = st.aiLen === 't', txt = String(j.text).trim();
+      const nv = t ? (mag ? txt.replace(/\s+/g, ' ') : esc(txt).replace(/\n/g, '<br>')) : (base.trim() ? base.replace(/\s+$/, '') + '\n\n' : '') + txt;
+      if (!t) { card.note = nv; if (mag) card.html = esc(firstLine(nv)); } else if (mag) card.title = nv; else card.pages[0] = nv;
+      st.ai = { base, at: nv, topic };
+    } else {
     const add = rich ? esc(j.text).replace(/\n/g, '<br>') : esc(j.text);
     const plain = base.replace(/<br\s*\/?>/g, '').replace(/<[^>]+>/g, '').trim();
     const next = !plain ? add : rich ? `${base}<br><br>${add}` : `${base.replace(/(\s|&nbsp;)+$/, '')} ${add}`;
     if (rich) card.pages[st.pg] = next; else card.html = next;
     st.ai = { base, at: next, topic };
+    }
     S.setPref('aiLen', st.aiLen);
-    push(); draw(); count(); tools(); paintAi(); applySize(true);
+    push(); draw(); paintCap(true); count(); tools(); paintAi(); applySize(true);
     pop(({ t: '제목 문장', 5: '5줄 문장' })[st.aiLen] || '2줄 문장', null, 'AI 글쓰기');
   }
   $$('button', aip).forEach(b => b.addEventListener('pointerdown', e => e.preventDefault()));
@@ -2435,9 +2478,38 @@ function viewWrite({ fmt, id, like }) {
       if (rich) el.addEventListener('scroll', () => { const i = pageAtScroll(); if (i !== st.pg) { st.pg = i; count(); paintRow2(); tools(); syncVideo(); } }, { passive: true });   // 보는 장이 바뀌면 그 장의 배경 · 위치를 보여 줘요
     }
     el.classList.toggle('empty', !hasText());
+    if (cap) { bodies().forEach(b => { if (b.isContentEditable) { b.contentEditable = 'false'; b.removeAttribute('tabindex'); } }); if (el.nextSibling !== capx) el.after(capx); paintCap(); }   // 아트 · 포스터: 카드 위 글은 아래 칸에서만 써요
     fitCard(el, card); tools(); panAxes();
     if (rich) scrollToPage(st.pg, false);
     count(); syncVideo();
+  }
+  // 아트 · 포스터 칸 값 ↔ 카드 (제목글: 아트 = 카드 첫 장 글, 포스터 = 잡지 제목)
+  const fieldVal = (k, c = card) => k === 'note' ? c.note || '' : k === 'qt' ? c.quote?.t || '' : k === 'qs' ? c.quote?.src || '' : mag ? c.title || '' : c.pages[0] || '';
+  const readField = b => b.dataset.c === 'title' && !mag ? clean(b.innerHTML) : b.innerText.replace(/\u200B/g, '').replace(/\n$/, '');
+  function paintCap(force) {
+    if (!capx) return;
+    $$('.cx', capx).forEach(b => {
+      const k = b.dataset.c, html = k === 'title' && !mag, want = fieldVal(k);
+      if (readField(b) === want || (b === document.activeElement && !force)) return;
+      if (b === document.activeElement) {   // 키보드가 올라온 채로 바꾸기 (아이폰은 칸 내용을 갈아 끼우면 키보드를 닫아요)
+        const r = document.createRange(); r.selectNodeContents(b); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+        st.prog = true; try { document.execCommand(want ? (html ? 'insertHTML' : 'insertText') : 'delete', false, want); } catch {} st.prog = false;
+        if (readField(b) !== want) { if (html) b.innerHTML = want; else b.textContent = want; }
+      } else if (html) b.innerHTML = want; else b.textContent = want;
+      if (!want) b.innerHTML = '';
+      if (html) hydrate(b);
+    });
+    $('.cq', capx).hidden = !card.quote;
+  }
+  function capTyped(b) {
+    const k = b.dataset.c;
+    if (!b.textContent.replace(/\u200B/g, '').trim() && !b.querySelector('.stk') && b.innerHTML) b.innerHTML = '';   // 비우면 안내 글자가 다시 보여요
+    const v = readField(b);
+    if (k === 'note') { card.note = v; if (mag) card.html = esc(firstLine(v)); }
+    else if (k === 'qt' || k === 'qs') card.quote = { ...(card.quote || { t: '', src: '' }), [k === 'qt' ? 't' : 'src']: v };
+    else if (mag) card.title = v.replace(/\s+/g, ' ').replace(/^ /, '');
+    else card.pages[0] = v;
+    draw(); pushLater(); requestAnimationFrame(keepCaret);
   }
   // 영상인 장을 보고 있으면 그 장만 재생 (정지 상태는 기억해요). 다른 장으로 가면 멈추고 커버
   function syncVideo() {
@@ -2452,7 +2524,7 @@ function viewWrite({ fmt, id, like }) {
   function keepCaret() {
     if (!typingNow() && !st.panel) return;   // 스타일 보기에서는 보던 자리 그대로 (남은 커서 자리로 끌려가지 않게)
     const s = getSelection(); if (!s.rangeCount || !el) return;
-    const n = s.anchorNode; if (!n || !el.contains(n)) return;
+    const n = s.anchorNode; if (!n || !(el.contains(n) || capx?.contains(n))) return;
     const box = stage.getBoundingClientRect(), gap = 24, rect = caretRect(s.getRangeAt(0));
     if (!rect) return;
     const want = rect.bottom;
@@ -2472,6 +2544,7 @@ function viewWrite({ fmt, id, like }) {
 
   /* 입력: 모든 포맷이 카드 위 글(.body)에 바로 써요. 한글 조합 중에는 손대지 않아요 */
   function typed(b) {
+    if (b.dataset.c) return capTyped(b);
     const i = pageOf(b); st.pg = i;
     if (!b.textContent.trim() && b.innerHTML && !b.querySelector('li,h2,h3,.stk')) b.innerHTML = '';   // 비우면 예시 글이 다시 보여요
     if (b.dataset.f) card[b.dataset.f] = b.textContent.replace(/\s+/g, ' ').replace(/^ /, '');   // 따로 쓰는 칸 (잡지 표지 제목: card.title, 글자만)
@@ -2498,6 +2571,7 @@ function viewWrite({ fmt, id, like }) {
   stage.addEventListener('focusin', e => {
     const b = e.target.closest?.('.body'); if (!b) return;
     st.pg = pageOf(b); st.hold = true;   // 키보드 쓰기에 들어옴
+    if (b.dataset.c) st.capF = b.dataset.c;
     if (st.panel) closePanel(false);
     mode();
   });
@@ -2513,6 +2587,7 @@ function viewWrite({ fmt, id, like }) {
   });
   // 카드의 빈 곳을 눌러도 쓰기로 (글 끝에 커서). 다른 장을 누르면 그 장으로
   stage.addEventListener('click', e => {
+    if (cap) { if (e.target.closest('.cd') && !capx.contains(e.target) && !typingNow()) caretEnd(); return; }   // 아트 · 포스터: 카드 = 아래 칸으로
     if (e.target.closest('.body')) return;
     const pg = e.target.closest('.pg');
     if (!rich) return e.target.closest('.cd') && !typingNow() && caretEnd(0);   // 이미 쓰는 칸이 있으면 그대로 (잡지 표지: 제목을 누른 뒤 화면이 바뀌어 같은 자리 클릭이 본문으로 가던 것)
@@ -2521,7 +2596,7 @@ function viewWrite({ fmt, id, like }) {
     caretEnd(i);
   });
   function caretEnd(i) {
-    const b = bodies()[i]; if (!b) return;
+    const b = cap ? cf(st.capF && !(st.capF[0] === 'q' && !card.quote) ? st.capF : 'note') : bodies()[i]; if (!b) return;
     b.focus({ preventScroll: true });
     const r = document.createRange(); r.selectNodeContents(b); r.collapse(false);
     const s = getSelection(); s.removeAllRanges(); s.addRange(r);
@@ -2546,6 +2621,7 @@ function viewWrite({ fmt, id, like }) {
     st.prog = false;
     if (act && bodies().includes(act)) { const r = document.createRange(); r.selectNodeContents(act); r.collapse(false); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); }
     el.classList.toggle('empty', !hasText());
+    paintCap(true);
     fitCard(el, card); count(); tools(); requestAnimationFrame(keepCaret);
   }
 
@@ -2553,7 +2629,7 @@ function viewWrite({ fmt, id, like }) {
   const typingNow = () => !!document.activeElement?.closest?.('.wr .body');
   function mode() {
     const w = typingNow() || st.panel === 'emo' || !!st.waitKb || !!st.hold;   // 11-27: 키보드 쓰기는 ⌨ · 위 ✓(글 완료) · 아이폰 키보드 내림으로만 나가요 (st.hold)
-    if (wr.classList.contains('typ') !== w) { wr.classList.toggle('typ', w); applySize(); if (el && !rich) fitCard(el, card); requestAnimationFrame(() => { count(); keepCaret(); }); }
+    if (wr.classList.contains('typ') !== w) { wr.classList.toggle('typ', w); applySize(cap); if (el && !rich) fitCard(el, card); requestAnimationFrame(() => { count(); keepCaret(); }); }
     tools(); panAxes();
   }
 
@@ -2562,10 +2638,11 @@ function viewWrite({ fmt, id, like }) {
     if (k === 'ratio') return f.tools.ratio !== false;
     if (k === 'lay') return !!f.tools.look;   // 잡지 표지 배치   // 잡지 표지: 4:5만
     if (k === 'kb' || k === 'undo' || k === 'redo') return true;
+    if (k === 'page' && cap) return false;   // 아트 · 포스터는 카드 1장 (146차)
     if (k === 'photo' || k === 'emo' || k === 'page') return !!f.tools[k];
     if (k === 'ai') return true;   // AI 글쓰기: 모든 포맷
     if (k === 'clear') return hasText();   // 모두 지우기: 글이 있을 때만
-    if (k === 'quote') return !!(rich && f.tools.page);   // 문장 넣기: 글포맷 · 아트
+    if (k === 'quote') return cap || !!(rich && f.tools.page);   // 아트 · 포스터 = 좋은글 칸   // 문장 넣기: 글포맷 · 아트
     if (k === 'fmt') return !!f.tools.style;
     if (k === 'font') return !!(f.tools.style && f.tools.font);
     if (k === 'img') return !!f.tools.filter || imgTab;
@@ -2592,7 +2669,7 @@ function viewWrite({ fmt, id, like }) {
       if (b.classList.contains('off') || b.classList.contains('hid')) return shake(b);
       flush();
       if (k === 'ratio') {   // 4:5 → 9:16 → 1:1. 카드 자체가 그 비율로 (저장 이미지도 그대로)
-        const i = RATIOS.findIndex(r => r[0] === (card.ratio || '45')), [n, t] = RATIOS[(i + 1) % RATIOS.length];
+        const i = RATIO3.indexOf(card.ratio || '45'), n = RATIO3[(i + 1) % RATIO3.length], t = RATIOS.find(r => r[0] === n)[1];   // 146차: 4:5 · 9:16 · 1:1 셋만
         card.ratio = n; push(); sizeCard(); draw(); tools(); return pop(t, null, '비율');
       }
       if (k === 'lay') {   // 142차 앤드류: 배치는 직접 골라요 (A → B → C). 셔플은 룩 · 제목 색만
@@ -2626,12 +2703,17 @@ function viewWrite({ fmt, id, like }) {
       if (k === 'clear') {   // 모두 지우기 (11-27): 모든 장의 글을 한 번에. 확인 창 없이, ↶로 되살려요
         if (!hasText()) return;
         flush();
-        if (rich) card.pages = card.pages.map(() => ''); else card.html = '';
+        if (cap) { card.note = ''; delete card.quote; if (mag) { card.title = ''; card.html = ''; } else card.pages = card.pages.map(() => ''); }
+        else if (rich) card.pages = card.pages.map(() => ''); else card.html = '';
         st.lastQ = null; if (st.ai) st.ai = null;
         push();
         if ((typingNow() || st.hold) && el) { setBodies(card); if (!typingNow()) caretEnd(st.pg); }   // 키보드 쓰기: 글 칸은 그대로 두고 비워요 (11-27)
         else { draw(); count(); tools(); }
         return pop('↶ 로 되돌리기', null, '모두 지웠어요');
+      }
+      if (k === 'quote' && cap) {   // 146차: 좋은글 칸을 열고 커서 (비워 두고 나가면 칸이 사라져요)
+        if (!card.quote) { card.quote = { t: '', src: '' }; push(); }
+        paintCap(); st.capF = 'qt'; caretEnd(0); st.hold = true; return mode();
       }
       if (k === 'quote') {   // 문장 넣기 (11-04): 빈 장이거나 방금 넣은 문장이면 다른 문장으로 바꾸고, 쓴 글이 있으면 그 뒤에 붙여요
         flush(); ps();
@@ -2988,6 +3070,7 @@ function viewWrite({ fmt, id, like }) {
     const end = e => {
       if (!d) return; const x = d; d = null;
       if (!x.on) {
+        if (cap && e.type === 'pointerup') return caretEnd();   // 아트 · 포스터: 카드를 누르면 아래 칸으로
         if (x.mouse && e.type === 'pointerup') { const body = $('.body', x.pg), r = document.caretRangeFromPoint?.(e.clientX, e.clientY); body.focus(); if (r && body.contains(r.startContainer)) { const s = getSelection(); s.removeAllRanges(); s.addRange(r); } }
         return;
       }
@@ -3043,6 +3126,7 @@ function viewWrite({ fmt, id, like }) {
     const end = e => {
       if (!d) return; const x = d; d = null;
       if (!x.on) {
+        if (cap && e.type === 'pointerup') return caretEnd();
         if (x.mouse && e.type === 'pointerup') { const r = document.caretRangeFromPoint?.(e.clientX, e.clientY); x.b.focus(); if (r && x.b.contains(r.startContainer)) { const s = getSelection(); s.removeAllRanges(); s.addRange(r); } }
         return;
       }
@@ -3149,9 +3233,9 @@ function viewWrite({ fmt, id, like }) {
     $$('[data-st]', panel).forEach(x => { x.addEventListener('pointerdown', e => e.preventDefault()); x.onclick = () => insertSticker(x.dataset.st); });
   }
   function insertSticker(name) {
-    const i = st.sel ? st.sel.i : st.pg, b = bodies()[i]; if (!b) return;
+    const i = st.sel ? st.sel.i : st.pg, b = cap ? cf('title') : bodies()[i]; if (!b) return;   // 아트: 이모티콘은 제목글(카드 글)에
     flush();
-    let r = st.insR && b.contains(st.insR.startContainer) ? st.insR : st.sel ? rangeAt(b, ...st.sel.ab) : null;
+    let r = st.insR && b.contains(st.insR.startContainer) ? st.insR : st.sel && !cap ? rangeAt(b, ...st.sel.ab) : null;
     if (!r) { r = document.createRange(); r.selectNodeContents(b); }
     r.collapse(false);
     const s = document.createElement('span'); s.className = 'stk'; s.dataset.st = name; if (emoV === 'l') s.dataset.v = 'l';
@@ -3161,6 +3245,7 @@ function viewWrite({ fmt, id, like }) {
     if (!t || t.nodeType !== 3 || !t.length) { t = document.createTextNode('\u200B'); s.after(t); }
     const after = document.createRange(); after.setStart(t, t.data[0] === '\u200B' ? 1 : 0); after.collapse(true); st.insR = after;
     if (!st.sel) st.sel = { i, ab: [0, 0] };
+    if (cap) { capTyped(b); return push(); }
     card.pages[i] = clean(b.innerHTML);
     el.classList.toggle('empty', !hasText()); fitCard(el, card); count(); push();
     requestAnimationFrame(() => { const rc = s.getBoundingClientRect(), box = stage.getBoundingClientRect(); if (rc.bottom > box.bottom - 16) stage.scrollTop += rc.bottom - box.bottom + 24; else if (rc.top < box.top) stage.scrollTop -= box.top - rc.top + 16; });

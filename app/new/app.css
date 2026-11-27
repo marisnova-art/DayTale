@@ -36,6 +36,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .cd.text::-webkit-scrollbar { display: none; }
 .cd .pg { flex: 0 0 100%; aspect-ratio: 4 / 5; position: relative; overflow: hidden; scroll-snap-align: start; }
 .cd .bgi, .cd .bgc, .cd .dimL { position: absolute; inset: 0; width: 100%; height: 100%; }
+.cd .bgc, .cd .bgi { inset: -1px; width: calc(100% + 2px); height: calc(100% + 2px); }   /* 146차: 카드 높이가 소수점일 때 위아래 반 픽셀 틈(가는 줄)이 안 보이게 1px씩 넘쳐 그려요 */
 .cd .bgi { background-size: cover; background-position: center; }
 .cd .tx { position: absolute; inset: 0; padding: 9.63cqw; display: flex; flex-direction: column; font-family: 'DT Gowun Batang', serif; font-size: 5cqw; line-height: 1.75; overflow: hidden; overflow-wrap: break-word; }
 .cd .dt { font-family: 'Pretendard Variable', sans-serif; font-size: 2.8cqw; letter-spacing: .1em; opacity: .85; margin-bottom: 1.6em; line-height: 1.2; }
@@ -1625,10 +1626,14 @@ img.tth { display: block; width: 100%; aspect-ratio: 4 / 5; object-fit: cover; }
 .mkv.sc .shtop { background: var(--navbg, rgba(18,18,20,.5)); -webkit-backdrop-filter: blur(22px) saturate(1.5); backdrop-filter: blur(22px) saturate(1.5); }
 html.hd :is(.tstk, .sbar, .stop2, .mkv .shtop) { transform: translateY(calc(-100% - 12px)); }
 /* 4 (11-11): 카드 아래 글 한 줄. 1열 = 끝에 흐린 '더 보기', 누르면 글 전체 + 메모 (다시 누르면 접혀요) */
-.fi .ex.xcap { display: flex; align-items: baseline; gap: 6px; cursor: pointer; }
+.fi .ex.xcap { display: block; position: relative; cursor: pointer; white-space: normal; }   /* 146차: 카드 아래 글 2줄 + 더 보기 (인스타처럼) */
 .fi .ex.xcap[hidden] { display: none; }
-.fi .ex.xcap .t1 { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.fi .ex.xcap .xmore { flex: none; color: var(--mut); font-size: var(--fs-m); }
+.fi .ex.xcap .t1 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; white-space: normal; }
+.fi .ex.xcap.hm:not(.open) .t1 { -webkit-mask: linear-gradient(#000, #000) top / 100% calc(100% - 1.45em) no-repeat, linear-gradient(90deg, #000 calc(100% - 96px), transparent calc(100% - 64px)) bottom / 100% 1.45em no-repeat; mask: linear-gradient(#000, #000) top / 100% calc(100% - 1.45em) no-repeat, linear-gradient(90deg, #000 calc(100% - 96px), transparent calc(100% - 64px)) bottom / 100% 1.45em no-repeat; }
+.fi .ex.xcap .xmore { position: absolute; right: 4px; bottom: 0; color: var(--mut); font-size: var(--fs-m); line-height: 1.45; }
+.fi .ex .xq { display: block; margin-top: 12px; padding-left: 12px; border-left: 2px solid rgba(255,255,255,.45); white-space: pre-line; }
+.fi .ex .xq small { display: block; font-size: var(--fs-s); color: var(--mut); margin-top: 2px; }
+.fi .ex .xq small:empty { display: none; }
 .fi .ex.xcap.open { display: block; white-space: normal; }
 .fi .ex.xcap.open .tf { display: block; white-space: pre-line; }
 .fi .ex .xms { display: grid; gap: 10px; margin-top: 14px; }
@@ -2149,3 +2154,17 @@ html:not(.kb-open):not(.pan) .wr.aiw:not(.ki) .aip { padding-bottom: max(8px, va
 .pg:has(> .fsh.d) .tx { text-shadow: 0 0 .6em rgba(0,0,0,.45); }
 .pg:has(> .fsh.l) .tx { text-shadow: 0 0 .6em rgba(255,255,255,.55); }
 .fsh { display: none; }
+
+/* 146차 (11-27 앤드류): 아트 · 포스터 키보드 쓰기 = 위 가운데 작은 카드 + 내용글 · 좋은글 · 제목글 칸 */
+.capx { width: 100%; padding: 2px 2px 24px; }
+.wr.cap:not(.typ) .capx { position: absolute; left: 0; top: 0; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none; }
+.wr.cap.typ .stage { width: 100%; border-radius: 0; }
+.wr.cap.typ .stage > .cd { width: var(--cw); margin: 2px auto 6px; border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,.4); flex: none; overflow: hidden; }
+.capx .clb { font-size: var(--fs-s); color: var(--mut); margin: 14px 0 4px; }
+.capx .cx { font: var(--fw) var(--fs-m)/1.5 var(--ui); color: #fff; outline: none; min-height: 1.5em; white-space: pre-wrap; overflow-wrap: anywhere; -webkit-user-select: text; user-select: text; caret-color: #4b8dff; }
+.capx .cx:empty::before { content: attr(data-ph); color: rgba(255,255,255,.35); pointer-events: none; }
+.capx .ct { border-top: 1px solid rgba(255,255,255,.14); padding-top: 6px; }
+.capx .cq[hidden] { display: none; }
+.capx .cqb { border-left: 2px solid rgba(255,255,255,.5); padding-left: 12px; }
+.capx .cs { font-size: var(--fs-s); color: var(--mut); min-height: 1.4em; }
+.capx .ct .stk { height: 1.2em; }

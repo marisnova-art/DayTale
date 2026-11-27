@@ -31,6 +31,7 @@ export const dateChip = d => { const x = parse(d); return `${x.getMonth() + 1}.$
 // 비율: 4:5(기본) · 9:16 · 1:1. 쓰기에서 고르고, 피드 · 저장 이미지가 그 비율 그대로예요
 export const AR = { 45: 1.25, 916: 16 / 9, 11: 1, 32: 2 / 3, 169: 9 / 16 };   // 세로 ÷ 가로. 가로형 3:2 · 16:9 (11-04)
 export const RATIOS = [['45', '4:5'], ['916', '9:16'], ['11', '1:1'], ['32', '3:2'], ['169', '16:9']];
+export const RATIO3 = ['45', '916', '11'];   // 146차 (앤드류): 고르는 비율은 4:5 · 9:16 · 1:1 셋만. 예전 가로 카드는 그대로 보여요
 export const arOf = c => FORMATS[c?.fmt]?.tools?.ratio === false ? 1.25 : AR[c?.ratio] || 1.25;   // 4:5만 쓰는 틀 (잡지 표지)
 export const shape = (el, ar) => { el.dataset.ar = ar; el.classList.toggle('r916', ar > 1.5); el.classList.toggle('r11', ar < 1.1 && ar > .95); el.classList.toggle('r32', ar <= .95 && ar > .6); el.classList.toggle('r169', ar <= .6); el.classList.toggle('rw', ar <= .95); return el; };
 // 정보 줄 = 날짜 · 장소 (각각 켜고 끄기), 자리는 위 · 아래. 서명은 늘 맨 아래 왼쪽 · 가운데 · 오른쪽 (모든 장)
@@ -292,6 +293,10 @@ export function renderCard(c, opt) { return FORMATS[c.fmt] ? FORMATS[c.fmt].rend
 export function fitCard(el, c) { if (!el.classList.contains("wait")) FORMATS[c.fmt]?.fit(el, c); }
 // 줄(div·h2·h3·li)과 <br>은 줄바꿈으로: 요약 글에서 줄끼리 붙지 않게
 const plain = h => { const d = document.createElement('div'); d.innerHTML = (h || '').replace(/<br\s*\/?>|<\/(div|h2|h3|li|p)>/gi, m => m + '\n'); return d.textContent; };
+// 146차 (11-27 앤드류): 아트 · 포스터 = 카드엔 제목글만, 내용글 · 좋은글은 카드 아래 (저장 이미지엔 카드만). 디자인 · 기본은 지금처럼 글이 카드에
+export const isCap = c => !!c && c.fmt !== 'text' && (Array.isArray(c.pages) || c.fmt === 'mag');
+export const capOn = c => isCap(c) && (!!c.cap || c.note != null || !!c.quote);   // 새 방식으로 쓴 카드 (예전 카드는 카드 글을 그대로 아래에)
+export const firstLine = t => { const s = String(t || '').trim().split(/\n+/)[0] || ''; const m = s.match(/^.+?[.!?。！？](?=\s|$)/); return (m ? m[0] : s).slice(0, 80); };
 export const cardText = c => c.pages ? c.pages.map(plain).join('\n') : plain(rebusHtmlOf(c));
 // 피드 바탕에 은은하게 번지는 색: 카드의 대표 색
 export function toneOf(c) {
